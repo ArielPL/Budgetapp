@@ -1,0 +1,219 @@
+import { useState } from 'react';
+import type { PlanData, SavingsGoal, BudgetRow } from '../types';
+import { generateId, makeGoalColor, SWEDISH_MONTHS } from '../defaults';
+import { EditableAmount } from './EditableAmount';
+
+interface Props {
+  data: PlanData;
+  onChange: (data: PlanData) => void;
+}
+
+const GoalCard = ({ goal, onUpdate, onDelete }: {
+  goal: SavingsGoal;
+  onUpdate: (g: SavingsGoal) => void;
+  onDelete: () => void;
+}) => {
+  const pct = goal.targetAmount > 0
+    ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
+    : 0;
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(goal.name);
+
+  const commitName = () => {
+    onUpdate({ ...goal, name: nameDraft || goal.name });
+    setEditingName(false);
+  };
+
+  return (
+    <div className="goal-card" style={{ borderLeftColor: goal.color }}>
+      <div className="goal-header">
+        {editingName ? (
+          <input
+            className="label-input goal-name-input"
+            value={nameDraft}
+            onChange={e => setNameDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={e => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') setEditingName(false); }}
+            autoFocus
+          />
+        ) : (
+          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(goal.name); }}>
+            {goal.name}
+          </span>
+        )}
+        <button className="delete-btn" onClick={onDelete} title="Ta bort mål">×</button>
+      </div>
+      {goal.budgetRowId && (
+        <div className="goal-budget-link" title="Kopplad rad i Budget → Sparande">
+          📋 Kopplad till budget
+        </div>
+      )}
+
+      <div className="goal-amounts">
+        <div className="goal-amount-block">
+          <span className="goal-amount-label">Sparat</span>
+          <EditableAmount
+            value={goal.currentAmount}
+            onChange={v => onUpdate({ ...goal, currentAmount: v })}
+            color={goal.color}
+          />
+        </div>
+        <div className="goal-amount-sep">av</div>
+        <div className="goal-amount-block">
+          <span className="goal-amount-label">Mål</span>
+          <EditableAmount
+            value={goal.targetAmount}
+            onChange={v => onUpdate({ ...goal, targetAmount: v })}
+            color={goal.color}
+          />
+        </div>
+        {goal.deadline && (
+          <div className="goal-deadline">
+            📅 {(() => {
+              const [y, m] = goal.deadline.split('-');
+              return `${SWEDISH_MONTHS[parseInt(m) - 1]} ${y}`;
+            })()}
+          </div>
+        )}
+      </div>
+
+      <div className="goal-bar-track">
+        <div
+          className="goal-bar-fill"
+          style={{ width: `${pct}%`, background: goal.color }}
+        />
+      </div>
+      <div className="goal-pct" style={{ color: goal.color }}>{pct}%</div>
+
+      <div className="goal-deadline-edit">
+        <label className="goal-deadline-label">Deadline</label>
+        <input
+          type="month"
+          className="deadline-input"
+          value={goal.deadline}
+          onChange={e => onUpdate({ ...goal, deadline: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const PlanTab = ({ data, onChange }: Props) => {
+  const addGoal = () => {
+    const newGoal: SavingsGoal = {
+      id: generateId(),
+      budgetRowId: generateId(), // will create a linked row in Budget → Sparande
+      name: 'Nytt mål',
+      targetAmount: 0,
+      currentAmount: 0,
+      deadline: '',
+      color: makeGoalColor(data.goals.length),
+    };
+    onChange({ ...data, goals: [...data.goals, newGoal] });
+  };
+
+  const updateGoal = (updated: SavingsGoal) => {
+    onChange({ ...data, goals: data.goals.map(g => g.id === updated.id ? updated : g) });
+  };
+
+  const deleteGoal = (id: string) => {
+    onChange({ ...data, goals: data.goals.filter(g => g.id !== id) });
+  };
+
+  const updateGiving = (rows: BudgetRow[]) => {
+    onChange({ ...data, giving: rows });
+  };
+
+  const addGiving = () => {
+    const row: BudgetRow = { id: generateId(), label: 'Ny post', amount: 0, isCustom: true };
+    onChange({ ...data, giving: [...data.giving, row] });
+  };
+
+  const deleteGiving = (id: string) => {
+    onChange({ ...data, giving: data.giving.filter(r => r.id !== id) });
+  };
+
+  const updateGivingRow = (id: string, field: 'label' | 'amount', value: string | number) => {
+    onChange({
+      ...data,
+      giving: data.giving.map(r => r.id === id ? { ...r, [field]: value } : r),
+    });
+  };
+
+  return (
+    <div className="tab-content plan-tab">
+
+      {/* ── Goals ── */}
+      <section className="plan-section">
+        <div className="plan-section-header">
+          <h2 className="plan-section-title">🏆 Sparmål</h2>
+          <button className="add-goal-btn" onClick={addGoal}>+ Nytt mål</button>
+        </div>
+        {data.goals.length === 0 && (
+          <div className="plan-empty">Inga mål ännu — klicka "+ Nytt mål" för att komma igång</div>
+        )}
+        <div className="goals-grid">
+          {data.goals.map(goal => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onUpdate={updateGoal}
+              onDelete={() => deleteGoal(goal.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Giving ── */}
+      <section className="plan-section">
+        <div className="plan-section-header">
+          <h2 className="plan-section-title">🤲 Givande & Välgörenhet</h2>
+        </div>
+        <div className="budget-section" style={{ borderLeft: '3px solid #ec4899' }}>
+          <div className="rows">
+            {data.giving.map(row => (
+              <div key={row.id} className="budget-row">
+                {row.isCustom ? (
+                  <input
+                    className="label-input"
+                    value={row.label}
+                    onChange={e => updateGivingRow(row.id, 'label', e.target.value)}
+                  />
+                ) : (
+                  <span className="row-label">{row.label}</span>
+                )}
+                <EditableAmount
+                  value={row.amount}
+                  onChange={v => updateGivingRow(row.id, 'amount', v)}
+                  color="#ec4899"
+                />
+                {row.isCustom && (
+                  <button className="delete-btn" onClick={() => deleteGiving(row.id)}>×</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button className="add-row-btn" onClick={addGiving} style={{ color: '#ec4899' }}>
+            + Lägg till post
+          </button>
+        </div>
+      </section>
+
+      {/* ── Notes ── */}
+      <section className="plan-section">
+        <div className="plan-section-header">
+          <h2 className="plan-section-title">📝 Anteckningar & Strategi</h2>
+        </div>
+        <textarea
+          className="plan-notes"
+          placeholder="Skriv din plan, strategi, tankar om investeringar..."
+          value={data.notes}
+          onChange={e => onChange({ ...data, notes: e.target.value })}
+          rows={8}
+        />
+      </section>
+
+    </div>
+  );
+};
