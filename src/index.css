@@ -656,6 +656,7 @@ button {
 
 .tab-icon { font-size: 1rem; }
 .tab-label { }
+.tab-label-short { display: none; }
 
 /* ─── Month strip ─────────────────────────────────────────────────── */
 
@@ -1028,3 +1029,57 @@ button {
 
 .plan-notes:focus { border-color: #475569; }
 .plan-notes::placeholder { color: var(--text-muted); }
+
+/* ─── Mobile (phones) ─────────────────────────────────────────────────
+   Placed last so these overrides win over base rules (media queries
+   don't add specificity — source order breaks ties). */
+
+@media (max-width: 640px) {
+  .app {
+    padding: 0 12px 48px;
+  }
+
+  /* Stack header actions onto their own row ABOVE the tabs
+     (column-reverse puts the tab row, with its divider, next to content) */
+  .header-bottom {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .header-actions {
+    justify-content: space-between;
+    padding-bottom: 0;
+  }
+
+  /* Tabs share the row equally */
+  .tab-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    padding: 9px 8px;
+    font-size: 0.82rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Use short tab labels on phones so all three fit */
+  .tab-label { display: none; }
+  .tab-label-short { display: inline; }
+
+  /* Month strip: left-aligned + scrollable so months aren't clipped
+     (centering an overflowing flex row hides the ends) */
+  .month-strip {
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  /* Copy dropdown opens downward on mobile so it doesn't cover the strip */
+  .copy-dropdown {
+    top: calc(100% + 6px);
+    bottom: auto;
+  }
+}
