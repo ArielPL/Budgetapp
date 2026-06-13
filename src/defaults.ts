@@ -1,4 +1,4 @@
-import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
+import type { BudgetCategory, BudgetRow, MonthData, PlanData } from './types';
 
 export const SWEDISH_MONTHS = [
   'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',

@@ -121,10 +121,6 @@ export const PlanTab = ({ data, onChange }: Props) => {
     onChange({ ...data, goals: data.goals.filter(g => g.id !== id) });
   };
 
-  const updateGiving = (rows: BudgetRow[]) => {
-    onChange({ ...data, giving: rows });
-  };
-
   const addGiving = () => {
     const row: BudgetRow = { id: generateId(), label: 'Ny post', amount: 0, isCustom: true };
     onChange({ ...data, giving: [...data.giving, row] });

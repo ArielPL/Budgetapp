@@ -9,7 +9,7 @@ import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, generateId, SWEDISH_MONTHS, defaultGivande } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, SWEDISH_MONTHS, defaultGivande } from './defaults';
 import './index.css';
 
 function App() {
