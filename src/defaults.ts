@@ -84,9 +84,28 @@ const L = {
   pension: { sv: 'Pension (extra)', en: 'Pension (extra)' },
   occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up' },
   privatePension: { sv: 'Privat pension', en: 'Private pension' },
+  // placeholders for newly added items / goals
+  newGoal: { sv: 'Nytt mål', en: 'New goal' },
+  newRow: { sv: 'Ny rad', en: 'New row' },
+  newItem: { sv: 'Ny post', en: 'New item' },
 } as const;
 
 const tr = (entry: { sv: string; en: string }, lang: Lang) => entry[lang];
+
+// Reverse lookup: any known default label (in either language) → its translations.
+// Lets built-in labels that were SAVED as plain strings (e.g. all in Swedish) be
+// re-rendered in the current language. Labels the user customized won't match and
+// are returned unchanged.
+const REVERSE_LABELS: Record<string, { sv: string; en: string }> = {};
+for (const entry of Object.values(L)) {
+  REVERSE_LABELS[entry.sv] = entry;
+  REVERSE_LABELS[entry.en] = entry;
+}
+
+/** Translate a built-in default label to the current language; pass through custom labels. */
+export function displayLabel(label: string, lang: Lang): string {
+  return REVERSE_LABELS[label]?.[lang] ?? label;
+}
 
 export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   return [

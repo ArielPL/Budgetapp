@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PlanData, SavingsGoal, BudgetRow } from '../types';
-import { generateId, makeGoalColor } from '../defaults';
+import { generateId, makeGoalColor, displayLabel } from '../defaults';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 
@@ -40,8 +40,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             autoFocus
           />
         ) : (
-          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(goal.name); }}>
-            {goal.name}
+          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(displayLabel(goal.name, lang)); }}>
+            {displayLabel(goal.name, lang)}
           </span>
         )}
         <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}>×</button>
@@ -102,7 +102,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
 };
 
 export const PlanTab = ({ data, onChange }: Props) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const addGoal = () => {
     const newGoal: SavingsGoal = {
       id: generateId(),
@@ -180,7 +180,7 @@ export const PlanTab = ({ data, onChange }: Props) => {
                     onChange={e => updateGivingRow(row.id, 'label', e.target.value)}
                   />
                 ) : (
-                  <span className="row-label">{row.label}</span>
+                  <span className="row-label">{displayLabel(row.label, lang)}</span>
                 )}
                 <EditableAmount
                   value={row.amount}

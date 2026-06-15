@@ -1,5 +1,7 @@
 import { PieChart, Pie, Cell } from 'recharts';
 import type { BudgetCategory } from '../types';
+import { displayLabel } from '../defaults';
+import { useLang } from '../i18n';
 
 interface Props {
   categories: BudgetCategory[];
@@ -14,7 +16,9 @@ function hexShade(hex: string, index: number, total: number): string {
   return `rgba(${r},${g},${b},${opacity.toFixed(2)})`;
 }
 
-export const SavingsDonuts = ({ categories }: Props) => (
+export const SavingsDonuts = ({ categories }: Props) => {
+  const { lang } = useLang();
+  return (
   <div className="savings-donuts-grid">
     {categories.map(cat => {
       const rows = cat.rows.filter(r => r.amount > 0);
@@ -55,7 +59,7 @@ export const SavingsDonuts = ({ categories }: Props) => (
 
           {/* Category name */}
           <div className="savings-donut-name" style={{ color: cat.color }}>
-            {cat.icon} {cat.name}
+            {cat.icon} {displayLabel(cat.name, lang)}
           </div>
 
           {/* Row breakdown */}
@@ -67,7 +71,7 @@ export const SavingsDonuts = ({ categories }: Props) => (
                     className="savings-donut-dot"
                     style={{ background: hexShade(cat.color, i, rows.length) }}
                   />
-                  <span className="savings-donut-row-label">{r.label}</span>
+                  <span className="savings-donut-row-label">{displayLabel(r.label, lang)}</span>
                   <span className="savings-donut-row-amt">
                     {r.amount.toLocaleString('sv-SE')}
                   </span>
@@ -79,4 +83,5 @@ export const SavingsDonuts = ({ categories }: Props) => (
       );
     })}
   </div>
-);
+  );
+};

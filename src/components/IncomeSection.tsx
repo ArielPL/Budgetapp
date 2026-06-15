@@ -1,7 +1,7 @@
 import type { BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
-import { generateId } from '../defaults';
+import { generateId, displayLabel } from '../defaults';
 import { useLang } from '../i18n';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const IncomeSection = ({ rows, onChange }: Props) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const updateAmount = (id: string, amount: number) => {
     onChange(rows.map(r => r.id === id ? { ...r, amount } : r));
   };
@@ -39,7 +39,7 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
       <div className="rows">
         {rows.map(row => (
           <div key={row.id} className="budget-row">
-            <EditableLabel value={row.label} onChange={label => updateLabel(row.id, label)} />
+            <EditableLabel value={displayLabel(row.label, lang)} onChange={label => updateLabel(row.id, label)} />
             <EditableAmount
               value={row.amount}
               onChange={val => updateAmount(row.id, val)}

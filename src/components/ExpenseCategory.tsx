@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
-import { generateId } from '../defaults';
+import { generateId, displayLabel } from '../defaults';
 import { useLang } from '../i18n';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const ExpenseCategory = ({ category, onChange }: Props) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [collapsed, setCollapsed] = useState(false);
 
   const updateAmount = (id: string, amount: number) => {
@@ -37,7 +37,7 @@ export const ExpenseCategory = ({ category, onChange }: Props) => {
     <section className="budget-section expense-section" style={{ '--accent': category.color } as CSSProperties}>
       <div className="section-header" onClick={() => setCollapsed(c => !c)} style={{ cursor: 'pointer' }}>
         <span className="section-icon">{category.icon}</span>
-        <h2 className="section-title">{category.name}</h2>
+        <h2 className="section-title">{displayLabel(category.name, lang)}</h2>
         <span className="section-total" style={{ color: category.color }}>
           {total.toLocaleString('sv-SE')} kr
         </span>
@@ -48,7 +48,7 @@ export const ExpenseCategory = ({ category, onChange }: Props) => {
           <div className="rows">
             {category.rows.map(row => (
               <div key={row.id} className="budget-row">
-                <EditableLabel value={row.label} onChange={label => updateLabel(row.id, label)} />
+                <EditableLabel value={displayLabel(row.label, lang)} onChange={label => updateLabel(row.id, label)} />
                 <EditableAmount
                   value={row.amount}
                   onChange={val => updateAmount(row.id, val)}
