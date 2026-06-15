@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PlanData, SavingsGoal, BudgetRow } from '../types';
-import { generateId, makeGoalColor, SWEDISH_MONTHS } from '../defaults';
+import { generateId, makeGoalColor } from '../defaults';
+import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 
 interface Props {
@@ -13,6 +14,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
   onUpdate: (g: SavingsGoal) => void;
   onDelete: () => void;
 }) => {
+  const { lang, t } = useLang();
   const pct = goal.targetAmount > 0
     ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
     : 0;
@@ -42,26 +44,26 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             {goal.name}
           </span>
         )}
-        <button className="delete-btn" onClick={onDelete} title="Ta bort mål">×</button>
+        <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}>×</button>
       </div>
       {goal.budgetRowId && (
-        <div className="goal-budget-link" title="Kopplad rad i Budget → Sparande">
-          📋 Kopplad till budget
+        <div className="goal-budget-link" title={t.linkedRowTitle}>
+          📋 {t.linkedToBudget}
         </div>
       )}
 
       <div className="goal-amounts">
         <div className="goal-amount-block">
-          <span className="goal-amount-label">Sparat</span>
+          <span className="goal-amount-label">{t.saved}</span>
           <EditableAmount
             value={goal.currentAmount}
             onChange={v => onUpdate({ ...goal, currentAmount: v })}
             color={goal.color}
           />
         </div>
-        <div className="goal-amount-sep">av</div>
+        <div className="goal-amount-sep">{t.of}</div>
         <div className="goal-amount-block">
-          <span className="goal-amount-label">Mål</span>
+          <span className="goal-amount-label">{t.goal}</span>
           <EditableAmount
             value={goal.targetAmount}
             onChange={v => onUpdate({ ...goal, targetAmount: v })}
@@ -72,7 +74,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
           <div className="goal-deadline">
             📅 {(() => {
               const [y, m] = goal.deadline.split('-');
-              return `${SWEDISH_MONTHS[parseInt(m) - 1]} ${y}`;
+              return `${MONTHS[lang][parseInt(m) - 1]} ${y}`;
             })()}
           </div>
         )}
@@ -87,7 +89,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
       <div className="goal-pct" style={{ color: goal.color }}>{pct}%</div>
 
       <div className="goal-deadline-edit">
-        <label className="goal-deadline-label">Deadline</label>
+        <label className="goal-deadline-label">{t.deadline}</label>
         <input
           type="month"
           className="deadline-input"
@@ -100,11 +102,12 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
 };
 
 export const PlanTab = ({ data, onChange }: Props) => {
+  const { t } = useLang();
   const addGoal = () => {
     const newGoal: SavingsGoal = {
       id: generateId(),
       budgetRowId: generateId(), // will create a linked row in Budget → Sparande
-      name: 'Nytt mål',
+      name: t.newGoalName,
       targetAmount: 0,
       currentAmount: 0,
       deadline: '',
@@ -122,7 +125,7 @@ export const PlanTab = ({ data, onChange }: Props) => {
   };
 
   const addGiving = () => {
-    const row: BudgetRow = { id: generateId(), label: 'Ny post', amount: 0, isCustom: true };
+    const row: BudgetRow = { id: generateId(), label: t.newPost, amount: 0, isCustom: true };
     onChange({ ...data, giving: [...data.giving, row] });
   };
 
@@ -143,11 +146,11 @@ export const PlanTab = ({ data, onChange }: Props) => {
       {/* ── Goals ── */}
       <section className="plan-section">
         <div className="plan-section-header">
-          <h2 className="plan-section-title">🏆 Sparmål</h2>
-          <button className="add-goal-btn" onClick={addGoal}>+ Nytt mål</button>
+          <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
+          <button className="add-goal-btn" onClick={addGoal}>{t.newGoal}</button>
         </div>
         {data.goals.length === 0 && (
-          <div className="plan-empty">Inga mål ännu — klicka "+ Nytt mål" för att komma igång</div>
+          <div className="plan-empty">{t.noGoals}</div>
         )}
         <div className="goals-grid">
           {data.goals.map(goal => (
@@ -164,7 +167,7 @@ export const PlanTab = ({ data, onChange }: Props) => {
       {/* ── Giving ── */}
       <section className="plan-section">
         <div className="plan-section-header">
-          <h2 className="plan-section-title">🤲 Givande & Välgörenhet</h2>
+          <h2 className="plan-section-title">🤲 {t.giving}</h2>
         </div>
         <div className="budget-section" style={{ borderLeft: '3px solid #ec4899' }}>
           <div className="rows">
@@ -191,7 +194,7 @@ export const PlanTab = ({ data, onChange }: Props) => {
             ))}
           </div>
           <button className="add-row-btn" onClick={addGiving} style={{ color: '#ec4899' }}>
-            + Lägg till post
+            {t.addPost}
           </button>
         </div>
       </section>
@@ -199,11 +202,11 @@ export const PlanTab = ({ data, onChange }: Props) => {
       {/* ── Notes ── */}
       <section className="plan-section">
         <div className="plan-section-header">
-          <h2 className="plan-section-title">📝 Anteckningar & Strategi</h2>
+          <h2 className="plan-section-title">📝 {t.notes}</h2>
         </div>
         <textarea
           className="plan-notes"
-          placeholder="Skriv din plan, strategi, tankar om investeringar..."
+          placeholder={t.notesPlaceholder}
           value={data.notes}
           onChange={e => onChange({ ...data, notes: e.target.value })}
           rows={8}

@@ -2,6 +2,7 @@ import type { BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId } from '../defaults';
+import { useLang } from '../i18n';
 
 interface Props {
   rows: BudgetRow[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const IncomeSection = ({ rows, onChange }: Props) => {
+  const { t } = useLang();
   const updateAmount = (id: string, amount: number) => {
     onChange(rows.map(r => r.id === id ? { ...r, amount } : r));
   };
@@ -18,7 +20,7 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
   };
 
   const addRow = () => {
-    onChange([...rows, { id: generateId(), label: 'Ny rad', amount: 0, isCustom: true }]);
+    onChange([...rows, { id: generateId(), label: t.newRow, amount: 0, isCustom: true }]);
   };
 
   const deleteRow = (id: string) => {
@@ -31,7 +33,7 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
     <section className="budget-section income-section">
       <div className="section-header">
         <span className="section-icon">💵</span>
-        <h2 className="section-title">Inkomst</h2>
+        <h2 className="section-title">{t.incomeSection}</h2>
         <span className="section-total income-total">{total.toLocaleString('sv-SE')} kr</span>
       </div>
       <div className="rows">
@@ -44,12 +46,12 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               color="#22d3ee"
             />
             {row.isCustom && (
-              <button className="delete-btn" onClick={() => deleteRow(row.id)} title="Ta bort rad">×</button>
+              <button className="delete-btn" onClick={() => deleteRow(row.id)} title={t.deleteRow}>×</button>
             )}
           </div>
         ))}
       </div>
-      <button className="add-row-btn" onClick={addRow}>+ Lägg till rad</button>
+      <button className="add-row-btn" onClick={addRow}>{t.addRow}</button>
     </section>
   );
 };

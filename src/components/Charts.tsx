@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import type { BudgetCategory } from '../types';
+import { useLang } from '../i18n';
 
 interface Props {
   categories: BudgetCategory[];
@@ -26,6 +27,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
 };
 
 export const Charts = ({ categories, totalIncome }: Props) => {
+  const { t } = useLang();
   const data = categories
     .map(cat => ({
       name: cat.name,
@@ -38,7 +40,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
   if (data.length === 0) {
     return (
       <div className="charts-placeholder">
-        <p>Fyll i utgifter för att se diagram</p>
+        <p>{t.placeholderExpenses}</p>
       </div>
     );
   }
@@ -48,7 +50,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
   return (
     <div className="charts-container">
       <div className="chart-block">
-        <h3 className="chart-title">Utgiftsfördelning</h3>
+        <h3 className="chart-title">{t.chartExpenseDistribution}</h3>
         <div className="donut-wrapper">
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
@@ -69,7 +71,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
             </PieChart>
           </ResponsiveContainer>
           <div className="donut-center">
-            <div className="donut-label">Totalt</div>
+            <div className="donut-label">{t.chartTotal}</div>
             <div className="donut-value">{totalExpenses.toLocaleString('sv-SE')}</div>
             <div className="donut-currency">kr</div>
           </div>
@@ -90,7 +92,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
       </div>
 
       <div className="chart-block">
-        <h3 className="chart-title">Per kategori (kr)</h3>
+        <h3 className="chart-title">{t.chartPerCategory}</h3>
         <ResponsiveContainer width="100%" height={data.length * 44 + 20}>
           <BarChart
             layout="vertical"

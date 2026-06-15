@@ -3,6 +3,7 @@ import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId } from '../defaults';
+import { useLang } from '../i18n';
 
 interface Props {
   category: BudgetCategory;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export const ExpenseCategory = ({ category, onChange }: Props) => {
+  const { t } = useLang();
   const [collapsed, setCollapsed] = useState(false);
 
   const updateAmount = (id: string, amount: number) => {
@@ -21,7 +23,7 @@ export const ExpenseCategory = ({ category, onChange }: Props) => {
   };
 
   const addRow = () => {
-    const newRow: BudgetRow = { id: generateId(), label: 'Ny rad', amount: 0, isCustom: true };
+    const newRow: BudgetRow = { id: generateId(), label: t.newRow, amount: 0, isCustom: true };
     onChange({ ...category, rows: [...category.rows, newRow] });
   };
 
@@ -53,13 +55,13 @@ export const ExpenseCategory = ({ category, onChange }: Props) => {
                   color={category.color}
                 />
                 {row.isCustom && (
-                  <button className="delete-btn" onClick={() => deleteRow(row.id)} title="Ta bort rad">×</button>
+                  <button className="delete-btn" onClick={() => deleteRow(row.id)} title={t.deleteRow}>×</button>
                 )}
               </div>
             ))}
           </div>
           <button className="add-row-btn" onClick={addRow} style={{ color: category.color }}>
-            + Lägg till rad
+            {t.addRow}
           </button>
         </>
       )}

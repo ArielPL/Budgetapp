@@ -1,5 +1,6 @@
 import type { BudgetCategory } from '../types';
 import { loadMonthData } from '../defaults';
+import { useLang } from '../i18n';
 import { ExpenseCategory } from './ExpenseCategory';
 import { GrowthChart } from './GrowthChart';
 import { SavingsDonuts } from './SavingsDonuts';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const SavingsTab = ({ categories, onChange, year, currentMonth }: Props) => {
+  const { lang, t } = useLang();
   const total = categories.reduce(
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
   );
@@ -19,7 +21,7 @@ export const SavingsTab = ({ categories, onChange, year, currentMonth }: Props) 
   // Previous month total for comparison
   const prevYear = currentMonth === 0 ? year - 1 : year;
   const prevMonthIdx = currentMonth === 0 ? 11 : currentMonth - 1;
-  const prevData = loadMonthData(prevYear, prevMonthIdx);
+  const prevData = loadMonthData(prevYear, prevMonthIdx, lang);
   const prevTotal = prevData.savings.reduce(
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
   );
@@ -30,20 +32,20 @@ export const SavingsTab = ({ categories, onChange, year, currentMonth }: Props) 
       {/* Summary cards */}
       <div className="savings-summary">
         <div className="summary-card savings-card">
-          <div className="card-label">Sparat denna månad</div>
+          <div className="card-label">{t.savedThisMonth}</div>
           <div className="card-amount" style={{ color: '#22d3ee' }}>
             {total.toLocaleString('sv-SE')} kr
           </div>
         </div>
 
         <div className="summary-card">
-          <div className="card-label">Sparat förra månaden</div>
+          <div className="card-label">{t.savedPrevMonth}</div>
           <div className="card-amount" style={{ color: '#94a3b8' }}>
             {prevTotal.toLocaleString('sv-SE')} kr
           </div>
           {prevTotal > 0 && total > 0 && (
             <div className="card-sub" style={{ color: diff >= 0 ? '#22c55e' : '#f87171' }}>
-              {diff >= 0 ? '+' : ''}{diff.toLocaleString('sv-SE')} kr vs förra
+              {diff >= 0 ? '+' : ''}{diff.toLocaleString('sv-SE')} kr {t.vsPrev}
             </div>
           )}
         </div>

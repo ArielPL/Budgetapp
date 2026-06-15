@@ -9,19 +9,25 @@ import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, SWEDISH_MONTHS, defaultGivande } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande } from './defaults';
+import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
 import './index.css';
 
 function App() {
   const now = new Date();
+  const [lang, setLang]       = useState<Lang>(() =>
+    (localStorage.getItem('budget_lang') as Lang) || 'sv'
+  );
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
-  const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth()));
-  const [planData, setPlanData] = useState<PlanData>(() => loadPlanData());
+  const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
+  const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   const [theme, setTheme]     = useState<'dark' | 'light'>(() =>
     (localStorage.getItem('budget_theme') as 'dark' | 'light') || 'dark'
   );
+
+  const t = translations[lang];
 
   // Copy menu
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
@@ -34,15 +40,41 @@ function App() {
     localStorage.setItem('budget_theme', theme);
   }, [theme]);
 
+  // ── Language ──────────────────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem('budget_lang', lang);
+  }, [lang]);
+
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
-    const monthData = loadMonthData(year, month);
+    const monthData = loadMonthData(year, month, lang);
     // Always sync givande rows from planData.giving (giving plan is consistent across months)
     const givandeIdx = monthData.expenses.findIndex(c => c.id === 'givande');
     if (givandeIdx !== -1) {
       monthData.expenses[givandeIdx].rows = planData.giving.map(r => ({ ...r }));
     } else {
       monthData.expenses.push(defaultGivande(planData.giving.map(r => ({ ...r }))));
+    }
+    // Ensure linked budget rows exist for every goal (for goals created before
+    // this month's data was saved). Operate on the freshly loaded monthData and
+    // guard against duplicates so navigating between months can't append twice.
+    const sparandeIdx = monthData.expenses.findIndex(c => c.id === 'sparande');
+    if (sparandeIdx !== -1) {
+      const existingRowIds = new Set(monthData.expenses[sparandeIdx].rows.map(r => r.id));
+      const missingRows = planData.goals.filter(
+        g => g.budgetRowId && !existingRowIds.has(g.budgetRowId)
+      );
+      if (missingRows.length > 0) {
+        monthData.expenses[sparandeIdx].rows = [
+          ...monthData.expenses[sparandeIdx].rows,
+          ...missingRows.map(g => ({
+            id: g.budgetRowId!,
+            label: g.name,
+            amount: 0,
+            isCustom: true,
+          })),
+        ];
+      }
     }
     setData(monthData);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,13 +102,13 @@ function App() {
     const nextMth  = month === 11 ? 0 : month + 1;
     saveMonthData(nextYear, nextMth, data);
     setCopyMenuOpen(false);
-    showMsg(`✓ Kopierat till ${SWEDISH_MONTHS[nextMth]}`);
+    showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
   const copyToAllRemaining = () => {
     for (let m = month + 1; m <= 11; m++) saveMonthData(year, m, data);
     setCopyMenuOpen(false);
-    showMsg(`✓ Kopierat till ${11 - month} månader`);
+    showMsg(t.copiedToMonths(11 - month));
   };
 
   // ── Month navigation ──────────────────────────────────────────────
@@ -202,31 +234,8 @@ function App() {
     setPlanData(newPlan);
   };
 
-  // ── Also: when loading a new month, ensure linked budget rows exist ─
-  // (in case goals were created before this feature existed)
-  useEffect(() => {
-    const sparandeIdx = data.expenses.findIndex(c => c.id === 'sparande');
-    if (sparandeIdx === -1) return;
-    const existingRowIds = new Set(data.expenses[sparandeIdx].rows.map(r => r.id));
-    const missingRows = planData.goals.filter(
-      g => g.budgetRowId && !existingRowIds.has(g.budgetRowId)
-    );
-    if (missingRows.length === 0) return;
-    setData(d => ({
-      ...d,
-      expenses: d.expenses.map((c, i) =>
-        i === sparandeIdx
-          ? { ...c, rows: [...c.rows, ...missingRows.map(g => ({
-              id: g.budgetRowId!,
-              label: g.name,
-              amount: 0,
-              isCustom: true,
-            }))] }
-          : c
-      ),
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month]); // only run when month changes
+  // (Linked budget-row backfill is handled in the month-load effect above,
+  //  on freshly loaded data, to avoid double-appending rows.)
 
   // ── Derived ───────────────────────────────────────────────────────
   const totalIncome   = data.income.reduce((s, r) => s + r.amount, 0);
@@ -235,6 +244,7 @@ function App() {
   );
 
   return (
+    <LanguageContext.Provider value={{ lang, setLang, t }}>
     <div className="app">
       <header className="app-header">
         <div className="header-top">
@@ -245,11 +255,20 @@ function App() {
           <TabNav active={activeTab} onChange={setActiveTab} />
 
           <div className="header-actions">
+            {/* Language toggle — shows the flag you'll switch TO */}
+            <button
+              className="lang-btn"
+              onClick={() => setLang(l => l === 'sv' ? 'en' : 'sv')}
+              title={lang === 'sv' ? t.switchToEnglish : t.switchToSwedish}
+            >
+              {lang === 'sv' ? '🇬🇧' : '🇸🇪'}
+            </button>
+
             {/* Theme toggle */}
             <button
               className="theme-btn"
-              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Byt till ljust tema' : 'Byt till mörkt tema'}
+              onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? t.themeToLight : t.themeToDark}
             >
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -260,18 +279,18 @@ function App() {
               <button
                 className="copy-btn"
                 onClick={() => setCopyMenuOpen(o => !o)}
-                title="Kopiera denna månads budget"
+                title={t.copyBudgetTitle}
               >
-                Kopiera budget {copyMenuOpen ? '▴' : '▾'}
+                {t.copyBudget} {copyMenuOpen ? '▴' : '▾'}
               </button>
               {copyMenuOpen && (
                 <div className="copy-dropdown">
                   <button onClick={copyToNextMonth}>
-                    → Nästa månad ({SWEDISH_MONTHS[month === 11 ? 0 : month + 1]})
+                    → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
                   </button>
                   {month < 11 && (
                     <button onClick={copyToAllRemaining}>
-                      → Alla återstående ({11 - month} månader)
+                      → {t.copyAllRemaining(11 - month)}
                     </button>
                   )}
                 </div>
@@ -313,6 +332,7 @@ function App() {
         )}
       </main>
     </div>
+    </LanguageContext.Provider>
   );
 }
 

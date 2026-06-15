@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { SWEDISH_MONTHS_SHORT } from '../defaults';
+import { useLang, MONTHS_SHORT } from '../i18n';
 
 interface Props {
   year: number;
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export const MonthStrip = ({ year, month, onSelect, onYearChange }: Props) => {
+  const { lang } = useLang();
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export const MonthStrip = ({ year, month, onSelect, onYearChange }: Props) => {
     <div className="month-strip-wrap">
       <button className="year-btn" onClick={() => onYearChange(-1)}>‹ {year - 1}</button>
       <div className="month-strip">
-        {SWEDISH_MONTHS_SHORT.map((m, i) => (
+        {MONTHS_SHORT[lang].map((m, i) => (
           <button
             key={i}
             ref={i === month ? activeRef : null}

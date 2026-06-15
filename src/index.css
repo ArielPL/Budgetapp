@@ -254,8 +254,10 @@ button {
   transition: background 0.1s;
 }
 
-.budget-row:hover {
-  background: var(--surface2);
+@media (hover: hover) {
+  .budget-row:hover {
+    background: var(--surface2);
+  }
 }
 
 .row-label {
@@ -291,8 +293,10 @@ button {
   white-space: nowrap;
 }
 
-.amount-display:hover {
-  background: var(--surface2);
+@media (hover: hover) {
+  .amount-display:hover {
+    background: var(--surface2);
+  }
 }
 
 .currency {
@@ -346,11 +350,14 @@ button {
   border-radius: 6px;
   margin-top: 2px;
   transition: color 0.1s, background 0.1s;
+  touch-action: manipulation;
 }
 
-.add-row-btn:hover {
-  color: var(--text);
-  background: var(--surface2);
+@media (hover: hover) {
+  .add-row-btn:hover {
+    color: var(--text);
+    background: var(--surface2);
+  }
 }
 
 /* ─── Charts ──────────────────────────────────────────────────────── */
@@ -528,11 +535,38 @@ button {
   justify-content: center;
   transition: background 0.15s, border-color 0.15s;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
 
-.theme-btn:hover {
-  background: var(--surface2);
-  border-color: #475569;
+@media (hover: hover) {
+  .theme-btn:hover {
+    background: var(--surface2);
+    border-color: #475569;
+  }
+}
+
+/* ─── Language toggle ─────────────────────────────────────────────── */
+
+.lang-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  .lang-btn:hover {
+    background: var(--surface2);
+    border-color: #475569;
+  }
 }
 
 /* ─── Copy budget button ──────────────────────────────────────────── */
@@ -555,11 +589,14 @@ button {
   padding: 6px 12px;
   white-space: nowrap;
   transition: color 0.15s, background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
 }
 
-.copy-btn:hover {
-  color: var(--text);
-  border-color: #475569;
+@media (hover: hover) {
+  .copy-btn:hover {
+    color: var(--text);
+    border-color: #475569;
+  }
 }
 
 .copy-dropdown {
@@ -641,11 +678,14 @@ button {
   border-bottom: 2px solid transparent;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 
-.tab-btn:hover {
-  color: var(--text-dim);
-  background: var(--surface);
+@media (hover: hover) {
+  .tab-btn:hover {
+    color: var(--text-dim);
+    background: var(--surface);
+  }
 }
 
 .tab-active {
@@ -691,12 +731,15 @@ button {
   border: 1px solid transparent;
   transition: all 0.15s;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 
-.month-pill:hover {
-  color: var(--text);
-  background: var(--surface);
-  border-color: var(--border);
+@media (hover: hover) {
+  .month-pill:hover {
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--border);
+  }
 }
 
 .month-pill-active {
@@ -714,11 +757,14 @@ button {
   border-radius: 6px;
   white-space: nowrap;
   transition: color 0.15s, background 0.15s;
+  touch-action: manipulation;
 }
 
-.year-btn:hover {
-  color: var(--text);
-  background: var(--surface);
+@media (hover: hover) {
+  .year-btn:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 /* ─── Tab content ─────────────────────────────────────────────────── */
@@ -1081,5 +1127,12 @@ button {
   .copy-dropdown {
     top: calc(100% + 6px);
     bottom: auto;
+  }
+
+  /* Chart on top on phones: the grid is single-column here (see 900px
+     breakpoint), so order:-1 lifts .budget-right above the input rows.
+     Applies to both the Budget and Savings tabs. */
+  .budget-right {
+    order: -1;
   }
 }

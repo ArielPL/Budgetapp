@@ -1,0 +1,223 @@
+import { createContext, useContext } from 'react';
+
+export type Lang = 'sv' | 'en';
+
+export const MONTHS: Record<Lang, string[]> = {
+  sv: [
+    'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+    'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December',
+  ],
+  en: [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ],
+};
+
+export const MONTHS_SHORT: Record<Lang, string[]> = {
+  sv: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+};
+
+export interface Translations {
+  // Tabs
+  tabBudget: string;
+  tabSavings: string;
+  tabSavingsShort: string;
+  tabPlan: string;
+  // Header buttons
+  themeToLight: string;
+  themeToDark: string;
+  switchToSwedish: string;
+  switchToEnglish: string;
+  copyBudget: string;
+  copyBudgetTitle: string;
+  copyNextMonth: string;
+  copyAllRemaining: (n: number) => string;
+  copiedTo: (month: string) => string;
+  copiedToMonths: (n: number) => string;
+  // Month nav
+  prevMonth: string;
+  nextMonth: string;
+  // Summary cards
+  income: string;
+  expenses: string;
+  remaining: string;
+  pctOfIncome: string;
+  vsPrev: string;
+  samePrevMonth: string;
+  // Income section
+  incomeSection: string;
+  addRow: string;
+  deleteRow: string;
+  newRow: string;
+  // Charts
+  chartExpenseDistribution: string;
+  chartPerCategory: string;
+  chartTotal: string;
+  chartGrowth: (year: number) => string;
+  placeholderExpenses: string;
+  placeholderSavings: string;
+  // Savings tab
+  savedThisMonth: string;
+  savedPrevMonth: string;
+  // Plan tab
+  savingsGoals: string;
+  newGoal: string;
+  newGoalName: string;
+  noGoals: string;
+  deleteGoal: string;
+  linkedToBudget: string;
+  linkedRowTitle: string;
+  saved: string;
+  goal: string;
+  of: string;
+  deadline: string;
+  giving: string;
+  addPost: string;
+  newPost: string;
+  notes: string;
+  notesPlaceholder: string;
+  // Editable
+  clickToEdit: string;
+  clickToRename: string;
+  // Growth chart line labels
+  lineSparkonto: string;
+  lineIsk: string;
+  lineFonder: string;
+  linePension: string;
+}
+
+export const translations: Record<Lang, Translations> = {
+  sv: {
+    tabBudget: 'Budget',
+    tabSavings: 'Sparande & Investeringar',
+    tabSavingsShort: 'Sparande',
+    tabPlan: 'Plan',
+    themeToLight: 'Byt till ljust tema',
+    themeToDark: 'Byt till mörkt tema',
+    switchToSwedish: 'Byt till svenska',
+    switchToEnglish: 'Switch to English',
+    copyBudget: 'Kopiera budget',
+    copyBudgetTitle: 'Kopiera denna månads budget',
+    copyNextMonth: 'Nästa månad',
+    copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
+    copiedTo: (month) => `✓ Kopierat till ${month}`,
+    copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    prevMonth: 'Föregående månad',
+    nextMonth: 'Nästa månad',
+    income: 'Inkomst',
+    expenses: 'Utgifter',
+    remaining: 'Kvar',
+    pctOfIncome: 'av inkomst',
+    vsPrev: 'vs förra',
+    samePrevMonth: '= förra månaden',
+    incomeSection: 'Inkomst',
+    addRow: '+ Lägg till rad',
+    deleteRow: 'Ta bort rad',
+    newRow: 'Ny rad',
+    chartExpenseDistribution: 'Utgiftsfördelning',
+    chartPerCategory: 'Per kategori (kr)',
+    chartTotal: 'Totalt',
+    chartGrowth: (year) => `Tillväxt ${year}`,
+    placeholderExpenses: 'Fyll i utgifter för att se diagram',
+    placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
+    savedThisMonth: 'Sparat denna månad',
+    savedPrevMonth: 'Sparat förra månaden',
+    savingsGoals: 'Sparmål',
+    newGoal: '+ Nytt mål',
+    newGoalName: 'Nytt mål',
+    noGoals: 'Inga mål ännu — klicka "+ Nytt mål" för att komma igång',
+    deleteGoal: 'Ta bort mål',
+    linkedToBudget: 'Kopplad till budget',
+    linkedRowTitle: 'Kopplad rad i Budget → Sparande',
+    saved: 'Sparat',
+    goal: 'Mål',
+    of: 'av',
+    deadline: 'Deadline',
+    giving: 'Givande & Välgörenhet',
+    addPost: '+ Lägg till post',
+    newPost: 'Ny post',
+    notes: 'Anteckningar & Strategi',
+    notesPlaceholder: 'Skriv din plan, strategi, tankar om investeringar...',
+    clickToEdit: 'Klicka för att redigera',
+    clickToRename: 'Klicka för att byta namn',
+    lineSparkonto: 'Sparkonto',
+    lineIsk: 'ISK / Aktiedepå',
+    lineFonder: 'Fonder',
+    linePension: 'Pension',
+  },
+  en: {
+    tabBudget: 'Budget',
+    tabSavings: 'Savings & Investments',
+    tabSavingsShort: 'Savings',
+    tabPlan: 'Plan',
+    themeToLight: 'Switch to light theme',
+    themeToDark: 'Switch to dark theme',
+    switchToSwedish: 'Byt till svenska',
+    switchToEnglish: 'Switch to English',
+    copyBudget: 'Copy budget',
+    copyBudgetTitle: "Copy this month's budget",
+    copyNextMonth: 'Next month',
+    copyAllRemaining: (n) => `All remaining (${n} months)`,
+    copiedTo: (month) => `✓ Copied to ${month}`,
+    copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    income: 'Income',
+    expenses: 'Expenses',
+    remaining: 'Remaining',
+    pctOfIncome: 'of income',
+    vsPrev: 'vs prev',
+    samePrevMonth: '= last month',
+    incomeSection: 'Income',
+    addRow: '+ Add row',
+    deleteRow: 'Delete row',
+    newRow: 'New row',
+    chartExpenseDistribution: 'Expense distribution',
+    chartPerCategory: 'Per category (kr)',
+    chartTotal: 'Total',
+    chartGrowth: (year) => `Growth ${year}`,
+    placeholderExpenses: 'Fill in expenses to see the chart',
+    placeholderSavings: 'Fill in savings & investments to see the growth',
+    savedThisMonth: 'Saved this month',
+    savedPrevMonth: 'Saved last month',
+    savingsGoals: 'Savings goals',
+    newGoal: '+ New goal',
+    newGoalName: 'New goal',
+    noGoals: 'No goals yet — click "+ New goal" to get started',
+    deleteGoal: 'Delete goal',
+    linkedToBudget: 'Linked to budget',
+    linkedRowTitle: 'Linked row in Budget → Savings',
+    saved: 'Saved',
+    goal: 'Goal',
+    of: 'of',
+    deadline: 'Deadline',
+    giving: 'Giving & Charity',
+    addPost: '+ Add item',
+    newPost: 'New item',
+    notes: 'Notes & Strategy',
+    notesPlaceholder: 'Write your plan, strategy, thoughts on investments...',
+    clickToEdit: 'Click to edit',
+    clickToRename: 'Click to rename',
+    lineSparkonto: 'Savings account',
+    lineIsk: 'ISK / Brokerage',
+    lineFonder: 'Funds',
+    linePension: 'Pension',
+  },
+};
+
+interface LangContextValue {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  t: Translations;
+}
+
+export const LanguageContext = createContext<LangContextValue>({
+  lang: 'sv',
+  setLang: () => {},
+  t: translations.sv,
+});
+
+export function useLang(): LangContextValue {
+  return useContext(LanguageContext);
+}

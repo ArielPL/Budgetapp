@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import type { BudgetCategory } from '../types';
 import { loadYearSavingsTotals } from '../defaults';
+import { useLang } from '../i18n';
 
 interface Props {
   year: number;
@@ -33,19 +34,20 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   );
 };
 
-const LINES = [
-  { key: 'sparkonto', label: 'Sparkonto',       color: '#22d3ee' },
-  { key: 'isk',       label: 'ISK / Aktiedepå', color: '#22c55e' },
-  { key: 'fonder',    label: 'Fonder',           color: '#a78bfa' },
-  { key: 'pension',   label: 'Pension',          color: '#fb923c' },
-];
-
 export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
+  const { lang, t } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
   const tickColor  = isLight ? '#64748b' : '#64748b';
   const gridColor  = isLight ? '#e2e8f0' : '#1e293b';
 
-  const allMonths = loadYearSavingsTotals(year);
+  const LINES = [
+    { key: 'sparkonto', label: t.lineSparkonto, color: '#22d3ee' },
+    { key: 'isk',       label: t.lineIsk,       color: '#22c55e' },
+    { key: 'fonder',    label: t.lineFonder,    color: '#a78bfa' },
+    { key: 'pension',   label: t.linePension,   color: '#fb923c' },
+  ];
+
+  const allMonths = loadYearSavingsTotals(year, lang);
 
   // Build flat data array — fix: use live currentSavings for the current month
   // instead of stale localStorage value
@@ -73,7 +75,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
   if (!hasData) {
     return (
       <div className="charts-placeholder">
-        <p>Fyll i sparande & investeringar för att se tillväxten</p>
+        <p>{t.placeholderSavings}</p>
       </div>
     );
   }
@@ -81,7 +83,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
   return (
     <div className="charts-container">
       <div className="chart-block">
-        <h3 className="chart-title">Tillväxt {year}</h3>
+        <h3 className="chart-title">{t.chartGrowth(year)}</h3>
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
             <defs>

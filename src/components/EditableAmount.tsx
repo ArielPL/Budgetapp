@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
+import { useLang } from '../i18n';
 
 interface Props {
   value: number;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export const EditableAmount = ({ value, onChange, color }: Props) => {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +56,7 @@ export const EditableAmount = ({ value, onChange, color }: Props) => {
     <button
       className="amount-display"
       onClick={start}
-      title="Klicka för att redigera"
+      title={t.clickToEdit}
       style={{ color: value > 0 ? color || '#e2e8f0' : '#475569' }}
     >
       {value === 0 ? '–' : value.toLocaleString('sv-SE')} <span className="currency">kr</span>

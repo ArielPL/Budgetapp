@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLang } from '../i18n';
 
 interface Props {
   value: string;
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export const EditableLabel = ({ value, onChange }: Props) => {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +41,7 @@ export const EditableLabel = ({ value, onChange }: Props) => {
   }
 
   return (
-    <span className="row-label editable-label" onClick={start} title="Klicka för att byta namn">
+    <span className="row-label editable-label" onClick={start} title={t.clickToRename}>
       {value}
     </span>
   );
