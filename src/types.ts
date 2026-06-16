@@ -35,4 +35,4 @@ export interface PlanData {
   notes: string;
 }
 
-export type ActiveTab = 'budget' | 'savings' | 'plan';
+export type ActiveTab = 'budget' | 'savings' | 'plan' | 'year';

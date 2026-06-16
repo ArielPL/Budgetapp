@@ -12,6 +12,7 @@ export const TabNav = ({ active, onChange }: Props) => {
     { id: 'budget',  label: t.tabBudget,  short: t.tabBudget,        icon: '📋' },
     { id: 'savings', label: t.tabSavings, short: t.tabSavingsShort,  icon: '📈' },
     { id: 'plan',    label: t.tabPlan,    short: t.tabPlan,          icon: '🎯' },
+    { id: 'year',    label: t.tabYear,    short: t.tabYearShort,     icon: '📅' },
   ];
 
   return (

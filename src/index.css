@@ -472,6 +472,71 @@ button {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+/* ─── Year overview tab ───────────────────────────────────────────── */
+
+.year-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.year-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.year-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 8px;
+  overflow-x: auto;
+}
+
+.year-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.year-table th,
+.year-table td {
+  padding: 10px 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.year-table th {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.year-table td {
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.year-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.year-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.year-table tfoot td {
+  font-weight: 700;
+  color: var(--text);
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+}
+
 /* ─── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -1134,5 +1199,19 @@ button {
      Applies to both the Budget and Savings tabs. */
   .budget-right {
     order: -1;
+  }
+
+  /* Year table: tighter cells + horizontal scroll so it never overflows */
+  .year-table th,
+  .year-table td {
+    padding: 9px 10px;
+    font-size: 0.8rem;
+  }
+
+  .year-table th:first-child,
+  .year-table td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -8,6 +8,7 @@ import { SummaryCards } from './components/SummaryCards';
 import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
+import { YearTab } from './components/YearTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
 import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande } from './defaults';
 import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
@@ -33,6 +34,11 @@ function App() {
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
   const [copyMsg, setCopyMsg] = useState('');
   const copyRef = useRef<HTMLDivElement>(null);
+
+  // Backup menu (export / import)
+  const [backupMenuOpen, setBackupMenuOpen] = useState(false);
+  const backupRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Theme ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -91,6 +97,72 @@ function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [copyMenuOpen]);
+
+  // ── Close backup menu on outside click ───────────────────────────
+  useEffect(() => {
+    if (!backupMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!backupRef.current?.contains(e.target as Node)) setBackupMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [backupMenuOpen]);
+
+  // ── Backup: export all budget_* keys to a JSON file ──────────────
+  const exportData = () => {
+    const dataObj: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('budget_')) {
+        dataObj[key] = localStorage.getItem(key) ?? '';
+      }
+    }
+    const payload = {
+      app: 'budget',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: dataObj,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budget-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setBackupMenuOpen(false);
+  };
+
+  // ── Backup: import a JSON file and replace all data ──────────────
+  const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+        const incoming = parsed?.data;
+        const looksValid =
+          incoming && typeof incoming === 'object' &&
+          (parsed.app === 'budget' || Object.keys(incoming).some(k => k.startsWith('budget_')));
+        if (!looksValid) {
+          alert(t.importInvalid);
+          return;
+        }
+        if (!window.confirm(t.importConfirm)) return;
+        for (const [key, value] of Object.entries(incoming)) {
+          localStorage.setItem(key, value as string);
+        }
+        location.reload();
+      } catch {
+        alert(t.importInvalid);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const showMsg = (msg: string) => {
     setCopyMsg(msg);
@@ -296,6 +368,30 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Backup: export / import data */}
+            <div className="copy-menu-wrap" ref={backupRef}>
+              <button
+                className="copy-btn"
+                onClick={() => setBackupMenuOpen(o => !o)}
+                title={t.backupTitle}
+              >
+                {t.backup} {backupMenuOpen ? '▴' : '▾'}
+              </button>
+              {backupMenuOpen && (
+                <div className="copy-dropdown">
+                  <button onClick={exportData}>{t.exportData}</button>
+                  <button onClick={() => fileInputRef.current?.click()}>{t.importData}</button>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -329,6 +425,10 @@ function App() {
 
         {activeTab === 'plan' && (
           <PlanTab data={planData} onChange={handlePlanDataChange} />
+        )}
+
+        {activeTab === 'year' && (
+          <YearTab year={year} />
         )}
       </main>
     </div>

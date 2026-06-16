@@ -24,6 +24,8 @@ export interface Translations {
   tabSavings: string;
   tabSavingsShort: string;
   tabPlan: string;
+  tabYear: string;
+  tabYearShort: string;
   // Header buttons
   themeToLight: string;
   themeToDark: string;
@@ -35,6 +37,14 @@ export interface Translations {
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
+  // Backup (export / import)
+  backup: string;
+  backupTitle: string;
+  exportData: string;
+  importData: string;
+  importConfirm: string;
+  importInvalid: string;
+  importSuccess: string;
   // Month nav
   prevMonth: string;
   nextMonth: string;
@@ -45,6 +55,7 @@ export interface Translations {
   pctOfIncome: string;
   vsPrev: string;
   samePrevMonth: string;
+  savingsRate: (pct: number) => string;
   // Income section
   incomeSection: string;
   addRow: string;
@@ -77,6 +88,15 @@ export interface Translations {
   newPost: string;
   notes: string;
   notesPlaceholder: string;
+  // Year overview
+  yearOverview: (year: number) => string;
+  yearChartTitle: string;
+  colMonth: string;
+  colIncome: string;
+  colExpenses: string;
+  colRemaining: string;
+  yearTotal: string;
+  yearEmpty: string;
   // Editable
   clickToEdit: string;
   clickToRename: string;
@@ -93,6 +113,8 @@ export const translations: Record<Lang, Translations> = {
     tabSavings: 'Sparande & Investeringar',
     tabSavingsShort: 'Sparande',
     tabPlan: 'Plan',
+    tabYear: 'År',
+    tabYearShort: 'År',
     themeToLight: 'Byt till ljust tema',
     themeToDark: 'Byt till mörkt tema',
     switchToSwedish: 'Byt till svenska',
@@ -103,6 +125,13 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
     copiedTo: (month) => `✓ Kopierat till ${month}`,
     copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    backup: 'Data',
+    backupTitle: 'Säkerhetskopiera eller återställ data',
+    exportData: '⬇ Exportera data',
+    importData: '⬆ Importera data',
+    importConfirm: 'Detta ERSÄTTER all nuvarande data med innehållet i filen. Vill du fortsätta?',
+    importInvalid: 'Ogiltig fil. Välj en säkerhetskopia exporterad från denna app.',
+    importSuccess: '✓ Data importerad',
     prevMonth: 'Föregående månad',
     nextMonth: 'Nästa månad',
     income: 'Inkomst',
@@ -111,6 +140,7 @@ export const translations: Record<Lang, Translations> = {
     pctOfIncome: 'av inkomst',
     vsPrev: 'vs förra',
     samePrevMonth: '= förra månaden',
+    savingsRate: (pct) => `Du sparar ${pct}% av din inkomst`,
     incomeSection: 'Inkomst',
     addRow: '+ Lägg till rad',
     deleteRow: 'Ta bort rad',
@@ -139,6 +169,14 @@ export const translations: Record<Lang, Translations> = {
     newPost: 'Ny post',
     notes: 'Anteckningar & Strategi',
     notesPlaceholder: 'Skriv din plan, strategi, tankar om investeringar...',
+    yearOverview: (year) => `Årsöversikt ${year}`,
+    yearChartTitle: 'Inkomst vs Utgifter',
+    colMonth: 'Månad',
+    colIncome: 'Inkomst',
+    colExpenses: 'Utgifter',
+    colRemaining: 'Kvar',
+    yearTotal: 'Helår',
+    yearEmpty: 'Ingen data för detta år ännu',
     clickToEdit: 'Klicka för att redigera',
     clickToRename: 'Klicka för att byta namn',
     lineSparkonto: 'Sparkonto',
@@ -151,6 +189,8 @@ export const translations: Record<Lang, Translations> = {
     tabSavings: 'Savings & Investments',
     tabSavingsShort: 'Savings',
     tabPlan: 'Plan',
+    tabYear: 'Year',
+    tabYearShort: 'Year',
     themeToLight: 'Switch to light theme',
     themeToDark: 'Switch to dark theme',
     switchToSwedish: 'Byt till svenska',
@@ -161,6 +201,13 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `All remaining (${n} months)`,
     copiedTo: (month) => `✓ Copied to ${month}`,
     copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    backup: 'Data',
+    backupTitle: 'Back up or restore data',
+    exportData: '⬇ Export data',
+    importData: '⬆ Import data',
+    importConfirm: 'This will REPLACE all current data with the contents of the file. Continue?',
+    importInvalid: 'Invalid file. Please choose a backup exported from this app.',
+    importSuccess: '✓ Data imported',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     income: 'Income',
@@ -169,6 +216,7 @@ export const translations: Record<Lang, Translations> = {
     pctOfIncome: 'of income',
     vsPrev: 'vs prev',
     samePrevMonth: '= last month',
+    savingsRate: (pct) => `You're saving ${pct}% of your income`,
     incomeSection: 'Income',
     addRow: '+ Add row',
     deleteRow: 'Delete row',
@@ -197,6 +245,14 @@ export const translations: Record<Lang, Translations> = {
     newPost: 'New item',
     notes: 'Notes & Strategy',
     notesPlaceholder: 'Write your plan, strategy, thoughts on investments...',
+    yearOverview: (year) => `Year overview ${year}`,
+    yearChartTitle: 'Income vs Expenses',
+    colMonth: 'Month',
+    colIncome: 'Income',
+    colExpenses: 'Expenses',
+    colRemaining: 'Remaining',
+    yearTotal: 'Full year',
+    yearEmpty: 'No data for this year yet',
     clickToEdit: 'Click to edit',
     clickToRename: 'Click to rename',
     lineSparkonto: 'Savings account',

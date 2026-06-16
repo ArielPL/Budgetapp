@@ -25,6 +25,9 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
   const { lang, t } = useLang();
   const remaining = totalIncome - totalExpenses;
   const isPositive = remaining >= 0;
+  const savingsRate = totalIncome > 0
+    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
+    : 0;
 
   // Load previous month
   const prevYear = month === 0 ? year - 1 : year;
@@ -56,6 +59,11 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
         {totalIncome > 0 && (
           <div className="card-sub" style={{ color: '#64748b' }}>
             {Math.round((totalExpenses / totalIncome) * 100)}% {t.pctOfIncome}
+          </div>
+        )}
+        {totalIncome > 0 && (
+          <div className="card-sub" style={{ color: '#22c55e' }}>
+            {t.savingsRate(savingsRate)}
           </div>
         )}
         <Diff current={remaining} prev={prevRemaining} t={t} />
