@@ -1,6 +1,6 @@
 import { PieChart, Pie, Cell } from 'recharts';
 import type { BudgetCategory } from '../types';
-import { displayLabel } from '../defaults';
+import { shownName } from '../defaults';
 import { useLang } from '../i18n';
 
 interface Props {
@@ -59,7 +59,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
 
           {/* Category name */}
           <div className="savings-donut-name" style={{ color: cat.color }}>
-            {cat.icon} {displayLabel(cat.name, lang)}
+            {cat.icon} {shownName(cat, lang)}
           </div>
 
           {/* Row breakdown */}
@@ -71,7 +71,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
                     className="savings-donut-dot"
                     style={{ background: hexShade(cat.color, i, rows.length) }}
                   />
-                  <span className="savings-donut-row-label">{displayLabel(r.label, lang)}</span>
+                  <span className="savings-donut-row-label">{shownName(r, lang)}</span>
                   <span className="savings-donut-row-amt">
                     {r.amount.toLocaleString('sv-SE')}
                   </span>

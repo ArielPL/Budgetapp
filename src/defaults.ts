@@ -127,6 +127,19 @@ export function displayLabel(label: string, lang: Lang): string {
   return REVERSE_LABELS[label]?.[lang] ?? label;
 }
 
+/**
+ * Display name honoring the `userNamed` flag: user-named items are shown raw
+ * (never reverse-translated), defaults still translate to the active language.
+ * Handles both `name` (categories/goals) and `label` (rows).
+ */
+export function shownName(
+  item: { name?: string; label?: string; userNamed?: boolean },
+  lang: Lang,
+): string {
+  const raw = item.name ?? item.label ?? '';
+  return item.userNamed ? raw : displayLabel(raw, lang);
+}
+
 export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   return [
     { id: makeId(), label: tr(L.salary, lang), amount: 0 },

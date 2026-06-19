@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PlanData, SavingsGoal, BudgetRow } from '../types';
-import { generateId, makeGoalColor, displayLabel } from '../defaults';
+import { generateId, makeGoalColor, shownName } from '../defaults';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 
@@ -23,7 +23,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
   const [nameDraft, setNameDraft] = useState(goal.name);
 
   const commitName = () => {
-    onUpdate({ ...goal, name: nameDraft || goal.name });
+    onUpdate({ ...goal, name: nameDraft || goal.name, userNamed: true });
     setEditingName(false);
   };
 
@@ -40,8 +40,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             autoFocus
           />
         ) : (
-          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(displayLabel(goal.name, lang)); }}>
-            {displayLabel(goal.name, lang)}
+          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(shownName(goal, lang)); }}>
+            {shownName(goal, lang)}
           </span>
         )}
         <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}>×</button>
@@ -136,7 +136,11 @@ export const PlanTab = ({ data, onChange }: Props) => {
   const updateGivingRow = (id: string, field: 'label' | 'amount', value: string | number) => {
     onChange({
       ...data,
-      giving: data.giving.map(r => r.id === id ? { ...r, [field]: value } : r),
+      giving: data.giving.map(r =>
+        r.id === id
+          ? { ...r, [field]: value, ...(field === 'label' ? { userNamed: true } : {}) }
+          : r,
+      ),
     });
   };
 
@@ -180,7 +184,7 @@ export const PlanTab = ({ data, onChange }: Props) => {
                     onChange={e => updateGivingRow(row.id, 'label', e.target.value)}
                   />
                 ) : (
-                  <span className="row-label">{displayLabel(row.label, lang)}</span>
+                  <span className="row-label">{shownName(row, lang)}</span>
                 )}
                 <EditableAmount
                   value={row.amount}

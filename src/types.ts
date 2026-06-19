@@ -3,6 +3,7 @@ export interface BudgetRow {
   label: string;
   amount: number;
   isCustom?: boolean;
+  userNamed?: boolean;
 }
 
 export interface BudgetCategory {
@@ -11,6 +12,7 @@ export interface BudgetCategory {
   icon: string;
   color: string;
   rows: BudgetRow[];
+  userNamed?: boolean;
 }
 
 export interface MonthData {
@@ -27,6 +29,7 @@ export interface SavingsGoal {
   deadline: string; // "YYYY-MM"
   color: string;
   budgetRowId?: string; // links to a row in the 'sparande' expense category
+  userNamed?: boolean;
 }
 
 export interface PlanData {

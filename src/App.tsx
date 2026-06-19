@@ -10,7 +10,7 @@ import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
 import { YearTab } from './components/YearTab';
 import { BackupBanner } from './components/BackupBanner';
-import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
+import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande, createCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
 import './index.css';
@@ -19,15 +19,56 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const BACKUP_STALE_DAYS = 30;
 const BACKUP_SNOOZE_DAYS = 7;
 
-// Decide whether the backup-reminder banner should appear on load.
-function shouldShowBackupReminder(): boolean {
-  // Only nag if there is real month data saved.
-  let hasData = false;
+// Sum every amount in a month (income + expense rows + savings rows).
+function monthTotal(raw: string): number {
+  try {
+    const m = JSON.parse(raw) as MonthData;
+    let total = 0;
+    for (const row of m.income ?? []) total += row.amount || 0;
+    for (const cat of m.expenses ?? []) {
+      for (const row of cat.rows ?? []) total += row.amount || 0;
+    }
+    for (const cat of m.savings ?? []) {
+      for (const row of cat.rows ?? []) total += row.amount || 0;
+    }
+    return total;
+  } catch {
+    return 0;
+  }
+}
+
+// True only if there are real, non-zero amounts worth backing up.
+function hasMeaningfulData(): boolean {
+  // Any month with a positive total counts as data.
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && /^budget_\d{4}_\d+$/.test(key)) { hasData = true; break; }
+    if (!key || !/^budget_\d{4}_\d+$/.test(key)) continue;
+    const raw = localStorage.getItem(key);
+    if (raw && monthTotal(raw) > 0) return true;
   }
-  if (!hasData) return false;
+
+  // Plan goals or giving amounts also count as data.
+  const planRaw = localStorage.getItem('budget_plan');
+  if (planRaw) {
+    try {
+      const plan = JSON.parse(planRaw) as PlanData;
+      const goalsHaveData = (plan.goals ?? []).some(
+        (g: SavingsGoal) => (g.currentAmount || 0) > 0 || (g.targetAmount || 0) > 0,
+      );
+      const givingHasData = (plan.giving ?? []).some((r: BudgetRow) => (r.amount || 0) > 0);
+      if (goalsHaveData || givingHasData) return true;
+    } catch {
+      /* malformed plan JSON → ignore */
+    }
+  }
+
+  return false;
+}
+
+// Decide whether the backup-reminder banner should appear on load.
+function shouldShowBackupReminder(): boolean {
+  // Only nag if there is real, non-zero data worth backing up.
+  if (!hasMeaningfulData()) return false;
 
   const now = Date.now();
 

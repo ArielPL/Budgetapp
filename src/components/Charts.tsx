@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import type { BudgetCategory } from '../types';
-import { displayLabel } from '../defaults';
+import { shownName } from '../defaults';
 import { useLang } from '../i18n';
 
 interface Props {
@@ -31,7 +31,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
   const { t, lang } = useLang();
   const data = categories
     .map(cat => ({
-      name: displayLabel(cat.name, lang),
+      name: shownName(cat, lang),
       value: cat.rows.reduce((s, r) => s + r.amount, 0),
       color: cat.color,
       icon: cat.icon,

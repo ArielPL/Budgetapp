@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
-import { generateId, displayLabel, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
+import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
 import { useLang } from '../i18n';
 
 interface Props {
@@ -23,7 +23,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
   };
 
   const updateLabel = (id: string, label: string) => {
-    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, label } : r) });
+    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, label, userNamed: true } : r) });
   };
 
   const addRow = () => {
@@ -36,7 +36,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
   };
 
   const handleDelete = () => {
-    if (window.confirm(t.deleteCategoryConfirm(displayLabel(category.name, lang)))) {
+    if (window.confirm(t.deleteCategoryConfirm(shownName(category, lang)))) {
       onDelete?.(category.id);
     }
   };
@@ -58,7 +58,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
           onClick={() => setCollapsed(c => !c)}
           style={{ cursor: 'pointer' }}
         >
-          {displayLabel(category.name, lang)}
+          {shownName(category, lang)}
         </h2>
         <span className="section-total" style={{ color: category.color }}>
           {total.toLocaleString('sv-SE')} kr
@@ -84,9 +84,9 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
         <div className="cat-edit-panel">
           <input
             className="label-input cat-name-input"
-            value={displayLabel(category.name, lang)}
+            value={shownName(category, lang)}
             placeholder={t.categoryName}
-            onChange={e => onChange({ ...category, name: e.target.value })}
+            onChange={e => onChange({ ...category, name: e.target.value, userNamed: true })}
           />
           <div className="cat-edit-field">
             <span className="cat-edit-label">{t.chooseIcon}</span>
@@ -138,7 +138,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
           <div className="rows">
             {category.rows.map(row => (
               <div key={row.id} className="budget-row">
-                <EditableLabel value={displayLabel(row.label, lang)} onChange={label => updateLabel(row.id, label)} />
+                <EditableLabel value={shownName(row, lang)} onChange={label => updateLabel(row.id, label)} />
                 <EditableAmount
                   value={row.amount}
                   onChange={val => updateAmount(row.id, val)}
