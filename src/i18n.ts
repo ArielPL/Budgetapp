@@ -100,6 +100,21 @@ export interface Translations {
   // Editable
   clickToEdit: string;
   clickToRename: string;
+  // Custom categories
+  addCategory: string;
+  newCategory: string;
+  editCategory: string;
+  doneEditing: string;
+  deleteCategory: string;
+  deleteCategoryConfirm: (name: string) => string;
+  categoryName: string;
+  chooseIcon: string;
+  chooseColor: string;
+  protectedCategory: string;
+  // Backup reminder
+  backupReminder: string;
+  backupReminderExport: string;
+  backupReminderDismiss: string;
   // Growth chart line labels
   lineSparkonto: string;
   lineIsk: string;
@@ -179,6 +194,19 @@ export const translations: Record<Lang, Translations> = {
     yearEmpty: 'Ingen data för detta år ännu',
     clickToEdit: 'Klicka för att redigera',
     clickToRename: 'Klicka för att byta namn',
+    addCategory: '+ Lägg till kategori',
+    newCategory: 'Ny kategori',
+    editCategory: 'Redigera kategori',
+    doneEditing: 'Klar',
+    deleteCategory: 'Ta bort kategori',
+    deleteCategoryConfirm: (name) => `Ta bort kategorin "${name}" och alla dess rader?`,
+    categoryName: 'Kategorinamn',
+    chooseIcon: 'Välj ikon',
+    chooseColor: 'Välj färg',
+    protectedCategory: 'Kopplad till Plan — kan inte tas bort',
+    backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
+    backupReminderExport: 'Exportera nu',
+    backupReminderDismiss: 'Stäng',
     lineSparkonto: 'Sparkonto',
     lineIsk: 'ISK / Aktiedepå',
     lineFonder: 'Fonder',
@@ -255,6 +283,19 @@ export const translations: Record<Lang, Translations> = {
     yearEmpty: 'No data for this year yet',
     clickToEdit: 'Click to edit',
     clickToRename: 'Click to rename',
+    addCategory: '+ Add category',
+    newCategory: 'New category',
+    editCategory: 'Edit category',
+    doneEditing: 'Done',
+    deleteCategory: 'Delete category',
+    deleteCategoryConfirm: (name) => `Delete the category "${name}" and all its rows?`,
+    categoryName: 'Category name',
+    chooseIcon: 'Choose icon',
+    chooseColor: 'Choose color',
+    protectedCategory: 'Linked to Plan — cannot be deleted',
+    backupReminder: "Back up your data so you don't lose it",
+    backupReminderExport: 'Export now',
+    backupReminderDismiss: 'Dismiss',
     lineSparkonto: 'Savings account',
     lineIsk: 'ISK / Brokerage',
     lineFonder: 'Funds',

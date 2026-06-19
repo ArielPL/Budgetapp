@@ -9,10 +9,42 @@ import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
 import { YearTab } from './components/YearTab';
+import { BackupBanner } from './components/BackupBanner';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande, createCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
 import './index.css';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BACKUP_STALE_DAYS = 30;
+const BACKUP_SNOOZE_DAYS = 7;
+
+// Decide whether the backup-reminder banner should appear on load.
+function shouldShowBackupReminder(): boolean {
+  // Only nag if there is real month data saved.
+  let hasData = false;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && /^budget_\d{4}_\d+$/.test(key)) { hasData = true; break; }
+  }
+  if (!hasData) return false;
+
+  const now = Date.now();
+
+  // Snoozed recently → stay hidden.
+  const dismissed = localStorage.getItem('budget_backup_dismissed');
+  if (dismissed) {
+    const dismissedAt = Date.parse(dismissed);
+    if (!isNaN(dismissedAt) && now - dismissedAt < BACKUP_SNOOZE_DAYS * DAY_MS) return false;
+  }
+
+  // Never backed up, or last backup older than the stale threshold → show.
+  const lastBackup = localStorage.getItem('budget_last_backup');
+  if (!lastBackup) return true;
+  const lastAt = Date.parse(lastBackup);
+  if (isNaN(lastAt)) return true;
+  return now - lastAt >= BACKUP_STALE_DAYS * DAY_MS;
+}
 
 function App() {
   const now = new Date();
@@ -39,6 +71,9 @@ function App() {
   const [backupMenuOpen, setBackupMenuOpen] = useState(false);
   const backupRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Backup reminder banner
+  const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
 
   // ── Theme ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +168,14 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setBackupMenuOpen(false);
+    // Record the backup so the reminder banner stays hidden.
+    localStorage.setItem('budget_last_backup', new Date().toISOString());
+    setShowBackupReminder(false);
+  };
+
+  const dismissBackupReminder = () => {
+    localStorage.setItem('budget_backup_dismissed', new Date().toISOString());
+    setShowBackupReminder(false);
   };
 
   // ── Backup: import a JSON file and replace all data ──────────────
@@ -238,6 +281,21 @@ function App() {
     }
 
     setData(d => ({ ...d, expenses: d.expenses.map(c => c.id === updatedCat.id ? updatedCat : c) }));
+  };
+
+  // ── Custom categories (current month only) ───────────────────────
+  const addExpenseCategory = () => {
+    const existing = data.expenses.length;
+    const color = CATEGORY_PALETTE[existing % CATEGORY_PALETTE.length];
+    const icon = CATEGORY_ICONS[existing % CATEGORY_ICONS.length];
+    const newCat = createCategory(t.newCategory, icon, color, t.newRow);
+    setData(d => ({ ...d, expenses: [...d.expenses, newCat] }));
+  };
+
+  const deleteExpenseCategory = (id: string) => {
+    // sparande/givande are protected (the component already hides delete for them).
+    if (id === 'sparande' || id === 'givande') return;
+    setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
 
   // ── Savings ───────────────────────────────────────────────────────
@@ -397,6 +455,9 @@ function App() {
       </header>
 
       <main className="app-main">
+        {showBackupReminder && (
+          <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
+        )}
         {activeTab === 'budget' && (
           <>
             <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
@@ -404,8 +465,16 @@ function App() {
               <div className="budget-left">
                 <IncomeSection rows={data.income} onChange={setIncome} />
                 {data.expenses.map(cat => (
-                  <ExpenseCategory key={cat.id} category={cat} onChange={setExpenseCategory} />
+                  <ExpenseCategory
+                    key={cat.id}
+                    category={cat}
+                    onChange={setExpenseCategory}
+                    onDelete={deleteExpenseCategory}
+                  />
                 ))}
+                <button className="add-category-btn" onClick={addExpenseCategory}>
+                  {t.addCategory}
+                </button>
               </div>
               <div className="budget-right">
                 <Charts categories={data.expenses} totalIncome={totalIncome} />

@@ -22,6 +22,26 @@ export const SAVINGS_COLORS: Record<string, string> = {
 
 export const GOAL_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#14b8a6', '#f97316'];
 
+// Palette offered as swatches when adding/editing a custom category
+export const CATEGORY_PALETTE = [
+  '#6366f1', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#f97316',
+  '#14b8a6', '#f43f5e', '#22d3ee', '#22c55e', '#a78bfa', '#fb923c',
+];
+
+// Curated emoji set offered when adding/editing a custom category
+export const CATEGORY_ICONS = [
+  '🏠', '🛒', '🚌', '📱', '👤', '🎯', '💰', '🤲',
+  '🎁', '🐶', '🚗', '✈️', '🍽️', '💊', '📚', '🎓',
+  '💡', '🏥', '💳', '🎮',
+];
+
+// The two categories wired to the Plan tab — must never be deletable.
+export const PROTECTED_CATEGORY_IDS = ['sparande', 'givande'] as const;
+
+export function isProtectedCategory(id: string): boolean {
+  return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
+}
+
 function makeId(): string {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -282,6 +302,17 @@ export function savePlanData(data: PlanData): void {
 
 export function generateId(): string {
   return Math.random().toString(36).slice(2, 9);
+}
+
+// Create a brand-new user category with one starter row.
+export function createCategory(name: string, icon: string, color: string, starterRowLabel: string): BudgetCategory {
+  return {
+    id: generateId(),
+    name,
+    icon,
+    color,
+    rows: [{ id: generateId(), label: starterRowLabel, amount: 0, isCustom: true }],
+  };
 }
 
 export function makeGoalColor(index: number): string {
