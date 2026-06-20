@@ -35,8 +35,13 @@ export const CATEGORY_ICONS = [
   '💡', '🏥', '💳', '🎮',
 ];
 
-// The two categories wired to the Plan tab — must never be deletable.
-export const PROTECTED_CATEGORY_IDS = ['sparande', 'givande'] as const;
+// The four default savings categories — power the growth-chart lines and per-id
+// structure, so they must always exist and never be deletable.
+export const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
+
+// Categories that must never be deletable: the two wired to the Plan tab
+// (sparande/givande) plus the four fixed savings defaults.
+export const PROTECTED_CATEGORY_IDS = ['sparande', 'givande', ...DEFAULT_SAVINGS_IDS] as const;
 
 export function isProtectedCategory(id: string): boolean {
   return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
@@ -284,7 +289,16 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
   if (!raw) return defaultMonthData(lang);
   try {
     const parsed = JSON.parse(raw) as MonthData;
-    if (!parsed.savings) parsed.savings = defaultSavings(lang);
+    // Robust savings backfill: keep every existing savings category (and its
+    // amounts/custom rows) as-is, then append any MISSING default categories in
+    // canonical order. Repairs months saved with a partial savings array.
+    if (!parsed.savings) {
+      parsed.savings = defaultSavings(lang);
+    } else {
+      const existingIds = new Set(parsed.savings.map(c => c.id));
+      const missing = defaultSavings(lang).filter(c => !existingIds.has(c.id));
+      if (missing.length > 0) parsed.savings = [...parsed.savings, ...missing];
+    }
     // backfill givande category if missing (added later)
     if (!parsed.expenses.find(c => c.id === 'givande')) {
       parsed.expenses.push(defaultGivande([], lang));

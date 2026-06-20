@@ -8,11 +8,13 @@ import { SavingsDonuts } from './SavingsDonuts';
 interface Props {
   categories: BudgetCategory[];
   onChange: (cat: BudgetCategory) => void;
+  onAddCategory: () => void;
+  onDeleteCategory: (id: string) => void;
   year: number;
   currentMonth: number;
 }
 
-export const SavingsTab = ({ categories, onChange, year, currentMonth }: Props) => {
+export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCategory, year, currentMonth }: Props) => {
   const { lang, t } = useLang();
   const total = categories.reduce(
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
@@ -55,8 +57,17 @@ export const SavingsTab = ({ categories, onChange, year, currentMonth }: Props) 
       <div className="budget-grid savings-grid">
         <div className="budget-left">
           {categories.map(cat => (
-            <ExpenseCategory key={cat.id} category={cat} onChange={onChange} />
+            <ExpenseCategory
+              key={cat.id}
+              category={cat}
+              onChange={onChange}
+              onDelete={onDeleteCategory}
+              protectedNote={t.protectedSavingsCategory}
+            />
           ))}
+          <button className="add-category-btn" onClick={onAddCategory}>
+            {t.addCategory}
+          </button>
         </div>
         <div className="budget-right">
           <GrowthChart year={year} currentMonth={currentMonth} currentSavings={categories} />

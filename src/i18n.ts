@@ -111,6 +111,7 @@ export interface Translations {
   chooseIcon: string;
   chooseColor: string;
   protectedCategory: string;
+  protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
   backupReminderExport: string;
@@ -204,6 +205,7 @@ export const translations: Record<Lang, Translations> = {
     chooseIcon: 'Välj ikon',
     chooseColor: 'Välj färg',
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
+    protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderExport: 'Exportera nu',
     backupReminderDismiss: 'Stäng',
@@ -293,6 +295,7 @@ export const translations: Record<Lang, Translations> = {
     chooseIcon: 'Choose icon',
     chooseColor: 'Choose color',
     protectedCategory: 'Linked to Plan — cannot be deleted',
+    protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderExport: 'Export now',
     backupReminderDismiss: 'Dismiss',

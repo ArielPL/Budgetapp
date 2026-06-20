@@ -11,7 +11,7 @@ import { PlanTab } from './components/PlanTab';
 import { YearTab } from './components/YearTab';
 import { BackupBanner } from './components/BackupBanner';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande, createCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
 import './index.css';
 
@@ -344,6 +344,20 @@ function App() {
     setData(d => ({ ...d, savings: d.savings.map(c => c.id === cat.id ? cat : c) }));
   };
 
+  const addSavingsCategory = () => {
+    const existing = data.savings.length;
+    const color = CATEGORY_PALETTE[existing % CATEGORY_PALETTE.length];
+    const icon = CATEGORY_ICONS[existing % CATEGORY_ICONS.length];
+    const newCat = createCategory(t.newCategory, icon, color, t.newRow);
+    setData(d => ({ ...d, savings: [...d.savings, newCat] }));
+  };
+
+  const deleteSavingsCategory = (id: string) => {
+    // The four default savings categories are protected.
+    if (isProtectedCategory(id)) return;
+    setData(d => ({ ...d, savings: d.savings.filter(c => c.id !== id) }));
+  };
+
   // ── Plan — with goal↔budget sync ─────────────────────────────────
   const handlePlanDataChange = (newPlan: PlanData) => {
     const oldGoals   = planData.goals;
@@ -528,6 +542,8 @@ function App() {
           <SavingsTab
             categories={data.savings}
             onChange={setSavingsCategory}
+            onAddCategory={addSavingsCategory}
+            onDeleteCategory={deleteSavingsCategory}
             year={year}
             currentMonth={month}
           />

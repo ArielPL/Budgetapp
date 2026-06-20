@@ -9,9 +9,11 @@ interface Props {
   category: BudgetCategory;
   onChange: (cat: BudgetCategory) => void;
   onDelete?: (id: string) => void;
+  /** Note shown for protected categories; defaults to the Plan-linked message. */
+  protectedNote?: string;
 }
 
-export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
+export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }: Props) => {
   const { t, lang } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -118,7 +120,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete }: Props) => {
           </div>
           <div className="cat-edit-actions">
             {protectedCat ? (
-              <span className="cat-protected-note">{t.protectedCategory}</span>
+              <span className="cat-protected-note">{protectedNote ?? t.protectedCategory}</span>
             ) : (
               onDelete && (
                 <button className="cat-delete-btn" onClick={handleDelete}>
