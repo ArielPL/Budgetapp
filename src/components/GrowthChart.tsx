@@ -129,6 +129,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
                 fill={`url(#grad-${l.key})`}
                 dot={{ r: 3, fill: l.color, strokeWidth: 0 }}
                 activeDot={{ r: 5, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
             ))}
           </AreaChart>

@@ -7,10 +7,12 @@
 }
 
 :root {
+  /* ── Dark "Sorbet on navy" (default) ── */
   --bg: #0f172a;
   --surface: #1e293b;
   --surface2: #243044;
   --border: #334155;
+  --border-strong: #475569;
   --text: #e2e8f0;
   --text-muted: #64748b;
   --text-dim: #94a3b8;
@@ -18,20 +20,62 @@
   --positive: #22c55e;
   --negative: #ef4444;
   --header-bg: rgba(15, 23, 42, 0.92);
+
+  /* Brand accent (selected states, primary buttons) */
+  --accent-brand: #a78bfa;
+  --accent-brand-strong: #8b5cf6;
+
+  /* Soft role tints — surfaces + on-tint text (legible on dark) */
+  --tint-remaining-bg: #18241a;
+  --tint-remaining-text: #c0dd97;
+  --tint-income-bg: #11201c;
+  --tint-income-text: #9fe1cb;
+  --tint-expense-bg: #241a17;
+  --tint-expense-text: #f5c4b3;
+  --chip-bg: #2a2540;          /* lavender-ish icon chip on dark */
+  --chip-text: #cfc6f5;
+
+  /* Rounded, friendly radii */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Bottom-nav safe-area helper */
+  --bottom-nav-h: 64px;
+
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* ─── Light theme ─────────────────────────────────────────────────── */
+/* ─── Light theme — "Sorbet" candy pastel ─────────────────────────── */
 
 :root[data-theme="light"] {
-  --bg: #f1f5f9;
+  --bg: #fbfaff;
   --surface: #ffffff;
-  --surface2: #f8fafc;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-muted: #94a3b8;
-  --text-dim: #475569;
-  --header-bg: rgba(241, 245, 249, 0.92);
+  --surface2: #f6f4fb;
+  --border: #ece9f5;
+  --border-strong: #d8d3ea;
+  --text: #20203a;
+  --text-muted: #9a96ad;
+  --text-dim: #5d5972;
+  --income-color: #0fa99a;
+  --positive: #2f9e44;
+  --negative: #e8590c;
+  --header-bg: rgba(251, 250, 255, 0.9);
+
+  --accent-brand: #8b5cf6;
+  --accent-brand-strong: #7c3aed;
+
+  /* Soft pastel tints per role */
+  --tint-remaining-bg: #eaf3de;
+  --tint-remaining-text: #173404;
+  --tint-income-bg: #e1f5ee;
+  --tint-income-text: #04342c;
+  --tint-expense-bg: #faece7;
+  --tint-expense-text: #4a1b0c;
+  --chip-bg: #eeedfe;          /* lavender icon chip */
+  --chip-text: #5b4bb3;
+
   color-scheme: light;
 }
 
@@ -67,11 +111,21 @@ button {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--header-bg);
-  backdrop-filter: blur(12px);
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 24px;
+}
+
+/* Blur/background as a layer so .app-header itself does NOT create a
+   containing block (backdrop-filter on the element would trap the
+   mobile fixed bottom nav inside the header). */
+.app-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
 }
 
 .app-main {
@@ -86,21 +140,46 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 16px;
 }
 
 .month-title {
-  font-size: 1.75rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.6rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
-  min-width: 240px;
   text-align: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 6px 16px;
+  min-height: 44px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+@media (hover: hover) {
+  .month-title:hover {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+}
+
+.month-title-open {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.month-title-caret {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .nav-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -110,12 +189,19 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .nav-btn:hover {
   background: var(--surface2);
-  border-color: #475569;
+  border-color: var(--border-strong);
+}
+
+.nav-btn-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 1.25rem;
 }
 
 /* ─── Summary cards ───────────────────────────────────────────────── */
@@ -129,18 +215,36 @@ button {
 .summary-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 20px 24px;
+}
+
+/* Role-tinted hero/accent cards (Sorbet) */
+.income-card {
+  background: var(--tint-income-bg);
+  border-color: transparent;
+}
+.expense-card {
+  background: var(--tint-expense-bg);
+  border-color: transparent;
+}
+.remaining-card {
+  background: var(--tint-remaining-bg);
+  border-color: transparent;
 }
 
 .card-label {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
   margin-bottom: 8px;
 }
+
+.income-card .card-label { color: var(--tint-income-text); opacity: 0.7; }
+.expense-card .card-label { color: var(--tint-expense-text); opacity: 0.7; }
+.remaining-card .card-label { color: var(--tint-remaining-text); opacity: 0.7; }
 
 .card-amount {
   font-size: 1.75rem;
@@ -148,9 +252,9 @@ button {
   letter-spacing: -0.03em;
 }
 
-.income-amount { color: var(--income-color); }
-.expense-amount { color: #f87171; }
-.positive-amount { color: var(--positive); }
+.income-amount { color: var(--tint-income-text); }
+.expense-amount { color: var(--tint-expense-text); }
+.positive-amount { color: var(--tint-remaining-text); }
 .negative-amount { color: var(--negative); }
 
 .card-sub {
@@ -184,13 +288,13 @@ button {
 .budget-section {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 16px 20px 12px;
   transition: border-color 0.15s;
 }
 
 .budget-section:hover {
-  border-color: #475569;
+  border-color: var(--border-strong);
 }
 
 .income-section {
@@ -198,7 +302,7 @@ button {
 }
 
 .expense-section {
-  border-left: 3px solid var(--accent, #6366f1);
+  border-left: 3px solid var(--accent, var(--accent-brand));
 }
 
 .section-header {
@@ -210,7 +314,15 @@ button {
 }
 
 .section-icon {
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--chip-bg);
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -279,7 +391,7 @@ button {
 }
 
 .label-input:focus {
-  border-color: #475569;
+  border-color: var(--border-strong);
 }
 
 .amount-display {
@@ -329,7 +441,7 @@ button {
   height: 22px;
   border-radius: 50%;
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+  color: var(--negative);
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -365,7 +477,7 @@ button {
 .charts-container {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -375,7 +487,7 @@ button {
 .charts-placeholder {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 40px;
   text-align: center;
   color: var(--text-muted);
@@ -489,7 +601,7 @@ button {
 .year-table-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 8px;
   overflow-x: auto;
 }
@@ -566,137 +678,162 @@ button {
 
 .header-top {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 12px;
+  position: relative;
 }
 
 .header-bottom {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-/* ─── Header actions (theme + copy) ──────────────────────────────── */
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 2px;
-  flex-shrink: 0;
-}
-
-/* ─── Theme toggle ────────────────────────────────────────────────── */
-
-.theme-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-  touch-action: manipulation;
+  gap: 8px;
 }
 
-@media (hover: hover) {
-  .theme-btn:hover {
-    background: var(--surface2);
-    border-color: #475569;
-  }
-}
+/* ─── Utilities menu (single combined control) ───────────────────── */
 
-/* ─── Language toggle ─────────────────────────────────────────────── */
-
-.lang-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-  touch-action: manipulation;
-}
-
-@media (hover: hover) {
-  .lang-btn:hover {
-    background: var(--surface2);
-    border-color: #475569;
-  }
-}
-
-/* ─── Copy budget button ──────────────────────────────────────────── */
-
-.copy-menu-wrap {
-  position: relative;
+.menu-wrap {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
 
-.copy-btn {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
+.menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
   transition: color 0.15s, background 0.15s, border-color 0.15s;
   touch-action: manipulation;
 }
 
+.menu-btn-icon { font-size: 1rem; line-height: 1; }
+
 @media (hover: hover) {
-  .copy-btn:hover {
+  .menu-btn:hover {
     color: var(--text);
-    border-color: #475569;
+    border-color: var(--border-strong);
   }
 }
 
-.copy-dropdown {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  min-width: 240px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  z-index: 100;
+.menu-btn-open {
+  color: var(--text);
+  border-color: var(--accent-brand);
 }
 
-.copy-dropdown button {
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.utils-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.utils-menu-sheet-title {
+  display: none;
+}
+
+.utils-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.utils-row-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.utils-seg {
+  display: inline-flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.seg-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s;
+}
+
+.seg-active {
+  color: #fff;
+  background: var(--accent-brand);
+}
+
+.utils-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.utils-group-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.utils-action {
   text-align: left;
-  padding: 8px 12px;
-  border-radius: 7px;
-  font-size: 0.82rem;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
   color: var(--text-dim);
   transition: background 0.1s, color 0.1s;
 }
 
-.copy-dropdown button:hover {
-  background: var(--surface2);
-  color: var(--text);
+@media (hover: hover) {
+  .utils-action:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
 }
 
 .copy-msg {
   font-size: 0.75rem;
-  color: #22c55e;
+  color: var(--positive);
   white-space: nowrap;
   animation: fadeOut 2.2s forwards;
 }
@@ -787,11 +924,11 @@ button {
   transition: border-color 0.1s, background 0.1s;
 }
 
-.cat-icon-swatch:hover { border-color: #475569; }
+.cat-icon-swatch:hover { border-color: var(--border-strong); }
 .cat-icon-swatch.selected {
-  border-color: var(--accent, #6366f1);
+  border-color: var(--accent, var(--accent-brand));
   background: var(--surface);
-  box-shadow: 0 0 0 1px var(--accent, #6366f1);
+  box-shadow: 0 0 0 1px var(--accent, var(--accent-brand));
 }
 
 .cat-color-grid {
@@ -830,7 +967,7 @@ button {
 .cat-delete-btn {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #f87171;
+  color: var(--negative);
   background: rgba(239, 68, 68, 0.1);
   border-radius: 7px;
   padding: 6px 12px;
@@ -851,7 +988,7 @@ button {
   transition: border-color 0.1s;
 }
 
-.cat-done-btn:hover { border-color: #475569; }
+.cat-done-btn:hover { border-color: var(--border-strong); }
 
 .add-category-btn {
   font-size: 0.85rem;
@@ -859,7 +996,7 @@ button {
   color: var(--text-dim);
   background: var(--surface);
   border: 1px dashed var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px;
   margin-top: 4px;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -869,7 +1006,7 @@ button {
 @media (hover: hover) {
   .add-category-btn:hover {
     color: var(--text);
-    border-color: #475569;
+    border-color: var(--border-strong);
     background: var(--surface2);
   }
 }
@@ -883,7 +1020,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--income-color);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
 }
 
@@ -902,7 +1039,7 @@ button {
   font-size: 0.78rem;
   font-weight: 600;
   color: #fff;
-  background: #6366f1;
+  background: var(--accent-brand);
   border-radius: 8px;
   padding: 7px 14px;
   white-space: nowrap;
@@ -910,7 +1047,7 @@ button {
   flex-shrink: 0;
 }
 
-.backup-banner-export:hover { background: #4f46e5; }
+.backup-banner-export:hover { background: var(--accent-brand-strong); }
 
 .backup-banner-dismiss {
   width: 26px;
@@ -945,9 +1082,10 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 10px 16px;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   border-radius: 8px 8px 0 0;
   border-bottom: 2px solid transparent;
@@ -965,7 +1103,7 @@ button {
 
 .tab-active {
   color: var(--text) !important;
-  border-bottom-color: #6366f1;
+  border-bottom-color: var(--accent-brand);
   background: var(--surface) !important;
 }
 
@@ -973,38 +1111,53 @@ button {
 .tab-label { }
 .tab-label-short { display: none; }
 
-/* ─── Month strip ─────────────────────────────────────────────────── */
+/* ─── Month picker (tap-to-open, hidden by default) ───────────────── */
 
-.month-strip-wrap {
+.month-picker {
+  margin: 12px auto 4px;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.month-picker-year {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0 4px;
-  overflow: hidden;
   justify-content: center;
+  gap: 16px;
 }
 
-.month-strip {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 2px 4px;
-  justify-content: center;
+.month-picker-year-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.month-strip::-webkit-scrollbar { display: none; }
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
 
 .month-pill {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
+  min-height: 40px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface2);
   border: 1px solid transparent;
-  transition: all 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
   white-space: nowrap;
   touch-action: manipulation;
 }
@@ -1012,34 +1165,14 @@ button {
 @media (hover: hover) {
   .month-pill:hover {
     color: var(--text);
-    background: var(--surface);
-    border-color: var(--border);
+    border-color: var(--border-strong);
   }
 }
 
 .month-pill-active {
   color: #fff !important;
-  background: #6366f1 !important;
-  border-color: #6366f1 !important;
-}
-
-.year-btn {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
-  touch-action: manipulation;
-}
-
-@media (hover: hover) {
-  .year-btn:hover {
-    color: var(--text);
-    background: var(--surface);
-  }
+  background: var(--accent-brand) !important;
+  border-color: var(--accent-brand) !important;
 }
 
 /* ─── Tab content ─────────────────────────────────────────────────── */
@@ -1060,7 +1193,7 @@ button {
 }
 
 .savings-card {
-  border-left: 3px solid #22d3ee;
+  border-left: 3px solid var(--income-color);
 }
 
 /* Remove sticky from right column in savings tab */
@@ -1076,7 +1209,7 @@ button {
 .savings-donuts-grid {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1182,12 +1315,12 @@ button {
   text-align: center;
   background: var(--surface);
   border: 1px dashed var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .add-goal-btn {
   padding: 7px 14px;
-  background: #6366f1;
+  background: var(--accent-brand);
   color: #fff;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -1195,7 +1328,7 @@ button {
   transition: background 0.15s;
 }
 
-.add-goal-btn:hover { background: #4f46e5; }
+.add-goal-btn:hover { background: var(--accent-brand-strong); }
 
 .goals-grid {
   display: grid;
@@ -1209,7 +1342,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 4px solid;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1316,7 +1449,7 @@ button {
   color-scheme: dark;
 }
 
-.deadline-input:focus { border-color: #475569; }
+.deadline-input:focus { border-color: var(--border-strong); }
 
 /* ─── Goal budget link badge ──────────────────────────────────────── */
 
@@ -1336,7 +1469,7 @@ button {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 16px;
   font-size: 0.875rem;
   color: var(--text);
@@ -1348,7 +1481,7 @@ button {
   min-height: 140px;
 }
 
-.plan-notes:focus { border-color: #475569; }
+.plan-notes:focus { border-color: var(--border-strong); }
 .plan-notes::placeholder { color: var(--text-muted); }
 
 /* ─── Mobile (phones) ─────────────────────────────────────────────────
@@ -1356,53 +1489,116 @@ button {
    don't add specificity — source order breaks ties). */
 
 @media (max-width: 640px) {
+  /* Leave room for the fixed bottom tab bar + safe area */
   .app {
-    padding: 0 12px 48px;
+    padding: 0 12px;
+    padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 24px);
   }
 
-  /* Stack header actions onto their own row ABOVE the tabs
-     (column-reverse puts the tab row, with its divider, next to content) */
-  .header-bottom {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    gap: 8px;
+  /* Header: month title smaller, menu button compact */
+  .month-title {
+    font-size: 1.3rem;
+    padding: 6px 12px;
   }
 
-  .header-actions {
-    justify-content: space-between;
-    padding-bottom: 0;
-  }
-
-  /* Tabs share the row equally */
-  .tab-nav {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .tab-nav::-webkit-scrollbar { display: none; }
-
-  .tab-btn {
-    padding: 9px 8px;
-    font-size: 0.82rem;
-    flex: 1;
+  .menu-btn-label { display: none; }
+  .menu-btn {
+    padding: 0;
+    width: 40px;
     justify-content: center;
   }
 
-  /* Use short tab labels on phones so all three fit */
+  /* Remove the transform so the fixed slide-up sheet resolves against
+     the viewport (a transformed ancestor would become its containing
+     block and trap it). */
+  .menu-wrap {
+    transform: none;
+    top: 50%;
+    margin-top: -20px;
+  }
+
+  /* ── Bottom tab bar ──
+     .header-bottom wraps TabNav; pin it to the bottom of the viewport. */
+  .header-bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tab-nav {
+    margin-top: 0;
+    border-bottom: none;
+    gap: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .tab-btn {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-height: var(--bottom-nav-h);
+    padding: 8px 4px;
+    font-size: 0.68rem;
+    border-radius: 0;
+    border-bottom: none;
+    color: var(--text-muted);
+    justify-content: center;
+  }
+
+  .tab-icon { font-size: 1.25rem; }
+
+  /* Use short labels under the icon */
   .tab-label { display: none; }
   .tab-label-short { display: inline; }
 
-  /* Month strip: left-aligned + scrollable so months aren't clipped
-     (centering an overflowing flex row hides the ends) */
-  .month-strip {
-    flex: 1;
-    justify-content: flex-start;
+  /* Filled active state on the bottom bar */
+  .tab-active {
+    color: var(--accent-brand) !important;
+    background: transparent !important;
+    border-bottom-color: transparent;
+  }
+  .tab-active .tab-icon {
+    transform: scale(1.08);
   }
 
-  /* Copy dropdown opens downward on mobile so it doesn't cover the strip */
-  .copy-dropdown {
-    top: calc(100% + 6px);
-    bottom: auto;
+  /* Month picker fills width on phones */
+  .month-picker {
+    max-width: none;
   }
+
+  /* Utilities menu becomes a slide-up sheet */
+  .utils-menu {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    gap: 12px;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .utils-menu-sheet-title {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+
+  .seg-btn { min-height: 38px; }
+  .utils-action { min-height: 44px; }
 
   /* Chart on top on phones: the grid is single-column here (see 900px
      breakpoint), so order:-1 lifts .budget-right above the input rows.

@@ -63,6 +63,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
                 outerRadius={100}
                 paddingAngle={3}
                 dataKey="value"
+                isAnimationActive={false}
               >
                 {data.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
@@ -117,7 +118,7 @@ export const Charts = ({ categories, totalIncome }: Props) => {
               tickLine={false}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28}>
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28} isAnimationActive={false}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}

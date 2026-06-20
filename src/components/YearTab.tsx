@@ -108,8 +108,8 @@ export const YearTab = ({ year }: Props) => {
                     iconSize={8}
                     wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }}
                   />
-                  <Bar dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                  <Bar dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={20} />
+                  <Bar dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+                  <Bar dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

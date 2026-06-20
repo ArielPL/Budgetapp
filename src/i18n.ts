@@ -27,6 +27,12 @@ export interface Translations {
   tabYear: string;
   tabYearShort: string;
   // Header buttons
+  menu: string;
+  menuTitle: string;
+  language: string;
+  theme: string;
+  themeLight: string;
+  themeDark: string;
   themeToLight: string;
   themeToDark: string;
   switchToSwedish: string;
@@ -131,6 +137,12 @@ export const translations: Record<Lang, Translations> = {
     tabPlan: 'Plan',
     tabYear: 'År',
     tabYearShort: 'År',
+    menu: 'Meny',
+    menuTitle: 'Inställningar och verktyg',
+    language: 'Språk',
+    theme: 'Tema',
+    themeLight: 'Ljust',
+    themeDark: 'Mörkt',
     themeToLight: 'Byt till ljust tema',
     themeToDark: 'Byt till mörkt tema',
     switchToSwedish: 'Byt till svenska',
@@ -221,6 +233,12 @@ export const translations: Record<Lang, Translations> = {
     tabPlan: 'Plan',
     tabYear: 'Year',
     tabYearShort: 'Year',
+    menu: 'Menu',
+    menuTitle: 'Settings & tools',
+    language: 'Language',
+    theme: 'Theme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     themeToLight: 'Switch to light theme',
     themeToDark: 'Switch to dark theme',
     switchToSwedish: 'Byt till svenska',

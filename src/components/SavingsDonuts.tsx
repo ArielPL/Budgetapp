@@ -39,6 +39,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
                 dataKey={empty ? 'value' : 'amount'}
                 paddingAngle={empty ? 0 : 3}
                 strokeWidth={0}
+                isAnimationActive={false}
               >
                 {empty
                   ? <Cell fill="#1e293b" />

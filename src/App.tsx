@@ -103,15 +103,14 @@ function App() {
 
   const t = translations[lang];
 
-  // Copy menu
-  const [copyMenuOpen, setCopyMenuOpen] = useState(false);
+  // Single utilities menu (language, theme, copy budget, data export/import)
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copyMsg, setCopyMsg] = useState('');
-  const copyRef = useRef<HTMLDivElement>(null);
-
-  // Backup menu (export / import)
-  const [backupMenuOpen, setBackupMenuOpen] = useState(false);
-  const backupRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Tap-to-open month picker (the 12-month strip)
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
@@ -164,25 +163,15 @@ function App() {
   useEffect(() => { saveMonthData(year, month, data); },   [data, year, month]);
   useEffect(() => { savePlanData(planData); },             [planData]);
 
-  // ── Close copy menu on outside click ─────────────────────────────
+  // ── Close utilities menu on outside click ────────────────────────
   useEffect(() => {
-    if (!copyMenuOpen) return;
+    if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (!copyRef.current?.contains(e.target as Node)) setCopyMenuOpen(false);
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [copyMenuOpen]);
-
-  // ── Close backup menu on outside click ───────────────────────────
-  useEffect(() => {
-    if (!backupMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (!backupRef.current?.contains(e.target as Node)) setBackupMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [backupMenuOpen]);
+  }, [menuOpen]);
 
   // ── Backup: export all budget_* keys to a JSON file ──────────────
   const exportData = () => {
@@ -208,7 +197,7 @@ function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setBackupMenuOpen(false);
+    setMenuOpen(false);
     // Record the backup so the reminder banner stays hidden.
     localStorage.setItem('budget_last_backup', new Date().toISOString());
     setShowBackupReminder(false);
@@ -257,13 +246,13 @@ function App() {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
     saveMonthData(nextYear, nextMth, data);
-    setCopyMenuOpen(false);
+    setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
   const copyToAllRemaining = () => {
     for (let m = month + 1; m <= 11; m++) saveMonthData(year, m, data);
-    setCopyMenuOpen(false);
+    setMenuOpen(false);
     showMsg(t.copiedToMonths(11 - month));
   };
 
@@ -277,6 +266,9 @@ function App() {
     else setMonth(m => m + 1);
   };
   const handleYearChange = (delta: number) => setYear(y => y + delta);
+
+  // Picker: selecting a month collapses the strip.
+  const selectMonth = (m: number) => { setMonth(m); setPickerOpen(false); };
 
   // ── Income ────────────────────────────────────────────────────────
   const setIncome = (rows: BudgetRow[]) => {
@@ -433,79 +425,118 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-top">
-          <MonthNav year={year} month={month} onPrev={prevMonth} onNext={nextMonth} />
-        </div>
-        <MonthStrip year={year} month={month} onSelect={setMonth} onYearChange={handleYearChange} />
-        <div className="header-bottom">
-          <TabNav active={activeTab} onChange={setActiveTab} />
+          <MonthNav
+            year={year}
+            month={month}
+            onPrev={prevMonth}
+            onNext={nextMonth}
+            pickerOpen={pickerOpen}
+            onTogglePicker={() => setPickerOpen(o => !o)}
+          />
 
-          <div className="header-actions">
-            {/* Language toggle — shows the flag you'll switch TO */}
+          {/* Single utilities menu: language, theme, copy budget, data */}
+          <div className="menu-wrap" ref={menuRef}>
+            {copyMsg && <span className="copy-msg">{copyMsg}</span>}
             <button
-              className="lang-btn"
-              onClick={() => setLang(l => l === 'sv' ? 'en' : 'sv')}
-              title={lang === 'sv' ? t.switchToEnglish : t.switchToSwedish}
+              className={`menu-btn${menuOpen ? ' menu-btn-open' : ''}`}
+              onClick={() => setMenuOpen(o => !o)}
+              title={t.menuTitle}
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
             >
-              {lang === 'sv' ? '🇬🇧' : '🇸🇪'}
+              <span className="menu-btn-icon">⚙️</span>
+              <span className="menu-btn-label">{t.menu}</span>
             </button>
 
-            {/* Theme toggle */}
-            <button
-              className="theme-btn"
-              onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? t.themeToLight : t.themeToDark}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
+            {menuOpen && (
+              <>
+                <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+                <div className="utils-menu" role="menu">
+                  <div className="utils-menu-sheet-title">{t.menu}</div>
 
-            {/* Copy budget */}
-            <div className="copy-menu-wrap" ref={copyRef}>
-              {copyMsg && <span className="copy-msg">{copyMsg}</span>}
-              <button
-                className="copy-btn"
-                onClick={() => setCopyMenuOpen(o => !o)}
-                title={t.copyBudgetTitle}
-              >
-                {t.copyBudget} {copyMenuOpen ? '▴' : '▾'}
-              </button>
-              {copyMenuOpen && (
-                <div className="copy-dropdown">
-                  <button onClick={copyToNextMonth}>
+                  {/* Language */}
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.language}</span>
+                    <div className="utils-seg">
+                      <button
+                        className={`seg-btn${lang === 'sv' ? ' seg-active' : ''}`}
+                        onClick={() => setLang('sv')}
+                      >
+                        🇸🇪 SV
+                      </button>
+                      <button
+                        className={`seg-btn${lang === 'en' ? ' seg-active' : ''}`}
+                        onClick={() => setLang('en')}
+                      >
+                        🇬🇧 EN
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Theme */}
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.theme}</span>
+                    <div className="utils-seg">
+                      <button
+                        className={`seg-btn${theme === 'light' ? ' seg-active' : ''}`}
+                        onClick={() => setTheme('light')}
+                      >
+                        ☀️ {t.themeLight}
+                      </button>
+                      <button
+                        className={`seg-btn${theme === 'dark' ? ' seg-active' : ''}`}
+                        onClick={() => setTheme('dark')}
+                      >
+                        🌙 {t.themeDark}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="utils-divider" />
+
+                  {/* Copy budget */}
+                  <div className="utils-group-label">{t.copyBudget}</div>
+                  <button className="utils-action" onClick={copyToNextMonth}>
                     → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
                   </button>
                   {month < 11 && (
-                    <button onClick={copyToAllRemaining}>
+                    <button className="utils-action" onClick={copyToAllRemaining}>
                       → {t.copyAllRemaining(11 - month)}
                     </button>
                   )}
-                </div>
-              )}
-            </div>
 
-            {/* Backup: export / import data */}
-            <div className="copy-menu-wrap" ref={backupRef}>
-              <button
-                className="copy-btn"
-                onClick={() => setBackupMenuOpen(o => !o)}
-                title={t.backupTitle}
-              >
-                {t.backup} {backupMenuOpen ? '▴' : '▾'}
-              </button>
-              {backupMenuOpen && (
-                <div className="copy-dropdown">
-                  <button onClick={exportData}>{t.exportData}</button>
-                  <button onClick={() => fileInputRef.current?.click()}>{t.importData}</button>
+                  <div className="utils-divider" />
+
+                  {/* Data */}
+                  <div className="utils-group-label">{t.backup}</div>
+                  <button className="utils-action" onClick={exportData}>{t.exportData}</button>
+                  <button className="utils-action" onClick={() => fileInputRef.current?.click()}>
+                    {t.importData}
+                  </button>
                 </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json"
-                style={{ display: 'none' }}
-                onChange={handleImportFile}
-              />
-            </div>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={handleImportFile}
+            />
           </div>
+        </div>
+
+        {pickerOpen && (
+          <MonthStrip
+            year={year}
+            month={month}
+            onSelect={selectMonth}
+            onYearChange={handleYearChange}
+          />
+        )}
+
+        <div className="header-bottom">
+          <TabNav active={activeTab} onChange={setActiveTab} />
         </div>
       </header>
 
