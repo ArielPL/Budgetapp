@@ -34,7 +34,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
                 data={empty ? [{ value: 1 }] : rows}
                 cx={50}
                 cy={50}
-                innerRadius={30}
+                innerRadius={empty ? 38 : 30}
                 outerRadius={46}
                 dataKey={empty ? 'value' : 'amount'}
                 paddingAngle={empty ? 0 : 3}
@@ -42,7 +42,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
                 isAnimationActive={false}
               >
                 {empty
-                  ? <Cell fill="#1e293b" />
+                  ? <Cell fill="var(--surface2)" />
                   : rows.map((_, i) => (
                       <Cell key={i} fill={hexShade(cat.color, i, rows.length)} />
                     ))
@@ -50,7 +50,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
               </Pie>
             </PieChart>
             <div className="savings-donut-center-text">
-              <span style={{ color: empty ? '#475569' : cat.color }}>
+              <span style={{ color: empty ? 'var(--text-muted)' : cat.color }}>
                 {empty ? '–' : total >= 1000
                   ? `${(total / 1000).toFixed(0)}k`
                   : total.toLocaleString('sv-SE')}

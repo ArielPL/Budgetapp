@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PlanData, SavingsGoal, BudgetRow } from '../types';
+import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
@@ -102,7 +102,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
 };
 
 export const PlanTab = ({ data, onChange }: Props) => {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const addGoal = () => {
     const newGoal: SavingsGoal = {
       id: generateId(),
@@ -122,26 +122,6 @@ export const PlanTab = ({ data, onChange }: Props) => {
 
   const deleteGoal = (id: string) => {
     onChange({ ...data, goals: data.goals.filter(g => g.id !== id) });
-  };
-
-  const addGiving = () => {
-    const row: BudgetRow = { id: generateId(), label: t.newPost, amount: 0, isCustom: true };
-    onChange({ ...data, giving: [...data.giving, row] });
-  };
-
-  const deleteGiving = (id: string) => {
-    onChange({ ...data, giving: data.giving.filter(r => r.id !== id) });
-  };
-
-  const updateGivingRow = (id: string, field: 'label' | 'amount', value: string | number) => {
-    onChange({
-      ...data,
-      giving: data.giving.map(r =>
-        r.id === id
-          ? { ...r, [field]: value, ...(field === 'label' ? { userNamed: true } : {}) }
-          : r,
-      ),
-    });
   };
 
   return (
@@ -165,41 +145,6 @@ export const PlanTab = ({ data, onChange }: Props) => {
               onDelete={() => deleteGoal(goal.id)}
             />
           ))}
-        </div>
-      </section>
-
-      {/* ── Giving ── */}
-      <section className="plan-section">
-        <div className="plan-section-header">
-          <h2 className="plan-section-title">🤲 {t.giving}</h2>
-        </div>
-        <div className="budget-section" style={{ borderLeft: '3px solid #ec4899' }}>
-          <div className="rows">
-            {data.giving.map(row => (
-              <div key={row.id} className="budget-row">
-                {row.isCustom ? (
-                  <input
-                    className="label-input"
-                    value={row.label}
-                    onChange={e => updateGivingRow(row.id, 'label', e.target.value)}
-                  />
-                ) : (
-                  <span className="row-label">{shownName(row, lang)}</span>
-                )}
-                <EditableAmount
-                  value={row.amount}
-                  onChange={v => updateGivingRow(row.id, 'amount', v)}
-                  color="#ec4899"
-                />
-                {row.isCustom && (
-                  <button className="delete-btn" onClick={() => deleteGiving(row.id)}>×</button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button className="add-row-btn" onClick={addGiving} style={{ color: '#ec4899' }}>
-            {t.addPost}
-          </button>
         </div>
       </section>
 

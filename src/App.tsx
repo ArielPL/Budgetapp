@@ -544,6 +544,9 @@ function App() {
         {showBackupReminder && (
           <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
         )}
+        {/* key={activeTab} remounts on every switch so the lightweight CSS
+            entrance animation (.tab-enter) replays each time. */}
+        <div className="tab-enter" key={activeTab}>
         {activeTab === 'budget' && (
           <>
             <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
@@ -587,6 +590,7 @@ function App() {
         {activeTab === 'year' && (
           <YearTab year={year} />
         )}
+        </div>
       </main>
     </div>
     </LanguageContext.Provider>

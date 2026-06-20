@@ -32,6 +32,10 @@
   --tint-income-text: #9fe1cb;
   --tint-expense-bg: #241a17;
   --tint-expense-text: #f5c4b3;
+  --tint-savings-bg: #112230;
+  --tint-savings-text: #a5e8f5;
+  --tint-savings-prev-bg: #1a2536;
+  --tint-savings-prev-text: #b8c2d6;
   --chip-bg: #2a2540;          /* lavender-ish icon chip on dark */
   --chip-text: #cfc6f5;
 
@@ -73,6 +77,10 @@
   --tint-income-text: #04342c;
   --tint-expense-bg: #faece7;
   --tint-expense-text: #4a1b0c;
+  --tint-savings-bg: #e2f4fa;
+  --tint-savings-text: #064a59;
+  --tint-savings-prev-bg: #f0eefb;
+  --tint-savings-prev-text: #463a7a;
   --chip-bg: #eeedfe;          /* lavender icon chip */
   --chip-text: #5b4bb3;
 
@@ -1183,6 +1191,35 @@ button {
   gap: 24px;
 }
 
+/* Wrapper around the active tab's content. Carries the column layout/gap
+   that .app-main used to provide, and replays a lightweight entrance
+   animation on every tab switch (it's remounted via key={activeTab}).
+   Compositor-friendly (opacity + transform only) so it never blocks the
+   tap — Recharts JS animations stay off, so navigation is instant. */
+.tab-enter {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: tab-enter 0.2s ease both;
+}
+
+@keyframes tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-enter {
+    animation: none;
+  }
+}
+
 /* ─── Savings tab ─────────────────────────────────────────────────── */
 
 .savings-summary {
@@ -1192,9 +1229,20 @@ button {
   gap: 16px;
 }
 
+/* Sorbet-tinted savings summary cards, matching the Budget hero cards */
 .savings-card {
-  border-left: 3px solid var(--income-color);
+  background: var(--tint-savings-bg);
+  border-color: transparent;
 }
+.savings-card .card-label { color: var(--tint-savings-text); opacity: 0.7; }
+.savings-card .card-amount { color: var(--tint-savings-text); }
+
+.savings-prev-card {
+  background: var(--tint-savings-prev-bg);
+  border-color: transparent;
+}
+.savings-prev-card .card-label { color: var(--tint-savings-prev-text); opacity: 0.7; }
+.savings-prev-card .card-amount { color: var(--tint-savings-prev-text); }
 
 /* Remove sticky from right column in savings tab */
 .savings-grid .budget-right {
@@ -1508,13 +1556,37 @@ button {
     justify-content: center;
   }
 
-  /* Remove the transform so the fixed slide-up sheet resolves against
-     the viewport (a transformed ancestor would become its containing
-     block and trap it). */
+  /* On phones, drop the absolute positioning and lay the header out as a
+     normal flex row so the gear gets its own zone with a clear gap from
+     the month nav (no more crowding the next-arrow). */
+  .header-top {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .month-nav {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Let the centered month title shrink before the arrows do, so the row
+     never pushes the gear off-balance on the narrowest screens. */
+  .month-nav .month-title {
+    min-width: 0;
+  }
+  .month-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .menu-wrap {
+    position: static;
     transform: none;
-    top: 50%;
-    margin-top: -20px;
+    margin: 0;
+    flex-shrink: 0;
   }
 
   /* ── Bottom tab bar ──

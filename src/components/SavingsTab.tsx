@@ -35,14 +35,14 @@ export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCatego
       <div className="savings-summary">
         <div className="summary-card savings-card">
           <div className="card-label">{t.savedThisMonth}</div>
-          <div className="card-amount" style={{ color: '#22d3ee' }}>
+          <div className="card-amount">
             {total.toLocaleString('sv-SE')} kr
           </div>
         </div>
 
-        <div className="summary-card">
+        <div className="summary-card savings-prev-card">
           <div className="card-label">{t.savedPrevMonth}</div>
-          <div className="card-amount" style={{ color: '#94a3b8' }}>
+          <div className="card-amount">
             {prevTotal.toLocaleString('sv-SE')} kr
           </div>
           {prevTotal > 0 && total > 0 && (
