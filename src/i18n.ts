@@ -353,7 +353,7 @@ export const translations: Record<Lang, Translations> = {
     backupReminderExport: 'Export now',
     backupReminderDismiss: 'Dismiss',
     lineSparkonto: 'Savings account',
-    lineIsk: 'ISK / Brokerage',
+    lineIsk: 'Investment account',
     lineFonder: 'Funds',
     linePension: 'Pension',
     chartTypeArea: 'Area',

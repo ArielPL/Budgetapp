@@ -111,7 +111,7 @@ export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavin
 
   // ── Overview highlights (current month) ──
   const savingsRate = totalIncome > 0
-    ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100)
+    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
     : 0;
   const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
   const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
