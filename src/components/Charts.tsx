@@ -48,6 +48,13 @@ export const Charts = ({ categories, totalIncome }: Props) => {
 
   const totalExpenses = data.reduce((s, d) => s + d.value, 0);
 
+  const isLight = document.documentElement.dataset.theme === 'light';
+  const gridColor = isLight ? '#ece9f5' : '#243044';
+  const tickColor = isLight ? '#9a96ad' : '#64748b';
+  const tickColorStrong = isLight ? '#5d5972' : '#94a3b8';
+  // Soft Sorbet hover band — translucent lavender, tasteful in both themes
+  const cursorFill = 'rgba(139, 92, 246, 0.10)';
+
   return (
     <div className="charts-container">
       <div className="chart-block">
@@ -101,10 +108,10 @@ export const Charts = ({ categories, totalIncome }: Props) => {
             data={data}
             margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
           >
-            <CartesianGrid horizontal={false} stroke="#1e293b" />
+            <CartesianGrid horizontal={false} stroke={gridColor} />
             <XAxis
               type="number"
-              tick={{ fill: '#64748b', fontSize: 11 }}
+              tick={{ fill: tickColor, fontSize: 11 }}
               tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
               axisLine={false}
               tickLine={false}
@@ -113,11 +120,11 @@ export const Charts = ({ categories, totalIncome }: Props) => {
               type="category"
               dataKey="name"
               width={130}
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              tick={{ fill: tickColorStrong, fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorFill }} />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28} isAnimationActive={false}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />

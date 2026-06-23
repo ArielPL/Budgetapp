@@ -29,13 +29,13 @@ export const SavingsDonuts = ({ categories }: Props) => {
         <div key={cat.id} className="savings-donut-card">
           {/* Chart + center label */}
           <div className="savings-donut-wrap">
-            <PieChart width={100} height={100}>
+            <PieChart width={100} height={100} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={empty ? [{ value: 1 }] : rows}
                 cx={50}
                 cy={50}
-                innerRadius={empty ? 38 : 30}
-                outerRadius={46}
+                innerRadius={empty ? 36 : 28}
+                outerRadius={44}
                 dataKey={empty ? 'value' : 'amount'}
                 paddingAngle={empty ? 0 : 3}
                 strokeWidth={0}

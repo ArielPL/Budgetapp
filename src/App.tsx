@@ -11,7 +11,7 @@ import { PlanTab } from './components/PlanTab';
 import { YearTab } from './components/YearTab';
 import { BackupBanner } from './components/BackupBanner';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultGivande, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
 import './index.css';
 
@@ -55,8 +55,7 @@ function hasMeaningfulData(): boolean {
       const goalsHaveData = (plan.goals ?? []).some(
         (g: SavingsGoal) => (g.currentAmount || 0) > 0 || (g.targetAmount || 0) > 0,
       );
-      const givingHasData = (plan.giving ?? []).some((r: BudgetRow) => (r.amount || 0) > 0);
-      if (goalsHaveData || givingHasData) return true;
+      if (goalsHaveData) return true;
     } catch {
       /* malformed plan JSON → ignore */
     }
@@ -115,6 +114,12 @@ function App() {
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
 
+  // Guard: skip the save effect on the render where a month was just loaded.
+  // Without this, switching months runs the save effect with the NEW month/year
+  // but the OLD `data` still in scope (load's setData hasn't applied yet),
+  // writing the previous month's amounts into the new month's key (data bleed).
+  const skipNextSave = useRef(false);
+
   // ── Theme ─────────────────────────────────────────────────────────
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -129,13 +134,6 @@ function App() {
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
     const monthData = loadMonthData(year, month, lang);
-    // Always sync givande rows from planData.giving (giving plan is consistent across months)
-    const givandeIdx = monthData.expenses.findIndex(c => c.id === 'givande');
-    if (givandeIdx !== -1) {
-      monthData.expenses[givandeIdx].rows = planData.giving.map(r => ({ ...r }));
-    } else {
-      monthData.expenses.push(defaultGivande(planData.giving.map(r => ({ ...r }))));
-    }
     // Ensure linked budget rows exist for every goal (for goals created before
     // this month's data was saved). Operate on the freshly loaded monthData and
     // guard against duplicates so navigating between months can't append twice.
@@ -157,10 +155,22 @@ function App() {
         ];
       }
     }
+    // A month/year switch just loaded fresh data; the save effect will run in
+    // this same commit (month/year changed) with the PREVIOUS `data` still in
+    // scope. Skip that one save so we never write one month's data into another.
+    skipNextSave.current = true;
     setData(monthData);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
-  useEffect(() => { saveMonthData(year, month, data); },   [data, year, month]);
+  useEffect(() => {
+    if (skipNextSave.current) {
+      // This run was triggered by a month/year switch, not a real edit — the
+      // `data` in scope still belongs to the previous month. Don't persist it.
+      skipNextSave.current = false;
+      return;
+    }
+    saveMonthData(year, month, data);
+  }, [data, year, month]);
   useEffect(() => { savePlanData(planData); },             [planData]);
 
   // ── Close utilities menu on outside click ────────────────────────
@@ -256,6 +266,35 @@ function App() {
     showMsg(t.copiedToMonths(11 - month));
   };
 
+  // Reset ONLY the currently-selected month back to fresh defaults, then re-add
+  // any goal-linked rows so goal↔budget links survive (same backfill as the
+  // month-load effect). The save effect persists this to the current month's key.
+  const resetCurrentMonth = () => {
+    if (!window.confirm(t.resetMonthConfirm)) return;
+    const fresh = defaultMonthData(lang);
+    const sparandeIdx = fresh.expenses.findIndex(c => c.id === 'sparande');
+    if (sparandeIdx !== -1) {
+      const existingRowIds = new Set(fresh.expenses[sparandeIdx].rows.map(r => r.id));
+      const missingRows = planData.goals.filter(
+        g => g.budgetRowId && !existingRowIds.has(g.budgetRowId)
+      );
+      if (missingRows.length > 0) {
+        fresh.expenses[sparandeIdx].rows = [
+          ...fresh.expenses[sparandeIdx].rows,
+          ...missingRows.map(g => ({
+            id: g.budgetRowId!,
+            label: g.name,
+            amount: 0,
+            isCustom: true,
+          })),
+        ];
+      }
+    }
+    setData(fresh);
+    setMenuOpen(false);
+    showMsg(t.resetMonthDone);
+  };
+
   // ── Month navigation ──────────────────────────────────────────────
   const prevMonth = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
@@ -308,10 +347,6 @@ function App() {
         if (goalsChanged) setPlanData(pd => ({ ...pd, goals: updatedGoals }));
       }
     }
-    // When givande rows change → directly update planData.giving (single source of truth)
-    if (updatedCat.id === 'givande') {
-      setPlanData(pd => ({ ...pd, giving: updatedCat.rows.map(r => ({ ...r })) }));
-    }
 
     setData(d => ({ ...d, expenses: d.expenses.map(c => c.id === updatedCat.id ? updatedCat : c) }));
   };
@@ -326,8 +361,8 @@ function App() {
   };
 
   const deleteExpenseCategory = (id: string) => {
-    // sparande/givande are protected (the component already hides delete for them).
-    if (id === 'sparande' || id === 'givande') return;
+    // sparande is protected (the component already hides delete for it).
+    if (id === 'sparande') return;
     setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
 
@@ -396,18 +431,6 @@ function App() {
       }
     }
 
-    // When giving rows change in Plan → mirror to Budget givande category
-    if (newPlan.giving !== planData.giving) {
-      setData(d => ({
-        ...d,
-        expenses: d.expenses.map(c =>
-          c.id === 'givande'
-            ? { ...c, rows: newPlan.giving.map(r => ({ ...r })) }
-            : c
-        ),
-      }));
-    }
-
     setPlanData(newPlan);
   };
 
@@ -417,6 +440,9 @@ function App() {
   // ── Derived ───────────────────────────────────────────────────────
   const totalIncome   = data.income.reduce((s, r) => s + r.amount, 0);
   const totalExpenses = data.expenses.reduce(
+    (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
+  );
+  const totalSavings = data.savings.reduce(
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
   );
 
@@ -513,6 +539,13 @@ function App() {
                   <button className="utils-action" onClick={() => fileInputRef.current?.click()}>
                     {t.importData}
                   </button>
+
+                  <div className="utils-divider" />
+
+                  {/* Reset current month (mild destructive action) */}
+                  <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
+                    {t.resetMonth}
+                  </button>
                 </div>
               </>
             )}
@@ -584,7 +617,15 @@ function App() {
         )}
 
         {activeTab === 'plan' && (
-          <PlanTab data={planData} onChange={handlePlanDataChange} />
+          <PlanTab
+            data={planData}
+            onChange={handlePlanDataChange}
+            totalIncome={totalIncome}
+            totalExpenses={totalExpenses}
+            totalSavings={totalSavings}
+            year={year}
+            month={month}
+          />
         )}
 
         {activeTab === 'year' && (

@@ -24,6 +24,7 @@ export interface Translations {
   tabSavings: string;
   tabSavingsShort: string;
   tabPlan: string;
+  tabPlanShort: string;
   tabYear: string;
   tabYearShort: string;
   // Header buttons
@@ -51,6 +52,10 @@ export interface Translations {
   importConfirm: string;
   importInvalid: string;
   importSuccess: string;
+  // Reset month
+  resetMonth: string;
+  resetMonthConfirm: string;
+  resetMonthDone: string;
   // Month nav
   prevMonth: string;
   nextMonth: string;
@@ -78,6 +83,12 @@ export interface Translations {
   savedThisMonth: string;
   savedPrevMonth: string;
   // Plan tab
+  planOverview: string;
+  overviewSavingsRate: string;
+  overviewSavedThisMonth: string;
+  overviewGoalProgress: string;
+  goalProgressSummary: string;
+  noGoalsSummary: string;
   savingsGoals: string;
   newGoal: string;
   newGoalName: string;
@@ -89,7 +100,6 @@ export interface Translations {
   goal: string;
   of: string;
   deadline: string;
-  giving: string;
   addPost: string;
   newPost: string;
   notes: string;
@@ -127,6 +137,10 @@ export interface Translations {
   lineIsk: string;
   lineFonder: string;
   linePension: string;
+  // Growth chart type toggle
+  chartTypeArea: string;
+  chartTypeLine: string;
+  chartTypeStacked: string;
 }
 
 export const translations: Record<Lang, Translations> = {
@@ -134,7 +148,8 @@ export const translations: Record<Lang, Translations> = {
     tabBudget: 'Budget',
     tabSavings: 'Sparande & Investeringar',
     tabSavingsShort: 'Sparande',
-    tabPlan: 'Plan',
+    tabPlan: 'Plan & Översikt',
+    tabPlanShort: 'Plan',
     tabYear: 'År',
     tabYearShort: 'År',
     menu: 'Meny',
@@ -160,6 +175,9 @@ export const translations: Record<Lang, Translations> = {
     importConfirm: 'Detta ERSÄTTER all nuvarande data med innehållet i filen. Vill du fortsätta?',
     importInvalid: 'Ogiltig fil. Välj en säkerhetskopia exporterad från denna app.',
     importSuccess: '✓ Data importerad',
+    resetMonth: '↺ Återställ månad',
+    resetMonthConfirm: 'Detta nollställer den valda månadens data och kan inte ångras. Vill du fortsätta?',
+    resetMonthDone: '✓ Månad återställd',
     prevMonth: 'Föregående månad',
     nextMonth: 'Nästa månad',
     income: 'Inkomst',
@@ -181,6 +199,12 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
+    planOverview: 'Översikt',
+    overviewSavingsRate: 'Sparkvot',
+    overviewSavedThisMonth: 'Sparat denna månad',
+    overviewGoalProgress: 'Måluppfyllnad',
+    goalProgressSummary: 'Måluppfyllnad',
+    noGoalsSummary: 'Inga mål ännu — lägg till ett nedan',
     savingsGoals: 'Sparmål',
     newGoal: '+ Nytt mål',
     newGoalName: 'Nytt mål',
@@ -192,7 +216,6 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Mål',
     of: 'av',
     deadline: 'Deadline',
-    giving: 'Givande & Välgörenhet',
     addPost: '+ Lägg till post',
     newPost: 'Ny post',
     notes: 'Anteckningar & Strategi',
@@ -225,12 +248,16 @@ export const translations: Record<Lang, Translations> = {
     lineIsk: 'ISK / Aktiedepå',
     lineFonder: 'Fonder',
     linePension: 'Pension',
+    chartTypeArea: 'Yta',
+    chartTypeLine: 'Linje',
+    chartTypeStacked: 'Staplar',
   },
   en: {
     tabBudget: 'Budget',
     tabSavings: 'Savings & Investments',
     tabSavingsShort: 'Savings',
-    tabPlan: 'Plan',
+    tabPlan: 'Plan & Overview',
+    tabPlanShort: 'Plan',
     tabYear: 'Year',
     tabYearShort: 'Year',
     menu: 'Menu',
@@ -256,6 +283,9 @@ export const translations: Record<Lang, Translations> = {
     importConfirm: 'This will REPLACE all current data with the contents of the file. Continue?',
     importInvalid: 'Invalid file. Please choose a backup exported from this app.',
     importSuccess: '✓ Data imported',
+    resetMonth: '↺ Reset month',
+    resetMonthConfirm: "This clears the selected month's data and can't be undone. Continue?",
+    resetMonthDone: '✓ Month reset',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     income: 'Income',
@@ -277,6 +307,12 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fill in savings & investments to see the growth',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
+    planOverview: 'Overview',
+    overviewSavingsRate: 'Savings rate',
+    overviewSavedThisMonth: 'Saved this month',
+    overviewGoalProgress: 'Goal progress',
+    goalProgressSummary: 'Goal progress',
+    noGoalsSummary: 'No goals yet — add one below',
     savingsGoals: 'Savings goals',
     newGoal: '+ New goal',
     newGoalName: 'New goal',
@@ -288,7 +324,6 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Goal',
     of: 'of',
     deadline: 'Deadline',
-    giving: 'Giving & Charity',
     addPost: '+ Add item',
     newPost: 'New item',
     notes: 'Notes & Strategy',
@@ -321,6 +356,9 @@ export const translations: Record<Lang, Translations> = {
     lineIsk: 'ISK / Brokerage',
     lineFonder: 'Funds',
     linePension: 'Pension',
+    chartTypeArea: 'Area',
+    chartTypeLine: 'Line',
+    chartTypeStacked: 'Stacked',
   },
 };
 

@@ -10,7 +10,6 @@ export const CATEGORY_COLORS: Record<string, string> = {
   personligt: '#ec4899',
   fritid: '#f97316',
   sparande: '#14b8a6',
-  givande: '#f43f5e',
 };
 
 export const SAVINGS_COLORS: Record<string, string> = {
@@ -39,9 +38,9 @@ export const CATEGORY_ICONS = [
 // structure, so they must always exist and never be deletable.
 export const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
 
-// Categories that must never be deletable: the two wired to the Plan tab
-// (sparande/givande) plus the four fixed savings defaults.
-export const PROTECTED_CATEGORY_IDS = ['sparande', 'givande', ...DEFAULT_SAVINGS_IDS] as const;
+// Categories that must never be deletable: the one wired to the Plan tab
+// (sparande) plus the four fixed savings defaults.
+export const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
 
 export function isProtectedCategory(id: string): boolean {
   return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
@@ -92,15 +91,11 @@ const L = {
   sparande: { sv: 'Sparande', en: 'Savings' },
   savingsRow: { sv: 'Sparande', en: 'Savings' },
   investments: { sv: 'Investeringar', en: 'Investments' },
-  // givande
-  givande: { sv: 'Givande & Välgörenhet', en: 'Giving & Charity' },
-  charity: { sv: 'Välgörenhet', en: 'Charity' },
-  gifts: { sv: 'Gåvor', en: 'Gifts' },
   // savings tab
   sparkonto: { sv: 'Sparkonto', en: 'Savings account' },
   mainAccount: { sv: 'Huvudkonto', en: 'Main account' },
   bufferAccount: { sv: 'Buffertkonto', en: 'Buffer account' },
-  isk: { sv: 'ISK / Aktiedepå', en: 'ISK / Brokerage' },
+  isk: { sv: 'ISK / Aktiedepå', en: 'Investment account' },
   stocks: { sv: 'Aktier', en: 'Stocks' },
   etf: { sv: 'ETF:er', en: 'ETFs' },
   fonder: { sv: 'Fonder', en: 'Funds' },
@@ -211,8 +206,6 @@ export function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
         { id: makeId(), label: tr(L.investments, lang), amount: 0 },
       ],
     },
-    // givande rows are always seeded from planData.giving in App.tsx
-    defaultGivande([], lang),
   ];
 }
 
@@ -249,13 +242,9 @@ export function defaultSavings(lang: Lang = 'sv'): BudgetCategory[] {
   ];
 }
 
-export function defaultPlanData(lang: Lang = 'sv'): PlanData {
+export function defaultPlanData(_lang: Lang = 'sv'): PlanData {
   return {
     goals: [],
-    giving: [
-      { id: makeId(), label: tr(L.charity, lang), amount: 0 },
-      { id: makeId(), label: tr(L.gifts, lang), amount: 0 },
-    ],
     notes: '',
   };
 }
@@ -265,17 +254,6 @@ export function defaultMonthData(lang: Lang = 'sv'): MonthData {
     income: defaultIncome(lang),
     expenses: defaultExpenses(lang),
     savings: defaultSavings(lang),
-  };
-}
-
-// A givande category whose rows mirror planData.giving
-export function defaultGivande(rows: BudgetRow[] = [], lang: Lang = 'sv'): BudgetCategory {
-  return {
-    id: 'givande',
-    name: tr(L.givande, lang),
-    icon: '🤲',
-    color: CATEGORY_COLORS.givande,
-    rows,
   };
 }
 
@@ -299,9 +277,9 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
       const missing = defaultSavings(lang).filter(c => !existingIds.has(c.id));
       if (missing.length > 0) parsed.savings = [...parsed.savings, ...missing];
     }
-    // backfill givande category if missing (added later)
-    if (!parsed.expenses.find(c => c.id === 'givande')) {
-      parsed.expenses.push(defaultGivande([], lang));
+    // Strip the removed givande category from existing users' saved months.
+    if (parsed.expenses) {
+      parsed.expenses = parsed.expenses.filter(c => c.id !== 'givande');
     }
     return parsed;
   } catch {

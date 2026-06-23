@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -48,7 +48,7 @@
   /* Bottom-nav safe-area helper */
   --bottom-nav-h: 64px;
 
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 /* ─── Light theme — "Sorbet" candy pastel ─────────────────────────── */
@@ -306,11 +306,14 @@ button {
 }
 
 .income-section {
+  --accent: var(--income-color);
   border-left: 3px solid var(--income-color);
+  background: color-mix(in srgb, var(--income-color) 8%, var(--surface));
 }
 
 .expense-section {
   border-left: 3px solid var(--accent, var(--accent-brand));
+  background: color-mix(in srgb, var(--accent, var(--accent-brand)) 8%, var(--surface));
 }
 
 .section-header {
@@ -328,7 +331,7 @@ button {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: var(--chip-bg);
+  background: color-mix(in srgb, var(--accent, var(--accent-brand)) 16%, var(--surface));
   font-size: 1.1rem;
   flex-shrink: 0;
 }
@@ -514,6 +517,21 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+}
+
+/* Growth-chart header: title on the left, type toggle on the right */
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chart-type-toggle .seg-btn {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 0.72rem;
 }
 
 .donut-wrapper {
@@ -836,6 +854,18 @@ button {
   .utils-action:hover {
     background: var(--surface2);
     color: var(--text);
+  }
+}
+
+/* Mild destructive action (e.g. reset month) — reddish tint, same shape. */
+.utils-action-danger {
+  color: var(--negative);
+}
+
+@media (hover: hover) {
+  .utils-action-danger:hover {
+    background: color-mix(in srgb, var(--negative) 12%, transparent);
+    color: var(--negative);
   }
 }
 
@@ -1366,6 +1396,121 @@ button {
   border-radius: var(--radius-md);
 }
 
+/* ─── Plan overview block ─────────────────────────────────────────── */
+
+.overview-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.overview-stat {
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  border: 1px solid transparent;
+}
+
+.overview-stat-rate {
+  background: var(--tint-income-bg);
+}
+.overview-stat-saved {
+  background: var(--tint-savings-bg);
+}
+.overview-stat-goal {
+  background: var(--tint-remaining-bg);
+}
+
+.overview-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+.overview-stat-rate .overview-stat-label { color: var(--tint-income-text); }
+.overview-stat-saved .overview-stat-label { color: var(--tint-savings-text); }
+.overview-stat-goal .overview-stat-label { color: var(--tint-remaining-text); }
+
+.overview-stat-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.overview-stat-rate .overview-stat-value { color: var(--tint-income-text); }
+.overview-stat-saved .overview-stat-value { color: var(--tint-savings-text); }
+.overview-stat-goal .overview-stat-value { color: var(--tint-remaining-text); }
+
+.overview-stat-sub {
+  font-size: 0.72rem;
+  margin-top: 3px;
+  color: var(--tint-savings-text);
+  opacity: 0.7;
+}
+
+.overview-goals-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overview-subtitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.overview-goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overview-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overview-goal-name {
+  flex: 0 0 32%;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-goal-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.overview-goal-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.overview-goal-pct {
+  flex: 0 0 auto;
+  min-width: 38px;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .add-goal-btn {
   padding: 7px 14px;
   background: var(--accent-brand);
@@ -1709,5 +1854,35 @@ button {
   /* Category edit: actions stack so the delete + done buttons never overflow */
   .cat-edit-actions {
     align-items: stretch;
+  }
+
+  /* Plan overview: three highlight cards become a single column so values
+     don't get cramped on narrow phones. */
+  .overview-highlights {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .overview-stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .overview-stat-label { margin-bottom: 0; }
+  .overview-stat-value { font-size: 1.3rem; }
+  /* The month sub-line would break the single-row baseline layout; hide it. */
+  .overview-stat-sub { display: none; }
+
+  /* Goal summary rows: give the name a bit less width so the bar stays usable. */
+  .overview-goal-name { flex-basis: 38%; }
+
+  /* Growth-chart type toggle: let it span full width and keep tap targets. */
+  .chart-type-toggle { align-self: stretch; }
+  .chart-type-toggle .seg-btn {
+    flex: 1;
+    min-height: 36px;
   }
 }

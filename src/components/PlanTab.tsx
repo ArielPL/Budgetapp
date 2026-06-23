@@ -7,6 +7,11 @@ import { EditableAmount } from './EditableAmount';
 interface Props {
   data: PlanData;
   onChange: (data: PlanData) => void;
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavings: number;
+  year: number;
+  month: number;
 }
 
 const GoalCard = ({ goal, onUpdate, onDelete }: {
@@ -101,8 +106,20 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
   );
 };
 
-export const PlanTab = ({ data, onChange }: Props) => {
-  const { t } = useLang();
+export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavings, year, month }: Props) => {
+  const { lang, t } = useLang();
+
+  // ── Overview highlights (current month) ──
+  const savingsRate = totalIncome > 0
+    ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100)
+    : 0;
+  const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
+  const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
+  const goalProgress = totalTarget > 0
+    ? Math.round((totalCurrent / totalTarget) * 100)
+    : 0;
+  const monthLabel = `${MONTHS[lang][month]} ${year}`;
+
   const addGoal = () => {
     const newGoal: SavingsGoal = {
       id: generateId(),
@@ -126,6 +143,58 @@ export const PlanTab = ({ data, onChange }: Props) => {
 
   return (
     <div className="tab-content plan-tab">
+
+      {/* ── Overview ── */}
+      <section className="plan-section">
+        <div className="plan-section-header">
+          <h2 className="plan-section-title">📊 {t.planOverview}</h2>
+        </div>
+
+        {/* Highlight stat cards */}
+        <div className="overview-highlights">
+          <div className="overview-stat overview-stat-rate">
+            <div className="overview-stat-label">{t.overviewSavingsRate}</div>
+            <div className="overview-stat-value">{savingsRate}%</div>
+          </div>
+          <div className="overview-stat overview-stat-saved">
+            <div className="overview-stat-label">{t.overviewSavedThisMonth}</div>
+            <div className="overview-stat-value">{totalSavings.toLocaleString('sv-SE')} kr</div>
+            <div className="overview-stat-sub">{monthLabel}</div>
+          </div>
+          <div className="overview-stat overview-stat-goal">
+            <div className="overview-stat-label">{t.overviewGoalProgress}</div>
+            <div className="overview-stat-value">{goalProgress}%</div>
+          </div>
+        </div>
+
+        {/* Goal progress summary */}
+        <div className="overview-goals-summary">
+          <h3 className="overview-subtitle">{t.goalProgressSummary}</h3>
+          {data.goals.length === 0 ? (
+            <div className="plan-empty">{t.noGoalsSummary}</div>
+          ) : (
+            <div className="overview-goal-list">
+              {data.goals.map(goal => {
+                const pct = goal.targetAmount > 0
+                  ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
+                  : 0;
+                return (
+                  <div className="overview-goal-row" key={goal.id}>
+                    <span className="overview-goal-name">{shownName(goal, lang)}</span>
+                    <div className="overview-goal-bar-track">
+                      <div
+                        className="overview-goal-bar-fill"
+                        style={{ width: `${pct}%`, background: goal.color }}
+                      />
+                    </div>
+                    <span className="overview-goal-pct" style={{ color: goal.color }}>{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ── Goals ── */}
       <section className="plan-section">

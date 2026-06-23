@@ -34,7 +34,6 @@ export interface SavingsGoal {
 
 export interface PlanData {
   goals: SavingsGoal[];
-  giving: BudgetRow[];
   notes: string;
 }
 
