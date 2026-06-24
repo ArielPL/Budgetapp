@@ -111,6 +111,7 @@ export interface Translations {
   colMonth: string;
   colIncome: string;
   colExpenses: string;
+  colSavings: string;
   colRemaining: string;
   yearTotal: string;
   yearEmpty: string;
@@ -227,6 +228,7 @@ export const translations: Record<Lang, Translations> = {
     colMonth: 'Månad',
     colIncome: 'Inkomst',
     colExpenses: 'Utgifter',
+    colSavings: 'Sparande',
     colRemaining: 'Kvar',
     yearTotal: 'Helår',
     yearEmpty: 'Ingen data för detta år ännu',
@@ -336,6 +338,7 @@ export const translations: Record<Lang, Translations> = {
     colMonth: 'Month',
     colIncome: 'Income',
     colExpenses: 'Expenses',
+    colSavings: 'Savings',
     colRemaining: 'Remaining',
     yearTotal: 'Full year',
     yearEmpty: 'No data for this year yet',

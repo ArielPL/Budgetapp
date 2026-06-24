@@ -13,6 +13,7 @@ interface MonthRow {
   index: number;
   income: number;
   expenses: number;
+  savings: number;
   remaining: number;
 }
 
@@ -21,6 +22,8 @@ interface TooltipProps {
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
 }
+
+const SAVINGS_COLOR = '#06b6d4';
 
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (!active || !payload?.length) return null;
@@ -48,24 +51,30 @@ export const YearTab = ({ year }: Props) => {
     const expenses = data.expenses.reduce(
       (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
     );
-    return { index: m, income, expenses, remaining: income - expenses };
+    // Savings total for the month (excludes pension — a separate long-term bucket)
+    const savings = data.savings.reduce(
+      (s, cat) => (cat.id === 'pension' ? s : s + cat.rows.reduce((cs, r) => cs + r.amount, 0)), 0
+    );
+    return { index: m, income, expenses, savings, remaining: income - expenses };
   });
 
   const totals = rows.reduce(
     (acc, r) => ({
       income: acc.income + r.income,
       expenses: acc.expenses + r.expenses,
+      savings: acc.savings + r.savings,
       remaining: acc.remaining + r.remaining,
     }),
-    { income: 0, expenses: 0, remaining: 0 }
+    { income: 0, expenses: 0, savings: 0, remaining: 0 }
   );
 
-  const hasData = totals.income > 0 || totals.expenses > 0;
+  const hasData = totals.income > 0 || totals.expenses > 0 || totals.savings > 0;
 
   const chartData = rows.map(r => ({
     month: MONTHS_SHORT[lang][r.index],
     income: r.income,
     expenses: r.expenses,
+    savings: r.savings,
   }));
 
   const fmt = (n: number) => n.toLocaleString('sv-SE');
@@ -108,8 +117,9 @@ export const YearTab = ({ year }: Props) => {
                     iconSize={8}
                     wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }}
                   />
-                  <Bar dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
-                  <Bar dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+                  <Bar dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+                  <Bar dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+                  <Bar dataKey="savings" name={t.colSavings} fill={SAVINGS_COLOR} radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -122,6 +132,7 @@ export const YearTab = ({ year }: Props) => {
                   <th>{t.colMonth}</th>
                   <th className="num">{t.colIncome}</th>
                   <th className="num">{t.colExpenses}</th>
+                  <th className="num">{t.colSavings}</th>
                   <th className="num">{t.colRemaining}</th>
                 </tr>
               </thead>
@@ -131,6 +142,7 @@ export const YearTab = ({ year }: Props) => {
                     <td>{MONTHS[lang][r.index]}</td>
                     <td className="num">{fmt(r.income)} kr</td>
                     <td className="num">{fmt(r.expenses)} kr</td>
+                    <td className="num" style={{ color: SAVINGS_COLOR }}>{fmt(r.savings)} kr</td>
                     <td className="num" style={{ color: remColor(r.remaining) }}>
                       {r.remaining > 0 ? '+' : ''}{fmt(r.remaining)} kr
                     </td>
@@ -142,9 +154,8 @@ export const YearTab = ({ year }: Props) => {
                   <td>{t.yearTotal}</td>
                   <td className="num">{fmt(totals.income)} kr</td>
                   <td className="num">{fmt(totals.expenses)} kr</td>
-                  <td className="num" style={{ color: remColor(totals.remaining) }}>
-                    {totals.remaining > 0 ? '+' : ''}{fmt(totals.remaining)} kr
-                  </td>
+                  <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
+                  <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
                 </tr>
               </tfoot>
             </table>
