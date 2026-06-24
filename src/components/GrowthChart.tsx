@@ -57,11 +57,11 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
   const tickColor  = isLight ? '#64748b' : '#64748b';
   const gridColor  = isLight ? '#e2e8f0' : '#1e293b';
 
+  // Pension is excluded from the growth chart — it's tracked as a separate bucket.
   const LINES = [
     { key: 'sparkonto', label: t.lineSparkonto, color: '#22d3ee' },
     { key: 'isk',       label: t.lineIsk,       color: '#22c55e' },
     { key: 'fonder',    label: t.lineFonder,    color: '#a78bfa' },
-    { key: 'pension',   label: t.linePension,   color: '#fb923c' },
   ];
 
   const allMonths = loadYearSavingsTotals(year, lang);
@@ -77,17 +77,17 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
         byCategory[cat.id] = cat.rows.reduce((s, r) => s + r.amount, 0);
       }
     }
-    // Flatten so Recharts can use simple dataKey="sparkonto" (no nested dot access)
+    // Flatten so Recharts can use simple dataKey="sparkonto" (no nested dot access).
+    // Pension is intentionally excluded — it's a separate bucket, not charted.
     return {
       month: entry.month,
       sparkonto: byCategory['sparkonto'] ?? 0,
       isk:       byCategory['isk']       ?? 0,
       fonder:    byCategory['fonder']    ?? 0,
-      pension:   byCategory['pension']   ?? 0,
     };
   });
 
-  const hasData = data.some(d => d.sparkonto + d.isk + d.fonder + d.pension > 0);
+  const hasData = data.some(d => d.sparkonto + d.isk + d.fonder > 0);
 
   if (!hasData) {
     return (

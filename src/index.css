@@ -1252,11 +1252,39 @@ button {
 
 /* ─── Savings tab ─────────────────────────────────────────────────── */
 
+.savings-summary-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 620px;
+}
+
 .savings-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  max-width: 620px;
   gap: 16px;
+}
+
+/* Pension — a separate, faint long-term bucket, set apart from the two cards */
+.savings-pension-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 18px;
+  opacity: 0.8;
+}
+.savings-pension-card .card-label {
+  margin-bottom: 0;
+  color: var(--text-muted);
+}
+.savings-pension-card .card-amount {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 /* Sorbet-tinted savings summary cards, matching the Budget hero cards */

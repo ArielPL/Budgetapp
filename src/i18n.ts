@@ -82,6 +82,7 @@ export interface Translations {
   // Savings tab
   savedThisMonth: string;
   savedPrevMonth: string;
+  pensionBox: string;
   // Plan tab
   planOverview: string;
   overviewSavingsRate: string;
@@ -199,6 +200,7 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
+    pensionBox: 'Pension',
     planOverview: 'Översikt',
     overviewSavingsRate: 'Sparkvot',
     overviewSavedThisMonth: 'Sparat denna månad',
@@ -307,6 +309,7 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fill in savings & investments to see the growth',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
+    pensionBox: 'Pension',
     planOverview: 'Overview',
     overviewSavingsRate: 'Savings rate',
     overviewSavedThisMonth: 'Saved this month',
