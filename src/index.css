@@ -291,6 +291,915 @@ button {
   top: 100px;
 }
 
+/* ─── Combined layout (whole app on one scrolling page) ───────────── */
+/* In Combined mode the tab bar is hidden and all four tab views are stacked
+   on one continuous page. Each section renders in its NORMAL layout (exactly
+   like its Classic tab); only a heading is added so the user can orient while
+   scrolling. The global month selector in the header keeps driving the
+   month-specific sections. */
+.combined-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.combined-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.combined-section-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+/* ─── Custom layout (from-scratch section builder) ────────────────── */
+/* An ordered list of configurable section instances (Budget/Savings/Goals/
+   Year/Notes), each added once, individually styled, reorderable & removable.
+   The month selector stays global in the header. */
+/* Centered canvas so the dashboard reads as a composed grid, not edge-to-edge. */
+.custom-canvas {
+  max-width: 1140px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Responsive 6-column grid: full=span 6, half=span 3, third=span 2. Blocks
+   pack side-by-side in order; the toolbar spans the full width. The add card
+   sits in the grid flow at a third-width. On mobile (≤640px, end of file)
+   full blocks span the row and tiles pair 2-up. */
+.custom-page {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.custom-section.w-full  { grid-column: span 6; }
+.custom-section.w-half  { grid-column: span 3; }
+.custom-section.w-third { grid-column: span 2; }
+
+.custom-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Brief confirmation toast (e.g. "Copied from last month"). */
+.custom-toast {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+/* Add-section card — a tidy third-width tile in the grid flow. */
+.custom-add-card {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 20px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.custom-add-card:hover {
+  border-color: var(--accent-brand);
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent-brand) 6%, transparent);
+}
+.custom-add-plus { font-size: 1.6rem; line-height: 1; }
+
+.custom-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.custom-edit-btn:hover { border-color: var(--accent-brand); }
+
+.custom-edit-active {
+  background: var(--accent-brand);
+  border-color: var(--accent-brand);
+  color: #fff;
+}
+
+/* Every Custom v3 block is a padded surface card — airy by default; an inline
+   style overrides the background when the user picks a preset/custom colour. */
+.custom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px 24px;
+}
+
+/* In edit mode each section gets a dashed frame so its bounds are clear. */
+.custom-section-editing {
+  border: 1px dashed var(--border-strong);
+  padding: 14px;
+}
+
+.custom-section-editing[draggable='true'] { cursor: grab; }
+
+/* Edit-mode header: one compact row — grip · title · width toggle · subtle
+   icon buttons. Title flexes and ellipsizes; controls stay small and refined. */
+.custom-section-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.custom-grip {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  user-select: none;
+  flex: 0 0 auto;
+  padding: 2px;
+}
+
+.custom-section-name {
+  font-weight: 700;
+  color: var(--text);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Compact width toggle — small icon segments, subtle (not a chunky pill). */
+.custom-width-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 1px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.width-seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.width-seg:hover { color: var(--text); }
+.width-active { background: var(--accent-brand); color: #fff; }
+
+/* Subtle ghost icon-buttons (≈24px) for ⚙ / ✕ / ↑ / ↓ — light hover, no heavy
+   bordered squares. */
+.custom-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, opacity 0.12s;
+}
+.custom-icon-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text);
+}
+.custom-icon-btn:disabled { opacity: 0.3; cursor: default; }
+.custom-remove-btn:hover:not(:disabled) {
+  color: var(--tint-expense-text);
+  background: color-mix(in srgb, var(--tint-expense-text) 14%, transparent);
+}
+
+/* Arrows are mobile-only; desktop reorders by dragging the grip. */
+.ctrl-mobile-only { display: none; }
+
+/* Config-panel show-chart toggle reuses the icon-button look, a touch larger. */
+.custom-toggle-btn { width: 34px; height: 34px; border: 1px solid var(--border-strong); }
+.custom-toggle-on { background: var(--accent-brand); color: #fff; border-color: var(--accent-brand); }
+
+.custom-section-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.custom-inputs-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ─── Custom v3: generic block builder ────────────────────────────── */
+/* Auto-contrast: `--cv3-ink` is the block's text colour. It defaults to the
+   theme text, but blocks with a light/dark custom bg set it inline (dark ink on
+   light bg, light ink on dark bg) so inner text stays readable. Field tints +
+   muted text derive from it so they track the chosen background. */
+.custom-section {
+  --cv3-ink: var(--text);
+  --cv3-ink-muted: color-mix(in srgb, var(--cv3-ink) 62%, transparent);
+  --cv3-field: color-mix(in srgb, var(--cv3-ink) 8%, transparent);
+  --cv3-field-strong: color-mix(in srgb, var(--cv3-ink) 14%, transparent);
+}
+
+/* One centered block name (fixes the old duplicate-title bug). */
+.custom-block-title {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cv3-ink);
+  text-align: center;
+}
+
+/* Title row: display icon (custom emoji / kind emoji) prefixed to the name. */
+.cv3-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.cv3-title-icon { font-size: 1.2rem; line-height: 1; flex: 0 0 auto; }
+.cv3-title-row .custom-block-title,
+.cv3-title-row .cv3-name-input.custom-block-title { margin: 0; width: auto; }
+.cv3-title-row .cv3-name-input { width: auto; min-width: 4ch; }
+
+/* Note block: free-text body. */
+.cv3-note-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  background: var(--cv3-field);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--cv3-ink);
+  font: inherit;
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+.cv3-note-text::placeholder { color: var(--cv3-ink-muted); }
+.cv3-note-text:focus { outline: none; border-color: var(--accent-brand); background: var(--cv3-field-strong); }
+
+/* Target progress bar (block body + phone tile). */
+.cv3-target { margin-top: 10px; }
+.cv3-target-track {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--cv3-field-strong);
+  overflow: hidden;
+}
+.cv3-target-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cv3-ink);
+  transition: width 0.2s ease;
+}
+.cv3-target-label {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--cv3-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fixed, non-editable KIND tag (top-left): what kind of money this block is. */
+.cv3-kind-tag {
+  align-self: flex-start;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--cv3-ink-muted);
+  background: var(--cv3-field);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* Inline-editable names (block + rows). */
+.cv3-name-input {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--cv3-ink);
+  font: inherit;
+  padding: 3px 8px;
+  width: 100%;
+  min-width: 0;
+}
+.cv3-name-input:hover { border-color: var(--cv3-field-strong); }
+.cv3-name-input:focus { outline: none; border-color: var(--accent-brand); background: var(--cv3-field); }
+.cv3-name-input.custom-block-title { text-align: center; font-size: 1.18rem; font-weight: 700; margin: 0 0 6px; }
+
+.cv3-rows { display: flex; flex-direction: column; gap: 4px; }
+
+.cv3-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cv3-field);
+}
+.cv3-row-name { flex: 1 1 auto; min-width: 0; }
+.cv3-row .cv3-row-name { color: var(--cv3-ink); }
+
+/* Per-category colour swatch / picker. */
+.cv3-row-color {
+  flex: 0 0 auto;
+  position: relative;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--cv3-ink) 22%, transparent);
+  cursor: pointer;
+  overflow: hidden;
+}
+.cv3-row-color input[type='color'] {
+  position: absolute; inset: 0; opacity: 0; border: none; cursor: pointer;
+  width: 100%; height: 100%;
+}
+
+.cv3-amount-input {
+  flex: 0 0 auto;
+  width: 110px;
+  text-align: right;
+  background: var(--cv3-field);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--cv3-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 7px 10px;
+}
+.cv3-amount-input::placeholder { color: var(--cv3-ink-muted); }
+.cv3-amount-input:focus { outline: none; border-color: var(--accent-brand); background: var(--cv3-field-strong); }
+
+.cv3-row-del {
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border: none; border-radius: 6px;
+  background: transparent;
+  color: var(--cv3-ink-muted);
+  cursor: pointer;
+}
+.cv3-row-del:hover { color: var(--tint-expense-text); background: color-mix(in srgb, var(--tint-expense-text) 14%, transparent); }
+
+.cv3-add-row { margin-top: 4px; }
+
+.cv3-block-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 2px solid var(--cv3-field-strong);
+  font-weight: 700;
+  color: var(--cv3-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "+X vs prev" delta under the total / summary (like Classic's comparison). */
+.cv3-block-delta {
+  text-align: right;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.cv3-delta,
+.custom-tile-delta {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.custom-tile-delta {
+  display: block;
+  margin-top: 2px;
+}
+.cv3-delta.tone-positive,
+.custom-tile-delta.tone-positive { color: var(--income-color); }
+.cv3-delta.tone-negative,
+.custom-tile-delta.tone-negative { color: var(--tint-expense-text); }
+
+/* Chart slot + side-by-side split (left/right positions). */
+.cv3-chart-slot { margin-top: 14px; min-width: 0; }
+/* The chart card is transparent inside a block — it inherits the block's own
+   background (theme surface or custom colour), never a stark white card. */
+.cv3-chart-slot .charts-container {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  gap: 16px;
+}
+.cv3-chart-slot .charts-placeholder { background: transparent; border: none; padding: 16px; color: var(--cv3-ink-muted); }
+/* Chart text follows the block ink so the donut centre + legend stay readable
+   on a light/dark custom bg. (Category wedge/dot colours are user-chosen — kept
+   via inline fill, untouched here.) */
+.cv3-chart-slot .chart-title,
+.cv3-chart-slot .donut-value,
+.cv3-chart-slot .legend-name,
+.cv3-chart-slot .expense-list-name,
+.cv3-chart-slot .expense-list-amount { color: var(--cv3-ink); }
+.cv3-chart-slot .donut-label,
+.cv3-chart-slot .donut-currency,
+.cv3-chart-slot .legend-pct,
+.cv3-chart-slot .expense-list-pct { color: var(--cv3-ink-muted); }
+.cv3-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.cv3-split .cv3-chart-slot { margin-top: 0; min-width: 0; }
+.cv3-split.chart-left > .cv3-chart-slot { order: -1; }
+/* chart-right: push the chart into the second column (rows on the left). */
+.cv3-split.chart-right > .cv3-chart-slot { order: 1; }
+
+/* Summary block. */
+.cv3-summary { display: flex; flex-direction: column; gap: 8px; }
+.cv3-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cv3-field);
+}
+.cv3-summary-row:last-child { border-bottom: none; }
+.cv3-summary-label { color: var(--cv3-ink-muted); }
+.cv3-summary-value { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cv3-ink); }
+.cv3-summary-value.tone-positive { color: var(--income-color); }
+.cv3-summary-value.tone-negative { color: var(--tint-expense-text); }
+.cv3-summary-big { margin-top: 4px; padding-top: 12px; border-top: 2px solid var(--cv3-field-strong); border-bottom: none; }
+.cv3-summary-big .cv3-summary-label { font-size: 1.05rem; font-weight: 700; color: var(--cv3-ink); }
+.cv3-summary-big .cv3-summary-value { font-size: 1.4rem; }
+
+/* Config: width seg with bigger icon + gap before label; custom-color swatch. */
+.cfg-width-seg { display: inline-flex; align-items: center; gap: 7px; }
+.cfg-width-icon { font-size: 1.15rem; line-height: 1; }
+.cfg-swatch-custom {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.cfg-swatch-custom input[type='color'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+}
+.cfg-swatch.bg-remain { background: var(--tint-remaining-bg); }
+
+/* ─── Compact stat tile (half/third blocks) ───────────────────────── */
+/* A narrow block renders as a tile built around a big headline number; it is
+   tappable to open the full editable view in a modal. The number is clamped
+   so it never overflows the tile. */
+.custom-section-tile {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0;
+}
+.custom-section-tile.bg-none { background: var(--surface); }
+
+.custom-tile-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+@media (hover: hover) {
+  .custom-tile-btn:hover { background: color-mix(in srgb, var(--accent-brand) 6%, transparent); }
+}
+
+.custom-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.custom-tile-icon { font-size: 1rem; flex: 0 0 auto; }
+.custom-tile-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Headline number — clamps with the viewport so it never overflows the tile. */
+.custom-tile-headline {
+  font-size: clamp(1.3rem, 5vw, 2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.custom-tile-headline.tone-positive { color: var(--income-color); }
+.custom-tile-headline.tone-negative { color: var(--tint-expense-text); }
+.custom-tile-headline.tone-neutral  { color: var(--text); }
+
+.custom-tile-preview {
+  font-size: 0.95rem;
+  color: var(--cv3-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.custom-tile-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ─── Tap-to-expand modal (full editable section) ─────────────────── */
+.custom-expand {
+  max-width: 560px;
+  max-height: 85vh;
+}
+.custom-expand-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+/* The section content scrolls inside the modal and is constrained to the modal
+   width so summary-cards / budget-grid never spill out or clip on the edge. */
+.custom-expand-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  overflow-y: auto;
+}
+/* Inside the modal, force single-column so the budget two-column grid (chart on
+   the right) stacks and nothing is pushed off the left edge. */
+.custom-expand-body .budget-grid { grid-template-columns: 1fr; }
+.custom-expand-body .budget-right { position: static; }
+.custom-expand-body .summary-cards { grid-template-columns: 1fr; }
+
+/* ─── Custom: empty state ─────────────────────────────────────────── */
+.custom-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 48px 20px;
+}
+.custom-empty-emoji { font-size: 2.6rem; }
+.custom-empty-title { margin: 0; font-size: 1.4rem; color: var(--text); }
+.custom-empty-body { margin: 0; color: var(--text-muted); }
+.custom-empty-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+.custom-primary-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent-brand);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-secondary-btn {
+  padding: 10px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-secondary-btn:hover { border-color: var(--accent-brand); }
+
+/* ─── Custom: modal (picker + config panel) ───────────────────────── */
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+.custom-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 86dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.custom-modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+
+/* How-it-works help modal */
+.custom-help { max-width: 460px; }
+.custom-help-head { display: flex; align-items: center; justify-content: space-between; }
+.custom-help-intro { margin: -6px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.45; }
+.custom-help-list { display: flex; flex-direction: column; gap: 14px; }
+.custom-help-item { display: flex; gap: 12px; align-items: flex-start; }
+.custom-help-icon {
+  flex: 0 0 34px; width: 34px; height: 34px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.custom-help-item-title { font-weight: 700; color: var(--text); font-size: 0.92rem; }
+.custom-help-item-body { color: var(--text-muted); font-size: 0.82rem; line-height: 1.45; margin-top: 2px; }
+.custom-help-done { align-self: stretch; }
+/* "How it works" text link on the empty state */
+.custom-help-link {
+  margin-top: 14px; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
+}
+.custom-help-link:hover { color: var(--accent-brand); }
+.custom-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.custom-picker-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.custom-picker-btn:hover {
+  border-color: var(--accent-brand);
+  background: color-mix(in srgb, var(--accent-brand) 8%, var(--surface));
+}
+.custom-picker-emoji { font-size: 1.6rem; }
+.custom-modal-close {
+  align-self: flex-end;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent-brand);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ─── Custom: config panel rows ───────────────────────────────────── */
+.cfg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cfg-row-stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.cfg-label { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+/* Emoji picker grid (block display icon). */
+.cfg-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+.cfg-emoji-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.cfg-emoji-btn:hover { border-color: var(--accent-brand); }
+.cfg-emoji-active { border-color: var(--accent-brand); background: color-mix(in srgb, var(--accent-brand) 14%, var(--surface)); }
+
+/* Target input in the config panel (override cv3 ink so it reads on the modal). */
+.cfg-target-input { width: 140px; background: var(--bg); border-color: var(--border); color: var(--text); }
+.cfg-target-input::placeholder { color: var(--text-muted); }
+
+.cfg-bg-swatches { display: flex; gap: 8px; }
+.cfg-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.cfg-swatch.bg-none { background: var(--surface); }
+.cfg-swatch.bg-brand   { background: color-mix(in srgb, var(--accent-brand) 40%, var(--surface)); }
+.cfg-swatch.bg-income  { background: color-mix(in srgb, var(--tint-income-text) 45%, var(--tint-income-bg)); }
+.cfg-swatch.bg-expense { background: color-mix(in srgb, var(--tint-expense-text) 45%, var(--tint-expense-bg)); }
+.cfg-swatch.bg-savings { background: color-mix(in srgb, var(--tint-savings-text) 45%, var(--tint-savings-bg)); }
+.cfg-swatch-active { border-color: var(--accent-brand); box-shadow: 0 0 0 2px var(--accent-brand); }
+.cfg-chart-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+.cfg-chart-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.cfg-chart-btn:hover { color: var(--text); }
+.cfg-chart-active {
+  background: var(--accent-brand);
+  border-color: var(--accent-brand);
+  color: #fff;
+}
+
+/* ─── Stacked bar (one horizontal 100%-width proportional bar) ────── */
+.stacked-wrap { display: block; width: 100%; }
+.stacked-bar {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 30px;
+  flex: 0 0 30px;     /* never stretch vertically to fill the container */
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin: 4px 0 14px;
+}
+.stacked-seg {
+  height: 100%;
+  flex-basis: 0;       /* width driven by flex-grow = category amount */
+  min-width: 2px;
+}
+
+/* ─── Full pie: square, centered, never clipped ───────────────────── */
+.pie-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+/* ─── Expense chart style switch + list view ──────────────────────── */
+.chart-style-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 14px;
+  background: var(--surface-subtle, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.chart-style-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chart-style-btn:hover {
+  color: var(--text);
+}
+
+.chart-style-active {
+  background: var(--accent-brand);
+  color: #fff;
+}
+
+.expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.expense-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.expense-list-row:last-child {
+  border-bottom: none;
+}
+
+.expense-list-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-list-amount {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-list-pct {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  min-width: 38px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Section ─────────────────────────────────────────────────────── */
 
 .budget-section {
@@ -764,6 +1673,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 90;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .utils-menu {
@@ -783,8 +1693,41 @@ button {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
 }
 
+/* Drag handle — hidden on desktop, visible on mobile */
+.utils-menu-drag-handle {
+  display: none;
+}
+
+/* Sheet header row — holds the title + close button */
+.utils-menu-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .utils-menu-sheet-title {
   display: none;
+}
+
+/* Close button — subtle on desktop, prominent on mobile */
+.utils-menu-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .utils-menu-close-btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
 }
 
 .utils-row {
@@ -798,6 +1741,32 @@ button {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-dim);
+}
+
+/* Rows whose control has long labels (e.g. Layout: Klassisk/Kombinerad/Anpassad)
+   stack the segmented control full-width under the label so nothing overflows. */
+.utils-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.utils-row-stack .utils-seg {
+  display: flex;
+  width: 100%;
+}
+
+.utils-row-stack .seg-btn {
+  flex: 1;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.utils-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin: -2px 2px 0;
+  line-height: 1.3;
 }
 
 .utils-seg {
@@ -1048,6 +2017,23 @@ button {
     background: var(--surface2);
   }
 }
+
+/* Starter-pack button — shown when a budget/savings list is empty so a blank
+   "from scratch" app isn't a dead end (one-tap the old default categories). */
+.starter-pack-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-brand);
+  background: color-mix(in srgb, var(--accent-brand) 10%, var(--surface));
+  border: 1px solid var(--accent-brand);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-top: 4px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s;
+}
+.starter-pack-btn:hover { background: color-mix(in srgb, var(--accent-brand) 18%, var(--surface)); }
 
 /* ─── Backup reminder banner ──────────────────────────────────────── */
 
@@ -1705,6 +2691,273 @@ button {
 .plan-notes:focus { border-color: var(--border-strong); }
 .plan-notes::placeholder { color: var(--text-muted); }
 
+/* ─── Theme Builder panel ─────────────────────────────────────────── */
+
+.theme-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.theme-panel {
+  position: fixed;
+  z-index: 201;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 460px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.theme-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.theme-panel-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.theme-panel-close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.theme-panel-close:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.theme-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.theme-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.theme-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+/* ── Preset pills ── */
+.theme-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Light/Dark mode toggle sits just under the palette pills */
+.theme-mode-toggle {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.theme-preset-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: border-color 0.12s, background 0.12s;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .theme-preset-pill:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.theme-preset-active {
+  border-color: var(--accent-brand);
+  box-shadow: 0 0 0 1px var(--accent-brand);
+}
+
+.theme-preset-custom {
+  justify-content: center;
+}
+
+.theme-preset-swatches {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.theme-preset-swatches span {
+  width: 12px;
+  height: 24px;
+  display: block;
+}
+
+.theme-preset-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Accent swatches ── */
+.theme-accent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.theme-accent-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: transform 0.1s;
+}
+
+.theme-accent-swatch:hover { transform: scale(1.1); }
+
+.theme-accent-selected {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.theme-accent-custom {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px dashed var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.theme-accent-custom input[type="color"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* ── Advanced override ── */
+.theme-advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 0;
+  transition: color 0.12s;
+}
+
+.theme-advanced-toggle:hover { color: var(--text); }
+
+.theme-advanced-caret {
+  display: inline-block;
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+  color: var(--text-muted);
+}
+
+.theme-advanced-caret.open { transform: rotate(90deg); }
+
+.theme-override-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.theme-override-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.theme-override-label {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.theme-override-field input[type="color"] {
+  width: 34px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Reset ── */
+.theme-reset-btn {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.theme-reset-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
 /* ─── Mobile (phones) ─────────────────────────────────────────────────
    Placed last so these overrides win over base rules (media queries
    don't add specificity — source order breaks ties). */
@@ -1818,7 +3071,7 @@ button {
     max-width: none;
   }
 
-  /* Utilities menu becomes a slide-up sheet */
+  /* Utilities menu becomes a slide-up bottom sheet */
   .utils-menu {
     position: fixed;
     top: auto;
@@ -1827,10 +3080,32 @@ button {
     right: 0;
     width: 100%;
     max-width: none;
+    max-height: 80dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    /* top padding for handle + header; bottom padding respects home indicator */
+    padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
     gap: 12px;
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
+    /* ensure it sits above the backdrop */
+    z-index: 100;
+  }
+
+  /* Drag handle pill */
+  .utils-menu-drag-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin: 0 auto 4px;
+    flex-shrink: 0;
+  }
+
+  /* Sheet header: title on left, ✕ on right */
+  .utils-menu-sheet-header {
+    padding-bottom: 4px;
   }
 
   .utils-menu-sheet-title {
@@ -1838,18 +3113,52 @@ button {
     font-size: 1rem;
     font-weight: 700;
     color: var(--text);
-    text-align: center;
-    padding-bottom: 4px;
+  }
+
+  /* Bigger close target on touch */
+  .utils-menu-close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    color: var(--text-dim);
+    background: var(--surface2);
   }
 
   .seg-btn { min-height: 38px; }
   .utils-action { min-height: 44px; }
+
+  /* Theme panel becomes a slide-up sheet on phones, like the utils menu */
+  .theme-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .theme-panel-body {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
 
   /* Chart on top on phones: the grid is single-column here (see 900px
      breakpoint), so order:-1 lifts .budget-right above the input rows.
      Applies to both the Budget and Savings tabs. */
   .budget-right {
     order: -1;
+  }
+
+  /* Combined page on phones: a little less gap between stacked sections and
+     a slightly smaller heading. Each section keeps its own normal layout. */
+  .combined-page {
+    gap: 28px;
+  }
+
+  .combined-section-title {
+    font-size: 1.2rem;
   }
 
   /* Year table: tighter cells + horizontal scroll so it never overflows */
@@ -1913,4 +3222,40 @@ button {
     flex: 1;
     min-height: 36px;
   }
+
+  /* Custom layout on phone: full-width blocks span the row; both half AND third
+     become compact TILES paired 2-up (span 3 of 6) — so resizing is meaningful
+     on a phone (2-up tile vs full section), never cramped 3-up. Tiles are
+     compact stat cards, not squeezed sections, so they fit. */
+  .custom-section.w-full { grid-column: 1 / -1; }
+  .custom-section.w-half,
+  .custom-section.w-third { grid-column: span 3; }
+  .custom-add-card { grid-column: 1 / -1; min-height: 84px; }
+
+  /* Touch: show ↑/↓ reorder arrows (drag is unreliable) and give the control
+     row room so it isn't squeezed; bump icon-button hit areas. */
+  .ctrl-mobile-only { display: inline-flex; }
+  /* While editing on a phone, every block spans the full row so the controls
+     and inputs have room — the half/⅓ width only matters for the tile view. */
+  .custom-section-editing { grid-column: 1 / -1 !important; }
+  .custom-section-controls { flex-wrap: wrap; gap: 8px; }
+  .custom-section-name { flex-basis: 100%; }
+  .custom-icon-btn { width: 36px; height: 36px; }
+  .width-seg { width: 36px; height: 32px; font-size: 0.95rem; }
+
+  /* Config panel + picker: comfortable on a narrow screen. */
+  .custom-picker-grid { grid-template-columns: 1fr 1fr; }
+  .cfg-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cfg-chart-gallery { gap: 6px; }
+
+  /* Custom v3: side-by-side chart/rows split stacks; amounts stay tappable. */
+  .cv3-split { grid-template-columns: 1fr; }
+  .cv3-split.chart-left > .cv3-chart-slot { order: 0; }
+  .cv3-amount-input { width: 96px; }
+
+  /* Emoji grid: fewer columns so each tap target stays comfortable. */
+  .cfg-emoji-grid { grid-template-columns: repeat(6, 1fr); }
+  .cfg-target-input { width: 100%; }
+  /* The target bar inside a phone tile is full-width already; keep label small. */
+  .custom-tile-btn .cv3-target { margin-top: 8px; width: 100%; }
 }

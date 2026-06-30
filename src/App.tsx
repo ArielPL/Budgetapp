@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -9,10 +9,24 @@ import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
 import { YearTab } from './components/YearTab';
+import { CustomV3 } from './components/CustomV3';
 import { BackupBanner } from './components/BackupBanner';
+import { ThemePanel } from './components/ThemePanel';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, type Lang } from './i18n';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
+import {
+  loadThemeState,
+  resolveVars,
+  applyVars,
+  baseVars,
+  LS_PALETTE,
+  LS_MODE,
+  LS_CUSTOM,
+  type PaletteId,
+  type Mode,
+  type ThemeVars,
+} from './themes';
 import './index.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -96,11 +110,25 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
-  const [theme, setTheme]     = useState<'dark' | 'light'>(() =>
-    (localStorage.getItem('budget_theme') as 'dark' | 'light') || 'dark'
+  // ── Theme Builder: palette family + light/dark mode + override map ──
+  const initialTheme = useRef(loadThemeState());
+  const [themePalette, setThemePalette] = useState<PaletteId>(initialTheme.current.palette);
+  const [themeMode, setThemeMode] = useState<Mode>(initialTheme.current.mode);
+  const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.current.custom);
+  const [themePanelOpen, setThemePanelOpen] = useState(false);
+  const [currency, setCurrency] = useState<Currency>(() =>
+    (localStorage.getItem('budget_currency') as Currency) || 'sek'
   );
+  // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
+  // 'custom' (card-level build-your-own dashboard).
+  const [layout, setLayout] = useState<'classic' | 'combined' | 'custom'>(() => {
+    const v = localStorage.getItem('budget_layout');
+    return v === 'combined' || v === 'custom' ? v : 'classic';
+  });
 
   const t = translations[lang];
+  // Format an amount with the active currency (symbol/format only — no conversion).
+  const money = useCallback((amount: number) => formatMoney(amount, currency), [currency]);
 
   // Single utilities menu (language, theme, copy budget, data export/import)
   const [menuOpen, setMenuOpen] = useState(false);
@@ -121,15 +149,78 @@ function App() {
   const skipNextSave = useRef(false);
 
   // ── Theme ─────────────────────────────────────────────────────────
+  // Apply the active theme (palette family + mode + any custom overrides) to
+  // :root and persist palette / mode / override map. main.tsx already applied
+  // the saved theme before first paint; this keeps :root in sync on changes.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('budget_theme', theme);
-  }, [theme]);
+    const state = { palette: themePalette, mode: themeMode, custom: themeCustom };
+    applyVars(resolveVars(state), themeMode);
+    localStorage.setItem(LS_PALETTE, themePalette);
+    localStorage.setItem(LS_MODE, themeMode);
+    if (themePalette === 'custom') {
+      localStorage.setItem(LS_CUSTOM, JSON.stringify(themeCustom));
+    } else {
+      localStorage.removeItem(LS_CUSTOM);
+    }
+  }, [themePalette, themeMode, themeCustom]);
+
+  // Selecting a palette family replaces the whole palette and clears overrides
+  // (keeps the current light/dark mode).
+  const selectPalette = useCallback((palette: Exclude<PaletteId, 'custom'>) => {
+    setThemeCustom({});
+    setThemePalette(palette);
+  }, []);
+
+  // Light/Dark toggle. Switching mode clears overrides (they were tuned to the
+  // previous mode's base) and, if on custom, returns to Sorbet of the new mode.
+  const setMode = useCallback((mode: Mode) => {
+    setThemeMode(mode);
+    setThemeCustom({});
+    setThemePalette((p) => (p === 'custom' ? 'sorbet' : p));
+  }, []);
+
+  // Changing the accent updates only --accent-brand (+ -strong), keeping the
+  // rest of the chosen palette. This flips to 'custom' and stores the override.
+  const setAccent = useCallback((value: string) => {
+    setThemeCustom((prev) => ({
+      ...prev,
+      '--accent-brand': value,
+      '--accent-brand-strong': value,
+    }));
+    setThemePalette((p) => (p === 'custom' ? p : 'custom'));
+  }, []);
+
+  // Overriding any individual color flips to 'custom' and stores the var.
+  const overrideColor = useCallback((cssVar: string, value: string) => {
+    setThemeCustom((prev) => ({ ...prev, [cssVar]: value }));
+    setThemePalette((p) => (p === 'custom' ? p : 'custom'));
+  }, []);
+
+  // Reset: clear all overrides and re-apply the active palette/mode cleanly.
+  // If we were on 'custom', fall back to Sorbet (custom has no own base).
+  const resetTheme = useCallback(() => {
+    setThemeCustom({});
+    setThemePalette((p) => (p === 'custom' ? 'sorbet' : p));
+  }, []);
+
+  // The accent shown in the panel: custom override if set, else the active base.
+  const activeAccent =
+    themeCustom['--accent-brand'] ?? baseVars(themePalette, themeMode)['--accent-brand'];
 
   // ── Language ──────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem('budget_lang', lang);
   }, [lang]);
+
+  // ── Currency (symbol/format only — never converts amounts) ─────────
+  useEffect(() => {
+    localStorage.setItem('budget_currency', currency);
+  }, [currency]);
+
+  // ── Budget tab layout (classic / combined) ─────────────────────────
+  useEffect(() => {
+    localStorage.setItem('budget_layout', layout);
+  }, [layout]);
 
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
@@ -176,11 +267,18 @@ function App() {
   // ── Close utilities menu on outside click ────────────────────────
   useEffect(() => {
     if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
+    const mouseHandler = (e: MouseEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', mouseHandler);
+    document.addEventListener('keydown', keyHandler);
+    return () => {
+      document.removeEventListener('mousedown', mouseHandler);
+      document.removeEventListener('keydown', keyHandler);
+    };
   }, [menuOpen]);
 
   // ── Backup: export all budget_* keys to a JSON file ──────────────
@@ -366,6 +464,29 @@ function App() {
     setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
 
+  // ── Starter pack (escape hatch for the blank "from scratch" app) ──
+  // Adds the old default category set as a template, appending only the
+  // categories not already present so it never clobbers existing data.
+  const addStarterBudget = () => {
+    const starter = starterMonthData(lang);
+    setData(d => {
+      const haveExp = new Set(d.expenses.map(c => c.id));
+      return {
+        ...d,
+        income: d.income.length === 0 ? starter.income : d.income,
+        expenses: [...d.expenses, ...starter.expenses.filter(c => !haveExp.has(c.id))],
+      };
+    });
+  };
+
+  const addStarterSavings = () => {
+    const starter = starterMonthData(lang);
+    setData(d => {
+      const haveSav = new Set(d.savings.map(c => c.id));
+      return { ...d, savings: [...d.savings, ...starter.savings.filter(c => !haveSav.has(c.id))] };
+    });
+  };
+
   // ── Savings ───────────────────────────────────────────────────────
   const setSavingsCategory = (cat: BudgetCategory) => {
     setData(d => ({ ...d, savings: d.savings.map(c => c.id === cat.id ? cat : c) }));
@@ -446,8 +567,76 @@ function App() {
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
   );
 
+  // ── Starter-pack buttons (shown only when the relevant list is empty) ──
+  const budgetStarter = data.expenses.length === 0 ? (
+    <button className="starter-pack-btn" onClick={addStarterBudget}>
+      ✨ {t.addStarterCategories}
+    </button>
+  ) : null;
+  const savingsStarter = data.savings.length === 0 ? (
+    <button className="starter-pack-btn" onClick={addStarterSavings}>
+      ✨ {t.addStarterCategories}
+    </button>
+  ) : null;
+
+  // ── Tab views ─────────────────────────────────────────────────────
+  // Each tab's content, rendered once and reused by both layouts: Classic
+  // shows one at a time (tabbed); Combined stacks all four on one page.
+  // Same components/data/handlers either way — no duplication.
+  const budgetView = (
+    <>
+      <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
+      <div className="budget-grid">
+        <div className="budget-left">
+          <IncomeSection rows={data.income} onChange={setIncome} />
+          {data.expenses.map(cat => (
+            <ExpenseCategory
+              key={cat.id}
+              category={cat}
+              onChange={setExpenseCategory}
+              onDelete={deleteExpenseCategory}
+            />
+          ))}
+          <button className="add-category-btn" onClick={addExpenseCategory}>
+            {t.addCategory}
+          </button>
+          {budgetStarter}
+        </div>
+        <div className="budget-right">
+          <Charts categories={data.expenses} totalIncome={totalIncome} />
+        </div>
+      </div>
+    </>
+  );
+
+  const savingsView = (
+    <SavingsTab
+      categories={data.savings}
+      onChange={setSavingsCategory}
+      onAddCategory={addSavingsCategory}
+      onDeleteCategory={deleteSavingsCategory}
+      year={year}
+      currentMonth={month}
+      starterSlot={savingsStarter}
+    />
+  );
+
+  const planView = (
+    <PlanTab
+      data={planData}
+      onChange={handlePlanDataChange}
+      totalIncome={totalIncome}
+      totalExpenses={totalExpenses}
+      totalSavings={totalSavings}
+      year={year}
+      month={month}
+    />
+  );
+
+  const yearView = <YearTab year={year} />;
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, currency, setCurrency, money }}>
     <div className="app">
       <header className="app-header">
         <div className="header-top">
@@ -478,7 +667,15 @@ function App() {
               <>
                 <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
                 <div className="utils-menu" role="menu">
-                  <div className="utils-menu-sheet-title">{t.menu}</div>
+                  <div className="utils-menu-drag-handle" aria-hidden="true" />
+                  <div className="utils-menu-sheet-header">
+                    <div className="utils-menu-sheet-title">{t.menu}</div>
+                    <button
+                      className="utils-menu-close-btn"
+                      onClick={() => setMenuOpen(false)}
+                      aria-label="Close menu"
+                    >✕</button>
+                  </div>
 
                   {/* Language */}
                   <div className="utils-row">
@@ -496,27 +693,86 @@ function App() {
                       >
                         🇬🇧 EN
                       </button>
+                      <button
+                        className={`seg-btn${lang === 'es' ? ' seg-active' : ''}`}
+                        onClick={() => setLang('es')}
+                      >
+                        🇪🇸 ES
+                      </button>
                     </div>
                   </div>
 
-                  {/* Theme */}
-                  <div className="utils-row">
-                    <span className="utils-row-label">{t.theme}</span>
+                  {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own) */}
+                  <div className="utils-row utils-row-stack">
+                    <span className="utils-row-label">{t.layout}</span>
                     <div className="utils-seg">
                       <button
-                        className={`seg-btn${theme === 'light' ? ' seg-active' : ''}`}
-                        onClick={() => setTheme('light')}
+                        className={`seg-btn${layout === 'classic' ? ' seg-active' : ''}`}
+                        onClick={() => setLayout('classic')}
                       >
-                        ☀️ {t.themeLight}
+                        {t.layoutClassic}
                       </button>
                       <button
-                        className={`seg-btn${theme === 'dark' ? ' seg-active' : ''}`}
-                        onClick={() => setTheme('dark')}
+                        className={`seg-btn${layout === 'combined' ? ' seg-active' : ''}`}
+                        onClick={() => setLayout('combined')}
                       >
-                        🌙 {t.themeDark}
+                        {t.layoutCombined}
+                      </button>
+                      <button
+                        className={`seg-btn${layout === 'custom' ? ' seg-active' : ''}`}
+                        onClick={() => setLayout('custom')}
+                      >
+                        {t.layoutCustom}
                       </button>
                     </div>
                   </div>
+
+                  {/* Currency (symbol/format only — amounts are never converted) */}
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.currency}</span>
+                    <div className="utils-seg">
+                      <button
+                        className={`seg-btn${currency === 'sek' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('sek')}
+                        title="Svenska kronor"
+                      >
+                        kr
+                      </button>
+                      <button
+                        className={`seg-btn${currency === 'eur' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('eur')}
+                        title="Euro"
+                      >
+                        €
+                      </button>
+                      <button
+                        className={`seg-btn${currency === 'usd' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('usd')}
+                        title="US Dollar"
+                      >
+                        $
+                      </button>
+                      <button
+                        className={`seg-btn${currency === 'gbp' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('gbp')}
+                        title="British Pound"
+                      >
+                        £
+                      </button>
+                    </div>
+                  </div>
+                  <div className="utils-hint">{t.currencyHint}</div>
+
+                  {/* Theme — opens the Theme Builder panel */}
+                  <button
+                    className="utils-action"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setThemePanelOpen(true);
+                    }}
+                  >
+                    🎨 {t.theme}
+                  </button>
 
                   <div className="utils-divider" />
 
@@ -568,70 +824,75 @@ function App() {
           />
         )}
 
-        <div className="header-bottom">
-          <TabNav active={activeTab} onChange={setActiveTab} />
-        </div>
+        {/* Combined mode is one continuous scrolling page, so the tab bar is
+            hidden — the user scrolls through all sections instead. */}
+        {layout === 'classic' && (
+          <div className="header-bottom">
+            <TabNav active={activeTab} onChange={setActiveTab} />
+          </div>
+        )}
       </header>
+
+      {themePanelOpen && (
+        <ThemePanel
+          palette={themePalette}
+          mode={themeMode}
+          custom={themeCustom}
+          accent={activeAccent}
+          onSelectPalette={selectPalette}
+          onSetMode={setMode}
+          onSetAccent={setAccent}
+          onOverride={overrideColor}
+          onReset={resetTheme}
+          onClose={() => setThemePanelOpen(false)}
+        />
+      )}
 
       <main className="app-main">
         {showBackupReminder && (
           <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
         )}
-        {/* key={activeTab} remounts on every switch so the lightweight CSS
-            entrance animation (.tab-enter) replays each time. */}
-        <div className="tab-enter" key={activeTab}>
-        {activeTab === 'budget' && (
-          <>
-            <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
-            <div className="budget-grid">
-              <div className="budget-left">
-                <IncomeSection rows={data.income} onChange={setIncome} />
-                {data.expenses.map(cat => (
-                  <ExpenseCategory
-                    key={cat.id}
-                    category={cat}
-                    onChange={setExpenseCategory}
-                    onDelete={deleteExpenseCategory}
-                  />
-                ))}
-                <button className="add-category-btn" onClick={addExpenseCategory}>
-                  {t.addCategory}
-                </button>
-              </div>
-              <div className="budget-right">
-                <Charts categories={data.expenses} totalIncome={totalIncome} />
-              </div>
-            </div>
-          </>
+        {layout === 'classic' && (
+          /* ── Classic: tabbed. key={activeTab} remounts on every switch so the
+               lightweight CSS entrance animation (.tab-enter) replays each time. */
+          <div className="tab-enter" key={activeTab}>
+            {activeTab === 'budget' && budgetView}
+            {activeTab === 'savings' && savingsView}
+            {activeTab === 'plan' && planView}
+            {activeTab === 'year' && yearView}
+          </div>
         )}
 
-        {activeTab === 'savings' && (
-          <SavingsTab
-            categories={data.savings}
-            onChange={setSavingsCategory}
-            onAddCategory={addSavingsCategory}
-            onDeleteCategory={deleteSavingsCategory}
-            year={year}
-            currentMonth={month}
-          />
+        {layout === 'combined' && (
+          /* ── Combined: tab bar hidden (see header), all four views stacked on
+               one scrollable page. Same components/data/handlers as classic. */
+          <div className="combined-page">
+            <section className="combined-section">
+              <h2 className="combined-section-title">{t.tabBudget}</h2>
+              {budgetView}
+            </section>
+            <section className="combined-section">
+              <h2 className="combined-section-title">{t.tabSavings}</h2>
+              {savingsView}
+            </section>
+            <section className="combined-section">
+              <h2 className="combined-section-title">{t.tabYear}</h2>
+              {yearView}
+            </section>
+            <section className="combined-section">
+              <h2 className="combined-section-title">{t.tabPlan}</h2>
+              {planView}
+            </section>
+          </div>
         )}
 
-        {activeTab === 'plan' && (
-          <PlanTab
-            data={planData}
-            onChange={handlePlanDataChange}
-            totalIncome={totalIncome}
-            totalExpenses={totalExpenses}
-            totalSavings={totalSavings}
-            year={year}
-            month={month}
-          />
+        {layout === 'custom' && (
+          /* ── Custom v3: generic build-from-scratch block budget with its OWN
+               separate data (never touches the shared Classic/Combined budget).
+               Tab bar hidden; the global month selector drives its per-month
+               amounts. */
+          <CustomV3 year={year} month={month} />
         )}
-
-        {activeTab === 'year' && (
-          <YearTab year={year} />
-        )}
-        </div>
       </main>
     </div>
     </LanguageContext.Provider>

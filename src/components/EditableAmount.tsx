@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const EditableAmount = ({ value, onChange, color }: Props) => {
-  const { t } = useLang();
+  const { t, money } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +59,7 @@ export const EditableAmount = ({ value, onChange, color }: Props) => {
       title={t.clickToEdit}
       style={{ color: value > 0 ? color || '#e2e8f0' : '#475569' }}
     >
-      {value === 0 ? '–' : value.toLocaleString('sv-SE')} <span className="currency">kr</span>
+      {value === 0 ? '–' : money(value)}
     </button>
   );
 };

@@ -26,9 +26,10 @@ interface TooltipProps {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
+  money?: (n: number) => string;
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+const CustomTooltip = ({ active, payload, label, money }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   const filtered = payload.filter(p => p.value > 0);
   if (!filtered.length) return null;
@@ -37,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
       <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
       {filtered.map((p, i) => (
         <div key={i} style={{ color: p.color, fontSize: '0.8rem' }}>
-          {p.name}: {p.value.toLocaleString('sv-SE')} kr
+          {p.name}: {money ? money(p.value) : p.value}
         </div>
       ))}
     </div>
@@ -45,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 };
 
 export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
-  const { lang, t } = useLang();
+  const { lang, t, money } = useLang();
   const [chartType, setChartType] = useState<ChartType>(loadChartType);
 
   const selectChartType = (type: ChartType) => {
@@ -114,7 +115,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
         tickLine={false}
         width={38}
       />
-      <Tooltip content={<CustomTooltip />} />
+      <Tooltip content={<CustomTooltip money={money} />} />
       <Legend
         iconType="circle"
         iconSize={8}

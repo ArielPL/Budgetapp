@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const IncomeSection = ({ rows, onChange }: Props) => {
-  const { t, lang } = useLang();
+  const { t, lang, money } = useLang();
   const updateAmount = (id: string, amount: number) => {
     onChange(rows.map(r => r.id === id ? { ...r, amount } : r));
   };
@@ -34,7 +34,7 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
       <div className="section-header">
         <span className="section-icon">💵</span>
         <h2 className="section-title">{t.incomeSection}</h2>
-        <span className="section-total income-total">{total.toLocaleString('sv-SE')} kr</span>
+        <span className="section-total income-total">{money(total)}</span>
       </div>
       <div className="rows">
         {rows.map(row => (

@@ -21,18 +21,19 @@ interface TooltipProps {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
+  money?: (n: number) => string;
 }
 
 const SAVINGS_COLOR = '#06b6d4';
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+const CustomTooltip = ({ active, payload, label, money }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="chart-tooltip">
       <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color: p.color, fontSize: '0.8rem' }}>
-          {p.name}: {p.value.toLocaleString('sv-SE')} kr
+          {p.name}: {money ? money(p.value) : p.value}
         </div>
       ))}
     </div>
@@ -40,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 };
 
 export const YearTab = ({ year }: Props) => {
-  const { lang, t } = useLang();
+  const { lang, t, money } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
   const tickColor = '#64748b';
   const gridColor = isLight ? '#e2e8f0' : '#1e293b';
@@ -77,7 +78,6 @@ export const YearTab = ({ year }: Props) => {
     savings: r.savings,
   }));
 
-  const fmt = (n: number) => n.toLocaleString('sv-SE');
   const remColor = (n: number) => (n >= 0 ? '#22c55e' : '#f87171');
 
   return (
@@ -111,7 +111,7 @@ export const YearTab = ({ year }: Props) => {
                     tickLine={false}
                     width={38}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: gridColor, opacity: 0.4 }} />
+                  <Tooltip content={<CustomTooltip money={money} />} cursor={{ fill: gridColor, opacity: 0.4 }} />
                   <Legend
                     iconType="circle"
                     iconSize={8}
@@ -140,11 +140,11 @@ export const YearTab = ({ year }: Props) => {
                 {rows.map(r => (
                   <tr key={r.index}>
                     <td>{MONTHS[lang][r.index]}</td>
-                    <td className="num">{fmt(r.income)} kr</td>
-                    <td className="num">{fmt(r.expenses)} kr</td>
-                    <td className="num" style={{ color: SAVINGS_COLOR }}>{fmt(r.savings)} kr</td>
+                    <td className="num">{money(r.income)}</td>
+                    <td className="num">{money(r.expenses)}</td>
+                    <td className="num" style={{ color: SAVINGS_COLOR }}>{money(r.savings)}</td>
                     <td className="num" style={{ color: remColor(r.remaining) }}>
-                      {r.remaining > 0 ? '+' : ''}{fmt(r.remaining)} kr
+                      {r.remaining > 0 ? '+' : ''}{money(r.remaining)}
                     </td>
                   </tr>
                 ))}
@@ -152,8 +152,8 @@ export const YearTab = ({ year }: Props) => {
               <tfoot>
                 <tr>
                   <td>{t.yearTotal}</td>
-                  <td className="num">{fmt(totals.income)} kr</td>
-                  <td className="num">{fmt(totals.expenses)} kr</td>
+                  <td className="num">{money(totals.income)}</td>
+                  <td className="num">{money(totals.expenses)}</td>
                   <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
                   <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
                 </tr>

@@ -17,7 +17,7 @@ function hexShade(hex: string, index: number, total: number): string {
 }
 
 export const SavingsDonuts = ({ categories }: Props) => {
-  const { lang } = useLang();
+  const { lang, money } = useLang();
   return (
   <div className="savings-donuts-grid">
     {categories.map(cat => {
@@ -53,7 +53,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
               <span style={{ color: empty ? 'var(--text-muted)' : cat.color }}>
                 {empty ? '–' : total >= 1000
                   ? `${(total / 1000).toFixed(0)}k`
-                  : total.toLocaleString('sv-SE')}
+                  : money(total)}
               </span>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
                   />
                   <span className="savings-donut-row-label">{shownName(r, lang)}</span>
                   <span className="savings-donut-row-amt">
-                    {r.amount.toLocaleString('sv-SE')}
+                    {money(r.amount)}
                   </span>
                 </div>
               ))}

@@ -14,7 +14,7 @@ interface Props {
 }
 
 export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }: Props) => {
-  const { t, lang } = useLang();
+  const { t, lang, money } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -63,7 +63,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
           {shownName(category, lang)}
         </h2>
         <span className="section-total" style={{ color: category.color }}>
-          {total.toLocaleString('sv-SE')} kr
+          {money(total)}
         </span>
         <button
           className="cat-edit-btn"

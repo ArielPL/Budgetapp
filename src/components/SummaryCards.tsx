@@ -9,20 +9,20 @@ interface Props {
   month: number;
 }
 
-function Diff({ current, prev, t, lowerIsBetter = false }: { current: number; prev: number; t: Translations; lowerIsBetter?: boolean }) {
+function Diff({ current, prev, t, money, lowerIsBetter = false }: { current: number; prev: number; t: Translations; money: (n: number) => string; lowerIsBetter?: boolean }) {
   if (prev === 0) return null;
   const delta = current - prev;
   if (delta === 0) return <div className="card-sub" style={{ color: '#64748b' }}>{t.samePrevMonth}</div>;
   const positive = lowerIsBetter ? delta < 0 : delta > 0;
   return (
     <div className="card-sub" style={{ color: positive ? '#22c55e' : '#f87171' }}>
-      {delta > 0 ? '+' : ''}{delta.toLocaleString('sv-SE')} kr {t.vsPrev}
+      {delta > 0 ? '+' : ''}{money(delta)} {t.vsPrev}
     </div>
   );
 }
 
 export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props) => {
-  const { lang, t } = useLang();
+  const { lang, t, money } = useLang();
   const remaining = totalIncome - totalExpenses;
   const isPositive = remaining >= 0;
   const savingsRate = totalIncome > 0
@@ -43,18 +43,18 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
     <div className="summary-cards">
       <div className="summary-card income-card">
         <div className="card-label">{t.income}</div>
-        <div className="card-amount income-amount">{totalIncome.toLocaleString('sv-SE')} kr</div>
-        <Diff current={totalIncome} prev={prevIncome} t={t} />
+        <div className="card-amount income-amount">{money(totalIncome)}</div>
+        <Diff current={totalIncome} prev={prevIncome} t={t} money={money} />
       </div>
       <div className="summary-card expense-card">
         <div className="card-label">{t.expenses}</div>
-        <div className="card-amount expense-amount">{totalExpenses.toLocaleString('sv-SE')} kr</div>
-        <Diff current={totalExpenses} prev={prevExpenses} t={t} lowerIsBetter />
+        <div className="card-amount expense-amount">{money(totalExpenses)}</div>
+        <Diff current={totalExpenses} prev={prevExpenses} t={t} money={money} lowerIsBetter />
       </div>
       <div className="summary-card remaining-card">
         <div className="card-label">{t.remaining}</div>
         <div className={`card-amount ${isPositive ? 'positive-amount' : 'negative-amount'}`}>
-          {isPositive ? '+' : ''}{remaining.toLocaleString('sv-SE')} kr
+          {isPositive ? '+' : ''}{money(remaining)}
         </div>
         {totalIncome > 0 && (
           <div className="card-sub" style={{ color: '#64748b' }}>
@@ -66,7 +66,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
             {t.savingsRate(savingsRate)}
           </div>
         )}
-        <Diff current={remaining} prev={prevRemaining} t={t} />
+        <Diff current={remaining} prev={prevRemaining} t={t} money={money} />
       </div>
     </div>
   );

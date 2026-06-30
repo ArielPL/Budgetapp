@@ -51,75 +51,78 @@ function makeId(): string {
 }
 
 // ── Default label dictionary, keyed by language ─────────────────────
+type LabelEntry = { sv: string; en: string; es: string };
+
 const L = {
   // income
-  salary: { sv: 'Lön', en: 'Salary' },
-  sideIncome: { sv: 'Sidoinkomst', en: 'Side income' },
-  benefits: { sv: 'Bidrag/Ersättning', en: 'Benefits' },
+  salary: { sv: 'Lön', en: 'Salary', es: 'Salario' },
+  sideIncome: { sv: 'Sidoinkomst', en: 'Side income', es: 'Ingreso extra' },
+  benefits: { sv: 'Bidrag/Ersättning', en: 'Benefits', es: 'Prestaciones' },
   // boende
-  boende: { sv: 'Boende', en: 'Housing' },
-  rent: { sv: 'Hyra/Bolån', en: 'Rent/Mortgage' },
-  electricity: { sv: 'El & Värme', en: 'Electricity & Heating' },
-  internet: { sv: 'Internet', en: 'Internet' },
-  homeInsurance: { sv: 'Hemförsäkring', en: 'Home insurance' },
+  boende: { sv: 'Boende', en: 'Housing', es: 'Vivienda' },
+  rent: { sv: 'Hyra/Bolån', en: 'Rent/Mortgage', es: 'Alquiler/Hipoteca' },
+  electricity: { sv: 'El & Värme', en: 'Electricity & Heating', es: 'Electricidad y calefacción' },
+  internet: { sv: 'Internet', en: 'Internet', es: 'Internet' },
+  homeInsurance: { sv: 'Hemförsäkring', en: 'Home insurance', es: 'Seguro de hogar' },
   // mat
-  mat: { sv: 'Mat & Dryck', en: 'Food & Drink' },
-  groceries: { sv: 'Matvaror', en: 'Groceries' },
-  restaurant: { sv: 'Restaurang & Takeaway', en: 'Restaurant & Takeaway' },
-  coffee: { sv: 'Kaffe & Fika', en: 'Coffee & Snacks' },
+  mat: { sv: 'Mat & Dryck', en: 'Food & Drink', es: 'Comida y bebida' },
+  groceries: { sv: 'Matvaror', en: 'Groceries', es: 'Comestibles' },
+  restaurant: { sv: 'Restaurang & Takeaway', en: 'Restaurant & Takeaway', es: 'Restaurante y comida para llevar' },
+  coffee: { sv: 'Kaffe & Fika', en: 'Coffee & Snacks', es: 'Café y aperitivos' },
   // transport
-  transport: { sv: 'Transport', en: 'Transport' },
-  publicTransit: { sv: 'SL/Kollektivtrafik', en: 'Public transit' },
-  car: { sv: 'Bil', en: 'Car' },
-  insurances: { sv: 'Försäkringar', en: 'Insurances' },
+  transport: { sv: 'Transport', en: 'Transport', es: 'Transporte' },
+  publicTransit: { sv: 'SL/Kollektivtrafik', en: 'Public transit', es: 'Transporte público' },
+  car: { sv: 'Bil', en: 'Car', es: 'Coche' },
+  insurances: { sv: 'Försäkringar', en: 'Insurances', es: 'Seguros' },
   // prenumerationer
-  subscriptions: { sv: 'Prenumerationer', en: 'Subscriptions' },
-  streaming: { sv: 'Streaming', en: 'Streaming' },
-  gym: { sv: 'Gym', en: 'Gym' },
-  apps: { sv: 'Appar', en: 'Apps' },
+  subscriptions: { sv: 'Prenumerationer', en: 'Subscriptions', es: 'Suscripciones' },
+  streaming: { sv: 'Streaming', en: 'Streaming', es: 'Streaming' },
+  gym: { sv: 'Gym', en: 'Gym', es: 'Gimnasio' },
+  apps: { sv: 'Appar', en: 'Apps', es: 'Aplicaciones' },
   // personligt
-  personligt: { sv: 'Personligt', en: 'Personal' },
-  clothes: { sv: 'Kläder', en: 'Clothes' },
-  hygiene: { sv: 'Hygien', en: 'Hygiene' },
-  health: { sv: 'Hälsa', en: 'Health' },
+  personligt: { sv: 'Personligt', en: 'Personal', es: 'Personal' },
+  clothes: { sv: 'Kläder', en: 'Clothes', es: 'Ropa' },
+  hygiene: { sv: 'Hygien', en: 'Hygiene', es: 'Higiene' },
+  health: { sv: 'Hälsa', en: 'Health', es: 'Salud' },
   // fritid
-  fritid: { sv: 'Fritid', en: 'Leisure' },
-  hobby: { sv: 'Hobby', en: 'Hobby' },
-  giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity' },
-  vacation: { sv: 'Semester', en: 'Vacation' },
+  fritid: { sv: 'Fritid', en: 'Leisure', es: 'Ocio' },
+  hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos' },
+  giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones' },
+  vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones' },
   // sparande
-  sparande: { sv: 'Sparande', en: 'Savings' },
-  savingsRow: { sv: 'Sparande', en: 'Savings' },
-  investments: { sv: 'Investeringar', en: 'Investments' },
+  sparande: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
+  savingsRow: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
+  investments: { sv: 'Investeringar', en: 'Investments', es: 'Inversiones' },
   // savings tab
-  sparkonto: { sv: 'Sparkonto', en: 'Savings account' },
-  mainAccount: { sv: 'Huvudkonto', en: 'Main account' },
-  bufferAccount: { sv: 'Buffertkonto', en: 'Buffer account' },
-  isk: { sv: 'ISK / Aktiedepå', en: 'Investment account' },
-  stocks: { sv: 'Aktier', en: 'Stocks' },
-  etf: { sv: 'ETF:er', en: 'ETFs' },
-  fonder: { sv: 'Fonder', en: 'Funds' },
-  indexFunds: { sv: 'Indexfonder', en: 'Index funds' },
-  activeFunds: { sv: 'Aktivt förvaltade', en: 'Actively managed' },
-  pension: { sv: 'Pension (extra)', en: 'Pension (extra)' },
-  occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up' },
-  privatePension: { sv: 'Privat pension', en: 'Private pension' },
+  sparkonto: { sv: 'Sparkonto', en: 'Savings account', es: 'Cuenta de ahorro' },
+  mainAccount: { sv: 'Huvudkonto', en: 'Main account', es: 'Cuenta principal' },
+  bufferAccount: { sv: 'Buffertkonto', en: 'Buffer account', es: 'Cuenta de reserva' },
+  isk: { sv: 'ISK / Aktiedepå', en: 'Investment account', es: 'Cuenta de inversión' },
+  stocks: { sv: 'Aktier', en: 'Stocks', es: 'Acciones' },
+  etf: { sv: 'ETF:er', en: 'ETFs', es: 'ETF' },
+  fonder: { sv: 'Fonder', en: 'Funds', es: 'Fondos' },
+  indexFunds: { sv: 'Indexfonder', en: 'Index funds', es: 'Fondos indexados' },
+  activeFunds: { sv: 'Aktivt förvaltade', en: 'Actively managed', es: 'Gestión activa' },
+  pension: { sv: 'Pension (extra)', en: 'Pension (extra)', es: 'Pensión (extra)' },
+  occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up', es: 'Aporte a pensión laboral' },
+  privatePension: { sv: 'Privat pension', en: 'Private pension', es: 'Pensión privada' },
   // placeholders for newly added items / goals
-  newGoal: { sv: 'Nytt mål', en: 'New goal' },
-  newRow: { sv: 'Ny rad', en: 'New row' },
-  newItem: { sv: 'Ny post', en: 'New item' },
+  newGoal: { sv: 'Nytt mål', en: 'New goal', es: 'Nueva meta' },
+  newRow: { sv: 'Ny rad', en: 'New row', es: 'Nueva fila' },
+  newItem: { sv: 'Ny post', en: 'New item', es: 'Nuevo elemento' },
 } as const;
 
-const tr = (entry: { sv: string; en: string }, lang: Lang) => entry[lang];
+const tr = (entry: LabelEntry, lang: Lang) => entry[lang];
 
-// Reverse lookup: any known default label (in either language) → its translations.
+// Reverse lookup: any known default label (in any language) → its translations.
 // Lets built-in labels that were SAVED as plain strings (e.g. all in Swedish) be
 // re-rendered in the current language. Labels the user customized won't match and
 // are returned unchanged.
-const REVERSE_LABELS: Record<string, { sv: string; en: string }> = {};
+const REVERSE_LABELS: Record<string, LabelEntry> = {};
 for (const entry of Object.values(L)) {
   REVERSE_LABELS[entry.sv] = entry;
   REVERSE_LABELS[entry.en] = entry;
+  REVERSE_LABELS[entry.es] = entry;
 }
 
 /** Translate a built-in default label to the current language; pass through custom labels. */
@@ -249,7 +252,17 @@ export function defaultPlanData(_lang: Lang = 'sv'): PlanData {
   };
 }
 
-export function defaultMonthData(lang: Lang = 'sv'): MonthData {
+// A brand-new / empty month starts BLANK — no auto-seeded categories. Users
+// build from scratch via "+ Add category" / "+ Add goal", or one-tap the
+// starter pack (starterMonthData). The lang param is kept for signature
+// compatibility with existing callers.
+export function defaultMonthData(_lang: Lang = 'sv'): MonthData {
+  return { income: [], expenses: [], savings: [] };
+}
+
+// The old default category set, offered as a one-tap "starter pack" so a blank
+// app isn't a dead end. Not auto-applied — only when the user asks for it.
+export function starterMonthData(lang: Lang = 'sv'): MonthData {
   return {
     income: defaultIncome(lang),
     expenses: defaultExpenses(lang),
@@ -264,23 +277,17 @@ export function storageKey(year: number, month: number): string {
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
   const key = storageKey(year, month);
   const raw = localStorage.getItem(key);
-  if (!raw) return defaultMonthData(lang);
+  if (!raw) return defaultMonthData(lang); // new/empty month → blank
   try {
     const parsed = JSON.parse(raw) as MonthData;
-    // Robust savings backfill: keep every existing savings category (and its
-    // amounts/custom rows) as-is, then append any MISSING default categories in
-    // canonical order. Repairs months saved with a partial savings array.
-    if (!parsed.savings) {
-      parsed.savings = defaultSavings(lang);
-    } else {
-      const existingIds = new Set(parsed.savings.map(c => c.id));
-      const missing = defaultSavings(lang).filter(c => !existingIds.has(c.id));
-      if (missing.length > 0) parsed.savings = [...parsed.savings, ...missing];
-    }
-    // Strip the removed givande category from existing users' saved months.
-    if (parsed.expenses) {
-      parsed.expenses = parsed.expenses.filter(c => c.id !== 'givande');
-    }
+    // Preserve existing saved months EXACTLY — no auto-seeding of default
+    // categories (that's now opt-in via the starter pack). Only normalize shape
+    // (guard against a missing array) and strip the long-removed 'givande'
+    // category, neither of which destroys any user data.
+    if (!Array.isArray(parsed.income)) parsed.income = [];
+    if (!Array.isArray(parsed.savings)) parsed.savings = [];
+    if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+    else parsed.expenses = parsed.expenses.filter(c => c.id !== 'givande');
     return parsed;
   } catch {
     return defaultMonthData(lang);

@@ -106,19 +106,10 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
   );
 };
 
-export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavings, year, month }: Props) => {
-  const { lang, t } = useLang();
+// ── Extracted, reusable sections (used by PlanTab AND the Custom layout) ──
 
-  // ── Overview highlights (current month) ──
-  const savingsRate = totalIncome > 0
-    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
-    : 0;
-  const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
-  const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
-  const goalProgress = totalTarget > 0
-    ? Math.round((totalCurrent / totalTarget) * 100)
-    : 0;
-  const monthLabel = `${MONTHS[lang][month]} ${year}`;
+export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
+  const { t } = useLang();
 
   const addGoal = () => {
     const newGoal: SavingsGoal = {
@@ -142,6 +133,61 @@ export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavin
   };
 
   return (
+    <section className="plan-section">
+      <div className="plan-section-header">
+        <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
+        <button className="add-goal-btn" onClick={addGoal}>{t.newGoal}</button>
+      </div>
+      {data.goals.length === 0 && (
+        <div className="plan-empty">{t.noGoals}</div>
+      )}
+      <div className="goals-grid">
+        {data.goals.map(goal => (
+          <GoalCard
+            key={goal.id}
+            goal={goal}
+            onUpdate={updateGoal}
+            onDelete={() => deleteGoal(goal.id)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+export const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
+  const { t } = useLang();
+  return (
+    <section className="plan-section">
+      <div className="plan-section-header">
+        <h2 className="plan-section-title">📝 {t.notes}</h2>
+      </div>
+      <textarea
+        className="plan-notes"
+        placeholder={t.notesPlaceholder}
+        value={data.notes}
+        onChange={e => onChange({ ...data, notes: e.target.value })}
+        rows={8}
+      />
+    </section>
+  );
+};
+
+export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavings, year, month }: Props) => {
+  const { lang, t, money } = useLang();
+
+  // ── Overview highlights (current month) ──
+  const savingsRate = totalIncome > 0
+    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
+    : 0;
+  const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
+  const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
+  const goalProgress = totalTarget > 0
+    ? Math.round((totalCurrent / totalTarget) * 100)
+    : 0;
+  const monthLabel = `${MONTHS[lang][month]} ${year}`;
+
+  return (
     <div className="tab-content plan-tab">
 
       {/* ── Overview ── */}
@@ -158,7 +204,7 @@ export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavin
           </div>
           <div className="overview-stat overview-stat-saved">
             <div className="overview-stat-label">{t.overviewSavedThisMonth}</div>
-            <div className="overview-stat-value">{totalSavings.toLocaleString('sv-SE')} kr</div>
+            <div className="overview-stat-value">{money(totalSavings)}</div>
             <div className="overview-stat-sub">{monthLabel}</div>
           </div>
           <div className="overview-stat overview-stat-goal">
@@ -197,39 +243,10 @@ export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavin
       </section>
 
       {/* ── Goals ── */}
-      <section className="plan-section">
-        <div className="plan-section-header">
-          <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
-          <button className="add-goal-btn" onClick={addGoal}>{t.newGoal}</button>
-        </div>
-        {data.goals.length === 0 && (
-          <div className="plan-empty">{t.noGoals}</div>
-        )}
-        <div className="goals-grid">
-          {data.goals.map(goal => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              onUpdate={updateGoal}
-              onDelete={() => deleteGoal(goal.id)}
-            />
-          ))}
-        </div>
-      </section>
+      <GoalsSection data={data} onChange={onChange} />
 
       {/* ── Notes ── */}
-      <section className="plan-section">
-        <div className="plan-section-header">
-          <h2 className="plan-section-title">📝 {t.notes}</h2>
-        </div>
-        <textarea
-          className="plan-notes"
-          placeholder={t.notesPlaceholder}
-          value={data.notes}
-          onChange={e => onChange({ ...data, notes: e.target.value })}
-          rows={8}
-        />
-      </section>
+      <NotesSection data={data} onChange={onChange} />
 
     </div>
   );
