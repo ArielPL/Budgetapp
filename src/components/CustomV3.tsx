@@ -216,10 +216,14 @@ export const CustomV3 = ({ year, month }: Props) => {
     setValues(loadValues(year, month));
   }, [year, month]);
 
-  // Persist amounts for the active month.
+  // Persist amounts for the active month. Don't CREATE a key for an untouched
+  // (empty) month — avoids littering blank entries while navigating. An existing
+  // month is still updated (so clearing its amounts persists).
   useEffect(() => {
     if (skipSave.current) { skipSave.current = false; return; }
-    localStorage.setItem(valuesKey(year, month), JSON.stringify(values));
+    const key = valuesKey(year, month);
+    if (Object.keys(values).length === 0 && localStorage.getItem(key) === null) return;
+    localStorage.setItem(key, JSON.stringify(values));
   }, [values, year, month]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {

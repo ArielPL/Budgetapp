@@ -295,7 +295,13 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
 }
 
 export function saveMonthData(year: number, month: number, data: MonthData): void {
-  localStorage.setItem(storageKey(year, month), JSON.stringify(data));
+  const key = storageKey(year, month);
+  // Don't CREATE a key for a brand-new, completely empty month — that just
+  // litters localStorage with blank entries while navigating (e.g. in Custom
+  // mode). An already-saved month is still updated (so clearing it persists).
+  const empty = data.income.length === 0 && data.expenses.length === 0 && data.savings.length === 0;
+  if (empty && localStorage.getItem(key) === null) return;
+  localStorage.setItem(key, JSON.stringify(data));
 }
 
 export function loadPlanData(lang: Lang = 'sv'): PlanData {
