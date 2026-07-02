@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLang } from '../i18n';
+import { useModalFocus } from '../useModalFocus';
 import {
   PALETTE_ORDER,
   PALETTES,
@@ -51,6 +52,9 @@ export const ThemePanel = ({
 }: Props) => {
   const { t } = useLang();
   const [advancedOpen, setAdvancedOpen] = useState(palette === 'custom');
+  // Real-modal behavior: focus in, Tab trapped, Esc closes, focus restored.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useModalFocus(panelRef, true, onClose);
 
   const paletteName = (id: Exclude<PaletteId, 'custom'>): string => t.paletteNames[id];
 
@@ -64,7 +68,7 @@ export const ThemePanel = ({
   return (
     <>
       <div className="theme-backdrop" onClick={onClose} />
-      <div className="theme-panel" role="dialog" aria-modal="true" aria-label={t.themeTitle}>
+      <div className="theme-panel" role="dialog" aria-modal="true" aria-label={t.themeTitle} ref={panelRef}>
         <div className="theme-panel-head">
           <h2 className="theme-panel-title">{t.themeTitle}</h2>
           <button

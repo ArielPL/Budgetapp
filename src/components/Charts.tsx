@@ -126,14 +126,20 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
   }
 
   if (style === 'bars') {
+    // Narrow screens: truncate long category names ("Mat & Dryck…") on the
+    // axis so bars keep room — the tooltip still shows the full name.
+    const narrow = typeof window !== 'undefined' && window.innerWidth <= 640;
+    const tickLabel = (v: string) =>
+      narrow && v.length > 10 ? `${v.slice(0, 9)}…` : v;
     return (
       <ResponsiveContainer width="100%" height={height}>
         <BarChart layout="vertical" data={data} margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid horizontal={false} stroke={gridColor} />
           <XAxis type="number" tick={{ fill: tickColor, fontSize: 11 }}
             tickFormatter={v => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-          <YAxis type="category" dataKey="name" width={120}
-            tick={{ fill: tickColorStrong, fontSize: 12 }} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="name" width={narrow ? 86 : 120}
+            tickFormatter={tickLabel}
+            tick={{ fill: tickColorStrong, fontSize: narrow ? 11 : 12 }} axisLine={false} tickLine={false} />
           <Tooltip content={<CustomTooltip money={money} />} cursor={{ fill: cursorFill }} />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28} isAnimationActive={false}>
             {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}

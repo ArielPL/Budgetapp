@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from 'react';
 import { useLang } from '../i18n';
 import { ExpenseChart, type ExpenseChartStyle } from './Charts';
+import { useModalFocus } from '../useModalFocus';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -197,6 +198,9 @@ export const CustomV3 = ({ year, month }: Props) => {
   const [configFor, setConfigFor] = useState<string | null>(null);
   const [expandedFor, setExpandedFor] = useState<string | null>(null);
   const dragId = useRef<string | null>(null);
+  // Real-modal behavior for the phone tap-to-expand overlay.
+  const expandRef = useRef<HTMLDivElement>(null);
+  useModalFocus(expandRef, expandedFor !== null, () => setExpandedFor(null));
 
   // Persist structure whenever it changes (after the user has started).
   useEffect(() => {
@@ -522,7 +526,7 @@ export const CustomV3 = ({ year, month }: Props) => {
       {/* Phone tap-to-expand: full editable block in a centered modal. */}
       {expandedBlock && (
         <div className="custom-modal-backdrop" onClick={() => setExpandedFor(null)}>
-          <div className="custom-modal custom-expand" onClick={e => e.stopPropagation()} role="dialog">
+          <div className="custom-modal custom-expand" onClick={e => e.stopPropagation()} role="dialog" ref={expandRef}>
             {/* Header is just the close button — the block's kind tag + editable
                 title are rendered once inside BlockContent below (no duplicate). */}
             <div className="custom-expand-head" style={{ justifyContent: 'flex-end' }}>
@@ -557,9 +561,11 @@ export const CustomV3 = ({ year, month }: Props) => {
 const HELP_ICONS = ['🧱', '🏷️', '➕', '📐', '🎨', '📊', '🎯', '📝', '📈', '📋', '✎'];
 const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClose: () => void }) => {
   const [showGuide, setShowGuide] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useModalFocus(panelRef, true, onClose);
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog">
+      <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
         <div className="custom-help-head">
           <div className="custom-modal-title">❔ {t.customHelpTitle}</div>
           <button className="custom-icon-btn" onClick={onClose} aria-label={t.cfgDone}>✕</button>
@@ -883,9 +889,11 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
   onClose: () => void;
 }) => {
   const { t } = useLang();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useModalFocus(panelRef, true, onClose);
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal" onClick={e => e.stopPropagation()} role="dialog">
+      <div className="custom-modal" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
         <div className="custom-modal-title">{t.addBlock}</div>
         <div className="custom-picker-grid">
           <button className="custom-picker-btn" onClick={() => onAddBlock('in')}>
@@ -920,6 +928,8 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
   t: ReturnType<typeof useLang>['t'];
 }) => {
   const isPhone = useIsPhone();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useModalFocus(panelRef, true, onClose);
   const isNote = block.kind === 'note';
   const isRegular = block.kind === 'block';
   const chartTypeLabel: Record<ExpenseChartStyle, string> = {
@@ -940,7 +950,7 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
 
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal custom-config" onClick={e => e.stopPropagation()} role="dialog">
+      <div className="custom-modal custom-config" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
         <div className="custom-modal-title">{tagEmoji(block)} {block.name} — {t.sectionSettings}</div>
 
         {/* Width — bigger icons with a gap before the label */}

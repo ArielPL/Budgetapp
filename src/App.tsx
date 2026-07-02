@@ -27,6 +27,7 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
+import { useModalFocus } from './useModalFocus';
 import './index.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -134,7 +135,11 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copyMsg, setCopyMsg] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Real-modal behavior for the menu: focus in, Tab trapped, Esc closes,
+  // focus returns to the ⚙ button.
+  useModalFocus(menuPanelRef, menuOpen, () => setMenuOpen(false));
 
   // Tap-to-open month picker (the 12-month strip)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -706,7 +711,7 @@ function App() {
             {menuOpen && (
               <>
                 <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
-                <div className="utils-menu" role="menu">
+                <div className="utils-menu" role="menu" ref={menuPanelRef}>
                   <div className="utils-menu-drag-handle" aria-hidden="true" />
                   <div className="utils-menu-sheet-header">
                     <div className="utils-menu-sheet-title">{t.menu}</div>

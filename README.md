@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# Budget – Månadsbudget 💰
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal monthly-budget PWA. Track income, expenses and savings per month, set
+savings goals, review the whole year, and build a fully custom budget dashboard
+from scratch — in Swedish, English or Spanish.
 
-Currently, two official plugins are available:
+**Live:** https://budgetapp-indol.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Budget** — monthly income & expense categories with per-row amounts,
+  summary cards (income / expenses / remaining) and expense charts.
+- **Savings & Investments** — savings categories with growth chart and
+  per-category donuts; pension tracked separately.
+- **Plan & Overview** — savings rate, savings goals (linkable to a budget row)
+  with progress and deadlines, plus free-form notes.
+- **Year** — income vs expenses vs savings across the whole year
+  (table on desktop, month cards on mobile).
+- **Three layouts** — Classic (tabs), Combined (everything on one page), and
+  **Custom**: a build-from-scratch block dashboard with its own data
+  (IN/OUT/SAVINGS-tagged blocks, 8 chart types, targets, notes, auto summary).
+- **Theme builder** — four palettes (Sorbet / Ocean / Forest / Sunset), each in
+  light & dark, plus a custom accent and full per-color overrides.
+- **i18n & currency** — Swedish / English / Spanish; kr / € / $ / £
+  (symbol & format only — amounts are never converted).
+- **Backup** — JSON export/import from the ⚙ menu, with a periodic reminder.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Data & privacy
 
-## Expanding the ESLint configuration
+All data lives in the browser's **localStorage** — there is no backend and no
+account. Data is per device/browser; use **⚙ → Export** to back up or move it.
+Key prefixes: `budget_<year>_<month>` (shared monthly data), `budget_custom_v3*`
+(Custom layout structure + amounts), `budget_theme*`, `budget_lang`,
+`budget_currency`, `budget_layout`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Running locally
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Requires Node 20+.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+> ⚠️ **Path gotcha:** if the project sits in a folder whose name contains a
+> colon (`:` is the Unix PATH separator), `npm run dev` / `npm run build` fail
+> with "command not found". Invoke the binaries via node directly instead:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# dev server
+node node_modules/vite/bin/vite.js --port 5173
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# production build (what Vercel runs — strict TS with noUnusedLocals)
+node node_modules/.bin/tsc -b && node node_modules/.bin/vite build
 ```
+
+In a colon-free path, plain `npm run dev` / `npm run build` work fine.
+
+## Deploying
+
+Pushing to `main` on GitHub auto-deploys to Vercel. Always run the strict build
+locally first — it catches unused-import/variable errors that dev mode ignores.
+
+## Tech
+
+React 19 · TypeScript · Vite · Recharts · CSS custom properties (theming) —
+no UI framework, no state library, no backend.
+
+## Known limitations
+
+- Data is per-device (no sync between phone and desktop) — use export/import.
+- Currency switching changes formatting only; there is no exchange-rate math.
+- The Custom layout keeps its own numbers, separate from Classic/Combined.
+
+## Docs
+
+- [`APP_REVIEW_ACTION_PLAN.md`](APP_REVIEW_ACTION_PLAN.md) — UX/UI review & action plan (2026-07)
+- [`UX_UI_RATING_LOG.md`](UX_UI_RATING_LOG.md) — honest UX/UI rating log

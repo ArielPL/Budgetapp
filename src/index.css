@@ -107,6 +107,26 @@ button {
   color: inherit;
 }
 
+/* ─── Design system (UX review) ───────────────────────────────────────
+   Button tiers used across the app:
+   - Primary  (.custom-primary-btn, seg-active, onboard CTA): the one main action.
+   - Secondary (.custom-secondary-btn, .starter-pack-btn): alternative action.
+   - Ghost    (.custom-icon-btn, .utils-action, seg buttons): low-priority.
+   - Danger   (.utils-action-danger, .cat-delete-btn, .cv3-row-del,
+               .custom-remove-btn): destructive — always red, never primary.
+   - Icon buttons must carry an aria-label and ≥40px touch area on phones.
+
+   Focus: every interactive element gets a visible ring on keyboard focus
+   (:focus-visible only — mouse/touch clicks stay clean). Inputs keep their
+   own border-based focus styles. */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ─── App shell ───────────────────────────────────────────────────── */
 
 .app {
@@ -3299,8 +3319,16 @@ button {
   .custom-section-editing { grid-column: 1 / -1 !important; }
   .custom-section-controls { flex-wrap: wrap; gap: 8px; }
   .custom-section-name { flex-basis: 100%; }
-  .custom-icon-btn { width: 36px; height: 36px; }
-  .width-seg { width: 36px; height: 32px; font-size: 0.95rem; }
+  /* ≥40px touch targets on phones (design system). */
+  .custom-icon-btn { width: 40px; height: 40px; }
+  .width-seg { width: 40px; height: 36px; font-size: 0.95rem; }
+  .delete-btn,
+  .cat-edit-btn,
+  .collapse-arrow,
+  .cv3-row-del {
+    min-width: 40px;
+    min-height: 40px;
+  }
 
   /* Config panel + picker: comfortable on a narrow screen. */
   .custom-picker-grid { grid-template-columns: 1fr 1fr; }
