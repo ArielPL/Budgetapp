@@ -44,9 +44,11 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               value={row.amount}
               onChange={val => updateAmount(row.id, val)}
               color="#22d3ee"
+              label={shownName(row, lang)}
             />
             {row.isCustom && (
-              <button className="delete-btn" onClick={() => deleteRow(row.id)} title={t.deleteRow}>×</button>
+              <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
             )}
           </div>
         ))}

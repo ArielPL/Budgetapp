@@ -69,17 +69,22 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
           className="cat-edit-btn"
           onClick={() => setEditing(e => !e)}
           title={t.editCategory}
+          aria-label={t.ariaEditCategory(shownName(category, lang))}
           style={{ color: editing ? category.color : undefined }}
         >
           ✎
         </button>
-        <span
+        <button
           className="collapse-arrow"
           onClick={() => setCollapsed(c => !c)}
-          style={{ color: category.color, cursor: 'pointer' }}
+          aria-label={collapsed
+            ? t.ariaExpand(shownName(category, lang))
+            : t.ariaCollapse(shownName(category, lang))}
+          aria-expanded={!collapsed}
+          style={{ color: category.color, cursor: 'pointer', background: 'none', border: 'none', font: 'inherit', padding: 0 }}
         >
           {collapsed ? '▸' : '▾'}
-        </span>
+        </button>
       </div>
 
       {editing && (
@@ -145,9 +150,11 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
                   value={row.amount}
                   onChange={val => updateAmount(row.id, val)}
                   color={category.color}
+                  label={shownName(row, lang)}
                 />
                 {row.isCustom && (
-                  <button className="delete-btn" onClick={() => deleteRow(row.id)} title={t.deleteRow}>×</button>
+                  <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                    title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
                 )}
               </div>
             ))}

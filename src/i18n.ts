@@ -137,6 +137,14 @@ export interface Translations {
   cfgWidthThird: string;
   cfgDone: string;
   addStarterCategories: string;
+  onboardBudgetTitle: string;
+  onboardBudgetBody: string;
+  useBudgetTemplate: string;
+  startFromEmpty: string;
+  templateIncludes: string;
+  onboardSavingsTitle: string;
+  onboardSavingsBody: string;
+  useSavingsTemplate: string;
   // Custom v3 — generic block builder
   addBlock: string;
   newBlockName: string;
@@ -170,6 +178,7 @@ export interface Translations {
   clearedAmounts: string;
   howItWorks: string;
   gotIt: string;
+  showGuide: string;
   customHelpTitle: string;
   customHelpIntro: string;
   customHelp: { title: string; body: string }[];
@@ -226,8 +235,9 @@ export interface Translations {
   importSuccess: string;
   // Reset month
   resetMonth: string;
-  resetMonthConfirm: string;
+  resetMonthConfirm: (monthName: string) => string;
   resetMonthDone: string;
+  dangerZone: string;
   // Month nav
   prevMonth: string;
   nextMonth: string;
@@ -293,6 +303,13 @@ export interface Translations {
   // Editable
   clickToEdit: string;
   clickToRename: string;
+  ariaEditAmount: (name: string, amount: string) => string;
+  ariaAmountInput: (name: string) => string;
+  ariaOpenMenu: string;
+  ariaEditCategory: (name: string) => string;
+  ariaCollapse: (name: string) => string;
+  ariaExpand: (name: string) => string;
+  ariaDeleteRow: (name: string) => string;
   // Custom categories
   addCategory: string;
   newCategory: string;
@@ -307,6 +324,7 @@ export interface Translations {
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
+  backupReminderShort: string;
   backupReminderExport: string;
   backupReminderDismiss: string;
   // Growth chart line labels
@@ -390,6 +408,14 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tredjedel',
     cfgDone: 'Klar',
     addStarterCategories: 'Lägg till startkategorier',
+    onboardBudgetTitle: 'Kom igång med din månadsbudget',
+    onboardBudgetBody: 'Välj en färdig mall eller bygg budgeten själv.',
+    useBudgetTemplate: 'Använd budgetmall',
+    startFromEmpty: 'Börja från tom budget',
+    templateIncludes: 'Mallen innehåller inkomst, boende, mat, transport och sparande.',
+    onboardSavingsTitle: 'Kom igång med sparande',
+    onboardSavingsBody: 'Lägg till en sparmall med sparkonto, investeringar och pension.',
+    useSavingsTemplate: 'Använd sparmall',
     addBlock: 'Lägg till block',
     newBlockName: 'Nytt block',
     newRowName: 'Ny rad',
@@ -422,8 +448,9 @@ export const translations: Record<Lang, Translations> = {
     clearedAmounts: 'Alla belopp rensade',
     howItWorks: 'Så funkar det',
     gotIt: 'Jag förstår!',
+    showGuide: 'Visa guiden',
     customHelpTitle: 'Bygg din egen budget',
-    customHelpIntro: 'Här bygger du budgeten precis som du vill. Så här fungerar varje del:',
+    customHelpIntro: 'Här bygger du budgeten precis som du vill — skapa block för inkomster, utgifter, sparande och anteckningar.',
     customHelp: [
       { title: 'Lägg till block', body: 'Tryck på "Lägg till block", ge det ett namn och välj vad det är – pengar in, ut, sparande eller en anteckning.' },
       { title: 'IN / UT / SPAR', body: 'Taggen avgör hur blocket räknas. Översikten använder den för att räkna ut vad som är kvar.' },
@@ -445,7 +472,7 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Anteckning',
     notePlaceholder: 'Skriv en anteckning…',
     currency: 'Valuta',
-    currencyHint: 'Endast symbol — belopp räknas inte om',
+    currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
     theme: 'Tema',
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
@@ -487,8 +514,9 @@ export const translations: Record<Lang, Translations> = {
     importInvalid: 'Ogiltig fil. Välj en säkerhetskopia exporterad från denna app.',
     importSuccess: '✓ Data importerad',
     resetMonth: '↺ Återställ månad',
-    resetMonthConfirm: 'Detta nollställer den valda månadens data och kan inte ångras. Vill du fortsätta?',
+    resetMonthConfirm: (monthName) => `Detta nollställer ${monthName} och kan inte ångras. Vill du fortsätta?`,
     resetMonthDone: '✓ Månad återställd',
+    dangerZone: 'Farozon',
     prevMonth: 'Föregående månad',
     nextMonth: 'Nästa månad',
     income: 'Inkomst',
@@ -506,7 +534,7 @@ export const translations: Record<Lang, Translations> = {
     chartPerCategory: 'Per kategori',
     chartTotal: 'Totalt',
     chartGrowth: (year) => `Tillväxt ${year}`,
-    placeholderExpenses: 'Fyll i utgifter för att se diagram',
+    placeholderExpenses: 'Fyll i några utgifter så visas diagrammet här',
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
     goalCount: (n) => `${n} mål`,
     avgPerMonth: 'Snitt/månad',
@@ -544,6 +572,13 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Helår',
     yearEmpty: 'Ingen data för detta år ännu',
     clickToEdit: 'Klicka för att redigera',
+    ariaEditAmount: (name, amount) => `Redigera belopp för ${name}, nu ${amount}`,
+    ariaAmountInput: (name) => `Belopp för ${name}`,
+    ariaOpenMenu: 'Öppna meny',
+    ariaEditCategory: (name) => `Redigera kategori: ${name}`,
+    ariaCollapse: (name) => `Fäll ihop ${name}`,
+    ariaExpand: (name) => `Visa ${name}`,
+    ariaDeleteRow: (name) => `Ta bort rad: ${name}`,
     clickToRename: 'Klicka för att byta namn',
     addCategory: '+ Lägg till kategori',
     newCategory: 'Ny kategori',
@@ -557,6 +592,7 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
+    backupReminderShort: 'Backup rekommenderas',
     backupReminderExport: 'Exportera nu',
     backupReminderDismiss: 'Stäng',
     lineSparkonto: 'Sparkonto',
@@ -636,6 +672,14 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Third',
     cfgDone: 'Done',
     addStarterCategories: 'Add starter categories',
+    onboardBudgetTitle: 'Get started with your monthly budget',
+    onboardBudgetBody: 'Pick a ready-made template or build the budget yourself.',
+    useBudgetTemplate: 'Use budget template',
+    startFromEmpty: 'Start from an empty budget',
+    templateIncludes: 'The template includes income, housing, food, transport and savings.',
+    onboardSavingsTitle: 'Get started with savings',
+    onboardSavingsBody: 'Add a savings template with a savings account, investments and pension.',
+    useSavingsTemplate: 'Use savings template',
     addBlock: 'Add block',
     newBlockName: 'New block',
     newRowName: 'New row',
@@ -668,8 +712,9 @@ export const translations: Record<Lang, Translations> = {
     clearedAmounts: 'All amounts cleared',
     howItWorks: 'How it works',
     gotIt: 'Got it!',
+    showGuide: 'Show the guide',
     customHelpTitle: 'Build your own budget',
-    customHelpIntro: 'This is where you build the budget exactly how you want. Here’s what each piece does:',
+    customHelpIntro: 'This is where you build the budget exactly how you want — create blocks for income, expenses, savings and notes.',
     customHelp: [
       { title: 'Add blocks', body: 'Tap "Add block", give it a name, and choose what it is — money In, Out, Savings, or a Note.' },
       { title: 'In / Out / Savings', body: 'The tag decides how a block counts. The Summary uses it to work out what’s left.' },
@@ -691,7 +736,7 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Note',
     notePlaceholder: 'Write a note…',
     currency: 'Currency',
-    currencyHint: "Symbol only — amounts aren't converted",
+    currencyHint: "Changes only the symbol and format — amounts aren't converted",
     theme: 'Theme',
     themeLight: 'Light',
     themeDark: 'Dark',
@@ -733,7 +778,8 @@ export const translations: Record<Lang, Translations> = {
     importInvalid: 'Invalid file. Please choose a backup exported from this app.',
     importSuccess: '✓ Data imported',
     resetMonth: '↺ Reset month',
-    resetMonthConfirm: "This clears the selected month's data and can't be undone. Continue?",
+    resetMonthConfirm: (monthName) => `This clears ${monthName} and can't be undone. Continue?`,
+    dangerZone: 'Danger zone',
     resetMonthDone: '✓ Month reset',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
@@ -752,7 +798,7 @@ export const translations: Record<Lang, Translations> = {
     chartPerCategory: 'Per category',
     chartTotal: 'Total',
     chartGrowth: (year) => `Growth ${year}`,
-    placeholderExpenses: 'Fill in expenses to see the chart',
+    placeholderExpenses: 'Fill in a few expenses and the chart appears here',
     placeholderSavings: 'Fill in savings & investments to see the growth',
     goalCount: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}`,
     avgPerMonth: 'Avg/month',
@@ -790,6 +836,13 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Full year',
     yearEmpty: 'No data for this year yet',
     clickToEdit: 'Click to edit',
+    ariaEditAmount: (name, amount) => `Edit amount for ${name}, now ${amount}`,
+    ariaAmountInput: (name) => `Amount for ${name}`,
+    ariaOpenMenu: 'Open menu',
+    ariaEditCategory: (name) => `Edit category: ${name}`,
+    ariaCollapse: (name) => `Collapse ${name}`,
+    ariaExpand: (name) => `Show ${name}`,
+    ariaDeleteRow: (name) => `Delete row: ${name}`,
     clickToRename: 'Click to rename',
     addCategory: '+ Add category',
     newCategory: 'New category',
@@ -803,6 +856,7 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Linked to Plan — cannot be deleted',
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
+    backupReminderShort: 'Backup recommended',
     backupReminderExport: 'Export now',
     backupReminderDismiss: 'Dismiss',
     lineSparkonto: 'Savings account',
@@ -882,6 +936,14 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tercio',
     cfgDone: 'Listo',
     addStarterCategories: 'Añadir categorías iniciales',
+    onboardBudgetTitle: 'Empieza con tu presupuesto mensual',
+    onboardBudgetBody: 'Elige una plantilla lista o construye el presupuesto tú mismo.',
+    useBudgetTemplate: 'Usar plantilla de presupuesto',
+    startFromEmpty: 'Empezar con un presupuesto vacío',
+    templateIncludes: 'La plantilla incluye ingresos, vivienda, comida, transporte y ahorro.',
+    onboardSavingsTitle: 'Empieza a ahorrar',
+    onboardSavingsBody: 'Añade una plantilla de ahorro con cuenta, inversiones y pensión.',
+    useSavingsTemplate: 'Usar plantilla de ahorro',
     addBlock: 'Añadir bloque',
     newBlockName: 'Bloque nuevo',
     newRowName: 'Fila nueva',
@@ -914,8 +976,9 @@ export const translations: Record<Lang, Translations> = {
     clearedAmounts: 'Importes borrados',
     howItWorks: 'Cómo funciona',
     gotIt: '¡Entendido!',
+    showGuide: 'Ver la guía',
     customHelpTitle: 'Crea tu propio presupuesto',
-    customHelpIntro: 'Aquí construyes el presupuesto justo como quieras. Esto hace cada parte:',
+    customHelpIntro: 'Aquí construyes el presupuesto justo como quieras — crea bloques de ingresos, gastos, ahorro y notas.',
     customHelp: [
       { title: 'Añadir bloques', body: 'Pulsa "Añadir bloque", ponle un nombre y elige qué es: dinero que Entra, Sale, Ahorro o una Nota.' },
       { title: 'Entrada / Salida / Ahorro', body: 'La etiqueta decide cómo cuenta el bloque. El Resumen la usa para calcular lo que queda.' },
@@ -937,7 +1000,7 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Nota',
     notePlaceholder: 'Escribe una nota…',
     currency: 'Moneda',
-    currencyHint: 'Solo símbolo — los importes no se convierten',
+    currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
     theme: 'Tema',
     themeLight: 'Claro',
     themeDark: 'Oscuro',
@@ -979,7 +1042,8 @@ export const translations: Record<Lang, Translations> = {
     importInvalid: 'Archivo no válido. Elige una copia de seguridad exportada desde esta app.',
     importSuccess: '✓ Datos importados',
     resetMonth: '↺ Restablecer mes',
-    resetMonthConfirm: 'Esto borra los datos del mes seleccionado y no se puede deshacer. ¿Continuar?',
+    resetMonthConfirm: (monthName) => `Esto borra ${monthName} y no se puede deshacer. ¿Continuar?`,
+    dangerZone: 'Zona de peligro',
     resetMonthDone: '✓ Mes restablecido',
     prevMonth: 'Mes anterior',
     nextMonth: 'Mes siguiente',
@@ -998,7 +1062,7 @@ export const translations: Record<Lang, Translations> = {
     chartPerCategory: 'Por categoría',
     chartTotal: 'Total',
     chartGrowth: (year) => `Crecimiento ${year}`,
-    placeholderExpenses: 'Rellena los gastos para ver el gráfico',
+    placeholderExpenses: 'Rellena algunos gastos y el gráfico aparecerá aquí',
     placeholderSavings: 'Rellena el ahorro e inversiones para ver el crecimiento',
     goalCount: (n) => `${n} ${n === 1 ? 'meta' : 'metas'}`,
     avgPerMonth: 'Media/mes',
@@ -1036,6 +1100,13 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Año completo',
     yearEmpty: 'Aún no hay datos para este año',
     clickToEdit: 'Pulsa para editar',
+    ariaEditAmount: (name, amount) => `Editar importe de ${name}, ahora ${amount}`,
+    ariaAmountInput: (name) => `Importe de ${name}`,
+    ariaOpenMenu: 'Abrir menú',
+    ariaEditCategory: (name) => `Editar categoría: ${name}`,
+    ariaCollapse: (name) => `Contraer ${name}`,
+    ariaExpand: (name) => `Mostrar ${name}`,
+    ariaDeleteRow: (name) => `Eliminar fila: ${name}`,
     clickToRename: 'Pulsa para renombrar',
     addCategory: '+ Añadir categoría',
     newCategory: 'Nueva categoría',
@@ -1049,6 +1120,7 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Vinculada al Plan — no se puede eliminar',
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
+    backupReminderShort: 'Copia de seguridad recomendada',
     backupReminderExport: 'Exportar ahora',
     backupReminderDismiss: 'Descartar',
     lineSparkonto: 'Cuenta de ahorro',

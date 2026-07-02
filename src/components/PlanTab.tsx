@@ -49,7 +49,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             {shownName(goal, lang)}
           </span>
         )}
-        <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}>×</button>
+        <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}
+          aria-label={`${t.deleteGoal}: ${shownName(goal, lang)}`}>×</button>
       </div>
       {goal.budgetRowId && (
         <div className="goal-budget-link" title={t.linkedRowTitle}>
@@ -64,6 +65,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             value={goal.currentAmount}
             onChange={v => onUpdate({ ...goal, currentAmount: v })}
             color={goal.color}
+            label={`${t.saved} — ${shownName(goal, lang)}`}
+            showZero
           />
         </div>
         <div className="goal-amount-sep">{t.of}</div>
@@ -73,6 +76,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             value={goal.targetAmount}
             onChange={v => onUpdate({ ...goal, targetAmount: v })}
             color={goal.color}
+            label={`${t.goal} — ${shownName(goal, lang)}`}
+            showZero
           />
         </div>
         {goal.deadline && (

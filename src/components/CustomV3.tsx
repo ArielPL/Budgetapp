@@ -550,31 +550,43 @@ export const CustomV3 = ({ year, month }: Props) => {
   );
 };
 
-// ── How-it-works help: one row per feature with an icon, title and blurb ──
+// ── How-it-works help ──
+// First meeting is a SHORT welcome (title + one line + Got it); the full
+// feature-by-feature guide sits behind a "Show guide" link so it never blocks
+// the user from just starting.
 const HELP_ICONS = ['🧱', '🏷️', '➕', '📐', '🎨', '📊', '🎯', '📝', '📈', '📋', '✎'];
-const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClose: () => void }) => (
-  <div className="custom-modal-backdrop" onClick={onClose}>
-    <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog">
-      <div className="custom-help-head">
-        <div className="custom-modal-title">❔ {t.customHelpTitle}</div>
-        <button className="custom-icon-btn" onClick={onClose} aria-label={t.cfgDone}>✕</button>
-      </div>
-      <p className="custom-help-intro">{t.customHelpIntro}</p>
-      <div className="custom-help-list">
-        {t.customHelp.map((item, i) => (
-          <div className="custom-help-item" key={i}>
-            <span className="custom-help-icon" aria-hidden="true">{HELP_ICONS[i] ?? '•'}</span>
-            <div>
-              <div className="custom-help-item-title">{item.title}</div>
-              <div className="custom-help-item-body">{item.body}</div>
-            </div>
+const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClose: () => void }) => {
+  const [showGuide, setShowGuide] = useState(false);
+  return (
+    <div className="custom-modal-backdrop" onClick={onClose}>
+      <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog">
+        <div className="custom-help-head">
+          <div className="custom-modal-title">❔ {t.customHelpTitle}</div>
+          <button className="custom-icon-btn" onClick={onClose} aria-label={t.cfgDone}>✕</button>
+        </div>
+        <p className="custom-help-intro">{t.customHelpIntro}</p>
+        {showGuide ? (
+          <div className="custom-help-list">
+            {t.customHelp.map((item, i) => (
+              <div className="custom-help-item" key={i}>
+                <span className="custom-help-icon" aria-hidden="true">{HELP_ICONS[i] ?? '•'}</span>
+                <div>
+                  <div className="custom-help-item-title">{item.title}</div>
+                  <div className="custom-help-item-body">{item.body}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <button className="custom-help-link" onClick={() => setShowGuide(true)}>
+            📖 {t.showGuide}
+          </button>
+        )}
+        <button className="custom-primary-btn custom-help-done" onClick={onClose}>{t.gotIt}</button>
       </div>
-      <button className="custom-primary-btn custom-help-done" onClick={onClose}>{t.gotIt}</button>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Helpers ──
 // The fixed KIND emoji (money-type), used in the kind-tag pill.

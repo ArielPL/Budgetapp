@@ -238,7 +238,8 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
         </ResponsiveContainer>
         <div className="donut-center">
           <div className="donut-label">{totalLabel}</div>
-          <div className="donut-value">{totalExpenses.toLocaleString(CURRENCIES[currency].locale)}</div>
+          {/* Round like every other amount surface — no raw decimals in the donut center. */}
+          <div className="donut-value">{Math.round(totalExpenses).toLocaleString(CURRENCIES[currency].locale)}</div>
           <div className="donut-currency">{CURRENCIES[currency].symbol}</div>
         </div>
       </div>

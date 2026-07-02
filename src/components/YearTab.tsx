@@ -125,6 +125,23 @@ export const YearTab = ({ year }: Props) => {
             </div>
           </div>
 
+          {/* Mobile: month cards instead of a side-scrolling table (CSS swaps
+              which one is visible at the 640px breakpoint). */}
+          <div className="year-cards">
+            {rows.map(r => (
+              <div className="year-card" key={r.index}>
+                <div className="year-card-month">{MONTHS[lang][r.index]}</div>
+                <div className="year-card-row"><span>{t.colIncome}</span><span>{money(r.income)}</span></div>
+                <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(r.expenses)}</span></div>
+                <div className="year-card-row"><span>{t.colSavings}</span><span style={{ color: SAVINGS_COLOR }}>{money(r.savings)}</span></div>
+                <div className="year-card-row year-card-remaining">
+                  <span>{t.colRemaining}</span>
+                  <span style={{ color: remColor(r.remaining) }}>{r.remaining > 0 ? '+' : ''}{money(r.remaining)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="year-table-wrap">
             <table className="year-table">
               <thead>

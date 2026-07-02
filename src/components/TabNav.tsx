@@ -22,10 +22,14 @@ export const TabNav = ({ active, onChange }: Props) => {
           key={t.id}
           className={`tab-btn ${active === t.id ? 'tab-active' : ''}`}
           onClick={() => onChange(t.id)}
+          aria-label={t.label}
+          aria-current={active === t.id ? 'page' : undefined}
         >
-          <span className="tab-icon">{t.icon}</span>
-          <span className="tab-label">{t.label}</span>
-          <span className="tab-label-short">{t.short}</span>
+          {/* Visual-only spans: the accessible name is the aria-label above,
+              so long+short labels don't read as "BudgetBudget". */}
+          <span aria-hidden="true" className="tab-icon">{t.icon}</span>
+          <span aria-hidden="true" className="tab-label">{t.label}</span>
+          <span aria-hidden="true" className="tab-label-short">{t.short}</span>
         </button>
       ))}
     </div>

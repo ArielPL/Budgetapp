@@ -544,7 +544,9 @@ button {
    muted text derive from it so they track the chosen background. */
 .custom-section {
   --cv3-ink: var(--text);
-  --cv3-ink-muted: color-mix(in srgb, var(--cv3-ink) 62%, transparent);
+  /* 72% (was 62%): secondary text on custom block backgrounds was under ~3:1
+     contrast for small sizes (UX review). */
+  --cv3-ink-muted: color-mix(in srgb, var(--cv3-ink) 72%, transparent);
   --cv3-field: color-mix(in srgb, var(--cv3-ink) 8%, transparent);
   --cv3-field-strong: color-mix(in srgb, var(--cv3-ink) 14%, transparent);
 }
@@ -832,7 +834,9 @@ button {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  /* --text-dim, not --text-muted: small uppercase labels need the extra
+     contrast to stay readable on phones (UX review). */
+  color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1541,6 +1545,30 @@ button {
   overflow-x: auto;
 }
 
+/* Year month-cards: mobile-only replacement for the table (toggled at 640px). */
+.year-cards { display: none; }
+.year-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+.year-card-month { font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.year-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  padding: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+.year-card-remaining {
+  margin-top: 5px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
+
 .year-table {
   width: 100%;
   border-collapse: collapse;
@@ -1809,6 +1837,9 @@ button {
   padding: 0 2px;
 }
 
+/* Danger-zone heading: warning-coloured so destructive actions stand apart. */
+.utils-danger-label { color: var(--negative, #f87171); }
+
 .utils-action {
   text-align: left;
   min-height: 40px;
@@ -2035,6 +2066,20 @@ button {
 }
 .starter-pack-btn:hover { background: color-mix(in srgb, var(--accent-brand) 18%, var(--surface)); }
 
+/* ─── Onboarding hero (empty Budget / Savings month) ─────────────── */
+.onboard-hero {
+  background: color-mix(in srgb, var(--accent-brand) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 35%, var(--border));
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+.onboard-title { margin: 0 0 6px; font-size: 1.2rem; font-weight: 800; color: var(--text); }
+.onboard-body { margin: 0 0 16px; font-size: 0.9rem; color: var(--text-dim); }
+.onboard-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.onboard-hint { margin: 14px 0 0; font-size: 0.75rem; color: var(--text-muted); }
+
 /* ─── Backup reminder banner ──────────────────────────────────────── */
 
 .backup-banner {
@@ -2047,6 +2092,15 @@ button {
   border-radius: var(--radius-md);
   padding: 12px 16px;
 }
+
+/* Compact repeat-reminder: slimmer, quieter, one line. */
+.backup-banner-compact {
+  padding: 6px 12px;
+  gap: 8px;
+  border-left-width: 2px;
+}
+.backup-banner-compact .backup-banner-icon { font-size: 0.9rem; }
+.backup-banner-compact .backup-banner-text { font-size: 0.78rem; color: var(--text-muted); }
 
 .backup-banner-icon {
   font-size: 1.1rem;
@@ -3144,12 +3198,17 @@ button {
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 
-  /* Chart on top on phones: the grid is single-column here (see 900px
-     breakpoint), so order:-1 lifts .budget-right above the input rows.
-     Applies to both the Budget and Savings tabs. */
-  .budget-right {
+  /* Budget tab on phones: INPUT-FIRST — summary, then income/expense rows,
+     chart last. (UX review: people open the app to enter amounts fast.)
+     Savings keeps its growth chart on top via order:-1 below. */
+  .savings-grid .budget-right {
     order: -1;
   }
+
+  /* Year tab on phones: month cards instead of a side-scrolling table —
+     Income/Expenses/Savings/Remaining all visible without horizontal scroll. */
+  .year-table-wrap { display: none; }
+  .year-cards { display: grid; gap: 10px; }
 
   /* Combined page on phones: a little less gap between stacked sections and
      a slightly smaller heading. Each section keeps its own normal layout. */

@@ -142,6 +142,13 @@ function App() {
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
 
+  // Onboarding heroes — shown on a completely empty month until the user
+  // explicitly chooses "start from empty" (persisted so it never nags again).
+  const [onboardBudgetDone, setOnboardBudgetDone] = useState(() => !!localStorage.getItem('budget_onboard_budget'));
+  const [onboardSavingsDone, setOnboardSavingsDone] = useState(() => !!localStorage.getItem('budget_onboard_savings'));
+  const dismissBudgetHero = () => { localStorage.setItem('budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
+  const dismissSavingsHero = () => { localStorage.setItem('budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
+
   // Guard: skip the save effect on the render where a month was just loaded.
   // Without this, switching months runs the save effect with the NEW month/year
   // but the OLD `data` still in scope (load's setData hasn't applied yet),
@@ -368,7 +375,8 @@ function App() {
   // any goal-linked rows so goal↔budget links survive (same backfill as the
   // month-load effect). The save effect persists this to the current month's key.
   const resetCurrentMonth = () => {
-    if (!window.confirm(t.resetMonthConfirm)) return;
+    // Name the exact month in the confirm so the user knows what's being wiped.
+    if (!window.confirm(t.resetMonthConfirm(`${MONTHS[lang][month]} ${year}`))) return;
     const fresh = defaultMonthData(lang);
     const sparandeIdx = fresh.expenses.findIndex(c => c.id === 'sparande');
     if (sparandeIdx !== -1) {
@@ -567,13 +575,40 @@ function App() {
     (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
   );
 
-  // ── Starter-pack buttons (shown only when the relevant list is empty) ──
-  const budgetStarter = data.expenses.length === 0 ? (
+  // ── Onboarding heroes & starter buttons ──────────────────────────
+  // A brand-new empty month gets a guided "get started" hero with a primary
+  // template CTA. Once the user has chosen "start from empty" (persisted),
+  // empty months fall back to the small inline starter button instead.
+  const budgetIsEmpty = data.income.length === 0 && data.expenses.length === 0;
+  const budgetHero = budgetIsEmpty && !onboardBudgetDone ? (
+    <section className="onboard-hero">
+      <h2 className="onboard-title">🚀 {t.onboardBudgetTitle}</h2>
+      <p className="onboard-body">{t.onboardBudgetBody}</p>
+      <div className="onboard-actions">
+        <button className="custom-primary-btn" onClick={addStarterBudget}>✨ {t.useBudgetTemplate}</button>
+        <button className="custom-secondary-btn" onClick={dismissBudgetHero}>{t.startFromEmpty}</button>
+      </div>
+      <p className="onboard-hint">{t.templateIncludes}</p>
+    </section>
+  ) : null;
+  const savingsIsEmpty = data.savings.length === 0;
+  const savingsHero = savingsIsEmpty && !onboardSavingsDone ? (
+    <section className="onboard-hero">
+      <h2 className="onboard-title">🏦 {t.onboardSavingsTitle}</h2>
+      <p className="onboard-body">{t.onboardSavingsBody}</p>
+      <div className="onboard-actions">
+        <button className="custom-primary-btn" onClick={addStarterSavings}>✨ {t.useSavingsTemplate}</button>
+        <button className="custom-secondary-btn"
+          onClick={() => { dismissSavingsHero(); addSavingsCategory(); }}>{t.addCategory}</button>
+      </div>
+    </section>
+  ) : null;
+  const budgetStarter = data.expenses.length === 0 && !budgetHero ? (
     <button className="starter-pack-btn" onClick={addStarterBudget}>
       ✨ {t.addStarterCategories}
     </button>
   ) : null;
-  const savingsStarter = data.savings.length === 0 ? (
+  const savingsStarter = savingsIsEmpty && !savingsHero ? (
     <button className="starter-pack-btn" onClick={addStarterSavings}>
       ✨ {t.addStarterCategories}
     </button>
@@ -585,6 +620,7 @@ function App() {
   // Same components/data/handlers either way — no duplication.
   const budgetView = (
     <>
+      {budgetHero}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
       <div className="budget-grid">
         <div className="budget-left">
@@ -610,15 +646,18 @@ function App() {
   );
 
   const savingsView = (
-    <SavingsTab
-      categories={data.savings}
-      onChange={setSavingsCategory}
-      onAddCategory={addSavingsCategory}
-      onDeleteCategory={deleteSavingsCategory}
-      year={year}
-      currentMonth={month}
-      starterSlot={savingsStarter}
-    />
+    <>
+      {savingsHero}
+      <SavingsTab
+        categories={data.savings}
+        onChange={setSavingsCategory}
+        onAddCategory={addSavingsCategory}
+        onDeleteCategory={deleteSavingsCategory}
+        year={year}
+        currentMonth={month}
+        starterSlot={savingsStarter}
+      />
+    </>
   );
 
   const planView = (
@@ -656,6 +695,7 @@ function App() {
               className={`menu-btn${menuOpen ? ' menu-btn-open' : ''}`}
               onClick={() => setMenuOpen(o => !o)}
               title={t.menuTitle}
+              aria-label={t.ariaOpenMenu}
               aria-haspopup="true"
               aria-expanded={menuOpen}
             >
@@ -673,7 +713,7 @@ function App() {
                     <button
                       className="utils-menu-close-btn"
                       onClick={() => setMenuOpen(false)}
-                      aria-label="Close menu"
+                      aria-label={t.themeClose}
                     >✕</button>
                   </div>
 
@@ -706,21 +746,23 @@ function App() {
                   <div className="utils-row utils-row-stack">
                     <span className="utils-row-label">{t.layout}</span>
                     <div className="utils-seg">
+                      {/* Close the menu after picking a layout so the change
+                          is immediately visible (especially on mobile). */}
                       <button
                         className={`seg-btn${layout === 'classic' ? ' seg-active' : ''}`}
-                        onClick={() => setLayout('classic')}
+                        onClick={() => { setLayout('classic'); setMenuOpen(false); }}
                       >
                         {t.layoutClassic}
                       </button>
                       <button
                         className={`seg-btn${layout === 'combined' ? ' seg-active' : ''}`}
-                        onClick={() => setLayout('combined')}
+                        onClick={() => { setLayout('combined'); setMenuOpen(false); }}
                       >
                         {t.layoutCombined}
                       </button>
                       <button
                         className={`seg-btn${layout === 'custom' ? ' seg-active' : ''}`}
-                        onClick={() => setLayout('custom')}
+                        onClick={() => { setLayout('custom'); setMenuOpen(false); }}
                       >
                         {t.layoutCustom}
                       </button>
@@ -798,7 +840,8 @@ function App() {
 
                   <div className="utils-divider" />
 
-                  {/* Reset current month (mild destructive action) */}
+                  {/* Danger zone — destructive actions, visually separated */}
+                  <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
                   <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
                     {t.resetMonth}
                   </button>
