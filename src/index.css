@@ -984,6 +984,17 @@ a:focus-visible,
 }
 .custom-modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
 
+/* First-run welcome (guest-first intro to the app + optional account sync). */
+.welcome-modal {
+  max-width: 400px;
+  text-align: center;
+  align-items: stretch;
+  gap: 12px;
+}
+.welcome-emoji { font-size: 2.2rem; }
+.welcome-title { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--text); }
+.welcome-body { margin: 0 0 8px; font-size: 0.92rem; color: var(--text-dim); line-height: 1.5; }
+
 /* How-it-works help modal */
 .custom-help { max-width: 460px; }
 .custom-help-head { display: flex; align-items: center; justify-content: space-between; }

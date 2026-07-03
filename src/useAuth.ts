@@ -13,13 +13,27 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
 import { setSyncUser } from './cloudSync';
 
+/** Structured auth failure: provider message + machine-readable code, so the
+ *  UI can show specific guidance (e.g. email rate limit) instead of a generic
+ *  "something went wrong". */
+export interface AuthFailure {
+  error: string | null;
+  code: string | null;
+}
+
 export interface AuthApi {
   user: User | null;
   loading: boolean;
-  signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<{ error: string | null }>;
+  signInWithMagicLink: (email: string) => Promise<AuthFailure>;
+  signInWithPassword: (email: string, password: string) => Promise<AuthFailure>;
+  signUpWithPassword: (email: string, password: string) => Promise<AuthFailure>;
+  signOut: () => Promise<AuthFailure>;
+}
+
+// Supabase AuthError carries a `code` (e.g. 'over_email_send_rate_limit');
+// older error shapes may not, so read it defensively.
+function toFailure(error: { message: string; code?: string } | null): AuthFailure {
+  return { error: error?.message ?? null, code: error?.code ?? null };
 }
 
 // True once cloudSync has already pulled at boot for an existing session (see
@@ -69,35 +83,35 @@ export function useAuth(): AuthApi {
     };
   }, []);
 
-  const signInWithMagicLink = async (email: string) => {
-    if (!supabase) return { error: 'sync-unavailable' };
+  const signInWithMagicLink = async (email: string): Promise<AuthFailure> => {
+    if (!supabase) return { error: 'sync-unavailable', code: null };
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
     });
-    return { error: error?.message ?? null };
+    return toFailure(error);
   };
 
-  const signInWithPassword = async (email: string, password: string) => {
-    if (!supabase) return { error: 'sync-unavailable' };
+  const signInWithPassword = async (email: string, password: string): Promise<AuthFailure> => {
+    if (!supabase) return { error: 'sync-unavailable', code: null };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    return toFailure(error);
   };
 
-  const signUpWithPassword = async (email: string, password: string) => {
-    if (!supabase) return { error: 'sync-unavailable' };
+  const signUpWithPassword = async (email: string, password: string): Promise<AuthFailure> => {
+    if (!supabase) return { error: 'sync-unavailable', code: null };
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: window.location.origin },
     });
-    return { error: error?.message ?? null };
+    return toFailure(error);
   };
 
-  const signOut = async () => {
-    if (!supabase) return { error: 'sync-unavailable' };
+  const signOut = async (): Promise<AuthFailure> => {
+    if (!supabase) return { error: 'sync-unavailable', code: null };
     const { error } = await supabase.auth.signOut();
-    return { error: error?.message ?? null };
+    return toFailure(error);
   };
 
   return {

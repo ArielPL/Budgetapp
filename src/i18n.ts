@@ -356,6 +356,11 @@ export interface Translations {
   accountSyncingNote: string;
   accountCheckEmailConfirm: string;
   accountErrorGeneric: string;
+  accountErrorRateLimited: string;
+  welcomeTitle: string;
+  welcomeBody: string;
+  welcomeContinue: string;
+  welcomeSignIn: string;
   accountErrorEmailRequired: string;
   accountErrorPasswordRequired: string;
   accountSending: string;
@@ -645,6 +650,11 @@ export const translations: Record<Lang, Translations> = {
     accountSyncingNote: 'Din budget synkas mellan dina enheter.',
     accountCheckEmailConfirm: 'Konto skapat. Kolla din e-post för att bekräfta, logga sedan in.',
     accountErrorGeneric: 'Något gick fel. Försök igen.',
+    accountErrorRateLimited: 'För många inloggningsförsök just nu — vänta en stund och försök igen, eller logga in med lösenord istället.',
+    welcomeTitle: 'Välkommen till Budgetappen!',
+    welcomeBody: 'Håll koll på din månadsbudget — helt utan konto. Vill du synka mellan dina enheter kan du skapa ett konto när som helst.',
+    welcomeContinue: 'Fortsätt utan konto',
+    welcomeSignIn: 'Logga in / Skapa konto',
     accountErrorEmailRequired: 'Ange en e-postadress.',
     accountErrorPasswordRequired: 'Ange ett lösenord.',
     accountSending: 'Skickar…',
@@ -932,6 +942,11 @@ export const translations: Record<Lang, Translations> = {
     accountSyncingNote: 'Your budget syncs across your devices.',
     accountCheckEmailConfirm: 'Account created. Check your email to confirm, then sign in.',
     accountErrorGeneric: 'Something went wrong. Please try again.',
+    accountErrorRateLimited: 'Too many sign-in attempts right now — wait a bit and try again, or sign in with a password instead.',
+    welcomeTitle: 'Welcome to Budgetapp!',
+    welcomeBody: 'Track your monthly budget — no account needed. Create an account any time to sync between your devices.',
+    welcomeContinue: 'Continue without an account',
+    welcomeSignIn: 'Sign in / Create account',
     accountErrorEmailRequired: 'Enter an email address.',
     accountErrorPasswordRequired: 'Enter a password.',
     accountSending: 'Sending…',
@@ -1219,6 +1234,11 @@ export const translations: Record<Lang, Translations> = {
     accountSyncingNote: 'Tu presupuesto se sincroniza entre tus dispositivos.',
     accountCheckEmailConfirm: 'Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.',
     accountErrorGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    accountErrorRateLimited: 'Demasiados intentos de inicio de sesión por ahora — espera un momento y vuelve a intentarlo, o usa una contraseña.',
+    welcomeTitle: '¡Bienvenido a Budgetapp!',
+    welcomeBody: 'Controla tu presupuesto mensual — sin necesidad de cuenta. Crea una cuenta cuando quieras para sincronizar entre tus dispositivos.',
+    welcomeContinue: 'Continuar sin cuenta',
+    welcomeSignIn: 'Iniciar sesión / Crear cuenta',
     accountErrorEmailRequired: 'Introduce un correo electrónico.',
     accountErrorPasswordRequired: 'Introduce una contraseña.',
     accountSending: 'Enviando…',

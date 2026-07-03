@@ -36,13 +36,17 @@ export const AccountPanel = ({ auth, onClose }: Props) => {
     setNotice(null);
   };
 
+  // Supabase's shared email-send quota returns 429 with a *_rate_limit code.
+  // Give that case specific, actionable guidance instead of a generic error.
+  const isRateLimit = (code: string | null) => !!code && code.includes('rate_limit');
+
   const handleMagicLink = async () => {
     resetMessages();
     if (!email.trim()) { setError(t.accountErrorEmailRequired); return; }
     setBusy(true);
-    const { error } = await auth.signInWithMagicLink(email.trim());
+    const { error, code } = await auth.signInWithMagicLink(email.trim());
     setBusy(false);
-    if (error) setError(t.accountErrorGeneric);
+    if (error) setError(isRateLimit(code) ? t.accountErrorRateLimited : t.accountErrorGeneric);
     else setNotice(t.accountMagicLinkSent);
   };
 
@@ -52,12 +56,13 @@ export const AccountPanel = ({ auth, onClose }: Props) => {
     if (!password) { setError(t.accountErrorPasswordRequired); return; }
     setBusy(true);
     const fn = pwMode === 'signin' ? auth.signInWithPassword : auth.signUpWithPassword;
-    const { error } = await fn(email.trim(), password);
+    const { error, code } = await fn(email.trim(), password);
     setBusy(false);
     if (error) {
-      // Surface the provider's message so wrong-password / invalid-email read
-      // clearly, falling back to a localized generic if it's empty.
-      setError(error || t.accountErrorGeneric);
+      // Rate-limited (sign-up confirmation emails share the quota) gets the
+      // specific message; otherwise surface the provider's message so
+      // wrong-password / invalid-email read clearly, with a localized fallback.
+      setError(isRateLimit(code) ? t.accountErrorRateLimited : (error || t.accountErrorGeneric));
     } else if (pwMode === 'signup') {
       setNotice(t.accountCheckEmailConfirm);
     }

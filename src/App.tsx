@@ -123,6 +123,17 @@ function App() {
   // behavior. See useAuth / cloudSync.
   const auth = useAuth();
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
+  // First-run welcome: introduces guest mode + optional account sync, shown
+  // once (also to existing users, to announce the new sync feature) and never
+  // again after either choice. Signed-in users skip it via the render guard.
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !localStorage.getItem('budget_welcome_seen'));
+  const dismissWelcome = () => {
+    localStorage.setItem('budget_welcome_seen', '1');
+    setWelcomeOpen(false);
+  };
+  const welcomeRef = useRef<HTMLDivElement>(null);
+  const showWelcome = welcomeOpen && !auth.loading && !auth.user;
+  useModalFocus(welcomeRef, showWelcome, dismissWelcome);
   const [currency, setCurrency] = useState<Currency>(() =>
     (localStorage.getItem('budget_currency') as Currency) || 'sek'
   );
@@ -918,6 +929,34 @@ function App() {
 
       {accountPanelOpen && (
         <AccountPanel auth={auth} onClose={() => setAccountPanelOpen(false)} />
+      )}
+
+      {/* First-run welcome — guest-first: Continue is primary, account is the
+          opt-in path (opens the Account panel). Esc/backdrop = continue. */}
+      {showWelcome && (
+        <div className="custom-modal-backdrop" onClick={dismissWelcome}>
+          <div
+            className="custom-modal welcome-modal"
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.welcomeTitle}
+            ref={welcomeRef}
+          >
+            <div className="welcome-emoji" aria-hidden="true">👋💰</div>
+            <h2 className="welcome-title">{t.welcomeTitle}</h2>
+            <p className="welcome-body">{t.welcomeBody}</p>
+            <button className="custom-primary-btn" onClick={dismissWelcome}>
+              {t.welcomeContinue}
+            </button>
+            <button
+              className="custom-secondary-btn"
+              onClick={() => { dismissWelcome(); setAccountPanelOpen(true); }}
+            >
+              ☁️ {t.welcomeSignIn}
+            </button>
+          </div>
+        </div>
       )}
 
       <main className="app-main">
