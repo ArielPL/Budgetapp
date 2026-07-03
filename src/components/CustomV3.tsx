@@ -862,20 +862,29 @@ const InlineName = ({ value, editable, onChange, className, placeholder }: {
   );
 };
 
-// Amount entry — numeric, blank when zero, like the rest of the app.
+// Amount entry — blank when zero, accepts decimals like Classic's
+// EditableAmount ("970,5" or "970.5" → 970.5). Previously this stripped the
+// separator, so "970,5" silently became 9705 — a 10× footgun.
 const AmountInput = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
-  useEffect(() => { setDraft(value ? String(value) : ''); }, [value]);
+  useEffect(() => {
+    // Sync from external changes (copy-last-month, clear) without clobbering
+    // the user's in-progress typing ("970," would otherwise snap to "970").
+    const current = parseFloat(draft.replace(',', '.'));
+    if ((isNaN(current) ? 0 : current) !== value) setDraft(value ? String(value) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
   return (
     <input
       className="cv3-amount-input"
-      inputMode="numeric"
+      inputMode="decimal"
       value={draft}
       placeholder="0"
       onChange={e => {
-        const raw = e.target.value.replace(/[^\d]/g, '');
+        const raw = e.target.value.replace(/[^\d.,]/g, '');
         setDraft(raw);
-        onChange(raw ? parseInt(raw, 10) : 0);
+        const parsed = parseFloat(raw.replace(',', '.'));
+        onChange(isNaN(parsed) ? 0 : Math.max(0, parsed));
       }}
     />
   );
