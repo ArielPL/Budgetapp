@@ -3032,6 +3032,137 @@ a:focus-visible,
   color: var(--text);
 }
 
+/* ── Account & cross-device sync panel ─────────────────────────────────
+   Reuses .theme-panel / .theme-backdrop / .theme-panel-* for structure; these
+   add the sign-in form styling in the same flat design language. */
+.account-panel .theme-panel-body {
+  gap: 16px;
+}
+
+.account-intro,
+.account-note {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-field-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.account-input {
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.12s;
+}
+
+.account-input:focus {
+  outline: none;
+  border-color: var(--accent-brand);
+}
+
+.account-pwmode {
+  margin-top: 2px;
+}
+
+.account-primary-btn {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand);
+  border: 1px solid var(--accent-brand-strong);
+  border-radius: var(--radius-sm);
+  transition: background 0.12s, opacity 0.12s;
+}
+
+.account-primary-btn:hover:not(:disabled) {
+  background: var(--accent-brand-strong);
+}
+
+.account-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.account-toggle-link {
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-brand);
+  background: none;
+  padding: 6px 4px;
+}
+
+.account-toggle-link:hover {
+  text-decoration: underline;
+}
+
+.account-error {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--negative);
+  background: var(--tint-expense-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+.account-notice {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--tint-savings-text);
+  background: var(--tint-savings-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+.account-signed-in {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-signed-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.account-email {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* Little "signed in / syncing" dot next to the Account menu action */
+.utils-action-badge {
+  margin-left: 6px;
+  font-size: 0.7rem;
+  color: var(--positive);
+  vertical-align: middle;
+}
+
 /* ─── Mobile (phones) ─────────────────────────────────────────────────
    Placed last so these overrides win over base rules (media queries
    don't add specificity — source order breaks ties). */

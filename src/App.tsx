@@ -12,6 +12,7 @@ import { YearTab } from './components/YearTab';
 import { CustomV3 } from './components/CustomV3';
 import { BackupBanner } from './components/BackupBanner';
 import { ThemePanel } from './components/ThemePanel';
+import { AccountPanel } from './components/AccountPanel';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
@@ -28,6 +29,7 @@ import {
   type ThemeVars,
 } from './themes';
 import { useModalFocus } from './useModalFocus';
+import { useAuth } from './useAuth';
 import './index.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -117,6 +119,10 @@ function App() {
   const [themeMode, setThemeMode] = useState<Mode>(initialTheme.current.mode);
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.current.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
+  // Optional account + cross-device sync. Signed-out = guest mode = today's
+  // behavior. See useAuth / cloudSync.
+  const auth = useAuth();
+  const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() =>
     (localStorage.getItem('budget_currency') as Currency) || 'sek'
   );
@@ -722,6 +728,20 @@ function App() {
                     >✕</button>
                   </div>
 
+                  {/* Account — optional cross-device sync (guest mode is default) */}
+                  <button
+                    className="utils-action"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setAccountPanelOpen(true);
+                    }}
+                  >
+                    {auth.user ? '☁️' : '👤'} {t.account}
+                    {auth.user && <span className="utils-action-badge">●</span>}
+                  </button>
+
+                  <div className="utils-divider" />
+
                   {/* Language */}
                   <div className="utils-row">
                     <span className="utils-row-label">{t.language}</span>
@@ -894,6 +914,10 @@ function App() {
           onReset={resetTheme}
           onClose={() => setThemePanelOpen(false)}
         />
+      )}
+
+      {accountPanelOpen && (
+        <AccountPanel auth={auth} onClose={() => setAccountPanelOpen(false)} />
       )}
 
       <main className="app-main">
