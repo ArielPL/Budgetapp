@@ -117,15 +117,22 @@ async function pushKey(key: string, rawValue: string): Promise<void> {
     console.warn(`[cloudSync] skipping push for "${key}" — value is not valid JSON`);
     return;
   }
-  // NEVER send updated_at — the DB trigger owns it.
-  const { error } = await supabase
+  // NEVER send updated_at — the DB trigger owns it. But read the trigger-set
+  // value BACK and stamp sync-meta with it: that marks this key as "in sync",
+  // so our own push doesn't look like newer remote data on the next pull
+  // (which would pointlessly re-apply it and reload the page).
+  const { data, error } = await supabase
     .from('kv_store')
     .upsert(
       { user_id: currentUser.id, key, value: parsed },
       { onConflict: 'user_id,key' },
-    );
+    )
+    .select('updated_at')
+    .single();
   if (error) {
     console.warn(`[cloudSync] push failed for "${key}":`, error.message);
+  } else if (data?.updated_at) {
+    touchSyncMeta(key, data.updated_at);
   }
 }
 
@@ -177,6 +184,12 @@ function applyPulledValue(key: string, value: unknown, remoteIso: string): void 
 // changed locally (so the caller can decide whether a reload/re-read is needed).
 export async function pullAll(user: User): Promise<boolean> {
   if (!supabase) return false;
+  // Make sure pushes queued below can actually fire: at BOOT this runs before
+  // useAuth has called setSyncUser, so currentUser would still be null and the
+  // upload sweep would silently drop everything. pullAll is only ever called
+  // with the signed-in user, so claiming it here is always correct.
+  currentUser = user;
+
   const { data, error } = await supabase
     .from('kv_store')
     .select('key, value, updated_at')
@@ -189,6 +202,11 @@ export async function pullAll(user: User): Promise<boolean> {
 
   const meta = readSyncMeta();
   let changed = false;
+  // Per-key remote timestamps, kept for the upload sweep below so it can tell
+  // "cloud never saw this key" and "local is strictly newer" apart from
+  // "already in sync" (pushing in-sync keys would bump their server timestamp
+  // and make the next pull re-apply + reload — an endless loop).
+  const remoteTimes = new Map<string, number>();
 
   for (const row of data as Array<{ key: string; value: unknown; updated_at: string }>) {
     const { key, value, updated_at } = row;
@@ -197,6 +215,7 @@ export async function pullAll(user: User): Promise<boolean> {
     const localIso = meta[key];
     const remoteTime = Date.parse(updated_at);
     const localTime = localIso ? Date.parse(localIso) : NaN;
+    remoteTimes.set(key, remoteTime);
 
     // Take the remote value if we have no local copy, no local timestamp, or the
     // remote row is strictly newer than our last local write.
@@ -210,7 +229,29 @@ export async function pullAll(user: User): Promise<boolean> {
       applyPulledValue(key, value, updated_at);
       changed = true;
     }
-    // else: local is newer or equal — leave it; the debounced push handles it.
+    // else: local is strictly newer — leave it; the sweep below pushes it up.
+  }
+
+  // ── Upload sweep (local → cloud reconcile) ────────────────────────────
+  // Push syncable local keys the cloud LACKS, plus keys where local is
+  // STRICTLY newer. THIS is what makes the first sign-in on a device with
+  // existing data seed the cloud — pushes otherwise only fire on edits, so
+  // months you never touch again would never reach your other devices.
+  // Running on every pull (boot, sign-in, tab focus) also self-heals pushes
+  // that failed offline. In-sync keys (local time <= remote time) are left
+  // alone so the system converges instead of ping-ponging.
+  const metaAfterPull = readSyncMeta();
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !isSyncableKey(key)) continue;
+    const remoteTime = remoteTimes.get(key);
+    if (remoteTime !== undefined) {
+      const localIso = metaAfterPull[key];
+      const localTime = localIso ? Date.parse(localIso) : NaN;
+      if (Number.isNaN(localTime) || localTime <= remoteTime) continue; // in sync (or just applied)
+    }
+    const raw = localStorage.getItem(key);
+    if (raw !== null) queuePush(key, raw);
   }
 
   return changed;
