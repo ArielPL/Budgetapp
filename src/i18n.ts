@@ -336,6 +336,34 @@ export interface Translations {
   chartTypeArea: string;
   chartTypeLine: string;
   chartTypeStacked: string;
+  // Account & cross-device sync
+  account: string;
+  accountTitle: string;
+  accountClose: string;
+  accountIntro: string;
+  accountEmail: string;
+  accountEmailPlaceholder: string;
+  accountPassword: string;
+  accountPasswordPlaceholder: string;
+  accountSendMagicLink: string;
+  accountMagicLinkSent: string;
+  accountUsePassword: string;
+  accountUseMagicLink: string;
+  accountSignIn: string;
+  accountSignUp: string;
+  accountSignOut: string;
+  accountSignedInAs: string;
+  accountSyncingNote: string;
+  accountCheckEmailConfirm: string;
+  accountErrorGeneric: string;
+  accountErrorRateLimited: string;
+  welcomeTitle: string;
+  welcomeBody: string;
+  welcomeContinue: string;
+  welcomeSignIn: string;
+  accountErrorEmailRequired: string;
+  accountErrorPasswordRequired: string;
+  accountSending: string;
 }
 
 export const translations: Record<Lang, Translations> = {
@@ -602,6 +630,34 @@ export const translations: Record<Lang, Translations> = {
     chartTypeArea: 'Yta',
     chartTypeLine: 'Linje',
     chartTypeStacked: 'Staplar',
+    // Account & cross-device sync
+    account: 'Konto',
+    accountTitle: 'Konto & synk',
+    accountClose: 'Stäng',
+    accountIntro: 'Logga in för att synka din budget mellan enheter — allt fungerar precis som vanligt även utan konto.',
+    accountEmail: 'E-post',
+    accountEmailPlaceholder: 'du@exempel.se',
+    accountPassword: 'Lösenord',
+    accountPasswordPlaceholder: 'Ditt lösenord',
+    accountSendMagicLink: 'Skicka magisk länk',
+    accountMagicLinkSent: 'Kolla din e-post för inloggningslänken.',
+    accountUsePassword: 'Använd lösenord istället',
+    accountUseMagicLink: 'Använd magisk länk istället',
+    accountSignIn: 'Logga in',
+    accountSignUp: 'Skapa konto',
+    accountSignOut: 'Logga ut',
+    accountSignedInAs: 'Inloggad som',
+    accountSyncingNote: 'Din budget synkas mellan dina enheter.',
+    accountCheckEmailConfirm: 'Konto skapat. Kolla din e-post för att bekräfta, logga sedan in.',
+    accountErrorGeneric: 'Något gick fel. Försök igen.',
+    accountErrorRateLimited: 'För många inloggningsförsök just nu — vänta en stund och försök igen, eller logga in med lösenord istället.',
+    welcomeTitle: 'Välkommen till Budgetappen!',
+    welcomeBody: 'Håll koll på din månadsbudget — helt utan konto. Vill du synka mellan dina enheter kan du skapa ett konto när som helst.',
+    welcomeContinue: 'Fortsätt utan konto',
+    welcomeSignIn: 'Logga in / Skapa konto',
+    accountErrorEmailRequired: 'Ange en e-postadress.',
+    accountErrorPasswordRequired: 'Ange ett lösenord.',
+    accountSending: 'Skickar…',
   },
   en: {
     tabBudget: 'Budget',
@@ -866,6 +922,34 @@ export const translations: Record<Lang, Translations> = {
     chartTypeArea: 'Area',
     chartTypeLine: 'Line',
     chartTypeStacked: 'Stacked',
+    // Account & cross-device sync
+    account: 'Account',
+    accountTitle: 'Account & sync',
+    accountClose: 'Close',
+    accountIntro: 'Sign in to sync your budget across devices — everything keeps working without an account too.',
+    accountEmail: 'Email',
+    accountEmailPlaceholder: 'you@example.com',
+    accountPassword: 'Password',
+    accountPasswordPlaceholder: 'Your password',
+    accountSendMagicLink: 'Send magic link',
+    accountMagicLinkSent: 'Check your email for the sign-in link.',
+    accountUsePassword: 'Use a password instead',
+    accountUseMagicLink: 'Use a magic link instead',
+    accountSignIn: 'Sign in',
+    accountSignUp: 'Sign up',
+    accountSignOut: 'Sign out',
+    accountSignedInAs: 'Signed in as',
+    accountSyncingNote: 'Your budget syncs across your devices.',
+    accountCheckEmailConfirm: 'Account created. Check your email to confirm, then sign in.',
+    accountErrorGeneric: 'Something went wrong. Please try again.',
+    accountErrorRateLimited: 'Too many sign-in attempts right now — wait a bit and try again, or sign in with a password instead.',
+    welcomeTitle: 'Welcome to Budgetapp!',
+    welcomeBody: 'Track your monthly budget — no account needed. Create an account any time to sync between your devices.',
+    welcomeContinue: 'Continue without an account',
+    welcomeSignIn: 'Sign in / Create account',
+    accountErrorEmailRequired: 'Enter an email address.',
+    accountErrorPasswordRequired: 'Enter a password.',
+    accountSending: 'Sending…',
   },
   es: {
     tabBudget: 'Presupuesto',
@@ -1130,6 +1214,34 @@ export const translations: Record<Lang, Translations> = {
     chartTypeArea: 'Área',
     chartTypeLine: 'Línea',
     chartTypeStacked: 'Apiladas',
+    // Account & cross-device sync
+    account: 'Cuenta',
+    accountTitle: 'Cuenta y sincronización',
+    accountClose: 'Cerrar',
+    accountIntro: 'Inicia sesión para sincronizar tu presupuesto entre dispositivos — todo sigue funcionando sin cuenta también.',
+    accountEmail: 'Correo',
+    accountEmailPlaceholder: 'tu@ejemplo.com',
+    accountPassword: 'Contraseña',
+    accountPasswordPlaceholder: 'Tu contraseña',
+    accountSendMagicLink: 'Enviar enlace mágico',
+    accountMagicLinkSent: 'Revisa tu correo para el enlace de acceso.',
+    accountUsePassword: 'Usar una contraseña',
+    accountUseMagicLink: 'Usar un enlace mágico',
+    accountSignIn: 'Iniciar sesión',
+    accountSignUp: 'Crear cuenta',
+    accountSignOut: 'Cerrar sesión',
+    accountSignedInAs: 'Sesión iniciada como',
+    accountSyncingNote: 'Tu presupuesto se sincroniza entre tus dispositivos.',
+    accountCheckEmailConfirm: 'Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.',
+    accountErrorGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    accountErrorRateLimited: 'Demasiados intentos de inicio de sesión por ahora — espera un momento y vuelve a intentarlo, o usa una contraseña.',
+    welcomeTitle: '¡Bienvenido a Budgetapp!',
+    welcomeBody: 'Controla tu presupuesto mensual — sin necesidad de cuenta. Crea una cuenta cuando quieras para sincronizar entre tus dispositivos.',
+    welcomeContinue: 'Continuar sin cuenta',
+    welcomeSignIn: 'Iniciar sesión / Crear cuenta',
+    accountErrorEmailRequired: 'Introduce un correo electrónico.',
+    accountErrorPasswordRequired: 'Introduce una contraseña.',
+    accountSending: 'Enviando…',
   },
 };
 
