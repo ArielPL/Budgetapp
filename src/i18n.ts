@@ -220,6 +220,9 @@ export interface Translations {
   currency: string;
   currencyHint: string;
   theme: string;
+  whatsNew: string;
+  whatsNewLatest: string;
+  badgeNew: string;
   themeLight: string;
   themeDark: string;
   themeToLight: string;
@@ -514,6 +517,9 @@ export const translations: Record<Lang, Translations> = {
     currency: 'Valuta',
     currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
     theme: 'Tema',
+    whatsNew: 'Nyheter',
+    whatsNewLatest: 'Senaste',
+    badgeNew: 'NYTT',
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
     themeToLight: 'Byt till ljust tema',
@@ -790,6 +796,9 @@ export const translations: Record<Lang, Translations> = {
     currency: 'Currency',
     currencyHint: "Changes only the symbol and format — amounts aren't converted",
     theme: 'Theme',
+    whatsNew: "What's new",
+    whatsNewLatest: 'Latest',
+    badgeNew: 'NEW',
     themeLight: 'Light',
     themeDark: 'Dark',
     themeToLight: 'Switch to light theme',
@@ -1066,6 +1075,9 @@ export const translations: Record<Lang, Translations> = {
     currency: 'Moneda',
     currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
     theme: 'Tema',
+    whatsNew: 'Novedades',
+    whatsNewLatest: 'Último',
+    badgeNew: 'NUEVO',
     themeLight: 'Claro',
     themeDark: 'Oscuro',
     themeToLight: 'Cambiar a tema claro',

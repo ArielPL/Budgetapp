@@ -1711,6 +1711,7 @@ a:focus-visible,
 
 .menu-btn {
   display: inline-flex;
+  position: relative;
   align-items: center;
   gap: 6px;
   min-height: 40px;
@@ -1908,6 +1909,85 @@ a:focus-visible,
     color: var(--text);
   }
 }
+
+/* "New update" dot on the menu button */
+.menu-btn-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-brand);
+  border: 2px solid var(--surface);
+}
+
+/* "NEW" pill next to the What's-new menu entry */
+.utils-action:has(.utils-new-pill) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.utils-new-pill {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--accent-brand);
+  border-radius: var(--radius-pill);
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
+/* ─── What's-new panel (reuses .theme-panel / .theme-backdrop shell) ─── */
+.whatsnew-panel { width: 480px; }
+.whatsnew-body { gap: 24px; }
+.whatsnew-release { display: flex; flex-direction: column; }
+.whatsnew-release-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.whatsnew-version {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-brand);
+}
+.whatsnew-latest {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent-brand);
+  border-radius: var(--radius-pill);
+  padding: 2px 7px;
+}
+.whatsnew-date {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.whatsnew-release-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 4px 0 8px;
+}
+.whatsnew-items {
+  list-style: disc;
+  padding-left: 1.2em;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+.whatsnew-items li::marker { color: var(--accent-brand); }
 
 /* Mild destructive action (e.g. reset month) — reddish tint, same shape. */
 .utils-action-danger {

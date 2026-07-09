@@ -12,6 +12,8 @@ import { YearTab } from './components/YearTab';
 import { CustomV3 } from './components/CustomV3';
 import { BackupBanner } from './components/BackupBanner';
 import { ThemePanel } from './components/ThemePanel';
+import { WhatsNew } from './components/WhatsNew';
+import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
@@ -161,6 +163,18 @@ function App() {
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => { localStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
+
+  // "What's new" changelog panel. A subtle badge shows on the menu until the
+  // user opens it (persisted per version, so it only re-appears after a release).
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [changelogSeen, setChangelogSeen] = useState(() => localStorage.getItem('budget_changelog_seen'));
+  const hasNewUpdate = changelogSeen !== LATEST_VERSION;
+  const openWhatsNew = () => {
+    setMenuOpen(false);
+    setWhatsNewOpen(true);
+    localStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+    setChangelogSeen(LATEST_VERSION);
+  };
 
   // Guard: skip the save effect on the render where a month was just loaded.
   // Without this, switching months runs the save effect with the NEW month/year
@@ -686,6 +700,7 @@ function App() {
             >
               <span className="menu-btn-icon">⚙️</span>
               <span className="menu-btn-label">{t.menu}</span>
+              {hasNewUpdate && <span className="menu-btn-badge" aria-hidden="true" />}
             </button>
 
             {menuOpen && (
@@ -804,6 +819,12 @@ function App() {
                     🎨 {t.theme}
                   </button>
 
+                  {/* What's new — opens the changelog panel */}
+                  <button className="utils-action" onClick={openWhatsNew}>
+                    <span>🎉 {t.whatsNew}</span>
+                    {hasNewUpdate && <span className="utils-new-pill">{t.badgeNew}</span>}
+                  </button>
+
                   <div className="utils-divider" />
 
                   {/* Copy budget */}
@@ -891,6 +912,8 @@ function App() {
           </div>
         </>
       )}
+
+      {whatsNewOpen && <WhatsNew onClose={() => setWhatsNewOpen(false)} />}
 
       {themePanelOpen && (
         <ThemePanel
