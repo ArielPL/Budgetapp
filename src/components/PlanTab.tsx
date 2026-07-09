@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { useLang, MONTHS } from '../i18n';
@@ -8,7 +8,6 @@ interface Props {
   data: PlanData;
   onChange: (data: PlanData) => void;
   totalIncome: number;
-  totalExpenses: number;
   totalSavings: number;
   year: number;
   month: number;
@@ -45,9 +44,14 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
             autoFocus
           />
         ) : (
-          <span className="goal-name" onClick={() => { setEditingName(true); setNameDraft(shownName(goal, lang)); }}>
+          <button
+            type="button"
+            className="goal-name"
+            onClick={() => { setEditingName(true); setNameDraft(shownName(goal, lang)); }}
+            title={t.clickToRename}
+          >
             {shownName(goal, lang)}
-          </span>
+          </button>
         )}
         <button className="delete-btn" onClick={onDelete} title={t.deleteGoal}
           aria-label={`${t.deleteGoal}: ${shownName(goal, lang)}`}>×</button>
@@ -99,8 +103,9 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
       <div className="goal-pct" style={{ color: goal.color }}>{pct}%</div>
 
       <div className="goal-deadline-edit">
-        <label className="goal-deadline-label">{t.deadline}</label>
+        <label className="goal-deadline-label" htmlFor={`deadline-${goal.id}`}>{t.deadline}</label>
         <input
+          id={`deadline-${goal.id}`}
           type="month"
           className="deadline-input"
           value={goal.deadline}
@@ -115,18 +120,41 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
 
 export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
   const { t } = useLang();
+  const fid = useId();
 
-  const addGoal = () => {
+  // "+ New goal" opens a form instead of creating a goal immediately, so an
+  // accidental tap no longer creates a persisted goal + linked budget row. The
+  // goal (and its budget row) are created only on "Create goal" (UX review §15).
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [target, setTarget] = useState('');
+  const [saved, setSaved] = useState('');
+  const [deadline, setDeadline] = useState('');
+
+  const parseNum = (s: string) => parseFloat(s.replace(',', '.'));
+  const targetNum = parseNum(target);
+  // Require a name and a non-negative target; saved/deadline are optional.
+  const canCreate = name.trim() !== '' && !isNaN(targetNum) && targetNum >= 0;
+
+  const resetForm = () => {
+    setName(''); setTarget(''); setSaved(''); setDeadline(''); setAdding(false);
+  };
+
+  const createGoal = () => {
+    if (!canCreate) return;
+    const savedNum = parseNum(saved);
     const newGoal: SavingsGoal = {
       id: generateId(),
-      budgetRowId: generateId(), // will create a linked row in Budget → Sparande
-      name: t.newGoalName,
-      targetAmount: 0,
-      currentAmount: 0,
-      deadline: '',
+      budgetRowId: generateId(), // links a row in Budget → Sparande (created on confirm)
+      name: name.trim(),
+      userNamed: true,
+      targetAmount: Math.max(0, targetNum),
+      currentAmount: isNaN(savedNum) ? 0 : Math.max(0, savedNum),
+      deadline,
       color: makeGoalColor(data.goals.length),
     };
     onChange({ ...data, goals: [...data.goals, newGoal] });
+    resetForm();
   };
 
   const updateGoal = (updated: SavingsGoal) => {
@@ -141,9 +169,43 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
     <section className="plan-section">
       <div className="plan-section-header">
         <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
-        <button className="add-goal-btn" onClick={addGoal}>{t.newGoal}</button>
+        {!adding && (
+          <button className="add-goal-btn" onClick={() => setAdding(true)}>{t.newGoal}</button>
+        )}
       </div>
-      {data.goals.length === 0 && (
+
+      {adding && (
+        <form className="goal-form" onSubmit={e => { e.preventDefault(); createGoal(); }}>
+          <div className="goal-form-field">
+            <label htmlFor={`${fid}-name`}>{t.goalNameLabel}</label>
+            <input id={`${fid}-name`} className="label-input" value={name} autoFocus
+              placeholder={t.newGoalName} onChange={e => setName(e.target.value)} />
+          </div>
+          <div className="goal-form-grid">
+            <div className="goal-form-field">
+              <label htmlFor={`${fid}-target`}>{t.goal}</label>
+              <input id={`${fid}-target`} className="label-input" inputMode="decimal" value={target}
+                placeholder="0" onChange={e => setTarget(e.target.value)} />
+            </div>
+            <div className="goal-form-field">
+              <label htmlFor={`${fid}-saved`}>{t.saved}</label>
+              <input id={`${fid}-saved`} className="label-input" inputMode="decimal" value={saved}
+                placeholder="0" onChange={e => setSaved(e.target.value)} />
+            </div>
+            <div className="goal-form-field">
+              <label htmlFor={`${fid}-deadline`}>{t.deadline}</label>
+              <input id={`${fid}-deadline`} className="label-input" type="month" value={deadline}
+                onChange={e => setDeadline(e.target.value)} />
+            </div>
+          </div>
+          <div className="goal-form-actions">
+            <button type="button" className="custom-secondary-btn" onClick={resetForm}>{t.cancel}</button>
+            <button type="submit" className="custom-primary-btn" disabled={!canCreate}>{t.createGoal}</button>
+          </div>
+        </form>
+      )}
+
+      {data.goals.length === 0 && !adding && (
         <div className="plan-empty">{t.noGoals}</div>
       )}
       <div className="goals-grid">
@@ -178,12 +240,14 @@ export const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (da
   );
 };
 
-export const PlanTab = ({ data, onChange, totalIncome, totalExpenses, totalSavings, year, month }: Props) => {
+export const PlanTab = ({ data, onChange, totalIncome, totalSavings, year, month }: Props) => {
   const { lang, t, money } = useLang();
 
   // ── Overview highlights (current month) ──
+  // Real savings rate: money actually moved to savings this month ÷ income.
+  // (totalSavings already excludes pension — see App / calculateSavingsMetrics.)
   const savingsRate = totalIncome > 0
-    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
+    ? Math.max(0, Math.round((totalSavings / totalIncome) * 100))
     : 0;
   const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
   const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);

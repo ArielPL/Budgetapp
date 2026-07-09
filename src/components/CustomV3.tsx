@@ -390,6 +390,8 @@ export const CustomV3 = ({ year, month }: Props) => {
   return (
     <div className="custom-canvas">
       <div className="custom-page">
+        {/* Page-level heading for screen-reader structure; block titles below are h3. */}
+        <h2 className="sr-only">{t.layoutCustom}</h2>
         <div className="custom-toolbar">
           {toast && <span className="custom-toast">{toast}</span>}
           <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
@@ -465,7 +467,7 @@ export const CustomV3 = ({ year, month }: Props) => {
                   <button className="custom-icon-btn" onClick={() => setConfigFor(b.id)}
                     title={t.sectionSettings} aria-label={t.sectionSettings}>⚙</button>
                   <button className="custom-icon-btn custom-remove-btn" onClick={() => removeBlock(b.id)}
-                    title={t.removeSection} aria-label={t.removeSection}>✕</button>
+                    title={t.removeSection} aria-label={t.ariaRemoveSection(b.name || t.newBlockName)}>✕</button>
                 </div>
               )}
 
@@ -647,7 +649,8 @@ const BlockContent = ({
     return (
       <>
         <div className="cv3-kind-tag">{tagEmoji(block)} {kindLabel(block, t)}</div>
-        <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.newNoteName} />
+        <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.newNoteName}
+          ariaLabel={t.ariaNameField(block.name || t.newNoteName)} />
         <textarea className="cv3-note-text" value={block.text ?? ''}
           placeholder={t.notePlaceholder} rows={5}
           onChange={(e) => onSetNote(block.id, e.target.value)} />
@@ -699,7 +702,8 @@ const BlockContent = ({
     return (
       <>
         <div className="cv3-kind-tag">{tagEmoji(block)} {kindLabel(block, t)}</div>
-        <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.summaryBlock} />
+        <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.summaryBlock}
+          ariaLabel={t.ariaNameField(block.name || t.summaryBlock)} />
         {sideBySide ? (
           <div className={`cv3-split ${pos === 'left' ? 'chart-left' : 'chart-right'}`}>
             {sumChart}
@@ -754,15 +758,17 @@ const BlockContent = ({
         <div className="cv3-row" key={r.id}>
           {/* Per-category colour swatch (also a picker to override). */}
           <label className="cv3-row-color" style={{ background: r.color }} title={t.cfgCustomColor}>
-            <input type="color" value={r.color}
+            <input type="color" value={r.color} aria-label={t.ariaRowColor(r.name || t.newRowName)}
               onChange={e => onRecolorRow(block.id, r.id, e.target.value)} />
           </label>
           <InlineName className="cv3-row-name" value={r.name} editable
-            placeholder={t.newRowName} onChange={(v) => onRenameRow(block.id, r.id, v)} />
-          <AmountInput value={values[r.id] || 0} onChange={(v) => onSetAmount(r.id, v)} />
+            placeholder={t.newRowName} ariaLabel={t.ariaNameField(`${block.name} – ${r.name || t.newRowName}`)}
+            onChange={(v) => onRenameRow(block.id, r.id, v)} />
+          <AmountInput value={values[r.id] || 0} ariaLabel={t.ariaAmountInput(`${block.name} – ${r.name || t.newRowName}`)}
+            onChange={(v) => onSetAmount(r.id, v)} />
           {editing && (
             <button className="cv3-row-del" onClick={() => onDeleteRow(block.id, r.id)}
-              title={t.removeSection} aria-label={t.removeSection}>✕</button>
+              title={t.deleteRow} aria-label={t.ariaDeleteRow(r.name || t.newRowName)}>✕</button>
           )}
         </div>
       ))}
@@ -794,7 +800,8 @@ const BlockContent = ({
   return (
     <>
       <div className="cv3-kind-tag">{tagEmoji(block)} {kindLabel(block, t)}</div>
-      <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.newBlockName} />
+      <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.newBlockName}
+        ariaLabel={t.ariaNameField(block.name || t.newBlockName)} />
       {sideBySide ? (
         <div className={`cv3-split ${pos === 'left' ? 'chart-left' : 'chart-right'}`}>
           {chartSlot}
@@ -841,31 +848,39 @@ const SummaryRow = ({ label, value, cls, big }: { label: string; value: string; 
 
 // Centered block title: the block's display icon (custom emoji or kind emoji)
 // prefixed to the editable name.
-const BlockTitle = ({ block, editing, onRename, placeholder }: {
-  block: CustomBlock; editing: boolean; onRename: (id: string, name: string) => void; placeholder: string;
+const BlockTitle = ({ block, editing, onRename, placeholder, ariaLabel }: {
+  block: CustomBlock; editing: boolean; onRename: (id: string, name: string) => void; placeholder: string; ariaLabel: string;
 }) => (
   <div className="cv3-title-row">
     <span className="cv3-title-icon" aria-hidden="true">{displayIcon(block)}</span>
-    <InlineName className="custom-block-title" value={block.name}
+    {/* Real heading when not editing (screen-reader block structure); becomes an
+        input while editing. */}
+    <InlineName className="custom-block-title" value={block.name} readAs="h3" ariaLabel={ariaLabel}
       editable={editing} onChange={(v) => onRename(block.id, v)} placeholder={placeholder} />
   </div>
 );
 
-// Inline-editable text (block names AND row names are all renameable).
-const InlineName = ({ value, editable, onChange, className, placeholder }: {
+// Inline-editable text (block names AND row names are all renameable). When not
+// editable it renders as `readAs` (a div, or an h3 for block titles); when
+// editable it's an <input> that carries `ariaLabel` as its accessible name.
+const InlineName = ({ value, editable, onChange, className, placeholder, ariaLabel, readAs = 'div' }: {
   value: string; editable: boolean; onChange: (v: string) => void; className?: string; placeholder?: string;
+  ariaLabel?: string; readAs?: 'div' | 'h3';
 }) => {
-  if (!editable) return <div className={className}>{value || placeholder}</div>;
+  if (!editable) {
+    const Tag = readAs;
+    return <Tag className={className}>{value || placeholder}</Tag>;
+  }
   return (
     <input className={`cv3-name-input ${className ?? ''}`} value={value} placeholder={placeholder}
-      onChange={e => onChange(e.target.value)} />
+      aria-label={ariaLabel} onChange={e => onChange(e.target.value)} />
   );
 };
 
 // Amount entry — blank when zero, accepts decimals like Classic's
 // EditableAmount ("970,5" or "970.5" → 970.5). Previously this stripped the
 // separator, so "970,5" silently became 9705 — a 10× footgun.
-const AmountInput = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
+const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: (v: number) => void; ariaLabel?: string }) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
   useEffect(() => {
     // Sync from external changes (copy-last-month, clear) without clobbering
@@ -880,6 +895,7 @@ const AmountInput = ({ value, onChange }: { value: number; onChange: (v: number)
       inputMode="decimal"
       value={draft}
       placeholder="0"
+      aria-label={ariaLabel}
       onChange={e => {
         const raw = e.target.value.replace(/[^\d.,]/g, '');
         setDraft(raw);

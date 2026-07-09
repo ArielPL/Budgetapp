@@ -25,8 +25,11 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
   const { lang, t, money } = useLang();
   const remaining = totalIncome - totalExpenses;
   const isPositive = remaining >= 0;
-  const savingsRate = totalIncome > 0
-    ? Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100))
+  // Share of income NOT consumed by budgeted expenses. This is money left over,
+  // not money actually moved to savings — so it's labelled as such (the real
+  // savings rate lives in the Plan tab, computed from the Savings tab).
+  const leftoverRate = totalIncome > 0
+    ? Math.max(0, Math.round((remaining / totalIncome) * 100))
     : 0;
 
   // Load previous month
@@ -63,7 +66,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
         )}
         {totalIncome > 0 && (
           <div className="card-sub" style={{ color: '#22c55e' }}>
-            {t.savingsRate(savingsRate)}
+            {t.leftAfterBudget(leftoverRate)}
           </div>
         )}
         <Diff current={remaining} prev={prevRemaining} t={t} money={money} />

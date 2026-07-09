@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import type { BudgetCategory } from '../types';
 import { loadYearSavingsTotals } from '../defaults';
-import { useLang } from '../i18n';
+import { useLang, formatAxisTick } from '../i18n';
 
 type ChartType = 'area' | 'line' | 'stacked';
 const CHART_TYPE_KEY = 'budget_savings_chart';
@@ -110,7 +110,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
       />
       <YAxis
         tick={{ fill: tickColor, fontSize: 11 }}
-        tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
+        tickFormatter={v => formatAxisTick(v, lang)}
         axisLine={false}
         tickLine={false}
         width={38}

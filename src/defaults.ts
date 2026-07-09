@@ -1,4 +1,4 @@
-import type { BudgetCategory, BudgetRow, MonthData, PlanData } from './types';
+import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
 
@@ -268,6 +268,56 @@ export function starterMonthData(lang: Lang = 'sv'): MonthData {
     expenses: defaultExpenses(lang),
     savings: defaultSavings(lang),
   };
+}
+
+// Make sure every goal that declares a linked budget row (`budgetRowId`) has a
+// matching row in the in-budget "sparande" category. The UI promises this link
+// survives — but a freshly reset/empty month has NO sparande category, so the
+// old inline "only if the category exists" backfill silently dropped the link
+// (UX review §7). This pure, immutable helper is the ONE place that guarantee
+// lives; call it wherever month data is (re)built: month load, reset, import
+// (via reload) and the starter template. Idempotent — re-running never adds a
+// duplicate row, so month-switching / reloads can't append twice.
+export function ensureGoalLinkedBudgetRows(
+  month: MonthData,
+  goals: SavingsGoal[],
+  lang: Lang = 'sv',
+): MonthData {
+  const linked = goals.filter(g => g.budgetRowId);
+  if (linked.length === 0) return month;
+
+  const sparande = month.expenses.find(c => c.id === 'sparande');
+  const existingRowIds = new Set(sparande?.rows.map(r => r.id) ?? []);
+  const missing = linked.filter(g => !existingRowIds.has(g.budgetRowId!));
+  if (missing.length === 0) return month; // every link already backed by a row
+
+  const newRows: BudgetRow[] = missing.map(g => ({
+    id: g.budgetRowId!,
+    label: shownName(g, lang),
+    amount: 0,
+    isCustom: true,
+  }));
+
+  if (sparande) {
+    // Append the missing rows to the existing category.
+    return {
+      ...month,
+      expenses: month.expenses.map(c =>
+        c.id === 'sparande' ? { ...c, rows: [...c.rows, ...newRows] } : c,
+      ),
+    };
+  }
+
+  // No sparande category at all (fresh/reset month) — create a minimal one so
+  // the goal↔budget link the Plan tab shows actually exists in the budget.
+  const created: BudgetCategory = {
+    id: 'sparande',
+    name: tr(L.sparande, lang),
+    icon: '💰',
+    color: CATEGORY_COLORS.sparande,
+    rows: newRows,
+  };
+  return { ...month, expenses: [...month.expenses, created] };
 }
 
 export function storageKey(year: number, month: number): string {

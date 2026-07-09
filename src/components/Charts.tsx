@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import type { BudgetCategory } from '../types';
 import { shownName, loadMonthData } from '../defaults';
-import { useLang, CURRENCIES, MONTHS_SHORT } from '../i18n';
+import { useLang, CURRENCIES, MONTHS_SHORT, formatAxisTick } from '../i18n';
 
 interface Props {
   categories: BudgetCategory[];
@@ -68,6 +68,7 @@ interface ExpenseChartProps {
 // The reusable expense-composition engine — used by the inline expense chart
 // AND by Custom-mode sections (which pass their own style + height).
 export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
+  const { lang } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
   const gridColor = isLight ? '#ece9f5' : '#243044';
   const tickColor = isLight ? '#9a96ad' : '#64748b';
@@ -136,7 +137,7 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
         <BarChart layout="vertical" data={data} margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid horizontal={false} stroke={gridColor} />
           <XAxis type="number" tick={{ fill: tickColor, fontSize: 11 }}
-            tickFormatter={v => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+            tickFormatter={v => formatAxisTick(v, lang)} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" width={narrow ? 86 : 120}
             tickFormatter={tickLabel}
             tick={{ fill: tickColorStrong, fontSize: narrow ? 11 : 12 }} axisLine={false} tickLine={false} />
@@ -300,7 +301,7 @@ export const BudgetTrendChart = ({ year, height }: { year: number; height: numbe
         <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fill: tickColor, fontSize: 11 }}
-          tickFormatter={v => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={38} />
+          tickFormatter={v => formatAxisTick(v, lang)} axisLine={false} tickLine={false} width={38} />
         <Tooltip content={<TrendTooltip money={money} />} />
         <Legend iconType="circle" iconSize={8}
           wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }} />

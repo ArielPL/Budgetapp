@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 import { loadMonthData } from '../defaults';
-import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
+import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
 
 interface Props {
   year: number;
@@ -106,7 +106,7 @@ export const YearTab = ({ year }: Props) => {
                   />
                   <YAxis
                     tick={{ fill: tickColor, fontSize: 11 }}
-                    tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={v => formatAxisTick(v, lang)}
                     axisLine={false}
                     tickLine={false}
                     width={38}
@@ -140,6 +140,17 @@ export const YearTab = ({ year }: Props) => {
                 </div>
               </div>
             ))}
+            {/* Full-year total card — the mobile counterpart of the table footer. */}
+            <div className="year-card year-card-total">
+              <div className="year-card-month">{t.yearTotal}</div>
+              <div className="year-card-row"><span>{t.colIncome}</span><span>{money(totals.income)}</span></div>
+              <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(totals.expenses)}</span></div>
+              <div className="year-card-row"><span>{t.colSavings}</span><span style={{ color: SAVINGS_COLOR }}>{money(totals.savings)}</span></div>
+              <div className="year-card-row year-card-remaining">
+                <span>{t.colRemaining}</span>
+                <span style={{ color: remColor(totals.remaining) }}>{totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}</span>
+              </div>
+            </div>
           </div>
 
           <div className="year-table-wrap">
@@ -171,8 +182,10 @@ export const YearTab = ({ year }: Props) => {
                   <td>{t.yearTotal}</td>
                   <td className="num">{money(totals.income)}</td>
                   <td className="num">{money(totals.expenses)}</td>
-                  <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
-                  <td className="num" style={{ color: 'var(--text-muted)' }}>–</td>
+                  <td className="num" style={{ color: SAVINGS_COLOR }}>{money(totals.savings)}</td>
+                  <td className="num" style={{ color: remColor(totals.remaining) }}>
+                    {totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}
+                  </td>
                 </tr>
               </tfoot>
             </table>

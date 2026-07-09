@@ -14,7 +14,7 @@
   --border: #334155;
   --border-strong: #475569;
   --text: #e2e8f0;
-  --text-muted: #64748b;
+  --text-muted: #8392a8; /* AA ≥4.5:1 on --surface (was #64748b, 3.07:1) */
   --text-dim: #94a3b8;
   --income-color: #22d3ee;
   --positive: #22c55e;
@@ -60,7 +60,7 @@
   --border: #ece9f5;
   --border-strong: #d8d3ea;
   --text: #20203a;
-  --text-muted: #9a96ad;
+  --text-muted: #75718a; /* AA ≥4.5:1 on --surface (was #9a96ad, 2.86:1) */
   --text-dim: #5d5972;
   --income-color: #0fa99a;
   --positive: #2f9e44;
@@ -125,6 +125,19 @@ a:focus-visible,
   outline: 2px solid var(--accent-brand);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Visually hidden but available to screen readers (section headings, etc.). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ─── App shell ───────────────────────────────────────────────────── */
@@ -946,6 +959,10 @@ a:focus-visible,
   font-weight: 600;
   cursor: pointer;
 }
+.custom-primary-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .custom-secondary-btn {
   padding: 10px 18px;
   border: 1px solid var(--border-strong);
@@ -1588,6 +1605,12 @@ a:focus-visible,
   border-top: 1px solid var(--border);
   font-weight: 700;
 }
+/* Full-year total card — accented so it reads as a summary, not a 13th month. */
+.year-card-total {
+  background: var(--surface2);
+  border-color: var(--accent-brand);
+}
+.year-card-total .year-card-month { color: var(--accent-brand); }
 
 .year-table {
   width: 100%;
@@ -1739,6 +1762,15 @@ a:focus-visible,
   flex-direction: column;
   gap: 8px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+/* Scrollable body wrapper. On desktop it's a transparent passthrough (same flex
+   column + gap as the menu). On mobile it becomes the ONLY scrolling region so
+   the drag handle + header stay pinned (see the mobile block below). */
+.utils-menu-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Drag handle — hidden on desktop, visible on mobile */
@@ -1908,6 +1940,8 @@ a:focus-visible,
   border-radius: 4px;
   padding: 2px 4px;
   margin: -2px -4px;
+  /* Now a <button> for keyboard/SR access — keep it reading like inline text. */
+  text-align: left;
   transition: background 0.1s;
 }
 
@@ -2611,6 +2645,43 @@ a:focus-visible,
 
 .add-goal-btn:hover { background: var(--accent-brand-strong); }
 
+/* New-goal form (Save/Cancel flow — no goal is created until "Create goal"). */
+.goal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.goal-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.goal-form-field label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.goal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.goal-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .goal-form-grid { grid-template-columns: 1fr; }
+}
+
 .goals-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2643,6 +2714,10 @@ a:focus-visible,
   color: var(--text);
   cursor: pointer;
   flex: 1;
+  /* Now a <button> — strip default button padding/centering so it reads as the
+     inline title it replaces. */
+  padding: 0;
+  text-align: left;
 }
 
 .goal-name:hover { text-decoration: underline; }
@@ -2833,6 +2908,72 @@ a:focus-visible,
   padding: 20px;
   overflow-y: auto;
 }
+
+/* ─── First-run welcome / introduction modal ──────────────────────── */
+/* Reuses .theme-backdrop + .theme-panel for positioning; overrides width and
+   adds a centered, single-column intro layout. */
+.welcome-backdrop { z-index: 300; }
+.welcome-modal {
+  z-index: 301;
+  width: 420px;
+  text-align: center;
+}
+.welcome-body-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 28px 28px;
+  overflow-y: auto;
+}
+.welcome-emoji { font-size: 2.6rem; line-height: 1; }
+.welcome-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.welcome-lead {
+  font-size: 0.98rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 30ch;
+}
+.welcome-features {
+  list-style: none;
+  margin: 6px 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.welcome-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.welcome-features li span { font-size: 1.15rem; flex-shrink: 0; }
+.welcome-start-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand);
+  border-radius: var(--radius-pill);
+  transition: background 0.12s, transform 0.08s;
+}
+.welcome-start-btn:hover { background: var(--accent-brand-strong); }
+.welcome-start-btn:active { transform: scale(0.98); }
 
 .theme-section {
   display: flex;
@@ -3155,15 +3296,26 @@ a:focus-visible,
     width: 100%;
     max-width: none;
     max-height: 80dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    /* The SHEET itself no longer scrolls — its inner .utils-menu-scroll does —
+       so the drag handle + header (with the ✕) stay pinned while the list
+       scrolls under them (UX review §14). */
+    overflow: hidden;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    /* top padding for handle + header; bottom padding respects home indicator */
-    padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
-    gap: 12px;
+    padding: 8px 16px 0; /* bottom padding moves onto the scroll region */
+    gap: 8px;
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
     /* ensure it sits above the backdrop */
     z-index: 100;
+  }
+
+  .utils-menu-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0; /* allow the flex child to actually shrink & scroll */
+    gap: 12px;
+    /* last item clears the home indicator */
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   /* Drag handle pill */
@@ -3218,11 +3370,29 @@ a:focus-visible,
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 
-  /* Budget tab on phones: INPUT-FIRST — summary, then income/expense rows,
-     chart last. (UX review: people open the app to enter amounts fast.)
-     Savings keeps its growth chart on top via order:-1 below. */
+  /* Phones: INPUT-FIRST everywhere — people open the app to enter amounts.
+     Compact summary cards (label + amount only, 3 across) keep the first input
+     row within easy reach; the secondary percentages live in Plan (§9). */
+  .summary-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .summary-card { padding: 12px 10px; }
+  .summary-card .card-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .summary-card .card-amount {
+    font-size: clamp(0.78rem, 3.2vw, 0.98rem);
+    white-space: nowrap;
+  }
+  .summary-cards .card-sub { display: none; }
+
+  /* Savings: inputs (categories) come BEFORE the growth chart + donuts, like
+     Budget. Was order:-1 (analysis-first) — reversed per UX review §9. */
   .savings-grid .budget-right {
-    order: -1;
+    order: 1;
   }
 
   /* Year tab on phones: month cards instead of a side-scrolling table —

@@ -1,4 +1,4 @@
-import { useLang, MONTHS_SHORT } from '../i18n';
+import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 
 interface Props {
   year: number;
@@ -23,6 +23,8 @@ export const MonthStrip = ({ year, month, onSelect, onYearChange }: Props) => {
             key={i}
             className={`month-pill ${i === month ? 'month-pill-active' : ''}`}
             onClick={() => onSelect(i)}
+            aria-label={`${MONTHS[lang][i]} ${year}`}
+            aria-current={i === month ? 'date' : undefined}
           >
             {m}
           </button>

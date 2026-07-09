@@ -41,8 +41,8 @@ export const EditableLabel = ({ value, onChange }: Props) => {
   }
 
   return (
-    <span className="row-label editable-label" onClick={start} title={t.clickToRename}>
+    <button type="button" className="row-label editable-label" onClick={start} title={t.clickToRename}>
       {value}
-    </span>
+    </button>
   );
 };

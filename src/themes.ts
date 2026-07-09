@@ -20,7 +20,7 @@ const sorbetDark: ThemeVars = {
   '--border': '#334155',
   '--border-strong': '#475569',
   '--text': '#e2e8f0',
-  '--text-muted': '#64748b',
+  '--text-muted': '#8392a8', // AA ≥4.5:1 on --surface (was #64748b)
   '--text-dim': '#94a3b8',
   '--income-color': '#22d3ee',
   '--positive': '#22c55e',
@@ -49,7 +49,7 @@ const sorbetLight: ThemeVars = {
   '--border': '#ece9f5',
   '--border-strong': '#d8d3ea',
   '--text': '#20203a',
-  '--text-muted': '#9a96ad',
+  '--text-muted': '#75718a', // AA ≥4.5:1 on --surface (was #9a96ad)
   '--text-dim': '#5d5972',
   '--income-color': '#0fa99a',
   '--positive': '#2f9e44',
@@ -108,7 +108,7 @@ const oceanLight: ThemeVars = {
   '--border': '#d4e6f3',
   '--border-strong': '#b3d2e8',
   '--text': '#0e2a40',
-  '--text-muted': '#6286a1',
+  '--text-muted': '#547997', // AA ≥4.5:1 on --surface (was #6286a1)
   '--text-dim': '#3f6688',
   '--income-color': '#0d9488',
   '--positive': '#0f9d6e',
@@ -167,7 +167,7 @@ const forestLight: ThemeVars = {
   '--border': '#d4e8d9',
   '--border-strong': '#b4d6bd',
   '--text': '#13301f',
-  '--text-muted': '#5f8a6e',
+  '--text-muted': '#527e61', // AA ≥4.5:1 on --surface (was #5f8a6e)
   '--text-dim': '#3d6b4d',
   '--income-color': '#0f9d6e',
   '--positive': '#1f9d4d',
@@ -226,7 +226,7 @@ const sunsetLight: ThemeVars = {
   '--border': '#f3dcd9',
   '--border-strong': '#e6bdba',
   '--text': '#3a1a22',
-  '--text-muted': '#a87482',
+  '--text-muted': '#996674', // AA ≥4.5:1 on --surface (was #a87482)
   '--text-dim': '#7d4a58',
   '--income-color': '#d97706',
   '--positive': '#1f9d4d',

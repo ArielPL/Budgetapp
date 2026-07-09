@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell } from 'recharts';
 import type { BudgetCategory } from '../types';
 import { shownName } from '../defaults';
-import { useLang } from '../i18n';
+import { useLang, formatAxisTick } from '../i18n';
 
 interface Props {
   categories: BudgetCategory[];
@@ -52,7 +52,7 @@ export const SavingsDonuts = ({ categories }: Props) => {
             <div className="savings-donut-center-text">
               <span style={{ color: empty ? 'var(--text-muted)' : cat.color }}>
                 {empty ? '–' : total >= 1000
-                  ? `${(total / 1000).toFixed(0)}k`
+                  ? formatAxisTick(total, lang)
                   : money(total)}
               </span>
             </div>

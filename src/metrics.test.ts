@@ -1,0 +1,111 @@
+import { describe, it, expect } from 'vitest';
+import {
+  calculateBudgetMetrics,
+  calculateSavingsMetrics,
+  sumRows,
+  ratePct,
+} from './metrics';
+import type { MonthData, BudgetCategory, BudgetRow } from './types';
+
+// ── tiny builders so each test reads as plain numbers ──────────────────
+let n = 0;
+const row = (amount: number): BudgetRow => ({ id: `r${n++}`, label: 'x', amount });
+const cat = (id: string, ...amounts: number[]): BudgetCategory => ({
+  id, name: id, icon: '', color: '', rows: amounts.map(row),
+});
+const month = (m: Partial<MonthData>): MonthData => ({
+  income: [], expenses: [], savings: [], ...m,
+});
+
+describe('helpers', () => {
+  it('sumRows adds amounts and tolerates missing/zero', () => {
+    expect(sumRows([row(100), row(0), row(50)])).toBe(150);
+    expect(sumRows([])).toBe(0);
+  });
+  it('ratePct clamps to >= 0 and returns 0 for base <= 0', () => {
+    expect(ratePct(25500, 30000)).toBe(85);
+    expect(ratePct(-1000, 30000)).toBe(0); // negative clamped
+    expect(ratePct(500, 0)).toBe(0);       // divide-by-zero guarded
+    expect(ratePct(500, -10)).toBe(0);
+  });
+});
+
+// Case 1 — income 30 000, expenses 4 500, actual saved 1 000.
+describe('case 1: income 30000 / expenses 4500 / saved 1000', () => {
+  const m = month({
+    income: [row(30000)],
+    expenses: [cat('boende', 4500)],
+    savings: [cat('sparkonto', 1000)],
+  });
+  it('remaining is 25 500 and leftover rate is 85%', () => {
+    const b = calculateBudgetMetrics(m);
+    expect(b.remaining).toBe(25500);
+    expect(b.leftoverRate).toBe(85);
+  });
+  it('savings rate reflects ACTUAL saved (1000/30000 ≈ 3%), not 85%', () => {
+    const s = calculateSavingsMetrics(m);
+    expect(s.saved).toBe(1000);
+    expect(s.savingsRate).toBe(3);
+    expect(s.savingsRate).not.toBe(85);
+  });
+});
+
+// Case 2 — income 0, expenses 500.
+describe('case 2: zero income', () => {
+  const m = month({ income: [], expenses: [cat('mat', 500)] });
+  it('remaining is negative and both rates are 0', () => {
+    const b = calculateBudgetMetrics(m);
+    expect(b.remaining).toBe(-500);
+    expect(b.leftoverRate).toBe(0);
+    expect(calculateSavingsMetrics(m).savingsRate).toBe(0);
+  });
+});
+
+// Case 3 — income 30 000, expenses 31 000 (overspent).
+describe('case 3: expenses exceed income', () => {
+  const m = month({ income: [row(30000)], expenses: [cat('boende', 31000)] });
+  it('remaining is -1 000 and leftover rate clamps to 0', () => {
+    const b = calculateBudgetMetrics(m);
+    expect(b.remaining).toBe(-1000);
+    expect(b.leftoverRate).toBe(0);
+  });
+});
+
+// Case 4 — pension 2 000 and other savings 1 000: pension never counts as saved.
+describe('case 4: pension is separate from saved', () => {
+  const m = month({
+    income: [row(30000)],
+    savings: [cat('sparkonto', 1000), cat('pension', 2000)],
+  });
+  it('saved excludes pension, pension reported on its own', () => {
+    const s = calculateSavingsMetrics(m);
+    expect(s.saved).toBe(1000);
+    expect(s.pension).toBe(2000);
+    expect(s.savingsRate).toBe(3); // 1000/30000, pension NOT in numerator
+  });
+});
+
+// Case 5 — budgeted savings 1 000 (in-budget 'sparande' expense) AND actual
+// savings 1 000: they are distinct measures and must not be double-counted.
+describe('case 5: in-budget sparande vs actual savings are independent', () => {
+  const m = month({
+    income: [row(30000)],
+    expenses: [cat('boende', 4500), cat('sparande', 1000)],
+    savings: [cat('sparkonto', 1000)],
+  });
+  it('expenses count the in-budget sparande once; saved is independent', () => {
+    const b = calculateBudgetMetrics(m);
+    const s = calculateSavingsMetrics(m);
+    expect(b.expenses).toBe(5500);  // 4500 + 1000 sparande, counted once
+    expect(b.remaining).toBe(24500);
+    expect(s.saved).toBe(1000);     // from the Savings tab, not doubled
+  });
+});
+
+// Decimals — exact values preserved, no float drift in the sum.
+describe('decimals', () => {
+  it('keeps öre without drift', () => {
+    const m = month({ income: [row(1200.5), row(0.3)] });
+    expect(calculateBudgetMetrics(m).income).toBeCloseTo(1200.8, 5);
+  });
+});

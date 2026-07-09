@@ -47,11 +47,14 @@ function getFormatter(currency: Currency): Intl.NumberFormat {
   let fmt = formatterCache[currency];
   if (!fmt) {
     const cfg = CURRENCIES[currency];
+    // Show öre/cents ONLY when the amount actually has them: whole kronor render
+    // as "1 200 kr" (no ",00"), decimals as "1 200,5 kr" / "1 200,55 kr". max 2
+    // digits also clamps float drift like 0.30000000004 (UX review §16).
     fmt = new Intl.NumberFormat(cfg.locale, {
       style: 'currency',
       currency: cfg.code,
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     });
     formatterCache[currency] = fmt;
   }
@@ -61,6 +64,24 @@ function getFormatter(currency: Currency): Intl.NumberFormat {
 /** Format an amount with the given currency's symbol/grouping (no conversion). */
 export function formatMoney(amount: number, currency: Currency): string {
   return getFormatter(currency).format(amount);
+}
+
+// Language → locale for numeric formatting on chart axes (decimal separator).
+const AXIS_LOCALE: Record<Lang, string> = { sv: 'sv-SE', en: 'en-US', es: 'es-ES' };
+
+/**
+ * Compact axis-tick label. Values below 1000 are shown in full (250, 750);
+ * thousands are shown with up to ONE decimal using the language's decimal
+ * separator (1000→"1k", 1500→"1,5k" sv / "1.5k" en, 12500→"12,5k"). Keeping the
+ * decimal is what stops distinct ticks like 600/800/1000 all collapsing to "1k"
+ * (the old `(v/1000).toFixed(0)` bug — UX review §10).
+ */
+export function formatAxisTick(value: number, lang: Lang): string {
+  if (Math.abs(value) < 1000) {
+    return new Intl.NumberFormat(AXIS_LOCALE[lang]).format(value);
+  }
+  return new Intl.NumberFormat(AXIS_LOCALE[lang], { maximumFractionDigits: 1 })
+    .format(value / 1000) + 'k';
 }
 
 export interface Translations {
@@ -137,6 +158,13 @@ export interface Translations {
   cfgWidthThird: string;
   cfgDone: string;
   addStarterCategories: string;
+  // First-run welcome / introduction
+  welcomeTitle: string;
+  welcomeBody: string;
+  welcomeFeatBudget: string;
+  welcomeFeatOffline: string;
+  welcomeFeatThemes: string;
+  welcomeStart: string;
   onboardBudgetTitle: string;
   onboardBudgetBody: string;
   useBudgetTemplate: string;
@@ -248,7 +276,7 @@ export interface Translations {
   pctOfIncome: string;
   vsPrev: string;
   samePrevMonth: string;
-  savingsRate: (pct: number) => string;
+  leftAfterBudget: (pct: number) => string;
   // Income section
   incomeSection: string;
   addRow: string;
@@ -278,6 +306,9 @@ export interface Translations {
   savingsGoals: string;
   newGoal: string;
   newGoalName: string;
+  goalNameLabel: string;
+  createGoal: string;
+  cancel: string;
   noGoals: string;
   deleteGoal: string;
   linkedToBudget: string;
@@ -310,6 +341,9 @@ export interface Translations {
   ariaCollapse: (name: string) => string;
   ariaExpand: (name: string) => string;
   ariaDeleteRow: (name: string) => string;
+  ariaRemoveSection: (name: string) => string;
+  ariaRowColor: (name: string) => string;
+  ariaNameField: (name: string) => string;
   // Custom categories
   addCategory: string;
   newCategory: string;
@@ -408,6 +442,12 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tredjedel',
     cfgDone: 'Klar',
     addStarterCategories: 'Lägg till startkategorier',
+    welcomeTitle: 'Välkommen till Budgetapp!',
+    welcomeBody: 'Ett enkelt och privat sätt att planera din månadsbudget och ditt sparande.',
+    welcomeFeatBudget: 'Håll koll på inkomster, utgifter och sparmål',
+    welcomeFeatOffline: 'Fungerar offline — dina data stannar på den här enheten',
+    welcomeFeatThemes: 'Gör den till din med teman och språk',
+    welcomeStart: 'Kom igång',
     onboardBudgetTitle: 'Kom igång med din månadsbudget',
     onboardBudgetBody: 'Välj en färdig mall eller bygg budgeten själv.',
     useBudgetTemplate: 'Använd budgetmall',
@@ -525,7 +565,7 @@ export const translations: Record<Lang, Translations> = {
     pctOfIncome: 'av inkomst',
     vsPrev: 'vs förra',
     samePrevMonth: '= förra månaden',
-    savingsRate: (pct) => `Du sparar ${pct}% av din inkomst`,
+    leftAfterBudget: (pct) => `${pct}% kvar efter budgeterade utgifter`,
     incomeSection: 'Inkomst',
     addRow: '+ Lägg till rad',
     deleteRow: 'Ta bort rad',
@@ -550,6 +590,9 @@ export const translations: Record<Lang, Translations> = {
     savingsGoals: 'Sparmål',
     newGoal: '+ Nytt mål',
     newGoalName: 'Nytt mål',
+    goalNameLabel: 'Namn',
+    createGoal: 'Skapa mål',
+    cancel: 'Avbryt',
     noGoals: 'Inga mål ännu — klicka "+ Nytt mål" för att komma igång',
     deleteGoal: 'Ta bort mål',
     linkedToBudget: 'Kopplad till budget',
@@ -579,6 +622,9 @@ export const translations: Record<Lang, Translations> = {
     ariaCollapse: (name) => `Fäll ihop ${name}`,
     ariaExpand: (name) => `Visa ${name}`,
     ariaDeleteRow: (name) => `Ta bort rad: ${name}`,
+    ariaRemoveSection: (name) => `Ta bort sektion: ${name}`,
+    ariaRowColor: (name) => `Färg för ${name}`,
+    ariaNameField: (name) => `Namn: ${name}`,
     clickToRename: 'Klicka för att byta namn',
     addCategory: '+ Lägg till kategori',
     newCategory: 'Ny kategori',
@@ -672,6 +718,12 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Third',
     cfgDone: 'Done',
     addStarterCategories: 'Add starter categories',
+    welcomeTitle: 'Welcome to Budgetapp!',
+    welcomeBody: 'A simple, private way to plan your monthly budget and savings.',
+    welcomeFeatBudget: 'Track income, expenses and savings goals',
+    welcomeFeatOffline: 'Works offline — your data stays on this device',
+    welcomeFeatThemes: 'Make it yours with themes and languages',
+    welcomeStart: 'Get started',
     onboardBudgetTitle: 'Get started with your monthly budget',
     onboardBudgetBody: 'Pick a ready-made template or build the budget yourself.',
     useBudgetTemplate: 'Use budget template',
@@ -789,7 +841,7 @@ export const translations: Record<Lang, Translations> = {
     pctOfIncome: 'of income',
     vsPrev: 'vs prev',
     samePrevMonth: '= last month',
-    savingsRate: (pct) => `You're saving ${pct}% of your income`,
+    leftAfterBudget: (pct) => `${pct}% left after budgeted expenses`,
     incomeSection: 'Income',
     addRow: '+ Add row',
     deleteRow: 'Delete row',
@@ -814,6 +866,9 @@ export const translations: Record<Lang, Translations> = {
     savingsGoals: 'Savings goals',
     newGoal: '+ New goal',
     newGoalName: 'New goal',
+    goalNameLabel: 'Name',
+    createGoal: 'Create goal',
+    cancel: 'Cancel',
     noGoals: 'No goals yet — click "+ New goal" to get started',
     deleteGoal: 'Delete goal',
     linkedToBudget: 'Linked to budget',
@@ -843,6 +898,9 @@ export const translations: Record<Lang, Translations> = {
     ariaCollapse: (name) => `Collapse ${name}`,
     ariaExpand: (name) => `Show ${name}`,
     ariaDeleteRow: (name) => `Delete row: ${name}`,
+    ariaRemoveSection: (name) => `Remove section: ${name}`,
+    ariaRowColor: (name) => `Colour for ${name}`,
+    ariaNameField: (name) => `Name: ${name}`,
     clickToRename: 'Click to rename',
     addCategory: '+ Add category',
     newCategory: 'New category',
@@ -936,6 +994,12 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tercio',
     cfgDone: 'Listo',
     addStarterCategories: 'Añadir categorías iniciales',
+    welcomeTitle: '¡Bienvenido a Budgetapp!',
+    welcomeBody: 'Una forma sencilla y privada de planificar tu presupuesto mensual y tus ahorros.',
+    welcomeFeatBudget: 'Controla ingresos, gastos y metas de ahorro',
+    welcomeFeatOffline: 'Funciona sin conexión: tus datos se quedan en este dispositivo',
+    welcomeFeatThemes: 'Hazla tuya con temas e idiomas',
+    welcomeStart: 'Empezar',
     onboardBudgetTitle: 'Empieza con tu presupuesto mensual',
     onboardBudgetBody: 'Elige una plantilla lista o construye el presupuesto tú mismo.',
     useBudgetTemplate: 'Usar plantilla de presupuesto',
@@ -1053,7 +1117,7 @@ export const translations: Record<Lang, Translations> = {
     pctOfIncome: 'de los ingresos',
     vsPrev: 'vs anterior',
     samePrevMonth: '= mes anterior',
-    savingsRate: (pct) => `Estás ahorrando el ${pct}% de tus ingresos`,
+    leftAfterBudget: (pct) => `${pct}% restante tras los gastos presupuestados`,
     incomeSection: 'Ingresos',
     addRow: '+ Añadir fila',
     deleteRow: 'Eliminar fila',
@@ -1078,6 +1142,9 @@ export const translations: Record<Lang, Translations> = {
     savingsGoals: 'Metas de ahorro',
     newGoal: '+ Nueva meta',
     newGoalName: 'Nueva meta',
+    goalNameLabel: 'Nombre',
+    createGoal: 'Crear meta',
+    cancel: 'Cancelar',
     noGoals: 'Aún no hay metas — pulsa "+ Nueva meta" para empezar',
     deleteGoal: 'Eliminar meta',
     linkedToBudget: 'Vinculado al presupuesto',
@@ -1107,6 +1174,9 @@ export const translations: Record<Lang, Translations> = {
     ariaCollapse: (name) => `Contraer ${name}`,
     ariaExpand: (name) => `Mostrar ${name}`,
     ariaDeleteRow: (name) => `Eliminar fila: ${name}`,
+    ariaRemoveSection: (name) => `Eliminar sección: ${name}`,
+    ariaRowColor: (name) => `Color de ${name}`,
+    ariaNameField: (name) => `Nombre: ${name}`,
     clickToRename: 'Pulsa para renombrar',
     addCategory: '+ Añadir categoría',
     newCategory: 'Nueva categoría',

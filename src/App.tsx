@@ -13,7 +13,7 @@ import { CustomV3 } from './components/CustomV3';
 import { BackupBanner } from './components/BackupBanner';
 import { ThemePanel } from './components/ThemePanel';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -27,6 +27,7 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
+import { calculateBudgetMetrics, calculateSavingsMetrics } from './metrics';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 
@@ -154,6 +155,13 @@ function App() {
   const dismissBudgetHero = () => { localStorage.setItem('budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
   const dismissSavingsHero = () => { localStorage.setItem('budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
 
+  // First-run welcome/introduction — shown once, before anything else, until the
+  // user taps "Get started" (persisted so it never appears again on this device).
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !localStorage.getItem('budget_welcome_seen'));
+  const welcomeRef = useRef<HTMLDivElement>(null);
+  const dismissWelcome = () => { localStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
+  useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
+
   // Guard: skip the save effect on the render where a month was just loaded.
   // Without this, switching months runs the save effect with the NEW month/year
   // but the OLD `data` still in scope (load's setData hasn't applied yet),
@@ -236,28 +244,14 @@ function App() {
 
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
-    const monthData = loadMonthData(year, month, lang);
-    // Ensure linked budget rows exist for every goal (for goals created before
-    // this month's data was saved). Operate on the freshly loaded monthData and
-    // guard against duplicates so navigating between months can't append twice.
-    const sparandeIdx = monthData.expenses.findIndex(c => c.id === 'sparande');
-    if (sparandeIdx !== -1) {
-      const existingRowIds = new Set(monthData.expenses[sparandeIdx].rows.map(r => r.id));
-      const missingRows = planData.goals.filter(
-        g => g.budgetRowId && !existingRowIds.has(g.budgetRowId)
-      );
-      if (missingRows.length > 0) {
-        monthData.expenses[sparandeIdx].rows = [
-          ...monthData.expenses[sparandeIdx].rows,
-          ...missingRows.map(g => ({
-            id: g.budgetRowId!,
-            label: g.name,
-            amount: 0,
-            isCustom: true,
-          })),
-        ];
-      }
-    }
+    // Backfill goal-linked budget rows for goals created before this month's
+    // data was saved. The shared helper creates the sparande category if the
+    // month doesn't have one yet (e.g. a blank month) and never duplicates rows.
+    const monthData = ensureGoalLinkedBudgetRows(
+      loadMonthData(year, month, lang),
+      planData.goals,
+      lang,
+    );
     // A month/year switch just loaded fresh data; the save effect will run in
     // this same commit (month/year changed) with the PREVIOUS `data` still in
     // scope. Skip that one save so we never write one month's data into another.
@@ -362,6 +356,16 @@ function App() {
     setTimeout(() => setCopyMsg(''), 2200);
   };
 
+  // Switching tabs always opens the new tab at the top. Without this, a long
+  // scroll in one tab (e.g. Year) leaves the next tab scrolled past its header
+  // and summary — confusing, especially on mobile. Respect reduced-motion:
+  // jump instantly instead of smooth-scrolling when the user asked for less motion.
+  const changeTab = useCallback((tab: ActiveTab) => {
+    setActiveTab(tab);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  }, []);
+
   const copyToNextMonth = () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
@@ -382,25 +386,10 @@ function App() {
   const resetCurrentMonth = () => {
     // Name the exact month in the confirm so the user knows what's being wiped.
     if (!window.confirm(t.resetMonthConfirm(`${MONTHS[lang][month]} ${year}`))) return;
-    const fresh = defaultMonthData(lang);
-    const sparandeIdx = fresh.expenses.findIndex(c => c.id === 'sparande');
-    if (sparandeIdx !== -1) {
-      const existingRowIds = new Set(fresh.expenses[sparandeIdx].rows.map(r => r.id));
-      const missingRows = planData.goals.filter(
-        g => g.budgetRowId && !existingRowIds.has(g.budgetRowId)
-      );
-      if (missingRows.length > 0) {
-        fresh.expenses[sparandeIdx].rows = [
-          ...fresh.expenses[sparandeIdx].rows,
-          ...missingRows.map(g => ({
-            id: g.budgetRowId!,
-            label: g.name,
-            amount: 0,
-            isCustom: true,
-          })),
-        ];
-      }
-    }
+    // Reset to a blank month, but re-create the goal-linked budget rows so the
+    // goal↔budget links the Plan tab promises survive the wipe. (Before this, a
+    // reset dropped them because a blank month has no sparande category.)
+    const fresh = ensureGoalLinkedBudgetRows(defaultMonthData(lang), planData.goals, lang);
     setData(fresh);
     setMenuOpen(false);
     showMsg(t.resetMonthDone);
@@ -484,11 +473,14 @@ function App() {
     const starter = starterMonthData(lang);
     setData(d => {
       const haveExp = new Set(d.expenses.map(c => c.id));
-      return {
+      const merged: MonthData = {
         ...d,
         income: d.income.length === 0 ? starter.income : d.income,
         expenses: [...d.expenses, ...starter.expenses.filter(c => !haveExp.has(c.id))],
       };
+      // The template's sparande category doesn't include the user's goal rows —
+      // backfill them so existing goal↔budget links stay intact.
+      return ensureGoalLinkedBudgetRows(merged, planData.goals, lang);
     });
   };
 
@@ -523,47 +515,38 @@ function App() {
   const handlePlanDataChange = (newPlan: PlanData) => {
     const oldGoals   = planData.goals;
     const newGoals   = newPlan.goals;
-    const oldGoalIds = new Set(oldGoals.map(g => g.id));
     const newGoalIds = new Set(newGoals.map(g => g.id));
 
-    const sparandeIdx = data.expenses.findIndex(c => c.id === 'sparande');
-    let rows = sparandeIdx !== -1 ? [...data.expenses[sparandeIdx].rows] : [];
-    let rowsChanged = false;
-
-    if (sparandeIdx !== -1) {
-      // New goals → add budget row
-      for (const g of newGoals) {
-        if (!oldGoalIds.has(g.id) && g.budgetRowId) {
-          rows = [...rows, { id: g.budgetRowId, label: g.name, amount: 0, isCustom: true }];
-          rowsChanged = true;
+    setData(d => {
+      let expenses = d.expenses;
+      const idx = expenses.findIndex(c => c.id === 'sparande');
+      // Rename / delete only touch rows that already exist in the sparande category.
+      if (idx !== -1) {
+        let rows = [...expenses[idx].rows];
+        let changed = false;
+        // Renamed goals → update the linked budget row's label.
+        for (const newGoal of newGoals) {
+          if (!newGoal.budgetRowId) continue;
+          const oldGoal = oldGoals.find(g => g.id === newGoal.id);
+          if (oldGoal && oldGoal.name !== newGoal.name) {
+            rows = rows.map(r => r.id === newGoal.budgetRowId ? { ...r, label: newGoal.name } : r);
+            changed = true;
+          }
         }
-      }
-
-      // Renamed goals → update budget row label
-      for (const newGoal of newGoals) {
-        if (!newGoal.budgetRowId) continue;
-        const oldGoal = oldGoals.find(g => g.id === newGoal.id);
-        if (oldGoal && oldGoal.name !== newGoal.name) {
-          rows = rows.map(r => r.id === newGoal.budgetRowId ? { ...r, label: newGoal.name } : r);
-          rowsChanged = true;
+        // Deleted goals → remove the linked budget row.
+        for (const oldGoal of oldGoals) {
+          if (!newGoalIds.has(oldGoal.id) && oldGoal.budgetRowId) {
+            rows = rows.filter(r => r.id !== oldGoal.budgetRowId);
+            changed = true;
+          }
         }
+        if (changed) expenses = expenses.map((c, i) => i === idx ? { ...c, rows } : c);
       }
-
-      // Deleted goals → remove budget row
-      for (const oldGoal of oldGoals) {
-        if (!newGoalIds.has(oldGoal.id) && oldGoal.budgetRowId) {
-          rows = rows.filter(r => r.id !== oldGoal.budgetRowId);
-          rowsChanged = true;
-        }
-      }
-
-      if (rowsChanged) {
-        setData(d => ({
-          ...d,
-          expenses: d.expenses.map((c, i) => i === sparandeIdx ? { ...c, rows } : c),
-        }));
-      }
-    }
+      // New goals → ensure a linked row exists, creating the sparande category if
+      // the month doesn't have one yet (same guarantee as month load / reset).
+      // Idempotent, so renames/deletes above are never double-applied.
+      return ensureGoalLinkedBudgetRows({ ...d, expenses }, newGoals, lang);
+    });
 
     setPlanData(newPlan);
   };
@@ -572,13 +555,11 @@ function App() {
   //  on freshly loaded data, to avoid double-appending rows.)
 
   // ── Derived ───────────────────────────────────────────────────────
-  const totalIncome   = data.income.reduce((s, r) => s + r.amount, 0);
-  const totalExpenses = data.expenses.reduce(
-    (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
-  );
-  const totalSavings = data.savings.reduce(
-    (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
-  );
+  // All money math goes through the canonical helpers so every view agrees.
+  const { income: totalIncome, expenses: totalExpenses } = calculateBudgetMetrics(data);
+  // "Saved this month" = Savings-tab total EXCLUDING pension (a separate
+  // long-term bucket). Plan, Savings and Year now all use this same definition.
+  const totalSavings = calculateSavingsMetrics(data).saved;
 
   // ── Onboarding heroes & starter buttons ──────────────────────────
   // A brand-new empty month gets a guided "get started" hero with a primary
@@ -670,7 +651,6 @@ function App() {
       data={planData}
       onChange={handlePlanDataChange}
       totalIncome={totalIncome}
-      totalExpenses={totalExpenses}
       totalSavings={totalSavings}
       year={year}
       month={month}
@@ -722,6 +702,9 @@ function App() {
                     >✕</button>
                   </div>
 
+                  {/* Scrollable body — the drag handle + header above stay put
+                      on mobile so the ✕ is always reachable (UX review §14). */}
+                  <div className="utils-menu-scroll">
                   {/* Language */}
                   <div className="utils-row">
                     <span className="utils-row-label">{t.language}</span>
@@ -850,6 +833,7 @@ function App() {
                   <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
                     {t.resetMonth}
                   </button>
+                  </div>
                 </div>
               </>
             )}
@@ -876,10 +860,37 @@ function App() {
             hidden — the user scrolls through all sections instead. */}
         {layout === 'classic' && (
           <div className="header-bottom">
-            <TabNav active={activeTab} onChange={setActiveTab} />
+            <TabNav active={activeTab} onChange={changeTab} />
           </div>
         )}
       </header>
+
+      {welcomeOpen && (
+        <>
+          <div className="theme-backdrop welcome-backdrop" onClick={dismissWelcome} />
+          <div
+            className="theme-panel welcome-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-title"
+            ref={welcomeRef}
+          >
+            <div className="welcome-body-wrap">
+              <div className="welcome-emoji" aria-hidden="true">👋💰</div>
+              <h2 className="welcome-title" id="welcome-title">{t.welcomeTitle}</h2>
+              <p className="welcome-lead">{t.welcomeBody}</p>
+              <ul className="welcome-features">
+                <li><span aria-hidden="true">📊</span> {t.welcomeFeatBudget}</li>
+                <li><span aria-hidden="true">🔒</span> {t.welcomeFeatOffline}</li>
+                <li><span aria-hidden="true">🎨</span> {t.welcomeFeatThemes}</li>
+              </ul>
+              <button className="welcome-start-btn" onClick={dismissWelcome}>
+                {t.welcomeStart}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {themePanelOpen && (
         <ThemePanel
