@@ -15,7 +15,7 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -159,15 +159,36 @@ function App() {
 
   // First-run welcome/introduction — shown once, before anything else, until the
   // user taps "Get started" (persisted so it never appears again on this device).
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !localStorage.getItem('budget_welcome_seen'));
+  // Devices that already hold real budget data are EXISTING users updating into
+  // this release — greeting them with "Welcome!" would be wrong, so mark the
+  // welcome as seen instead (they get the What's-new badge, the right message).
+  const [welcomeOpen, setWelcomeOpen] = useState(() => {
+    if (localStorage.getItem('budget_welcome_seen')) return false;
+    if (hasMeaningfulData()) {
+      localStorage.setItem('budget_welcome_seen', '1');
+      return false;
+    }
+    return true;
+  });
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => { localStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
 
   // "What's new" changelog panel. A subtle badge shows on the menu until the
   // user opens it (persisted per version, so it only re-appears after a release).
+  // FRESH installs are seeded as already-seen: on day one nothing is "news", so
+  // the badge should only ever light up for releases shipped AFTER install.
+  // Devices with existing data get no seeding — they see the badge for this release.
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
-  const [changelogSeen, setChangelogSeen] = useState(() => localStorage.getItem('budget_changelog_seen'));
+  const [changelogSeen, setChangelogSeen] = useState(() => {
+    const seen = localStorage.getItem('budget_changelog_seen');
+    if (seen) return seen;
+    if (!hasMeaningfulData()) {
+      localStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+      return LATEST_VERSION;
+    }
+    return null;
+  });
   const hasNewUpdate = changelogSeen !== LATEST_VERSION;
   const openWhatsNew = () => {
     setMenuOpen(false);
@@ -530,6 +551,12 @@ function App() {
     const oldGoals   = planData.goals;
     const newGoals   = newPlan.goals;
     const newGoalIds = new Set(newGoals.map(g => g.id));
+    // Linked rows of deleted goals. Removal rule (here AND in the cross-month
+    // sweep below): only rows still at 0 kr — a row the user has put real money
+    // in is budget history and survives as an ordinary custom row.
+    const deletedRowIds = new Set(
+      oldGoals.filter(g => !newGoalIds.has(g.id) && g.budgetRowId).map(g => g.budgetRowId!),
+    );
 
     setData(d => {
       let expenses = d.expenses;
@@ -547,20 +574,52 @@ function App() {
             changed = true;
           }
         }
-        // Deleted goals → remove the linked budget row.
-        for (const oldGoal of oldGoals) {
-          if (!newGoalIds.has(oldGoal.id) && oldGoal.budgetRowId) {
-            rows = rows.filter(r => r.id !== oldGoal.budgetRowId);
-            changed = true;
-          }
+        // Deleted goals → remove the linked budget row (only if still 0 kr).
+        if (deletedRowIds.size > 0) {
+          const kept = rows.filter(r => !(deletedRowIds.has(r.id) && (r.amount || 0) === 0));
+          if (kept.length !== rows.length) { rows = kept; changed = true; }
         }
-        if (changed) expenses = expenses.map((c, i) => i === idx ? { ...c, rows } : c);
+        if (changed) {
+          expenses = expenses
+            .map((c, i) => i === idx ? { ...c, rows } : c)
+            // A sparande category left with no rows at all is just clutter —
+            // drop it (ensureGoalLinkedBudgetRows below re-creates it if any
+            // remaining goal still needs a linked row).
+            .filter(c => !(c.id === 'sparande' && c.rows.length === 0));
+        }
       }
       // New goals → ensure a linked row exists, creating the sparande category if
       // the month doesn't have one yet (same guarantee as month load / reset).
       // Idempotent, so renames/deletes above are never double-applied.
       return ensureGoalLinkedBudgetRows({ ...d, expenses }, newGoals, lang);
     });
+
+    // Cross-month sweep: the month-load effect backfills a goal's linked row
+    // into EVERY month the user visits, so deleting the goal must also clean
+    // those other months — otherwise each one keeps an orphaned 0 kr row
+    // forever. Same conservation rule as above: rows with real amounts stay.
+    // (The currently-loaded month was handled in state; skip its key so the
+    // save effect doesn't race this write.)
+    if (deletedRowIds.size > 0) {
+      const currentKey = storageKey(year, month);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !/^budget_\d{4}_\d+$/.test(key) || key === currentKey) continue;
+        try {
+          const m = JSON.parse(localStorage.getItem(key)!) as MonthData;
+          const sp = m.expenses?.find(c => c.id === 'sparande');
+          if (!sp) continue;
+          const kept = sp.rows.filter(r => !(deletedRowIds.has(r.id) && (r.amount || 0) === 0));
+          if (kept.length === sp.rows.length) continue;
+          const expenses = kept.length > 0
+            ? m.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
+            : m.expenses.filter(c => c.id !== 'sparande');
+          localStorage.setItem(key, JSON.stringify({ ...m, expenses }));
+        } catch {
+          // Malformed month blob — leave it untouched rather than risk data.
+        }
+      }
+    }
 
     setPlanData(newPlan);
   };

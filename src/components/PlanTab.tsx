@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useRef } from 'react';
 import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { useLang, MONTHS } from '../i18n';
@@ -136,12 +136,18 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
   // Require a name and a non-negative target; saved/deadline are optional.
   const canCreate = name.trim() !== '' && !isNaN(targetNum) && targetNum >= 0;
 
+  // Blocks a rapid double-tap on "Create goal" from firing createGoal twice in
+  // one commit (both calls would read the same stale goals list, dropping one).
+  const submittingRef = useRef(false);
+
   const resetForm = () => {
     setName(''); setTarget(''); setSaved(''); setDeadline(''); setAdding(false);
+    submittingRef.current = false;
   };
 
   const createGoal = () => {
-    if (!canCreate) return;
+    if (!canCreate || submittingRef.current) return;
+    submittingRef.current = true;
     const savedNum = parseNum(saved);
     const newGoal: SavingsGoal = {
       id: generateId(),
