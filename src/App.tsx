@@ -115,10 +115,12 @@ function App() {
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   // ── Theme Builder: palette family + light/dark mode + override map ──
-  const initialTheme = useRef(loadThemeState());
-  const [themePalette, setThemePalette] = useState<PaletteId>(initialTheme.current.palette);
-  const [themeMode, setThemeMode] = useState<Mode>(initialTheme.current.mode);
-  const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.current.custom);
+  // Loaded once via a lazy useState (never re-read; reading a ref during render
+  // is disallowed by react-hooks/refs).
+  const [initialTheme] = useState(loadThemeState);
+  const [themePalette, setThemePalette] = useState<PaletteId>(initialTheme.palette);
+  const [themeMode, setThemeMode] = useState<Mode>(initialTheme.mode);
+  const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() =>
     (localStorage.getItem('budget_currency') as Currency) || 'sek'

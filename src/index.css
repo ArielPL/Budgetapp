@@ -927,9 +927,11 @@ a:focus-visible,
 }
 /* Inside the modal, force single-column so the budget two-column grid (chart on
    the right) stacks and nothing is pushed off the left edge. */
-.custom-expand-body .budget-grid { grid-template-columns: 1fr; }
+.custom-expand-body .budget-grid { grid-template-columns: minmax(0, 1fr); }
+.custom-expand-body .budget-left,
+.custom-expand-body .budget-right { min-width: 0; }
 .custom-expand-body .budget-right { position: static; }
-.custom-expand-body .summary-cards { grid-template-columns: 1fr; }
+.custom-expand-body .summary-cards { grid-template-columns: minmax(0, 1fr); }
 
 /* ─── Custom: empty state ─────────────────────────────────────────── */
 .custom-empty {
@@ -1658,8 +1660,16 @@ a:focus-visible,
 /* ─── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
+  /* minmax(0,1fr) instead of 1fr: a plain 1fr keeps the content's automatic
+     min-width, so long text/charts can push the column past very narrow
+     screens (~320px) and cause horizontal page scroll (fix plan 2026-07-12 P1). */
   .budget-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .budget-left,
+  .budget-right {
+    min-width: 0;
   }
 
   .budget-right {
@@ -1667,7 +1677,7 @@ a:focus-visible,
   }
 
   .summary-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .month-title {
@@ -2758,8 +2768,14 @@ a:focus-visible,
   justify-content: flex-end;
   gap: 8px;
 }
+.goal-form-error {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--negative);
+}
 @media (max-width: 640px) {
-  .goal-form-grid { grid-template-columns: 1fr; }
+  .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .goals-grid {
@@ -3454,7 +3470,7 @@ a:focus-visible,
      Compact summary cards (label + amount only, 3 across) keep the first input
      row within easy reach; the secondary percentages live in Plan (§9). */
   .summary-cards {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
   .summary-card { padding: 12px 10px; }
@@ -3586,7 +3602,7 @@ a:focus-visible,
   .cfg-chart-gallery { gap: 6px; }
 
   /* Custom v3: side-by-side chart/rows split stacks; amounts stay tappable. */
-  .cv3-split { grid-template-columns: 1fr; }
+  .cv3-split { grid-template-columns: minmax(0, 1fr); }
   .cv3-split.chart-left > .cv3-chart-slot { order: 0; }
   .cv3-amount-input { width: 96px; }
 

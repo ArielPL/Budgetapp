@@ -16,6 +16,28 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.9.1',
+    date: '2026-07-12',
+    title: { sv: 'Finslipning', en: 'Polish', es: 'Pulido' },
+    items: {
+      sv: [
+        'Fungerar nu även på mycket smala mobilskärmar',
+        'Ören visas alltid med två decimaler (1 200,50 kr)',
+        'Sparmål kräver ett målbelopp över 0 — med tydligt felmeddelande',
+      ],
+      en: [
+        'Now works on very narrow phone screens too',
+        'Cents always show two decimals (1,200.50)',
+        'Savings goals require a target above 0 — with a clear error message',
+      ],
+      es: [
+        'Ahora funciona también en pantallas muy estrechas',
+        'Los céntimos siempre muestran dos decimales (1.200,50 €)',
+        'Las metas requieren un importe mayor que 0 — con un mensaje de error claro',
+      ],
+    },
+  },
+  {
     version: '1.9.0',
     date: '2026-07-09',
     title: { sv: 'Kvalitetslyft', en: 'Quality update', es: 'Mejoras de calidad' },

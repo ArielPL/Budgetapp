@@ -1,6 +1,7 @@
 import { useState, useId, useRef } from 'react';
 import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
+import { validateNewGoal, parseAmount, type GoalFormError } from '../goalForm';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 
@@ -131,10 +132,9 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
   const [saved, setSaved] = useState('');
   const [deadline, setDeadline] = useState('');
 
-  const parseNum = (s: string) => parseFloat(s.replace(',', '.'));
-  const targetNum = parseNum(target);
-  // Require a name and a non-negative target; saved/deadline are optional.
-  const canCreate = name.trim() !== '' && !isNaN(targetNum) && targetNum >= 0;
+  // Validation error shown as visible text (not just a disabled button, per
+  // fix plan 2026-07-12 §9). Cleared as soon as the user edits any field.
+  const [formError, setFormError] = useState<GoalFormError | null>(null);
 
   // Blocks a rapid double-tap on "Create goal" from firing createGoal twice in
   // one commit (both calls would read the same stale goals list, dropping one).
@@ -142,19 +142,25 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
 
   const resetForm = () => {
     setName(''); setTarget(''); setSaved(''); setDeadline(''); setAdding(false);
+    setFormError(null);
     submittingRef.current = false;
   };
 
   const createGoal = () => {
-    if (!canCreate || submittingRef.current) return;
+    if (submittingRef.current) return;
+    const result = validateNewGoal(name, target);
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
     submittingRef.current = true;
-    const savedNum = parseNum(saved);
+    const savedNum = parseAmount(saved);
     const newGoal: SavingsGoal = {
       id: generateId(),
       budgetRowId: generateId(), // links a row in Budget → Sparande (created on confirm)
-      name: name.trim(),
+      name: result.name,
       userNamed: true,
-      targetAmount: Math.max(0, targetNum),
+      targetAmount: result.target,
       currentAmount: isNaN(savedNum) ? 0 : Math.max(0, savedNum),
       deadline,
       color: makeGoalColor(data.goals.length),
@@ -185,13 +191,14 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
           <div className="goal-form-field">
             <label htmlFor={`${fid}-name`}>{t.goalNameLabel}</label>
             <input id={`${fid}-name`} className="label-input" value={name} autoFocus
-              placeholder={t.newGoalName} onChange={e => setName(e.target.value)} />
+              placeholder={t.newGoalName}
+              onChange={e => { setName(e.target.value); setFormError(null); }} />
           </div>
           <div className="goal-form-grid">
             <div className="goal-form-field">
               <label htmlFor={`${fid}-target`}>{t.goal}</label>
               <input id={`${fid}-target`} className="label-input" inputMode="decimal" value={target}
-                placeholder="0" onChange={e => setTarget(e.target.value)} />
+                placeholder="0" onChange={e => { setTarget(e.target.value); setFormError(null); }} />
             </div>
             <div className="goal-form-field">
               <label htmlFor={`${fid}-saved`}>{t.saved}</label>
@@ -204,9 +211,14 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
                 onChange={e => setDeadline(e.target.value)} />
             </div>
           </div>
+          {formError && (
+            <p className="goal-form-error" role="alert">
+              {formError === 'name' ? t.goalErrorName : t.goalErrorTarget}
+            </p>
+          )}
           <div className="goal-form-actions">
             <button type="button" className="custom-secondary-btn" onClick={resetForm}>{t.cancel}</button>
-            <button type="submit" className="custom-primary-btn" disabled={!canCreate}>{t.createGoal}</button>
+            <button type="submit" className="custom-primary-btn">{t.createGoal}</button>
           </div>
         </form>
       )}

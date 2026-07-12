@@ -41,29 +41,36 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
 };
 
-const formatterCache: Partial<Record<Currency, Intl.NumberFormat>> = {};
+// Two cached formatters per currency: whole amounts show NO decimals
+// ("1 200 kr"), amounts with öre/cents show EXACTLY two ("1 200,50 kr") —
+// never one ("1 200,5 kr" reads sloppy in a money app; fix plan 2026-07-12 §8).
+// Rounding to 2 digits first also clamps float drift like 0.30000000004.
+const wholeFmt: Partial<Record<Currency, Intl.NumberFormat>> = {};
+const centsFmt: Partial<Record<Currency, Intl.NumberFormat>> = {};
 
-function getFormatter(currency: Currency): Intl.NumberFormat {
-  let fmt = formatterCache[currency];
+function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat {
+  const cache = withCents ? centsFmt : wholeFmt;
+  let fmt = cache[currency];
   if (!fmt) {
     const cfg = CURRENCIES[currency];
-    // Show öre/cents ONLY when the amount actually has them: whole kronor render
-    // as "1 200 kr" (no ",00"), decimals as "1 200,5 kr" / "1 200,55 kr". max 2
-    // digits also clamps float drift like 0.30000000004 (UX review §16).
+    const digits = withCents ? 2 : 0;
     fmt = new Intl.NumberFormat(cfg.locale, {
       style: 'currency',
       currency: cfg.code,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     });
-    formatterCache[currency] = fmt;
+    cache[currency] = fmt;
   }
   return fmt;
 }
 
-/** Format an amount with the given currency's symbol/grouping (no conversion). */
+/** Format an amount with the given currency's symbol/grouping (no conversion).
+ *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
-  return getFormatter(currency).format(amount);
+  const rounded = Math.round(amount * 100) / 100;
+  const hasCents = !Number.isInteger(rounded);
+  return getFormatter(currency, hasCents).format(rounded);
 }
 
 // Language → locale for numeric formatting on chart axes (decimal separator).
@@ -312,6 +319,8 @@ export interface Translations {
   goalNameLabel: string;
   createGoal: string;
   cancel: string;
+  goalErrorName: string;
+  goalErrorTarget: string;
   noGoals: string;
   deleteGoal: string;
   linkedToBudget: string;
@@ -599,6 +608,8 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Namn',
     createGoal: 'Skapa mål',
     cancel: 'Avbryt',
+    goalErrorName: 'Ange ett namn på målet',
+    goalErrorTarget: 'Målbeloppet måste vara större än 0',
     noGoals: 'Inga mål ännu — klicka "+ Nytt mål" för att komma igång',
     deleteGoal: 'Ta bort mål',
     linkedToBudget: 'Kopplad till budget',
@@ -878,6 +889,8 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Name',
     createGoal: 'Create goal',
     cancel: 'Cancel',
+    goalErrorName: 'Enter a name for the goal',
+    goalErrorTarget: 'The goal amount must be greater than 0',
     noGoals: 'No goals yet — click "+ New goal" to get started',
     deleteGoal: 'Delete goal',
     linkedToBudget: 'Linked to budget',
@@ -1157,6 +1170,8 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Nombre',
     createGoal: 'Crear meta',
     cancel: 'Cancelar',
+    goalErrorName: 'Escribe un nombre para la meta',
+    goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
     noGoals: 'Aún no hay metas — pulsa "+ Nueva meta" para empezar',
     deleteGoal: 'Eliminar meta',
     linkedToBudget: 'Vinculado al presupuesto',

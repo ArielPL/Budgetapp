@@ -19,9 +19,13 @@ export function useModalFocus(
   active: boolean,
   onClose: () => void,
 ): void {
-  // Keep the latest onClose without re-running the effect on every render.
+  // Keep the latest onClose without re-running the main effect on every render.
+  // Updated inside an effect (not during render) per the react-hooks/refs rule;
+  // effects run before any user event can trigger the Escape handler.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!active) return;
