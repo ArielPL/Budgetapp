@@ -58,11 +58,15 @@ export function calculateBudgetMetrics(month: MonthData): BudgetMetrics {
   return { income, expenses, remaining, leftoverRate: ratePct(remaining, income) };
 }
 
+/** Total days in the given month (year, 0-based month index). */
+export function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
 /** Days remaining in the date's month, INCLUDING the date's own day —
  *  on July 12 of a 31-day month there are 20 spendable days left. */
 export function daysLeftInMonth(d: Date): number {
-  const totalDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  return totalDays - d.getDate() + 1;
+  return daysInMonth(d.getFullYear(), d.getMonth()) - d.getDate() + 1;
 }
 
 export interface RemainingSplit {

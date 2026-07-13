@@ -324,6 +324,7 @@ export interface Translations {
   // Daily/weekly budget split ("left to live on")
   dailyBudgetTitle: string;
   dailyBudgetDaysLeft: (n: number, month: string) => string;
+  dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
   dailyBudgetPerWeek: string;
   // Sparplan (savings plan projection + plan-vs-actual)
@@ -636,6 +637,7 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
     dailyBudgetTitle: 'Kvar att leva på',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'dag' : 'dagar'} kvar i ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
     sparplanTitle: 'Sparplan',
@@ -939,6 +941,7 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTarget: 'The goal amount must be greater than 0',
     dailyBudgetTitle: 'Left to live on',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'day' : 'days'} left in ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
     sparplanTitle: 'Savings plan',
@@ -1242,6 +1245,7 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
     dailyBudgetTitle: 'Para vivir este mes',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'día restante' : 'días restantes'} de ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',
     sparplanTitle: 'Plan de ahorro',

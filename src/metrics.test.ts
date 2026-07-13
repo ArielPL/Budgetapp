@@ -4,6 +4,7 @@ import {
   calculateSavingsMetrics,
   sumRows,
   ratePct,
+  daysInMonth,
   daysLeftInMonth,
   splitRemaining,
 } from './metrics';
@@ -105,6 +106,13 @@ describe('case 5: in-budget sparande vs actual savings are independent', () => {
 });
 
 describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
+  it('daysInMonth returns the whole-month length', () => {
+    expect(daysInMonth(2026, 6)).toBe(31);  // July
+    expect(daysInMonth(2026, 3)).toBe(30);  // April
+    expect(daysInMonth(2026, 1)).toBe(28);  // February
+    expect(daysInMonth(2028, 1)).toBe(29);  // leap February
+  });
+
   it('counts the remaining days including today', () => {
     expect(daysLeftInMonth(new Date(2026, 6, 12))).toBe(20); // July 12 → 20 left
     expect(daysLeftInMonth(new Date(2026, 6, 1))).toBe(31);  // first day

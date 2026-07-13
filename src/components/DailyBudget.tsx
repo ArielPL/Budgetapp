@@ -1,4 +1,4 @@
-import { daysLeftInMonth, splitRemaining } from '../metrics';
+import { daysInMonth, daysLeftInMonth, splitRemaining } from '../metrics';
 import { useLang, MONTHS } from '../i18n';
 
 interface Props {
@@ -7,24 +7,27 @@ interface Props {
   month: number;     // viewed month (0-based)
 }
 
-// "Left to live on" — the month's remaining money as a livable pace: per day
-// and per week, based on the days LEFT (including today), so it adapts as the
-// month progresses. Only rendered for the month we're actually in — a daily
-// pace for a past or future month has no meaning.
+// "Left to live on" — the month's remaining money as a livable per-day / per-week
+// pace. For the month we're actually in, it divides by the days LEFT (including
+// today) so the number adapts as the month passes. For any other month it
+// spreads the money across the whole month — a flat planning/retrospective figure.
 export const DailyBudget = ({ remaining, year, month }: Props) => {
   const { lang, t, money } = useLang();
   const now = new Date();
-  if (year !== now.getFullYear() || month !== now.getMonth()) return null;
+  const isCurrent = year === now.getFullYear() && month === now.getMonth();
 
-  const daysLeft = daysLeftInMonth(now);
-  const { perDay, perWeek } = splitRemaining(remaining, daysLeft);
+  const days = isCurrent ? daysLeftInMonth(now) : daysInMonth(year, month);
+  const { perDay, perWeek } = splitRemaining(remaining, days);
   const tone = perDay < 0 ? ' daily-budget-negative' : '';
+  const daysLabel = isCurrent
+    ? t.dailyBudgetDaysLeft(days, MONTHS[lang][month])
+    : t.dailyBudgetDaysInMonth(days, MONTHS[lang][month]);
 
   return (
     <div className="daily-budget">
       <div className="daily-budget-head">
         <span className="daily-budget-title">💸 {t.dailyBudgetTitle}</span>
-        <span className="daily-budget-days">{t.dailyBudgetDaysLeft(daysLeft, MONTHS[lang][month])}</span>
+        <span className="daily-budget-days">{daysLabel}</span>
       </div>
       <div className="daily-budget-tiles">
         <div className="daily-budget-tile">
