@@ -58,6 +58,26 @@ export function calculateBudgetMetrics(month: MonthData): BudgetMetrics {
   return { income, expenses, remaining, leftoverRate: ratePct(remaining, income) };
 }
 
+/** Days remaining in the date's month, INCLUDING the date's own day —
+ *  on July 12 of a 31-day month there are 20 spendable days left. */
+export function daysLeftInMonth(d: Date): number {
+  const totalDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return totalDays - d.getDate() + 1;
+}
+
+export interface RemainingSplit {
+  perDay: number;
+  perWeek: number;
+}
+
+/** Split the month's remaining money into a livable per-day / per-week pace.
+ *  Truncated toward zero — never promise more than what's actually there. */
+export function splitRemaining(remaining: number, daysLeft: number): RemainingSplit {
+  if (daysLeft <= 0) return { perDay: 0, perWeek: 0 };
+  const perDay = remaining / daysLeft;
+  return { perDay: Math.trunc(perDay), perWeek: Math.trunc(perDay * 7) };
+}
+
 export interface SavingsMetrics {
   saved: number;        // savings categories EXCLUDING pension
   pension: number;      // pension bucket total (shown separately)

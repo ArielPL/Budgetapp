@@ -5,6 +5,7 @@ import { TabNav } from './components/TabNav';
 import { IncomeSection } from './components/IncomeSection';
 import { ExpenseCategory } from './components/ExpenseCategory';
 import { SummaryCards } from './components/SummaryCards';
+import { DailyBudget } from './components/DailyBudget';
 import { Charts } from './components/Charts';
 import { SavingsTab } from './components/SavingsTab';
 import { PlanTab } from './components/PlanTab';
@@ -683,6 +684,10 @@ function App() {
     <>
       {budgetHero}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
+      {/* Daily/weekly pace for the remaining money — current real month only. */}
+      {totalIncome > 0 && (
+        <DailyBudget remaining={totalIncome - totalExpenses} year={year} month={month} />
+      )}
       <div className="budget-grid">
         <div className="budget-left">
           <IncomeSection rows={data.income} onChange={setIncome} />

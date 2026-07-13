@@ -4,6 +4,8 @@ import {
   calculateSavingsMetrics,
   sumRows,
   ratePct,
+  daysLeftInMonth,
+  splitRemaining,
 } from './metrics';
 import type { MonthData, BudgetCategory, BudgetRow } from './types';
 
@@ -99,6 +101,28 @@ describe('case 5: in-budget sparande vs actual savings are independent', () => {
     expect(b.expenses).toBe(5500);  // 4500 + 1000 sparande, counted once
     expect(b.remaining).toBe(24500);
     expect(s.saved).toBe(1000);     // from the Savings tab, not doubled
+  });
+});
+
+describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
+  it('counts the remaining days including today', () => {
+    expect(daysLeftInMonth(new Date(2026, 6, 12))).toBe(20); // July 12 → 20 left
+    expect(daysLeftInMonth(new Date(2026, 6, 1))).toBe(31);  // first day
+    expect(daysLeftInMonth(new Date(2026, 6, 31))).toBe(1);  // last day
+    expect(daysLeftInMonth(new Date(2028, 1, 1))).toBe(29);  // leap February
+  });
+
+  it('splits remaining into per-day and per-week (mockup example)', () => {
+    expect(splitRemaining(12000, 20)).toEqual({ perDay: 600, perWeek: 4200 });
+  });
+
+  it('truncates toward zero — never promises more than exists', () => {
+    expect(splitRemaining(10000, 19)).toEqual({ perDay: 526, perWeek: 3684 });
+    expect(splitRemaining(-1000, 20)).toEqual({ perDay: -50, perWeek: -350 });
+  });
+
+  it('is safe when no days are left', () => {
+    expect(splitRemaining(5000, 0)).toEqual({ perDay: 0, perWeek: 0 });
   });
 });
 
