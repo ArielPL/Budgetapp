@@ -16,6 +16,28 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.0',
+    date: '2026-07-13',
+    title: { sv: 'Sparplan', en: 'Savings plan', es: 'Plan de ahorro' },
+    items: {
+      sv: [
+        'Ny sparplan i Plan-fliken: ange månadssparande och förväntad avkastning',
+        'Se din prognos 5 år framåt — med ränta på ränta',
+        '"Plan mot verklighet": ligger du före eller efter din plan?',
+      ],
+      en: [
+        'New savings plan in the Plan tab: set monthly saving and expected return',
+        'See your 5-year projection — with compound growth',
+        '"Plan vs reality": are you ahead of or behind your plan?',
+      ],
+      es: [
+        'Nuevo plan de ahorro en Plan: define ahorro mensual y rendimiento esperado',
+        'Mira tu proyección a 5 años — con interés compuesto',
+        '"Plan frente a realidad": ¿vas por delante o por detrás de tu plan?',
+      ],
+    },
+  },
+  {
     version: '1.9.1',
     date: '2026-07-12',
     title: { sv: 'Finslipning', en: 'Polish', es: 'Pulido' },

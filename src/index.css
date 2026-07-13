@@ -2774,6 +2774,79 @@ a:focus-visible,
   font-weight: 600;
   color: var(--negative);
 }
+
+/* ─── Sparplan (savings plan projection + plan-vs-actual) ─────────── */
+.sparplan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.sparplan-body {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.sparplan-subtitle {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.sparplan-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sparplan-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sparplan-hero-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sparplan-hero-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.sparplan-growth { color: var(--positive); font-weight: 600; }
+.sparplan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.sparplan-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.sparplan-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.sparplan-swatch-line { height: 2px; width: 14px; border-radius: 1px; }
+.sparplan-swatch-dash {
+  height: 0; width: 14px; border-radius: 0;
+  background: transparent !important;
+  border-top: 2px dashed #888780;
+}
+.sparplan-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 10px;
+}
+.sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
+.sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
+.sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
 @media (max-width: 640px) {
   .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -3611,4 +3684,7 @@ a:focus-visible,
   .cfg-target-input { width: 100%; }
   /* The target bar inside a phone tile is full-width already; keep label small. */
   .custom-tile-btn .cv3-target { margin-top: 8px; width: 100%; }
+
+  /* Sparplan: stack the three plan inputs on phones. */
+  .sparplan-inputs { grid-template-columns: minmax(0, 1fr); }
 }

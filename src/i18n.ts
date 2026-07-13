@@ -321,6 +321,25 @@ export interface Translations {
   cancel: string;
   goalErrorName: string;
   goalErrorTarget: string;
+  // Sparplan (savings plan projection + plan-vs-actual)
+  sparplanTitle: string;
+  sparplanBody: string;
+  sparplanMonthly: string;
+  sparplanReturn: string;
+  sparplanStartAmount: string;
+  sparplanIn5Years: string;
+  sparplanNow: string;
+  sparplanMonth: (n: number) => string;
+  sparplanOfWhichGrowth: (amount: string) => string;
+  sparplanWithGrowth: string;
+  sparplanDepositsOnly: string;
+  sparplanVsTitle: string;
+  sparplanVsBody: string;
+  sparplanActual: string;
+  sparplanPlanLine: string;
+  sparplanAhead: (amount: string) => string;
+  sparplanBehind: (amount: string) => string;
+  sparplanOnTrack: string;
   noGoals: string;
   deleteGoal: string;
   linkedToBudget: string;
@@ -610,6 +629,24 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Avbryt',
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
+    sparplanTitle: 'Sparplan',
+    sparplanBody: 'Planera ditt månadssparande och din förväntade avkastning — och se hur det växer med ränta på ränta.',
+    sparplanMonthly: 'Månadssparande',
+    sparplanReturn: 'Avkastning per år (%)',
+    sparplanStartAmount: 'Startbelopp',
+    sparplanIn5Years: 'om 5 år',
+    sparplanNow: 'Nu',
+    sparplanMonth: (n) => `Månad ${n}`,
+    sparplanOfWhichGrowth: (amount) => `varav ${amount} är avkastning`,
+    sparplanWithGrowth: 'Med avkastning',
+    sparplanDepositsOnly: 'Bara insättningar',
+    sparplanVsTitle: 'Plan mot verklighet',
+    sparplanVsBody: 'Din plan (streckad) jämfört med vad du faktiskt sparat.',
+    sparplanActual: 'Faktiskt sparat',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} före plan`,
+    sparplanBehind: (amount) => `${amount} efter plan`,
+    sparplanOnTrack: 'I fas med planen',
     noGoals: 'Inga mål ännu — klicka "+ Nytt mål" för att komma igång',
     deleteGoal: 'Ta bort mål',
     linkedToBudget: 'Kopplad till budget',
@@ -891,6 +928,24 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancel',
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
+    sparplanTitle: 'Savings plan',
+    sparplanBody: 'Plan your monthly saving and expected return — and watch compound growth do its work.',
+    sparplanMonthly: 'Monthly saving',
+    sparplanReturn: 'Return per year (%)',
+    sparplanStartAmount: 'Starting amount',
+    sparplanIn5Years: 'in 5 years',
+    sparplanNow: 'Now',
+    sparplanMonth: (n) => `Month ${n}`,
+    sparplanOfWhichGrowth: (amount) => `of which ${amount} is growth`,
+    sparplanWithGrowth: 'With growth',
+    sparplanDepositsOnly: 'Deposits only',
+    sparplanVsTitle: 'Plan vs reality',
+    sparplanVsBody: 'Your plan (dashed) compared with what you have actually saved.',
+    sparplanActual: 'Actually saved',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} ahead of plan`,
+    sparplanBehind: (amount) => `${amount} behind plan`,
+    sparplanOnTrack: 'On track with the plan',
     noGoals: 'No goals yet — click "+ New goal" to get started',
     deleteGoal: 'Delete goal',
     linkedToBudget: 'Linked to budget',
@@ -1172,6 +1227,24 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancelar',
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
+    sparplanTitle: 'Plan de ahorro',
+    sparplanBody: 'Planifica tu ahorro mensual y el rendimiento esperado — y mira crecer el interés compuesto.',
+    sparplanMonthly: 'Ahorro mensual',
+    sparplanReturn: 'Rendimiento anual (%)',
+    sparplanStartAmount: 'Importe inicial',
+    sparplanIn5Years: 'en 5 años',
+    sparplanNow: 'Ahora',
+    sparplanMonth: (n) => `Mes ${n}`,
+    sparplanOfWhichGrowth: (amount) => `de los cuales ${amount} es rendimiento`,
+    sparplanWithGrowth: 'Con rendimiento',
+    sparplanDepositsOnly: 'Solo aportaciones',
+    sparplanVsTitle: 'Plan frente a realidad',
+    sparplanVsBody: 'Tu plan (discontinuo) comparado con lo que realmente has ahorrado.',
+    sparplanActual: 'Ahorrado realmente',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} por delante del plan`,
+    sparplanBehind: (amount) => `${amount} por detrás del plan`,
+    sparplanOnTrack: 'En línea con el plan',
     noGoals: 'Aún no hay metas — pulsa "+ Nueva meta" para empezar',
     deleteGoal: 'Eliminar meta',
     linkedToBudget: 'Vinculado al presupuesto',

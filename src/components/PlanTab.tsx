@@ -4,6 +4,7 @@ import { generateId, makeGoalColor, shownName } from '../defaults';
 import { validateNewGoal, parseAmount, type GoalFormError } from '../goalForm';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
+import { SparPlanSection } from './SparPlan';
 
 interface Props {
   data: PlanData;
@@ -328,6 +329,9 @@ export const PlanTab = ({ data, onChange, totalIncome, totalSavings, year, month
           )}
         </div>
       </section>
+
+      {/* ── Savings plan: projection + plan-vs-actual ── */}
+      <SparPlanSection />
 
       {/* ── Goals ── */}
       <GoalsSection data={data} onChange={onChange} />
