@@ -51,6 +51,14 @@ export function toYM(year: number, monthIndex: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
 }
 
+/** The earliest "YYYY-MM" among months that actually have savings (saved > 0),
+ *  or null if none do. YM strings sort lexically = chronologically. Used to
+ *  auto-default a new plan's start to the beginning of your real saving history. */
+export function earliestSavingsYM(months: Array<{ ym: string; saved: number }>): string | null {
+  const withSavings = months.filter(m => m.saved > 0).map(m => m.ym).sort();
+  return withSavings.length ? withSavings[0] : null;
+}
+
 function isValidPlan(p: unknown): p is SavingsPlan {
   if (typeof p !== 'object' || p === null) return false;
   const o = p as Record<string, unknown>;

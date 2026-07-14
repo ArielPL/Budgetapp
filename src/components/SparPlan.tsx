@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,7 +7,7 @@ import { loadMonthData } from '../defaults';
 import { calculateSavingsMetrics } from '../metrics';
 import { useLang, MONTHS_SHORT, formatAxisTick } from '../i18n';
 import {
-  loadSavingsPlan, saveSavingsPlan, projectPlan, monthsBetween, toYM,
+  loadSavingsPlan, saveSavingsPlan, projectPlan, monthsBetween, toYM, earliestSavingsYM,
   type SavingsPlan,
 } from '../sparplan';
 import { parseAmount } from '../goalForm';
@@ -47,25 +47,41 @@ export const SparPlanSection = () => {
   const gridColor = isLight ? '#e2e8f0' : '#1e293b';
 
   const [plan, setPlanState] = useState<SavingsPlan | null>(loadSavingsPlan);
+
+  // Auto-default the plan's start to the earliest month with recorded savings
+  // (excl. pension) — so "Plan vs reality" spans your real history, not just the
+  // month you happened to open the planner. Falls back to this month if there's
+  // no saving history yet. The user can still override it via the field below.
+  const autoStartYM = useMemo(() => {
+    const months: Array<{ ym: string; saved: number }> = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      const match = key && /^budget_(\d{4})_(\d+)$/.exec(key);
+      if (!match) continue;
+      const y = Number(match[1]);
+      const mi = Number(match[2]);
+      const saved = calculateSavingsMetrics(loadMonthData(y, mi, lang)).saved;
+      if (saved > 0) months.push({ ym: toYM(y, mi), saved });
+    }
+    const d = new Date();
+    return earliestSavingsYM(months) ?? toYM(d.getFullYear(), d.getMonth());
+  }, [lang]);
+
   // Draft input strings (typing-friendly); seeded from the saved plan or defaults.
   const [monthly, setMonthly] = useState(() => (plan ? String(plan.monthlyAmount) : '2000'));
   const [ret, setRet] = useState(() => (plan ? String(plan.annualReturnPct) : '7'));
   const [start, setStart] = useState(() => (plan && plan.startAmount > 0 ? String(plan.startAmount) : ''));
+  const [startYM, setStartYM] = useState(() => plan?.startYM ?? autoStartYM);
 
-  // Persist on every valid edit. startYM is stamped once (first save) so the
-  // plan-vs-actual comparison keeps a stable starting point across tweaks.
-  const commit = (m: string, r: string, s: string) => {
+  // Persist on every valid edit. The start month is user-editable (defaults to
+  // the first savings month) and drives the plan-vs-actual comparison window.
+  const commit = (m: string, r: string, s: string, sy: string) => {
     const mv = parseAmount(m);
     const rv = parseAmount(r);
     const sv = s.trim() === '' ? 0 : parseAmount(s);
     if (isNaN(mv) || mv < 0 || isNaN(rv) || rv < 0 || sv < 0 || isNaN(sv)) return;
-    const now = new Date();
-    const next: SavingsPlan = {
-      monthlyAmount: mv,
-      annualReturnPct: rv,
-      startAmount: sv,
-      startYM: plan?.startYM ?? toYM(now.getFullYear(), now.getMonth()),
-    };
+    if (!/^\d{4}-\d{2}$/.test(sy)) return;
+    const next: SavingsPlan = { monthlyAmount: mv, annualReturnPct: rv, startAmount: sv, startYM: sy };
     saveSavingsPlan(next);
     setPlanState(next);
   };
@@ -76,7 +92,7 @@ export const SparPlanSection = () => {
     monthlyAmount: parseAmount(monthly) || 0,
     annualReturnPct: parseAmount(ret) || 0,
     startAmount: start.trim() === '' ? 0 : parseAmount(start) || 0,
-    startYM: toYM(new Date().getFullYear(), new Date().getMonth()),
+    startYM,
   };
   const series = projectPlan(previewPlan, HORIZON_MONTHS);
   const projData = series.map((v, k) => ({
@@ -140,9 +156,16 @@ export const SparPlanSection = () => {
       <div className="sparplan-card">
         <p className="sparplan-body">{t.sparplanBody}</p>
         <div className="sparplan-inputs">
-          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly, v => commit(v, ret, start))}
-          {field('sp-return', t.sparplanReturn, ret, '7', setRet, v => commit(monthly, v, start))}
-          {field('sp-start', t.sparplanStartAmount, start, '0', setStart, v => commit(monthly, ret, v))}
+          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly, v => commit(v, ret, start, startYM))}
+          {field('sp-return', t.sparplanReturn, ret, '7', setRet, v => commit(monthly, v, start, startYM))}
+          {field('sp-start', t.sparplanStartAmount, start, '0', setStart, v => commit(monthly, ret, v, startYM))}
+          <div className="goal-form-field">
+            <label htmlFor="sp-startym">{t.sparplanStartMonth}</label>
+            <input
+              id="sp-startym" className="label-input" type="month" value={startYM}
+              onChange={e => { setStartYM(e.target.value); commit(monthly, ret, start, e.target.value); }}
+            />
+          </div>
         </div>
 
         <div className="sparplan-hero">

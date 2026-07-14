@@ -333,6 +333,7 @@ export interface Translations {
   sparplanMonthly: string;
   sparplanReturn: string;
   sparplanStartAmount: string;
+  sparplanStartMonth: string;
   sparplanIn5Years: string;
   sparplanNow: string;
   sparplanMonth: (n: number) => string;
@@ -645,6 +646,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanMonthly: 'Månadssparande',
     sparplanReturn: 'Avkastning per år (%)',
     sparplanStartAmount: 'Startbelopp',
+    sparplanStartMonth: 'Plan börjar',
     sparplanIn5Years: 'om 5 år',
     sparplanNow: 'Nu',
     sparplanMonth: (n) => `Månad ${n}`,
@@ -949,6 +951,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanMonthly: 'Monthly saving',
     sparplanReturn: 'Return per year (%)',
     sparplanStartAmount: 'Starting amount',
+    sparplanStartMonth: 'Plan starts',
     sparplanIn5Years: 'in 5 years',
     sparplanNow: 'Now',
     sparplanMonth: (n) => `Month ${n}`,
@@ -1253,6 +1256,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanMonthly: 'Ahorro mensual',
     sparplanReturn: 'Rendimiento anual (%)',
     sparplanStartAmount: 'Importe inicial',
+    sparplanStartMonth: 'El plan empieza',
     sparplanIn5Years: 'en 5 años',
     sparplanNow: 'Ahora',
     sparplanMonth: (n) => `Mes ${n}`,

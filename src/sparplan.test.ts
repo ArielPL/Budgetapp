@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { monthlyRate, projectPlan, monthsBetween, toYM, type SavingsPlan } from './sparplan';
+import { monthlyRate, projectPlan, monthsBetween, toYM, earliestSavingsYM, type SavingsPlan } from './sparplan';
 
 const plan = (over: Partial<SavingsPlan> = {}): SavingsPlan => ({
   monthlyAmount: 1000,
@@ -48,5 +48,28 @@ describe('monthsBetween / toYM', () => {
   it('toYM builds zero-padded keys from a 0-based month index', () => {
     expect(toYM(2026, 0)).toBe('2026-01');
     expect(toYM(2026, 11)).toBe('2026-12');
+  });
+});
+
+describe('earliestSavingsYM (auto-default plan start)', () => {
+  it('returns the earliest month that actually has savings', () => {
+    expect(earliestSavingsYM([
+      { ym: '2026-07', saved: 5000 },
+      { ym: '2026-03', saved: 2000 },
+      { ym: '2026-05', saved: 0 },
+    ])).toBe('2026-03');
+  });
+
+  it('ignores months with no savings', () => {
+    expect(earliestSavingsYM([{ ym: '2026-01', saved: 0 }, { ym: '2026-04', saved: 100 }])).toBe('2026-04');
+  });
+
+  it('sorts correctly across years', () => {
+    expect(earliestSavingsYM([{ ym: '2026-02', saved: 1 }, { ym: '2025-12', saved: 1 }])).toBe('2025-12');
+  });
+
+  it('returns null when nothing is saved', () => {
+    expect(earliestSavingsYM([{ ym: '2026-01', saved: 0 }])).toBe(null);
+    expect(earliestSavingsYM([])).toBe(null);
   });
 });
