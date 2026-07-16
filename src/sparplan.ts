@@ -51,6 +51,26 @@ export function toYM(year: number, monthIndex: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
 }
 
+export interface PlanVsActualPoint {
+  actual: number; // what you've really added since the plan started
+  plan: number;   // what the plan expected you to have added by then
+}
+
+/**
+ * Build the plan-vs-actual series. BOTH sides are measured as progress from the
+ * plan's start month, which is their shared zero point — the pot you already had
+ * when the plan began is NOT progress, and the plan doesn't take credit for it
+ * either.
+ *
+ * `balances[k]` = the savings balance recorded for month k of the plan (k = 0 is
+ * the start month). `planSeries[k]` = the plan's expected deposits+growth after
+ * k months (so planSeries[0] is 0).
+ */
+export function planVsActual(balances: number[], planSeries: number[]): PlanVsActualPoint[] {
+  const baseline = balances[0] ?? 0;
+  return balances.map((b, k) => ({ actual: b - baseline, plan: planSeries[k] ?? 0 }));
+}
+
 /** The earliest "YYYY-MM" among months that actually have savings (saved > 0),
  *  or null if none do. YM strings sort lexically = chronologically. Used to
  *  auto-default a new plan's start to the beginning of your real saving history. */

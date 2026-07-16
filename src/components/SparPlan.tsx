@@ -8,7 +8,7 @@ import { calculateSavingsMetrics } from '../metrics';
 import { useLang, MONTHS_SHORT, formatAxisTick } from '../i18n';
 import {
   loadSavingsPlan, saveSavingsPlan, projectPlan, monthsBetween, toYM, earliestSavingsYM,
-  type SavingsPlan,
+  planVsActual, type SavingsPlan,
 } from '../sparplan';
 import { parseAmount } from '../goalForm';
 
@@ -110,11 +110,11 @@ export const SparPlanSection = () => {
   const monthLabel = (k: string | number) => (Number(k) === 0 ? t.sparplanNow : t.sparplanMonth(Number(k)));
 
   // ── Plan vs actual — PROGRESS SINCE THE PLAN STARTED, on both sides.
-  // The Savings tab records a running BALANCE, so "how much have I actually
-  // saved since the plan began?" is balance(month) − balance(month before the
-  // plan). Summing each month's balance (as this once did) counts the same
-  // money over and over. The plan side excludes startAmount for the same
-  // reason: it's the deposits+growth the plan expects you to ADD.
+  // The Savings tab records a running BALANCE, so progress is how far that
+  // balance moved from what you already had on the plan's start month — the
+  // shared zero point for both lines (planVsActual). Two traps this avoids:
+  // summing the monthly balances, and counting the pot you started with as if
+  // you'd saved it under the plan.
   const now = new Date();
   const nowYM = toYM(now.getFullYear(), now.getMonth());
   let vsRows: Array<{ label: string; actual: number; plan: number }> = [];
@@ -123,16 +123,15 @@ export const SparPlanSection = () => {
     const elapsed = Math.max(0, monthsBetween(plan.startYM, nowYM)) + 1; // incl. current month
     const planSeries = projectPlan({ ...plan, startAmount: 0 }, elapsed);
     const [sy, sm] = plan.startYM.split('-').map(Number);
-    // Baseline: what you already had the month BEFORE the plan started.
-    const baseY = sm === 1 ? sy - 1 : sy;
-    const baseM = sm === 1 ? 11 : sm - 2; // 0-based index of the previous month
-    const baseline = calculateSavingsMetrics(loadMonthData(baseY, baseM, lang)).balance;
+    const labels: string[] = [];
+    const balances: number[] = [];
     for (let k = 0; k < elapsed; k++) {
       const y = sy + Math.floor((sm - 1 + k) / 12);
       const mi = (sm - 1 + k) % 12;
-      const balance = calculateSavingsMetrics(loadMonthData(y, mi, lang)).balance;
-      vsRows.push({ label: MONTHS_SHORT[lang][mi], actual: balance - baseline, plan: planSeries[k + 1] });
+      labels.push(MONTHS_SHORT[lang][mi]);
+      balances.push(calculateSavingsMetrics(loadMonthData(y, mi, lang)).balance);
     }
+    vsRows = planVsActual(balances, planSeries).map((p, k) => ({ label: labels[k], ...p }));
     // Keep the chart readable if a plan has run for years: show the last 24 months.
     if (vsRows.length > 24) vsRows = vsRows.slice(-24);
     vsDiff = vsRows.length ? vsRows[vsRows.length - 1].actual - vsRows[vsRows.length - 1].plan : 0;

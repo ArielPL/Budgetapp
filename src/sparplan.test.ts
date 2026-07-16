@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { monthlyRate, projectPlan, monthsBetween, toYM, earliestSavingsYM, type SavingsPlan } from './sparplan';
+import {
+  monthlyRate, projectPlan, monthsBetween, toYM, earliestSavingsYM, planVsActual,
+  type SavingsPlan,
+} from './sparplan';
 
 const plan = (over: Partial<SavingsPlan> = {}): SavingsPlan => ({
   monthlyAmount: 1000,
@@ -48,6 +51,33 @@ describe('monthsBetween / toYM', () => {
   it('toYM builds zero-padded keys from a 0-based month index', () => {
     expect(toYM(2026, 0)).toBe('2026-01');
     expect(toYM(2026, 11)).toBe('2026-12');
+  });
+});
+
+describe('planVsActual (progress since the plan started)', () => {
+  it('does not count the pot you already had as progress', () => {
+    // Started May holding 54 149; by July the balance is 61 443 — so 7 294 was
+    // actually saved under the plan, NOT 61 443.
+    const pts = planVsActual([54149, 57000, 61443], [0, 2016, 4048]);
+    expect(pts[0]).toEqual({ actual: 0, plan: 0 }); // the start is the shared zero
+    expect(pts[2].actual).toBe(7294);
+    expect(pts[2].plan).toBe(4048);
+    expect(pts[2].actual).not.toBe(61443); // the reported bug
+  });
+
+  it('is roughly on track rather than wildly ahead, for a normal saver', () => {
+    const pts = planVsActual([54149, 57000, 61443], [0, 2016, 4048]);
+    const diff = pts[2].actual - pts[2].plan;
+    expect(diff).toBe(3246);      // a believable "a bit ahead"
+    expect(diff).toBeLessThan(10000);
+  });
+
+  it('goes negative when the balance falls below where it started', () => {
+    expect(planVsActual([50000, 48000], [0, 2000])[1].actual).toBe(-2000);
+  });
+
+  it('handles an empty history', () => {
+    expect(planVsActual([], [])).toEqual([]);
   });
 });
 
