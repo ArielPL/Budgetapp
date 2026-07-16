@@ -10,7 +10,7 @@ interface Props {
   data: PlanData;
   onChange: (data: PlanData) => void;
   totalIncome: number;
-  totalSavings: number;
+  savedThisMonth: number; // how far the savings balance moved this month
   year: number;
   month: number;
 }
@@ -259,14 +259,14 @@ export const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (da
   );
 };
 
-export const PlanTab = ({ data, onChange, totalIncome, totalSavings, year, month }: Props) => {
+export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, month }: Props) => {
   const { lang, t, money } = useLang();
 
   // ── Overview highlights (current month) ──
-  // Real savings rate: money actually moved to savings this month ÷ income.
-  // (totalSavings already excludes pension — see App / calculateSavingsMetrics.)
+  // Real savings rate: what the balance actually gained this month ÷ income.
+  // (savedThisMonth already excludes pension — see App / calculateSavingsMetrics.)
   const savingsRate = totalIncome > 0
-    ? Math.max(0, Math.round((totalSavings / totalIncome) * 100))
+    ? Math.max(0, Math.round((savedThisMonth / totalIncome) * 100))
     : 0;
   const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
   const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
@@ -292,7 +292,7 @@ export const PlanTab = ({ data, onChange, totalIncome, totalSavings, year, month
           </div>
           <div className="overview-stat overview-stat-saved">
             <div className="overview-stat-label">{t.overviewSavedThisMonth}</div>
-            <div className="overview-stat-value">{money(totalSavings)}</div>
+            <div className="overview-stat-value">{money(savedThisMonth)}</div>
             <div className="overview-stat-sub">{monthLabel}</div>
           </div>
           <div className="overview-stat overview-stat-goal">

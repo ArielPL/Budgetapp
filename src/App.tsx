@@ -30,7 +30,7 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
-import { calculateBudgetMetrics, calculateSavingsMetrics } from './metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth } from './metrics';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 
@@ -633,9 +633,14 @@ function App() {
   // ── Derived ───────────────────────────────────────────────────────
   // All money math goes through the canonical helpers so every view agrees.
   const { income: totalIncome, expenses: totalExpenses } = calculateBudgetMetrics(data);
-  // "Saved this month" = Savings-tab total EXCLUDING pension (a separate
-  // long-term bucket). Plan, Savings and Year now all use this same definition.
-  const totalSavings = calculateSavingsMetrics(data).saved;
+  // The Savings tab records a running BALANCE, so what was actually saved this
+  // month is how far that balance moved since last month. Pension is excluded
+  // (separate bucket). Plan, Savings and Year all use this same definition.
+  const savingsBalance = calculateSavingsMetrics(data).balance;
+  const prevSavingsBalance = calculateSavingsMetrics(
+    loadMonthData(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1, lang),
+  ).balance;
+  const savedThisMonthAmount = savedThisMonth(savingsBalance, prevSavingsBalance);
 
   // ── Onboarding heroes & starter buttons ──────────────────────────
   // A brand-new empty month gets a guided "get started" hero with a primary
@@ -731,7 +736,7 @@ function App() {
       data={planData}
       onChange={handlePlanDataChange}
       totalIncome={totalIncome}
-      totalSavings={totalSavings}
+      savedThisMonth={savedThisMonthAmount}
       year={year}
       month={month}
     />

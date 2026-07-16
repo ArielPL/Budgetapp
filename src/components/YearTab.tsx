@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 import { loadMonthData } from '../defaults';
+import { calculateSavingsMetrics, yearSavingsGrowth } from '../metrics';
 import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
 
 interface Props {
@@ -63,13 +64,19 @@ export const YearTab = ({ year }: Props) => {
     (acc, r) => ({
       income: acc.income + r.income,
       expenses: acc.expenses + r.expenses,
-      savings: acc.savings + r.savings,
       remaining: acc.remaining + r.remaining,
     }),
-    { income: 0, expenses: 0, savings: 0, remaining: 0 }
+    { income: 0, expenses: 0, remaining: 0 }
   );
 
-  const hasData = totals.income > 0 || totals.expenses > 0 || totals.savings > 0;
+  // Savings is a running BALANCE, so the year's figure is NOT the sum of the
+  // months (that would add the same money twelve times — the old bug). It's how
+  // much the balance actually grew: where it ended, minus what carried in from
+  // last December.
+  const carryIn = calculateSavingsMetrics(loadMonthData(year - 1, 11, lang)).balance;
+  const savingsGrowth = yearSavingsGrowth(rows.map(r => r.savings), carryIn);
+
+  const hasData = totals.income > 0 || totals.expenses > 0 || rows.some(r => r.savings > 0);
 
   const chartData = rows.map(r => ({
     month: MONTHS_SHORT[lang][r.index],
@@ -145,7 +152,7 @@ export const YearTab = ({ year }: Props) => {
               <div className="year-card-month">{t.yearTotal}</div>
               <div className="year-card-row"><span>{t.colIncome}</span><span>{money(totals.income)}</span></div>
               <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(totals.expenses)}</span></div>
-              <div className="year-card-row"><span>{t.colSavings}</span><span style={{ color: SAVINGS_COLOR }}>{money(totals.savings)}</span></div>
+              <div className="year-card-row"><span>{t.colSavings}</span><span style={{ color: SAVINGS_COLOR }}>{money(savingsGrowth)}</span></div>
               <div className="year-card-row year-card-remaining">
                 <span>{t.colRemaining}</span>
                 <span style={{ color: remColor(totals.remaining) }}>{totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}</span>
@@ -182,7 +189,7 @@ export const YearTab = ({ year }: Props) => {
                   <td>{t.yearTotal}</td>
                   <td className="num">{money(totals.income)}</td>
                   <td className="num">{money(totals.expenses)}</td>
-                  <td className="num" style={{ color: SAVINGS_COLOR }}>{money(totals.savings)}</td>
+                  <td className="num" style={{ color: SAVINGS_COLOR }}>{money(savingsGrowth)}</td>
                   <td className="num" style={{ color: remColor(totals.remaining) }}>
                     {totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}
                   </td>

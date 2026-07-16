@@ -303,6 +303,7 @@ export interface Translations {
   goalCount: (n: number) => string;
   avgPerMonth: string;
   // Savings tab
+  totalSaved: string;
   savedThisMonth: string;
   savedPrevMonth: string;
   pensionBox: string;
@@ -619,6 +620,7 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
     goalCount: (n) => `${n} mål`,
     avgPerMonth: 'Snitt/månad',
+    totalSaved: 'Totalt sparat',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
     pensionBox: 'Pension',
@@ -924,6 +926,7 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fill in savings & investments to see the growth',
     goalCount: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}`,
     avgPerMonth: 'Avg/month',
+    totalSaved: 'Total saved',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
     pensionBox: 'Pension',
@@ -1229,6 +1232,7 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Rellena el ahorro e inversiones para ver el crecimiento',
     goalCount: (n) => `${n} ${n === 1 ? 'meta' : 'metas'}`,
     avgPerMonth: 'Media/mes',
+    totalSaved: 'Ahorro total',
     savedThisMonth: 'Ahorrado este mes',
     savedPrevMonth: 'Ahorrado el mes anterior',
     pensionBox: 'Pensión',

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { BudgetCategory } from '../types';
 import { loadMonthData } from '../defaults';
+import { savedThisMonth } from '../metrics';
 import { useLang } from '../i18n';
 import { ExpenseCategory } from './ExpenseCategory';
 import { GrowthChart } from './GrowthChart';
@@ -24,39 +25,41 @@ export const SavingsSummary = ({ categories, year, currentMonth }: {
   const { lang, t, money } = useLang();
   const catTotal = (cat: BudgetCategory) => cat.rows.reduce((cs, r) => cs + r.amount, 0);
 
-  // "Saved" totals exclude pension — pension is tracked as a separate long-term bucket.
-  const total = categories.reduce(
+  // The amounts recorded here are a running BALANCE (what you have), not this
+  // month's deposit — so "saved this month" is how far the balance MOVED.
+  // Pension is excluded: a separate long-term bucket.
+  const balance = categories.reduce(
     (s, cat) => (cat.id === 'pension' ? s : s + catTotal(cat)), 0
   );
   const pensionTotal = categories
     .filter(cat => cat.id === 'pension')
     .reduce((s, cat) => s + catTotal(cat), 0);
 
-  // Previous month total for comparison (also excludes pension)
+  // Previous month's balance — the baseline for this month's change.
   const prevYear = currentMonth === 0 ? year - 1 : year;
   const prevMonthIdx = currentMonth === 0 ? 11 : currentMonth - 1;
   const prevData = loadMonthData(prevYear, prevMonthIdx, lang);
-  const prevTotal = prevData.savings.reduce(
+  const prevBalance = prevData.savings.reduce(
     (s, cat) => (cat.id === 'pension' ? s : s + cat.rows.reduce((cs, r) => cs + r.amount, 0)), 0
   );
-  const diff = total - prevTotal;
+  const saved = savedThisMonth(balance, prevBalance);
 
   return (
     <div className="savings-summary-wrap">
       <div className="savings-summary">
         <div className="summary-card savings-card">
-          <div className="card-label">{t.savedThisMonth}</div>
-          <div className="card-amount">{money(total)}</div>
+          <div className="card-label">{t.totalSaved}</div>
+          <div className="card-amount">{money(balance)}</div>
         </div>
 
         <div className="summary-card savings-prev-card">
-          <div className="card-label">{t.savedPrevMonth}</div>
-          <div className="card-amount">{money(prevTotal)}</div>
-          {prevTotal > 0 && total > 0 && (
-            <div className="card-sub" style={{ color: diff >= 0 ? '#22c55e' : '#f87171' }}>
-              {diff >= 0 ? '+' : ''}{money(diff)} {t.vsPrev}
-            </div>
-          )}
+          <div className="card-label">{t.savedThisMonth}</div>
+          <div className="card-amount" style={{ color: saved < 0 ? '#f87171' : undefined }}>
+            {saved > 0 ? '+' : ''}{money(saved)}
+          </div>
+          <div className="card-sub">
+            {t.savedPrevMonth}: {money(prevBalance)}
+          </div>
         </div>
       </div>
 

@@ -4,15 +4,23 @@
 // every view computes the same numbers the same way, and the formulas can be
 // unit-tested in isolation (see metrics.test.ts).
 //
-// Canonical definitions (UX review §6 — "define savings, savings-rate, remaining"):
+// Canonical definitions (UX review §6, plus the savings-model fix of 2026-07-14):
 //   • Budgeted expenses = every category in the Budget tab's expenses, INCLUDING
 //     the in-budget "sparande" category. It's money you've already assigned.
 //   • Remaining (after budget) = income − budgeted expenses.
-//   • Actual saved (this month) = the Savings-tab categories, EXCLUDING pension.
-//     Pension is a separate long-term bucket, reported on its own line and never
-//     folded into "saved" anywhere (Savings, Plan and Year now all agree).
-//   • Savings rate = actual saved ÷ income. NOT (income − expenses) ÷ income —
-//     that is money left over, not money actually moved into savings.
+//   • Savings BALANCE = the Savings-tab categories, EXCLUDING pension.
+//     ⚠️ The amount recorded on a month is a RUNNING TOTAL (what you have), not
+//     that month's deposit. That's what people actually type in, and what the
+//     Growth chart plots — a line that only "grows" if it's a balance. Never sum
+//     balances across months; that double-counts (the old Year-tab total and the
+//     old plan-vs-actual chart both did, and both were wrong).
+//     Pension is a separate long-term bucket, never folded into the balance.
+//   • Saved this month = how much the balance MOVED since last month (may be
+//     negative if you withdrew).
+//   • Savings rate = saved this month ÷ income. NOT balance ÷ income — a 50 000
+//     balance on a 30 000 income would read 167%.
+//   • Year's savings = where the balance ended minus what carried in from the
+//     previous December (see yearSavingsGrowth).
 //   • Leftover rate = remaining ÷ income = the share of income not yet budgeted.
 
 import type { MonthData, BudgetCategory, BudgetRow } from './types';
@@ -83,17 +91,36 @@ export function splitRemaining(remaining: number, daysLeft: number): RemainingSp
 }
 
 export interface SavingsMetrics {
-  saved: number;        // savings categories EXCLUDING pension
-  pension: number;      // pension bucket total (shown separately)
-  savingsRate: number;  // actual saved ÷ income
+  balance: number;  // savings categories EXCLUDING pension — a RUNNING TOTAL
+  pension: number;  // pension bucket balance (shown separately)
 }
 
+/** The savings balance recorded on a month. Never sum these across months. */
 export function calculateSavingsMetrics(month: MonthData): SavingsMetrics {
-  const income = sumRows(month.income ?? []);
   const savings = month.savings ?? [];
-  const saved = sumCategories(savings, PENSION_CATEGORY_ID);
+  const balance = sumCategories(savings, PENSION_CATEGORY_ID);
   const pension = savings
     .filter(c => c.id === PENSION_CATEGORY_ID)
     .reduce((s, c) => s + categoryTotal(c), 0);
-  return { saved, pension, savingsRate: ratePct(saved, income) };
+  return { balance, pension };
+}
+
+/** What you actually put away this month = how far the balance moved.
+ *  Negative when you withdrew more than you added. */
+export function savedThisMonth(currentBalance: number, previousBalance: number): number {
+  return currentBalance - previousBalance;
+}
+
+/** How much you actually saved across a year: where the balance ENDED minus what
+ *  carried in from the previous December. `monthlyBalances` is Jan..Dec; a month
+ *  with no data reads as 0, so the year's end is the last month that has a
+ *  balance recorded — not December's empty cell. Summing twelve balances (which
+ *  the Year tab used to do) is meaningless; this is the honest annual figure. */
+export function yearSavingsGrowth(monthlyBalances: number[], carryIn: number): number {
+  let last = -1;
+  for (let i = monthlyBalances.length - 1; i >= 0; i--) {
+    if (monthlyBalances[i] > 0) { last = i; break; }
+  }
+  if (last === -1) return 0;
+  return monthlyBalances[last] - carryIn;
 }
