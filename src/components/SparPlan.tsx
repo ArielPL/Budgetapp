@@ -5,11 +5,13 @@ import {
 } from 'recharts';
 import { loadMonthData } from '../defaults';
 import { calculateSavingsMetrics } from '../metrics';
-import { useLang, MONTHS_SHORT, formatAxisTick } from '../i18n';
+import { useLang, MONTHS_SHORT, formatAxisTick, type Translations } from '../i18n';
 import {
   loadSavingsPlan, saveSavingsPlan, projectPlan, monthsBetween, toYM, earliestSavingsYM,
-  planVsActual, type SavingsPlan,
+  planVsActual, type SavingsPlan, type PlanVsActualPoint,
 } from '../sparplan';
+
+type VsRow = { label: string } & PlanVsActualPoint;
 import { parseAmount } from '../goalForm';
 
 const TEAL = '#14b8a6';
@@ -36,6 +38,31 @@ const ChartTooltip = ({ active, payload, label, money, labelText }: TooltipProps
           {p.name}: {money ? money(Math.round(p.value)) : p.value}
         </div>
       ))}
+    </div>
+  );
+};
+
+// Plan-vs-reality tooltip: the line plots the real pot, so each row also spells
+// out the progress behind it — "61 443 kr · +7 294 sedan start".
+const VsTooltip = ({ active, payload, label, money, t }: {
+  active?: boolean;
+  payload?: Array<{ payload: VsRow }>;
+  label?: string | number;
+  money: (n: number) => string;
+  t: Translations;
+}) => {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload;
+  const signed = (n: number) => `${n >= 0 ? '+' : ''}${money(Math.round(n))}`;
+  return (
+    <div className="chart-tooltip">
+      <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
+      <div style={{ color: TEAL, fontSize: '0.8rem' }}>
+        {t.totalSaved}: {money(Math.round(row.actualTotal))} · {signed(row.actualProgress)} {t.sparplanSinceStart}
+      </div>
+      <div style={{ color: GRAY, fontSize: '0.8rem' }}>
+        {t.sparplanPlanLine}: {money(Math.round(row.planTotal))} · {signed(row.planProgress)} {t.sparplanSinceStart}
+      </div>
     </div>
   );
 };
@@ -109,15 +136,15 @@ export const SparPlanSection = () => {
   const yearLabel = (k: string | number) => (Number(k) === 0 ? t.sparplanNow : `${t.tabYear} ${Number(k) / 12}`);
   const monthLabel = (k: string | number) => (Number(k) === 0 ? t.sparplanNow : t.sparplanMonth(Number(k)));
 
-  // ── Plan vs actual — PROGRESS SINCE THE PLAN STARTED, on both sides.
-  // The Savings tab records a running BALANCE, so progress is how far that
-  // balance moved from what you already had on the plan's start month — the
-  // shared zero point for both lines (planVsActual). Two traps this avoids:
-  // summing the monthly balances, and counting the pot you started with as if
+  // ── Plan vs actual — the lines plot the real POT; the tooltip and the badge
+  // spell out the progress behind it. The plan's start month anchors both sides
+  // (planVsActual): the pot you already had isn't progress, and the plan carries
+  // that same baseline forward rather than taking credit for it. Two traps this
+  // avoids: summing the monthly balances, and counting your starting pot as if
   // you'd saved it under the plan.
   const now = new Date();
   const nowYM = toYM(now.getFullYear(), now.getMonth());
-  let vsRows: Array<{ label: string; actual: number; plan: number }> = [];
+  let vsRows: VsRow[] = [];
   let vsDiff = 0;
   if (plan) {
     const elapsed = Math.max(0, monthsBetween(plan.startYM, nowYM)) + 1; // incl. current month
@@ -134,9 +161,19 @@ export const SparPlanSection = () => {
     vsRows = planVsActual(balances, planSeries).map((p, k) => ({ label: labels[k], ...p }));
     // Keep the chart readable if a plan has run for years: show the last 24 months.
     if (vsRows.length > 24) vsRows = vsRows.slice(-24);
-    vsDiff = vsRows.length ? vsRows[vsRows.length - 1].actual - vsRows[vsRows.length - 1].plan : 0;
+    const last = vsRows[vsRows.length - 1];
+    vsDiff = last ? last.actualTotal - last.planTotal : 0;
   }
   const onTrack = Math.abs(vsDiff) < 50;
+
+  // The two lines sit on top of a shared starting pot, so a zero-based axis
+  // would squash the gap between them into a hairline. Fit the axis to the data
+  // (with breathing room) so being ahead or behind is actually visible.
+  const vsValues = vsRows.flatMap(r => [r.actualTotal, r.planTotal]);
+  const vsMin = vsValues.length ? Math.min(...vsValues) : 0;
+  const vsMax = vsValues.length ? Math.max(...vsValues) : 0;
+  const vsPad = Math.max(100, (vsMax - vsMin) * 0.25);
+  const vsDomain: [number, number] = [Math.max(0, vsMin - vsPad), vsMax + vsPad];
 
   const field = (
     id: string, label: string, value: string, placeholder: string,
@@ -219,7 +256,7 @@ export const SparPlanSection = () => {
                 : t.sparplanBehind(money(Math.round(Math.abs(vsDiff))))}
           </div>
           <div className="sparplan-legend">
-            <span className="sparplan-legend-item"><span className="sparplan-swatch" style={{ background: TEAL }} />{t.sparplanActual}</span>
+            <span className="sparplan-legend-item"><span className="sparplan-swatch" style={{ background: TEAL }} />{t.totalSaved}</span>
             <span className="sparplan-legend-item"><span className="sparplan-swatch sparplan-swatch-dash" style={{ background: GRAY }} />{t.sparplanPlanLine}</span>
           </div>
           <ResponsiveContainer width="100%" height={190}>
@@ -227,13 +264,13 @@ export const SparPlanSection = () => {
               <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis
-                tick={{ fill: tickColor, fontSize: 11 }} width={44}
+                tick={{ fill: tickColor, fontSize: 11 }} width={44} domain={vsDomain}
                 tickFormatter={v => formatAxisTick(v, lang)} axisLine={false} tickLine={false}
               />
-              <Tooltip content={<ChartTooltip money={money} />} />
-              <Line type="monotone" dataKey="actual" name={t.sparplanActual}
+              <Tooltip content={<VsTooltip money={money} t={t} />} />
+              <Line type="monotone" dataKey="actualTotal" name={t.totalSaved}
                 stroke={TEAL} strokeWidth={2} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="plan" name={t.sparplanPlanLine}
+              <Line type="monotone" dataKey="planTotal" name={t.sparplanPlanLine}
                 stroke={GRAY} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>

@@ -52,15 +52,20 @@ export function toYM(year: number, monthIndex: number): string {
 }
 
 export interface PlanVsActualPoint {
-  actual: number; // what you've really added since the plan started
-  plan: number;   // what the plan expected you to have added by then
+  actualTotal: number;    // your real pot that month
+  planTotal: number;      // where the plan says the pot should be by then
+  actualProgress: number; // what you've really added since the plan started
+  planProgress: number;   // what the plan expected you to have added
 }
 
 /**
- * Build the plan-vs-actual series. BOTH sides are measured as progress from the
- * plan's start month, which is their shared zero point — the pot you already had
- * when the plan began is NOT progress, and the plan doesn't take credit for it
- * either.
+ * Build the plan-vs-actual series, carrying BOTH readings of each month: the
+ * real totals (what the chart plots — actual money) and the progress since the
+ * plan started (what the tooltip and the ahead/behind badge use).
+ *
+ * The plan's start month is the shared anchor: the pot you already had when the
+ * plan began is not progress, and the plan takes no credit for it either — it
+ * simply carries that same baseline forward and adds its deposits on top.
  *
  * `balances[k]` = the savings balance recorded for month k of the plan (k = 0 is
  * the start month). `planSeries[k]` = the plan's expected deposits+growth after
@@ -68,7 +73,15 @@ export interface PlanVsActualPoint {
  */
 export function planVsActual(balances: number[], planSeries: number[]): PlanVsActualPoint[] {
   const baseline = balances[0] ?? 0;
-  return balances.map((b, k) => ({ actual: b - baseline, plan: planSeries[k] ?? 0 }));
+  return balances.map((b, k) => {
+    const planProgress = planSeries[k] ?? 0;
+    return {
+      actualTotal: b,
+      planTotal: baseline + planProgress,
+      actualProgress: b - baseline,
+      planProgress,
+    };
+  });
 }
 
 /** The earliest "YYYY-MM" among months that actually have savings (saved > 0),

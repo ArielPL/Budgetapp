@@ -54,26 +54,35 @@ describe('monthsBetween / toYM', () => {
   });
 });
 
-describe('planVsActual (progress since the plan started)', () => {
-  it('does not count the pot you already had as progress', () => {
-    // Started May holding 54 149; by July the balance is 61 443 — so 7 294 was
-    // actually saved under the plan, NOT 61 443.
-    const pts = planVsActual([54149, 57000, 61443], [0, 2016, 4048]);
-    expect(pts[0]).toEqual({ actual: 0, plan: 0 }); // the start is the shared zero
-    expect(pts[2].actual).toBe(7294);
-    expect(pts[2].plan).toBe(4048);
-    expect(pts[2].actual).not.toBe(61443); // the reported bug
+describe('planVsActual (totals on the line, progress in the tooltip)', () => {
+  // Started May holding 54 149; July balance 61 443 → 7 294 saved under the plan.
+  const pts = planVsActual([54149, 57000, 61443], [0, 2016, 4048]);
+
+  it('plots the real pot, and the plan carries the same starting pot forward', () => {
+    expect(pts[0].actualTotal).toBe(54149);
+    expect(pts[0].planTotal).toBe(54149); // both lines start from what you had
+    expect(pts[2].actualTotal).toBe(61443);
+    expect(pts[2].planTotal).toBe(58197); // 54 149 + 4 048 expected deposits
   });
 
-  it('is roughly on track rather than wildly ahead, for a normal saver', () => {
-    const pts = planVsActual([54149, 57000, 61443], [0, 2016, 4048]);
-    const diff = pts[2].actual - pts[2].plan;
-    expect(diff).toBe(3246);      // a believable "a bit ahead"
-    expect(diff).toBeLessThan(10000);
+  it('does not count the pot you already had as progress', () => {
+    expect(pts[0].actualProgress).toBe(0); // the start is the shared zero
+    expect(pts[2].actualProgress).toBe(7294);
+    expect(pts[2].planProgress).toBe(4048);
+    expect(pts[2].actualProgress).not.toBe(61443); // the reported bug
+  });
+
+  it('gives the same ahead/behind verdict from totals or progress', () => {
+    const fromTotals = pts[2].actualTotal - pts[2].planTotal;
+    const fromProgress = pts[2].actualProgress - pts[2].planProgress;
+    expect(fromTotals).toBe(fromProgress);
+    expect(fromTotals).toBe(3246); // a believable "a bit ahead"
   });
 
   it('goes negative when the balance falls below where it started', () => {
-    expect(planVsActual([50000, 48000], [0, 2000])[1].actual).toBe(-2000);
+    const dropped = planVsActual([50000, 48000], [0, 2000]);
+    expect(dropped[1].actualProgress).toBe(-2000);
+    expect(dropped[1].actualTotal).toBe(48000); // the pot itself stays positive
   });
 
   it('handles an empty history', () => {

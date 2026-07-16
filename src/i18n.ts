@@ -343,7 +343,7 @@ export interface Translations {
   sparplanDepositsOnly: string;
   sparplanVsTitle: string;
   sparplanVsBody: string;
-  sparplanActual: string;
+  sparplanSinceStart: string;
   sparplanPlanLine: string;
   sparplanAhead: (amount: string) => string;
   sparplanBehind: (amount: string) => string;
@@ -657,7 +657,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanDepositsOnly: 'Bara insättningar',
     sparplanVsTitle: 'Plan mot verklighet',
     sparplanVsBody: 'Din plan (streckad) jämfört med vad du faktiskt sparat.',
-    sparplanActual: 'Faktiskt sparat',
+    sparplanSinceStart: 'sedan start',
     sparplanPlanLine: 'Plan',
     sparplanAhead: (amount) => `${amount} före plan`,
     sparplanBehind: (amount) => `${amount} efter plan`,
@@ -963,7 +963,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanDepositsOnly: 'Deposits only',
     sparplanVsTitle: 'Plan vs reality',
     sparplanVsBody: 'Your plan (dashed) compared with what you have actually saved.',
-    sparplanActual: 'Actually saved',
+    sparplanSinceStart: 'since start',
     sparplanPlanLine: 'Plan',
     sparplanAhead: (amount) => `${amount} ahead of plan`,
     sparplanBehind: (amount) => `${amount} behind plan`,
@@ -1269,7 +1269,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanDepositsOnly: 'Solo aportaciones',
     sparplanVsTitle: 'Plan frente a realidad',
     sparplanVsBody: 'Tu plan (discontinuo) comparado con lo que realmente has ahorrado.',
-    sparplanActual: 'Ahorrado realmente',
+    sparplanSinceStart: 'desde el inicio',
     sparplanPlanLine: 'Plan',
     sparplanAhead: (amount) => `${amount} por delante del plan`,
     sparplanBehind: (amount) => `${amount} por detrás del plan`,
