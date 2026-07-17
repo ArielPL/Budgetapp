@@ -1,5 +1,5 @@
 import { loadMonthData } from '../defaults';
-import { useLang } from '../i18n';
+import { useLang, formatMoneyCompact } from '../i18n';
 import type { Translations } from '../i18n';
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 function Diff({ current, prev, t, money, lowerIsBetter = false }: { current: number; prev: number; t: Translations; money: (n: number) => string; lowerIsBetter?: boolean }) {
   if (prev === 0) return null;
   const delta = current - prev;
-  if (delta === 0) return <div className="card-sub" style={{ color: '#64748b' }}>{t.samePrevMonth}</div>;
+  if (delta === 0) return <div className="card-sub">{t.samePrevMonth}</div>;
   const positive = lowerIsBetter ? delta < 0 : delta > 0;
   return (
     <div className="card-sub" style={{ color: positive ? '#22c55e' : '#f87171' }}>
@@ -22,7 +22,13 @@ function Diff({ current, prev, t, money, lowerIsBetter = false }: { current: num
 }
 
 export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props) => {
-  const { lang, t, money } = useLang();
+  const { lang, t, money, currency } = useLang();
+  // Billions don't fit a phone-width card: compact them ("10 md kr" / "$10B")
+  // and keep the exact figure reachable via title= and the accessible name.
+  const cardMoney = (n: number) =>
+    Math.abs(n) >= 1e9
+      ? <span title={money(n)} aria-label={money(n)}>{formatMoneyCompact(n, currency, lang)}</span>
+      : money(n);
   const remaining = totalIncome - totalExpenses;
   const isPositive = remaining >= 0;
   // Share of income NOT consumed by budgeted expenses. This is money left over,
@@ -46,21 +52,21 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
     <div className="summary-cards">
       <div className="summary-card income-card">
         <div className="card-label">{t.income}</div>
-        <div className="card-amount income-amount">{money(totalIncome)}</div>
+        <div className="card-amount income-amount">{cardMoney(totalIncome)}</div>
         <Diff current={totalIncome} prev={prevIncome} t={t} money={money} />
       </div>
       <div className="summary-card expense-card">
         <div className="card-label">{t.expenses}</div>
-        <div className="card-amount expense-amount">{money(totalExpenses)}</div>
+        <div className="card-amount expense-amount">{cardMoney(totalExpenses)}</div>
         <Diff current={totalExpenses} prev={prevExpenses} t={t} money={money} lowerIsBetter />
       </div>
       <div className="summary-card remaining-card">
         <div className="card-label">{t.remaining}</div>
         <div className={`card-amount ${isPositive ? 'positive-amount' : 'negative-amount'}`}>
-          {isPositive ? '+' : ''}{money(remaining)}
+          {isPositive ? '+' : ''}{cardMoney(remaining)}
         </div>
         {totalIncome > 0 && (
-          <div className="card-sub" style={{ color: '#64748b' }}>
+          <div className="card-sub">
             {Math.round((totalExpenses / totalIncome) * 100)}% {t.pctOfIncome}
           </div>
         )}

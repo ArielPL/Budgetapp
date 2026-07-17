@@ -22,7 +22,56 @@ export interface BlockChart {
   position: ChartPosition;
 }
 
-export interface BlockRow { id: string; name: string; color: string; }
+// ── Language-safe default names (stress test §9) ──
+// Quick-start used to bake the CURRENT language's strings ("Inkomster", "Ny
+// rad") into the stored structure, so switching language left Swedish block
+// names inside a Spanish app. Built-in names are now stored as a KEY and
+// resolved through t at render time; only names the user typed are literal.
+export type CustomDefaultNameKey =
+  | 'summaryIncome' | 'summaryExpenses' | 'summarySaved' | 'summaryBlock'
+  | 'newBlockName' | 'newRowName' | 'newNoteName';
+
+/** Every language's spelling of every default name → its key. Used to migrate
+ *  structures saved before nameKey existed. Only EXACT matches migrate —
+ *  anything else is assumed to be the user's own name and is never touched. */
+const DEFAULT_NAME_TO_KEY = new Map<string, CustomDefaultNameKey>([
+  ['Inkomster', 'summaryIncome'], ['Income', 'summaryIncome'], ['Ingresos', 'summaryIncome'],
+  ['Utgifter', 'summaryExpenses'], ['Expenses', 'summaryExpenses'], ['Gastos', 'summaryExpenses'],
+  ['Sparat', 'summarySaved'], ['Saved', 'summarySaved'], ['Ahorrado', 'summarySaved'],
+  ['Sammanfattning', 'summaryBlock'], ['Summary', 'summaryBlock'], ['Resumen', 'summaryBlock'],
+  ['Nytt block', 'newBlockName'], ['New block', 'newBlockName'], ['Bloque nuevo', 'newBlockName'],
+  ['Ny rad', 'newRowName'], ['New row', 'newRowName'], ['Fila nueva', 'newRowName'],
+  ['Anteckning', 'newNoteName'], ['Note', 'newNoteName'], ['Nota', 'newNoteName'],
+]);
+
+function isDefaultNameKey(v: unknown): v is CustomDefaultNameKey {
+  return typeof v === 'string' &&
+    ['summaryIncome', 'summaryExpenses', 'summarySaved', 'summaryBlock',
+      'newBlockName', 'newRowName', 'newNoteName'].includes(v);
+}
+
+/** Exact-match migration for pre-nameKey data; undefined = user's own name. */
+export function inferDefaultNameKey(name: string): CustomDefaultNameKey | undefined {
+  return DEFAULT_NAME_TO_KEY.get(name);
+}
+
+interface NamedEntity { name: string; nameKey?: CustomDefaultNameKey; userNamed?: boolean; }
+
+/** The name to SHOW (and to use in every aria-label): the current language's
+ *  string for un-renamed defaults, the user's exact text otherwise. */
+export function resolveDisplayName(x: NamedEntity, t: Record<CustomDefaultNameKey, string>): string {
+  return x.userNamed !== true && x.nameKey ? t[x.nameKey] : x.name;
+}
+
+export interface BlockRow {
+  id: string;
+  name: string;
+  color: string;
+  /** Set for built-in names; display resolves through t until userNamed. */
+  nameKey?: CustomDefaultNameKey;
+  /** true the moment the user renames — their text is then never translated. */
+  userNamed?: boolean;
+}
 
 // Distinct per-category palette — each row defaults to the next colour so a
 // block's chart wedges/bars (and legend dots) aren't all one hue.
@@ -41,6 +90,8 @@ export interface CustomBlock {
   icon?: string;            // optional display emoji (title/tile); undefined → kind emoji
   target?: number;          // optional goal; >0 shows a progress bar (regular blocks only)
   text?: string;            // note-block body (stored cross-month in the structure)
+  nameKey?: CustomDefaultNameKey; // built-in name → translated at render
+  userNamed?: boolean;            // user renamed → name is literal, never translated
 }
 
 // Common emoji palette for the per-block icon picker.
@@ -138,25 +189,41 @@ export function loadStructure(): CustomBlock[] | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
-    return parsed.map((b: Partial<CustomBlock>): CustomBlock => ({
-      id: typeof b.id === 'string' && b.id ? b.id : uid(),
-      kind: b.kind === 'summary' ? 'summary' : b.kind === 'note' ? 'note' : 'block',
-      name: typeof b.name === 'string' ? b.name : 'Block',
-      tag: b.tag === 'out' || b.tag === 'save' ? b.tag : 'in',
-      width: b.width === 'half' || b.width === 'third' ? b.width : 'full',
-      bg: typeof b.bg === 'string' ? b.bg : null,
-      chart: { ...defaultChart(), ...(b.chart ?? {}) },
-      rows: Array.isArray(b.rows)
-        ? b.rows.map((r, i) => ({
-            id: r?.id ?? uid(),
-            name: typeof r?.name === 'string' ? r.name : '',
-            color: typeof r?.color === 'string' && r.color ? r.color : paletteColor(i),
-          }))
-        : [],
-      icon: typeof b.icon === 'string' && b.icon ? b.icon : undefined,
-      target: typeof b.target === 'number' && b.target > 0 ? b.target : undefined,
-      text: typeof b.text === 'string' ? b.text : undefined,
-    }));
+    return parsed.map((b: Partial<CustomBlock>): CustomBlock => {
+      const name = typeof b.name === 'string' ? b.name : 'Block';
+      // Migration for pre-nameKey data: an exact known default name gets its
+      // key (so it starts translating); anything else is the user's own name
+      // and keeps no key. Stored userNamed always wins over inference. The
+      // stored blob itself isn't rewritten here — the save effect only runs
+      // once the user actually changes something.
+      const nameKey = isDefaultNameKey(b.nameKey) ? b.nameKey : inferDefaultNameKey(name);
+      return {
+        id: typeof b.id === 'string' && b.id ? b.id : uid(),
+        kind: b.kind === 'summary' ? 'summary' : b.kind === 'note' ? 'note' : 'block',
+        name,
+        tag: b.tag === 'out' || b.tag === 'save' ? b.tag : 'in',
+        width: b.width === 'half' || b.width === 'third' ? b.width : 'full',
+        bg: typeof b.bg === 'string' ? b.bg : null,
+        chart: { ...defaultChart(), ...(b.chart ?? {}) },
+        rows: Array.isArray(b.rows)
+          ? b.rows.map((r, i) => {
+              const rowName = typeof r?.name === 'string' ? r.name : '';
+              return {
+                id: r?.id ?? uid(),
+                name: rowName,
+                color: typeof r?.color === 'string' && r.color ? r.color : paletteColor(i),
+                nameKey: isDefaultNameKey(r?.nameKey) ? r.nameKey : inferDefaultNameKey(rowName),
+                userNamed: typeof r?.userNamed === 'boolean' ? r.userNamed : undefined,
+              };
+            })
+          : [],
+        icon: typeof b.icon === 'string' && b.icon ? b.icon : undefined,
+        target: typeof b.target === 'number' && b.target > 0 ? b.target : undefined,
+        text: typeof b.text === 'string' ? b.text : undefined,
+        nameKey,
+        userNamed: typeof b.userNamed === 'boolean' ? b.userNamed : undefined,
+      };
+    });
   } catch { return null; }
 }
 
@@ -269,32 +336,37 @@ export const CustomV3 = ({ year, month }: Props) => {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   // ── Block ops ──
+  // Every built-in name is created WITH its nameKey (the literal `name` string
+  // is only a fallback for older app versions reading newer data). Renaming
+  // flips userNamed — from then on the user's text is law.
   const addBlock = (tag: BlockTag) => {
-    const b = newBlock(t.newBlockName, tag);
+    const b = { ...newBlock(t.newBlockName, tag), nameKey: 'newBlockName' as const, userNamed: false };
     setBlocks(prev => [...prev, b]);
     setStarted(true);
     setPicking(false);
     setConfigFor(b.id);
   };
   const addSummary = () => {
-    const b = newSummary(t.summaryBlock);
+    const b = { ...newSummary(t.summaryBlock), nameKey: 'summaryBlock' as const, userNamed: false };
     setBlocks(prev => [...prev, b]);
     setStarted(true);
     setPicking(false);
   };
   const addNoteBlock = () => {
-    const b = newNote(t.newNoteName);
+    const b = { ...newNote(t.newNoteName), nameKey: 'newNoteName' as const, userNamed: false };
     setBlocks(prev => [...prev, b]);
     setStarted(true);
     setPicking(false);
   };
+  const defaultRow = (i: number): BlockRow => ({
+    id: uid(), name: t.newRowName, nameKey: 'newRowName', userNamed: false, color: paletteColor(i),
+  });
   const quickStart = () => {
-    const row = () => [{ id: uid(), name: t.newRowName, color: paletteColor(0) }];
     setBlocks([
-      { ...newBlock(t.summaryIncome, 'in'), rows: row() },
-      { ...newBlock(t.summaryExpenses, 'out'), width: 'half', rows: row() },
-      { ...newBlock(t.summarySaved, 'save'), width: 'half', rows: row() },
-      { ...newSummary(t.summaryBlock), chart: { show: true, type: 'bars', size: 'M', position: 'bottom' } },
+      { ...newBlock(t.summaryIncome, 'in'), nameKey: 'summaryIncome', userNamed: false, rows: [defaultRow(0)] },
+      { ...newBlock(t.summaryExpenses, 'out'), nameKey: 'summaryExpenses', userNamed: false, width: 'half', rows: [defaultRow(0)] },
+      { ...newBlock(t.summarySaved, 'save'), nameKey: 'summarySaved', userNamed: false, width: 'half', rows: [defaultRow(0)] },
+      { ...newSummary(t.summaryBlock), nameKey: 'summaryBlock', userNamed: false, chart: { show: true, type: 'bars', size: 'M', position: 'bottom' } },
     ]);
     setStarted(true);
   };
@@ -302,14 +374,14 @@ export const CustomV3 = ({ year, month }: Props) => {
   const patchBlock = (id: string, patch: Partial<CustomBlock>) =>
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
 
-  const renameBlock = (id: string, name: string) => patchBlock(id, { name });
+  const renameBlock = (id: string, name: string) => patchBlock(id, { name, userNamed: true });
   const setNoteText = (id: string, text: string) => patchBlock(id, { text });
   const addRow = (id: string) =>
     setBlocks(prev => prev.map(b => b.id === id
-      ? { ...b, rows: [...b.rows, { id: uid(), name: t.newRowName, color: paletteColor(b.rows.length) }] } : b));
+      ? { ...b, rows: [...b.rows, defaultRow(b.rows.length)] } : b));
   const renameRow = (id: string, rowId: string, name: string) =>
     setBlocks(prev => prev.map(b => b.id === id
-      ? { ...b, rows: b.rows.map(r => r.id === rowId ? { ...r, name } : r) } : b));
+      ? { ...b, rows: b.rows.map(r => r.id === rowId ? { ...r, name, userNamed: true } : r) } : b));
   const recolorRow = (id: string, rowId: string, color: string) =>
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.map(r => r.id === rowId ? { ...r, color } : r) } : b));
@@ -337,6 +409,17 @@ export const CustomV3 = ({ year, month }: Props) => {
       return next;
     });
   };
+
+  // ── Render view: names resolved for the ACTIVE language ──
+  // One mapping point covers every consumer — titles, tiles, aria-labels,
+  // chart legends, dialog headings — so the UI can't mix languages while the
+  // stored structure keeps the raw name + nameKey. Ids are untouched, so all
+  // ops and amount lookups work on the view copies too.
+  const viewBlocks = useMemo(() => blocks.map(b => ({
+    ...b,
+    name: resolveDisplayName(b, t),
+    rows: b.rows.map(r => ({ ...r, name: resolveDisplayName(r, t) })),
+  })), [blocks, t]);
 
   // ── Money math ──
   const blockTotal = (b: CustomBlock) => b.rows.reduce((s, r) => s + (values[r.id] || 0), 0);
@@ -384,8 +467,8 @@ export const CustomV3 = ({ year, month }: Props) => {
     );
   }
 
-  const cfgBlock = configFor ? blocks.find(b => b.id === configFor) : null;
-  const expandedBlock = expandedFor ? blocks.find(b => b.id === expandedFor) : null;
+  const cfgBlock = configFor ? viewBlocks.find(b => b.id === configFor) : null;
+  const expandedBlock = expandedFor ? viewBlocks.find(b => b.id === expandedFor) : null;
 
   return (
     <div className="custom-canvas">
@@ -412,7 +495,7 @@ export const CustomV3 = ({ year, month }: Props) => {
           )}
         </div>
 
-        {blocks.map((b, index) => {
+        {viewBlocks.map((b, index) => {
           const isSummary = b.kind === 'summary';
           const total = blockTotal(b);
           // Phone: every block is a compact tile (tap → modal). Desktop: full inline.

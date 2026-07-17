@@ -41,47 +41,82 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
 };
 
-const formatterCache: Partial<Record<Currency, Intl.NumberFormat>> = {};
+// Two cached formatters per currency: whole amounts show NO decimals
+// ("1 200 kr"), amounts with öre/cents show EXACTLY two ("1 200,50 kr") —
+// never one ("1 200,5 kr" reads sloppy in a money app; fix plan 2026-07-12 §8).
+// Rounding to 2 digits first also clamps float drift like 0.30000000004.
+const wholeFmt: Partial<Record<Currency, Intl.NumberFormat>> = {};
+const centsFmt: Partial<Record<Currency, Intl.NumberFormat>> = {};
 
-function getFormatter(currency: Currency): Intl.NumberFormat {
-  let fmt = formatterCache[currency];
+function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat {
+  const cache = withCents ? centsFmt : wholeFmt;
+  let fmt = cache[currency];
   if (!fmt) {
     const cfg = CURRENCIES[currency];
-    // Show öre/cents ONLY when the amount actually has them: whole kronor render
-    // as "1 200 kr" (no ",00"), decimals as "1 200,5 kr" / "1 200,55 kr". max 2
-    // digits also clamps float drift like 0.30000000004 (UX review §16).
+    const digits = withCents ? 2 : 0;
     fmt = new Intl.NumberFormat(cfg.locale, {
       style: 'currency',
       currency: cfg.code,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     });
-    formatterCache[currency] = fmt;
+    cache[currency] = fmt;
   }
   return fmt;
 }
 
-/** Format an amount with the given currency's symbol/grouping (no conversion). */
+/** Format an amount with the given currency's symbol/grouping (no conversion).
+ *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
-  return getFormatter(currency).format(amount);
+  const rounded = Math.round(amount * 100) / 100;
+  const hasCents = !Number.isInteger(rounded);
+  return getFormatter(currency, hasCents).format(rounded);
 }
 
 // Language → locale for numeric formatting on chart axes (decimal separator).
 const AXIS_LOCALE: Record<Lang, string> = { sv: 'sv-SE', en: 'en-US', es: 'es-ES' };
 
+// Magnitude suffixes per language. "Billion" is a false friend: a Swedish
+// "biljon" is 1e12, so sv uses md (miljard) / bn (biljon); es follows the
+// same long-scale convention with "mil M" for 1e9.
+const AXIS_SUFFIX: Record<Lang, { m: string; b: string; t: string }> = {
+  sv: { m: 'M', b: 'md', t: 'bn' },
+  en: { m: 'M', b: 'B', t: 'T' },
+  es: { m: 'M', b: 'mil M', t: 'B' },
+};
+
 /**
  * Compact axis-tick label. Values below 1000 are shown in full (250, 750);
- * thousands are shown with up to ONE decimal using the language's decimal
- * separator (1000→"1k", 1500→"1,5k" sv / "1.5k" en, 12500→"12,5k"). Keeping the
- * decimal is what stops distinct ticks like 600/800/1000 all collapsing to "1k"
- * (the old `(v/1000).toFixed(0)` bug — UX review §10).
+ * larger ones step through k / M / billion / trillion tiers with up to ONE
+ * decimal in the language's separator (1500→"1,5k" sv / "1.5k" en;
+ * 2 500 000 000 → "2,5 md" sv / "2.5B" en). Two things this protects:
+ * distinct ticks must not collapse to the same text (600/800/1000 all reading
+ * "1k" — UX review §10), and a 10-billion axis must not read "10 000 000k"
+ * and clip out of the chart (stress test §13).
  */
 export function formatAxisTick(value: number, lang: Lang): string {
-  if (Math.abs(value) < 1000) {
-    return new Intl.NumberFormat(AXIS_LOCALE[lang]).format(value);
-  }
-  return new Intl.NumberFormat(AXIS_LOCALE[lang], { maximumFractionDigits: 1 })
-    .format(value / 1000) + 'k';
+  const abs = Math.abs(value);
+  const one = new Intl.NumberFormat(AXIS_LOCALE[lang], { maximumFractionDigits: 1 });
+  const sfx = AXIS_SUFFIX[lang];
+  if (abs < 1000) return new Intl.NumberFormat(AXIS_LOCALE[lang]).format(value);
+  if (abs < 1e6) return one.format(value / 1e3) + 'k';
+  if (abs < 1e9) return one.format(value / 1e6) + sfx.m;
+  if (abs < 1e12) return one.format(value / 1e9) + sfx.b;
+  return one.format(value / 1e12) + sfx.t;
+}
+
+/**
+ * Compact money for tight spots (the summary cards) when the amount is so
+ * large it would overflow: 10 000 000 000 → "10 md kr" / "$10B". Only used at
+ * ≥ 1e9 — everyday amounts keep their exact figures — and the full amount
+ * always rides along in title=/aria so nothing is actually lost.
+ */
+export function formatMoneyCompact(amount: number, currency: Currency, lang: Lang): string {
+  const compact = formatAxisTick(amount, lang);
+  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£' };
+  return currency === 'usd' || currency === 'gbp'
+    ? `${symbol[currency]}${compact}`
+    : `${compact} ${symbol[currency]}`;
 }
 
 export interface Translations {
@@ -263,6 +298,11 @@ export interface Translations {
   importData: string;
   importConfirm: string;
   importInvalid: string;
+  /** Distinct import failures — "invalid file" for all of them left the user
+   *  with no idea whether to retry, update the app, or find another backup. */
+  importTooNew: string;
+  importCorrupt: string;
+  importWriteFailed: string;
   importSuccess: string;
   // Reset month
   resetMonth: string;
@@ -296,9 +336,15 @@ export interface Translations {
   goalCount: (n: number) => string;
   avgPerMonth: string;
   // Savings tab
+  totalSaved: string;
   savedThisMonth: string;
   savedPrevMonth: string;
   pensionBox: string;
+  /** Shown instead of an amount when a month has no savings recorded — we don't
+   *  know what the balance was, and 0 would be a claim we can't back up. */
+  notRecorded: string;
+  /** Explains the "–" above: why there's no number and how to get one. */
+  notRecordedHint: string;
   // Plan tab
   planOverview: string;
   overviewSavingsRate: string;
@@ -312,6 +358,40 @@ export interface Translations {
   goalNameLabel: string;
   createGoal: string;
   cancel: string;
+  goalErrorName: string;
+  goalErrorTarget: string;
+  // Daily/weekly budget split ("left to live on")
+  dailyBudgetTitle: string;
+  dailyBudgetDaysLeft: (n: number, month: string) => string;
+  dailyBudgetDaysInMonth: (n: number, month: string) => string;
+  dailyBudgetPerDay: string;
+  dailyBudgetPerWeek: string;
+  // Sparplan (savings plan projection + plan-vs-actual)
+  sparplanTitle: string;
+  sparplanBody: string;
+  sparplanMonthly: string;
+  sparplanReturn: string;
+  sparplanStartAmount: string;
+  sparplanStartMonth: string;
+  /** Inline field errors — the UI keeps the draft so the user can fix it. */
+  sparplanErrAmount: string;
+  sparplanErrReturn: string;
+  sparplanErrMonth: string;
+  sparplanDelete: string;
+  sparplanDeleteConfirm: string;
+  sparplanIn5Years: string;
+  sparplanNow: string;
+  sparplanMonth: (n: number) => string;
+  sparplanOfWhichGrowth: (amount: string) => string;
+  sparplanWithGrowth: string;
+  sparplanDepositsOnly: string;
+  sparplanVsTitle: string;
+  sparplanVsBody: string;
+  sparplanSinceStart: string;
+  sparplanPlanLine: string;
+  sparplanAhead: (amount: string) => string;
+  sparplanBehind: (amount: string) => string;
+  sparplanOnTrack: string;
   noGoals: string;
   deleteGoal: string;
   linkedToBudget: string;
@@ -330,7 +410,11 @@ export interface Translations {
   colMonth: string;
   colIncome: string;
   colExpenses: string;
-  colSavings: string;
+  /** The Year tab reports two different savings measures and must never call
+   *  them the same thing: each month shows the BALANCE at that point, while the
+   *  year's total row shows how much that balance CHANGED over the year. */
+  colSavingsBalance: string;
+  colSavedDuringYear: string;
   colRemaining: string;
   yearTotal: string;
   yearEmpty: string;
@@ -558,6 +642,9 @@ export const translations: Record<Lang, Translations> = {
     importData: '⬆ Importera data',
     importConfirm: 'Detta ERSÄTTER all nuvarande data med innehållet i filen. Vill du fortsätta?',
     importInvalid: 'Ogiltig fil. Välj en säkerhetskopia exporterad från denna app.',
+    importTooNew: 'Filen kommer från en nyare version av appen. Uppdatera appen och försök igen. Din data är oförändrad.',
+    importCorrupt: 'Filen är skadad och kunde inte läsas. Ingenting har ändrats — din nuvarande data är kvar.',
+    importWriteFailed: 'Importen misslyckades och avbröts. Din tidigare data är återställd och oförändrad.',
     importSuccess: '✓ Data importerad',
     resetMonth: '↺ Återställ månad',
     resetMonthConfirm: (monthName) => `Detta nollställer ${monthName} och kan inte ångras. Vill du fortsätta?`,
@@ -584,8 +671,11 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
     goalCount: (n) => `${n} mål`,
     avgPerMonth: 'Snitt/månad',
+    totalSaved: 'Totalt sparat',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
+    notRecorded: 'Inte registrerat',
+    notRecordedHint: 'Fyll i ditt sparsaldo för månaden så räknar vi ut det här',
     pensionBox: 'Pension',
     planOverview: 'Översikt',
     overviewSavingsRate: 'Sparkvot',
@@ -599,6 +689,37 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Namn',
     createGoal: 'Skapa mål',
     cancel: 'Avbryt',
+    goalErrorName: 'Ange ett namn på målet',
+    goalErrorTarget: 'Målbeloppet måste vara större än 0',
+    dailyBudgetTitle: 'Kvar att leva på',
+    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'dag' : 'dagar'} kvar i ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
+    dailyBudgetPerDay: 'Per dag',
+    dailyBudgetPerWeek: 'Per vecka',
+    sparplanTitle: 'Sparplan',
+    sparplanBody: 'Planera ditt månadssparande och din förväntade avkastning — och se hur det växer med ränta på ränta.',
+    sparplanMonthly: 'Månadssparande',
+    sparplanReturn: 'Avkastning per år (%)',
+    sparplanStartAmount: 'Startbelopp',
+    sparplanStartMonth: 'Startmånad (ditt utgångsläge)',
+    sparplanErrAmount: 'Ange ett belopp mellan 0 och 999 999 999 999',
+    sparplanErrReturn: 'Ange en avkastning mellan 0 och 100 %',
+    sparplanErrMonth: 'Ange en riktig månad mellan 1900 och 2200',
+    sparplanDelete: 'Radera sparplan',
+    sparplanDeleteConfirm: 'Radera sparplanen? Dina månadsdata och sparmål påverkas inte.',
+    sparplanIn5Years: 'om 5 år',
+    sparplanNow: 'Nu',
+    sparplanMonth: (n) => `Månad ${n}`,
+    sparplanOfWhichGrowth: (amount) => `varav ${amount} är avkastning`,
+    sparplanWithGrowth: 'Med avkastning',
+    sparplanDepositsOnly: 'Bara insättningar',
+    sparplanVsTitle: 'Plan mot verklighet',
+    sparplanVsBody: 'Din plan (streckad) jämfört med vad du faktiskt sparat.',
+    sparplanSinceStart: 'sedan start',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} före plan`,
+    sparplanBehind: (amount) => `${amount} efter plan`,
+    sparplanOnTrack: 'I fas med planen',
     noGoals: 'Inga mål ännu — klicka "+ Nytt mål" för att komma igång',
     deleteGoal: 'Ta bort mål',
     linkedToBudget: 'Kopplad till budget',
@@ -616,7 +737,8 @@ export const translations: Record<Lang, Translations> = {
     colMonth: 'Månad',
     colIncome: 'Inkomst',
     colExpenses: 'Utgifter',
-    colSavings: 'Sparande',
+    colSavingsBalance: 'Sparsaldo',
+    colSavedDuringYear: 'Sparat under året',
     colRemaining: 'Kvar',
     yearTotal: 'Helår',
     yearEmpty: 'Ingen data för detta år ännu',
@@ -837,6 +959,9 @@ export const translations: Record<Lang, Translations> = {
     importData: '⬆ Import data',
     importConfirm: 'This will REPLACE all current data with the contents of the file. Continue?',
     importInvalid: 'Invalid file. Please choose a backup exported from this app.',
+    importTooNew: 'This file comes from a newer version of the app. Update the app and try again. Your data is unchanged.',
+    importCorrupt: 'This file is damaged and could not be read. Nothing was changed — your current data is still here.',
+    importWriteFailed: 'The import failed and was cancelled. Your previous data has been restored and is unchanged.',
     importSuccess: '✓ Data imported',
     resetMonth: '↺ Reset month',
     resetMonthConfirm: (monthName) => `This clears ${monthName} and can't be undone. Continue?`,
@@ -863,8 +988,11 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Fill in savings & investments to see the growth',
     goalCount: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}`,
     avgPerMonth: 'Avg/month',
+    totalSaved: 'Total saved',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
+    notRecorded: 'Not recorded',
+    notRecordedHint: 'Enter your savings balance for this month and we\'ll work it out',
     pensionBox: 'Pension',
     planOverview: 'Overview',
     overviewSavingsRate: 'Savings rate',
@@ -878,6 +1006,37 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Name',
     createGoal: 'Create goal',
     cancel: 'Cancel',
+    goalErrorName: 'Enter a name for the goal',
+    goalErrorTarget: 'The goal amount must be greater than 0',
+    dailyBudgetTitle: 'Left to live on',
+    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'day' : 'days'} left in ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
+    dailyBudgetPerDay: 'Per day',
+    dailyBudgetPerWeek: 'Per week',
+    sparplanTitle: 'Savings plan',
+    sparplanBody: 'Plan your monthly saving and expected return — and watch compound growth do its work.',
+    sparplanMonthly: 'Monthly saving',
+    sparplanReturn: 'Return per year (%)',
+    sparplanStartAmount: 'Starting amount',
+    sparplanStartMonth: 'Start month (your baseline)',
+    sparplanErrAmount: 'Enter an amount between 0 and 999,999,999,999',
+    sparplanErrReturn: 'Enter a return between 0 and 100%',
+    sparplanErrMonth: 'Enter a real month between 1900 and 2200',
+    sparplanDelete: 'Delete savings plan',
+    sparplanDeleteConfirm: 'Delete the savings plan? Your monthly data and goals are not affected.',
+    sparplanIn5Years: 'in 5 years',
+    sparplanNow: 'Now',
+    sparplanMonth: (n) => `Month ${n}`,
+    sparplanOfWhichGrowth: (amount) => `of which ${amount} is growth`,
+    sparplanWithGrowth: 'With growth',
+    sparplanDepositsOnly: 'Deposits only',
+    sparplanVsTitle: 'Plan vs reality',
+    sparplanVsBody: 'Your plan (dashed) compared with what you have actually saved.',
+    sparplanSinceStart: 'since start',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} ahead of plan`,
+    sparplanBehind: (amount) => `${amount} behind plan`,
+    sparplanOnTrack: 'On track with the plan',
     noGoals: 'No goals yet — click "+ New goal" to get started',
     deleteGoal: 'Delete goal',
     linkedToBudget: 'Linked to budget',
@@ -895,7 +1054,8 @@ export const translations: Record<Lang, Translations> = {
     colMonth: 'Month',
     colIncome: 'Income',
     colExpenses: 'Expenses',
-    colSavings: 'Savings',
+    colSavingsBalance: 'Savings balance',
+    colSavedDuringYear: 'Saved during the year',
     colRemaining: 'Remaining',
     yearTotal: 'Full year',
     yearEmpty: 'No data for this year yet',
@@ -1116,6 +1276,9 @@ export const translations: Record<Lang, Translations> = {
     importData: '⬆ Importar datos',
     importConfirm: 'Esto REEMPLAZARÁ todos los datos actuales con el contenido del archivo. ¿Continuar?',
     importInvalid: 'Archivo no válido. Elige una copia de seguridad exportada desde esta app.',
+    importTooNew: 'El archivo procede de una versión más reciente de la app. Actualízala e inténtalo de nuevo. Tus datos no han cambiado.',
+    importCorrupt: 'El archivo está dañado y no se pudo leer. No se ha cambiado nada: tus datos siguen intactos.',
+    importWriteFailed: 'La importación falló y se canceló. Tus datos anteriores se han restaurado y están intactos.',
     importSuccess: '✓ Datos importados',
     resetMonth: '↺ Restablecer mes',
     resetMonthConfirm: (monthName) => `Esto borra ${monthName} y no se puede deshacer. ¿Continuar?`,
@@ -1142,8 +1305,11 @@ export const translations: Record<Lang, Translations> = {
     placeholderSavings: 'Rellena el ahorro e inversiones para ver el crecimiento',
     goalCount: (n) => `${n} ${n === 1 ? 'meta' : 'metas'}`,
     avgPerMonth: 'Media/mes',
+    totalSaved: 'Ahorro total',
     savedThisMonth: 'Ahorrado este mes',
     savedPrevMonth: 'Ahorrado el mes anterior',
+    notRecorded: 'Sin registrar',
+    notRecordedHint: 'Introduce tu saldo de ahorro de este mes y lo calculamos',
     pensionBox: 'Pensión',
     planOverview: 'Resumen',
     overviewSavingsRate: 'Tasa de ahorro',
@@ -1157,6 +1323,37 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Nombre',
     createGoal: 'Crear meta',
     cancel: 'Cancelar',
+    goalErrorName: 'Escribe un nombre para la meta',
+    goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
+    dailyBudgetTitle: 'Para vivir este mes',
+    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'día restante' : 'días restantes'} de ${month}`,
+    dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
+    dailyBudgetPerDay: 'Por día',
+    dailyBudgetPerWeek: 'Por semana',
+    sparplanTitle: 'Plan de ahorro',
+    sparplanBody: 'Planifica tu ahorro mensual y el rendimiento esperado — y mira crecer el interés compuesto.',
+    sparplanMonthly: 'Ahorro mensual',
+    sparplanReturn: 'Rendimiento anual (%)',
+    sparplanStartAmount: 'Importe inicial',
+    sparplanStartMonth: 'Mes de inicio (tu punto de partida)',
+    sparplanErrAmount: 'Introduce un importe entre 0 y 999.999.999.999',
+    sparplanErrReturn: 'Introduce un rendimiento entre 0 y 100 %',
+    sparplanErrMonth: 'Introduce un mes real entre 1900 y 2200',
+    sparplanDelete: 'Eliminar plan de ahorro',
+    sparplanDeleteConfirm: '¿Eliminar el plan de ahorro? Tus datos mensuales y metas no se ven afectados.',
+    sparplanIn5Years: 'en 5 años',
+    sparplanNow: 'Ahora',
+    sparplanMonth: (n) => `Mes ${n}`,
+    sparplanOfWhichGrowth: (amount) => `de los cuales ${amount} es rendimiento`,
+    sparplanWithGrowth: 'Con rendimiento',
+    sparplanDepositsOnly: 'Solo aportaciones',
+    sparplanVsTitle: 'Plan frente a realidad',
+    sparplanVsBody: 'Tu plan (discontinuo) comparado con lo que realmente has ahorrado.',
+    sparplanSinceStart: 'desde el inicio',
+    sparplanPlanLine: 'Plan',
+    sparplanAhead: (amount) => `${amount} por delante del plan`,
+    sparplanBehind: (amount) => `${amount} por detrás del plan`,
+    sparplanOnTrack: 'En línea con el plan',
     noGoals: 'Aún no hay metas — pulsa "+ Nueva meta" para empezar',
     deleteGoal: 'Eliminar meta',
     linkedToBudget: 'Vinculado al presupuesto',
@@ -1174,7 +1371,8 @@ export const translations: Record<Lang, Translations> = {
     colMonth: 'Mes',
     colIncome: 'Ingresos',
     colExpenses: 'Gastos',
-    colSavings: 'Ahorro',
+    colSavingsBalance: 'Saldo de ahorro',
+    colSavedDuringYear: 'Ahorrado durante el año',
     colRemaining: 'Restante',
     yearTotal: 'Año completo',
     yearEmpty: 'Aún no hay datos para este año',

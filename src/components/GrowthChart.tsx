@@ -7,6 +7,7 @@ import {
 import type { BudgetCategory } from '../types';
 import { loadYearSavingsTotals } from '../defaults';
 import { useLang, formatAxisTick } from '../i18n';
+import { chartColors } from '../themes';
 
 type ChartType = 'area' | 'line' | 'stacked';
 const CHART_TYPE_KEY = 'budget_savings_chart';
@@ -54,9 +55,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
     localStorage.setItem(CHART_TYPE_KEY, type);
   };
 
-  const isLight = document.documentElement.dataset.theme === 'light';
-  const tickColor  = isLight ? '#64748b' : '#64748b';
-  const gridColor  = isLight ? '#e2e8f0' : '#1e293b';
+  const { text: tickColor, grid: gridColor } = chartColors();
 
   // Pension is excluded from the growth chart — it's tracked as a separate bucket.
   const LINES = [
@@ -71,24 +70,30 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
   // instead of stale localStorage value
   const data = allMonths.slice(0, currentMonth + 1).map((entry, idx) => {
     let byCategory = entry.byCategory;
+    let hasSnapshot = entry.hasSnapshot;
     if (idx === currentMonth) {
       // Override with live React state
       byCategory = {};
       for (const cat of currentSavings) {
         byCategory[cat.id] = cat.rows.reduce((s, r) => s + r.amount, 0);
       }
+      hasSnapshot = currentSavings.length > 0;
     }
     // Flatten so Recharts can use simple dataKey="sparkonto" (no nested dot access).
     // Pension is intentionally excluded — it's a separate bucket, not charted.
+    // A month with nothing recorded plots `null`, which Recharts leaves as a gap:
+    // plotting 0 drew the balance plunging to the axis and back, money the user
+    // never withdrew. Within a recorded month, an absent category IS 0.
+    const at = (key: string) => (hasSnapshot ? byCategory[key] ?? 0 : null);
     return {
       month: entry.month,
-      sparkonto: byCategory['sparkonto'] ?? 0,
-      isk:       byCategory['isk']       ?? 0,
-      fonder:    byCategory['fonder']    ?? 0,
+      sparkonto: at('sparkonto'),
+      isk:       at('isk'),
+      fonder:    at('fonder'),
     };
   });
 
-  const hasData = data.some(d => d.sparkonto + d.isk + d.fonder > 0);
+  const hasData = data.some(d => (d.sparkonto ?? 0) + (d.isk ?? 0) + (d.fonder ?? 0) > 0);
 
   if (!hasData) {
     return (
@@ -158,7 +163,33 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
             </button>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={260}>
+        {/* Screen-reader alternative: the SVG below is decorative noise to AT,
+            so the same data ships as a visually-hidden table (sr-only clips it
+            offscreen — display:none would hide it from AT too). */}
+        <table className="sr-only">
+          <caption>{t.chartGrowth(year)}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t.colMonth}</th>
+              {LINES.map(l => <th key={l.key} scope="col">{l.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map(d => (
+              <tr key={d.month}>
+                <th scope="row">{d.month}</th>
+                {LINES.map(l => (
+                  <td key={l.key}>
+                    {d[l.key as 'sparkonto' | 'isk' | 'fonder'] === null
+                      ? t.notRecorded
+                      : money(d[l.key as 'sparkonto' | 'isk' | 'fonder'] as number)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ResponsiveContainer width="100%" height={260} aria-hidden="true">
           {chartType === 'area' ? (
             <AreaChart data={data} margin={margin}>
               <defs>

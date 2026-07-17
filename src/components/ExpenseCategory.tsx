@@ -48,15 +48,17 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
   return (
     <section className="budget-section expense-section" style={{ '--accent': category.color } as CSSProperties}>
       <div className="section-header">
-        <span
-          className="section-icon"
-          onClick={() => setCollapsed(c => !c)}
-          style={{ cursor: 'pointer' }}
-        >
+        {/* Decorative: collapsing is owned by the collapse-arrow button, so the
+            icon is hidden from AT rather than being a keyboard-dead click trap. */}
+        <span className="section-icon" aria-hidden="true">
           {category.icon}
         </span>
+        {/* title= carries the full name when the ellipsis truncates it on
+            narrow screens. Clicking stays as a pointer shortcut; the
+            collapse-arrow button is the accessible control. */}
         <h2
           className="section-title"
+          title={shownName(category, lang)}
           onClick={() => setCollapsed(c => !c)}
           style={{ cursor: 'pointer' }}
         >

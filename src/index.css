@@ -16,6 +16,11 @@
   --text: #e2e8f0;
   --text-muted: #8392a8; /* AA ≥4.5:1 on --surface (was #64748b, 3.07:1) */
   --text-dim: #94a3b8;
+  /* Chart ink — aliases so every chart tracks the theme (incl. custom themes,
+     which override --text-muted/--border). Recharts can't resolve var() inside
+     SVG attributes, so components read the computed value via chartColors(). */
+  --chart-text: var(--text-muted);
+  --chart-grid: var(--border);
   --income-color: #22d3ee;
   --positive: #22c55e;
   --negative: #ef4444;
@@ -249,7 +254,9 @@ a:focus-visible,
 
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, …): grid children default to min-width auto, so one extreme
+     amount would widen its column and push the others out of their cards. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -258,6 +265,7 @@ a:focus-visible,
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
+  min-width: 0;
 }
 
 /* Role-tinted hero/accent cards (Sorbet) */
@@ -298,11 +306,71 @@ a:focus-visible,
 .positive-amount { color: var(--tint-remaining-text); }
 .negative-amount { color: var(--negative); }
 
+/* "–" where a figure would be, when the month has no savings recorded. Muted on
+   purpose: a missing answer is not a bad result, and must never read like the
+   red of a withdrawal. `help` cursor hints at the title explaining it. */
+.amount-unknown {
+  color: var(--text-muted);
+  cursor: help;
+}
+
 .card-sub {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 4px;
 }
+
+/* ─── Daily/weekly budget split ("left to live on") ───────────────── */
+.daily-budget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-top: 12px;
+  min-width: 0;
+}
+.daily-budget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.daily-budget-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.daily-budget-days {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.daily-budget-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.daily-budget-tile {
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.daily-budget-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.daily-budget-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--tint-remaining-text);
+}
+.daily-budget-value.daily-budget-negative { color: var(--negative); }
 
 /* ─── Budget grid ─────────────────────────────────────────────────── */
 
@@ -351,6 +419,12 @@ a:focus-visible,
   border-bottom: 1px solid var(--border);
   text-align: center;
 }
+/* Jump targets are focused programmatically; no ring on a plain heading. */
+.combined-section-title:focus { outline: none; }
+
+/* Combined jump-nav (§14): desktop scrolls fine — phones get it via the
+   mobile block at the end of this file. Hidden by default. */
+.combined-jump-nav { display: none; }
 
 /* ─── Custom layout (from-scratch section builder) ────────────────── */
 /* An ordered list of configurable section instances (Budget/Savings/Goals/
@@ -927,9 +1001,11 @@ a:focus-visible,
 }
 /* Inside the modal, force single-column so the budget two-column grid (chart on
    the right) stacks and nothing is pushed off the left edge. */
-.custom-expand-body .budget-grid { grid-template-columns: 1fr; }
+.custom-expand-body .budget-grid { grid-template-columns: minmax(0, 1fr); }
+.custom-expand-body .budget-left,
+.custom-expand-body .budget-right { min-width: 0; }
 .custom-expand-body .budget-right { position: static; }
-.custom-expand-body .summary-cards { grid-template-columns: 1fr; }
+.custom-expand-body .summary-cards { grid-template-columns: minmax(0, 1fr); }
 
 /* ─── Custom: empty state ─────────────────────────────────────────── */
 .custom-empty {
@@ -1290,13 +1366,29 @@ a:focus-visible,
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  flex: 1;
+  /* min-width: 0 is what lets the name SHRINK: flex items default to
+     min-width auto, so a long category name ("Prenumerationer") refused to
+     give way and pushed the collapse button off a 320px screen. The name
+     truncates with an ellipsis instead; the full text stays in title="". */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-total {
   font-size: 0.9rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* Everything around the title keeps its size — only the title yields. */
+.section-icon,
+.section-total,
+.cat-edit-btn,
+.collapse-arrow {
+  flex-shrink: 0;
 }
 
 .income-total {
@@ -1658,8 +1750,16 @@ a:focus-visible,
 /* ─── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
+  /* minmax(0,1fr) instead of 1fr: a plain 1fr keeps the content's automatic
+     min-width, so long text/charts can push the column past very narrow
+     screens (~320px) and cause horizontal page scroll (fix plan 2026-07-12 P1). */
   .budget-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .budget-left,
+  .budget-right {
+    min-width: 0;
   }
 
   .budget-right {
@@ -1667,7 +1767,7 @@ a:focus-visible,
   }
 
   .summary-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .month-title {
@@ -2758,8 +2858,117 @@ a:focus-visible,
   justify-content: flex-end;
   gap: 8px;
 }
+.goal-form-error {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--negative);
+}
+
+/* Suspense placeholder while a lazy view's chunk loads — reserves space so
+   the swap-in doesn't shift the page; invisible on purpose (loads are fast,
+   a spinner would just flash). */
+.lazy-fallback { min-height: 240px; }
+
+/* Inline per-field error (Sparplan inputs) — same tone as the goal form. */
+.field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--negative);
+}
+
+.sparplan-delete-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--negative) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--negative);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sparplan-delete-btn:hover {
+  background: color-mix(in srgb, var(--negative) 12%, transparent);
+}
+
+/* ─── Sparplan (savings plan projection + plan-vs-actual) ─────────── */
+.sparplan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.sparplan-body {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.sparplan-subtitle {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.sparplan-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sparplan-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sparplan-hero-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sparplan-hero-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.sparplan-growth { color: var(--positive); font-weight: 600; }
+.sparplan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.sparplan-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.sparplan-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.sparplan-swatch-line { height: 2px; width: 14px; border-radius: 1px; }
+.sparplan-swatch-dash {
+  height: 0; width: 14px; border-radius: 0;
+  background: transparent !important;
+  border-top: 2px dashed #888780;
+}
+.sparplan-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 10px;
+}
+.sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
+.sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
+.sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
 @media (max-width: 640px) {
-  .goal-form-grid { grid-template-columns: 1fr; }
+  .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .goals-grid {
@@ -3454,7 +3663,7 @@ a:focus-visible,
      Compact summary cards (label + amount only, 3 across) keep the first input
      row within easy reach; the secondary percentages live in Plan (§9). */
   .summary-cards {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
   .summary-card { padding: 12px 10px; }
@@ -3463,9 +3672,16 @@ a:focus-visible,
     letter-spacing: 0.04em;
     margin-bottom: 4px;
   }
+  /* Fixed size, not vw: viewport-driven text can't be zoomed reliably and
+     still overflowed on billion-kr amounts. Compacting happens in the DATA
+     (formatMoneyCompact ≥ 1e9), so the text always fits at a readable size. */
   .summary-card .card-amount {
-    font-size: clamp(0.78rem, 3.2vw, 0.98rem);
+    font-size: 0.95rem;
     white-space: nowrap;
+    letter-spacing: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .summary-cards .card-sub { display: none; }
 
@@ -3586,7 +3802,7 @@ a:focus-visible,
   .cfg-chart-gallery { gap: 6px; }
 
   /* Custom v3: side-by-side chart/rows split stacks; amounts stay tappable. */
-  .cv3-split { grid-template-columns: 1fr; }
+  .cv3-split { grid-template-columns: minmax(0, 1fr); }
   .cv3-split.chart-left > .cv3-chart-slot { order: 0; }
   .cv3-amount-input { width: 96px; }
 
@@ -3595,4 +3811,49 @@ a:focus-visible,
   .cfg-target-input { width: 100%; }
   /* The target bar inside a phone tile is full-width already; keep label small. */
   .custom-tile-btn .cv3-target { margin-top: 8px; width: 100%; }
+
+  /* Sparplan: stack the three plan inputs on phones. */
+  .sparplan-inputs { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Combined layout on phones (§14): the four stacked sections run ~10 000px
+   tall, so a slim sticky nav keeps each one a single tap away. Sticky (not
+   fixed) so it never covers headings or form fields — it occupies its own
+   row and yields at the end of the page. */
+@media (max-width: 640px) {
+  .combined-jump-nav {
+    display: flex;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: 8px 0;
+    background: var(--header-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .combined-jump-btn {
+    flex: 1 1 0;
+    min-height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Anchored headings stop below the sticky bar instead of under it. */
+  .combined-section-title { scroll-margin-top: 64px; }
+}
+
+/* Very narrow phones (320px class): the category header carries icon + name +
+   total + two 40px buttons, so the only room left to give is the gaps. Touch
+   targets stay at 40px — the title's ellipsis absorbs the rest. */
+@media (max-width: 340px) {
+  .section-header { gap: 6px; }
 }
