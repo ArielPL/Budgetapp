@@ -397,3 +397,18 @@ export function applyPersistedTheme(): ThemeState {
   applyVars(resolveVars(state), state.mode);
   return state;
 }
+
+/**
+ * Concrete chart ink for the ACTIVE theme. Recharts writes colors into SVG
+ * presentation attributes, where `var(--chart-text)` is not valid — so charts
+ * read the resolved value at render time instead of hardcoding a hex that
+ * ignores the theme (the old #64748b was 3.07:1 against the dark surface,
+ * under the 4.5:1 small-text requirement; --text-muted is tuned per palette).
+ */
+export function chartColors(): { text: string; grid: string } {
+  const cs = getComputedStyle(document.documentElement);
+  return {
+    text: cs.getPropertyValue('--chart-text').trim() || '#8392a8',
+    grid: cs.getPropertyValue('--chart-grid').trim() || '#334155',
+  };
+}

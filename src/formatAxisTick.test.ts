@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatAxisTick } from './i18n';
+import { formatAxisTick, formatMoneyCompact } from './i18n';
 
 describe('formatAxisTick', () => {
   it('shows sub-1000 values in full', () => {
@@ -30,5 +30,40 @@ describe('formatAxisTick', () => {
   it('handles negatives', () => {
     expect(formatAxisTick(-500, 'en')).toBe('-500');
     expect(formatAxisTick(-2000, 'en')).toBe('-2k');
+  });
+
+  // §13: a 10-billion axis used to read "10 000 000k" and clip out of the box.
+  it('steps through million / billion / trillion tiers', () => {
+    expect(formatAxisTick(1_500_000, 'en')).toBe('1.5M');
+    expect(formatAxisTick(1_000_000_000, 'en')).toBe('1B');
+    expect(formatAxisTick(2_500_000_000, 'en')).toBe('2.5B');
+    expect(formatAxisTick(1_000_000_000_000, 'en')).toBe('1T');
+  });
+
+  it('uses long-scale abbreviations for Swedish and Spanish billions', () => {
+    // A Swedish "biljon" is 1e12 — B would be a false friend. 1e9 = miljard.
+    expect(formatAxisTick(1_500_000, 'sv')).toBe('1,5M');
+    expect(formatAxisTick(2_500_000_000, 'sv')).toBe('2,5md');
+    expect(formatAxisTick(2_500_000_000, 'es')).toBe('2,5mil M');
+    expect(formatAxisTick(1_000_000_000_000, 'sv')).toBe('1bn');
+  });
+
+  it('handles negative millions and billions', () => {
+    expect(formatAxisTick(-1_500_000, 'en')).toBe('-1.5M');
+    expect(formatAxisTick(-2_000_000_000, 'en')).toBe('-2B');
+  });
+
+  it('keeps neighbouring big ticks distinct', () => {
+    const labels = [900_000_000, 1_000_000_000, 1_100_000_000].map(v => formatAxisTick(v, 'en'));
+    expect(new Set(labels).size).toBe(3); // 900M / 1B / 1.1B
+  });
+});
+
+describe('formatMoneyCompact (summary cards at ≥ 1e9)', () => {
+  it('places the symbol by currency convention', () => {
+    expect(formatMoneyCompact(10_000_000_000, 'sek', 'sv')).toBe('10md kr');
+    expect(formatMoneyCompact(10_000_000_000, 'usd', 'en')).toBe('$10B');
+    expect(formatMoneyCompact(2_500_000_000, 'eur', 'es')).toBe('2,5mil M €');
+    expect(formatMoneyCompact(1_500_000_000, 'gbp', 'en')).toBe('£1.5B');
   });
 });

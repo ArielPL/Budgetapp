@@ -10,7 +10,7 @@ interface Props {
   data: PlanData;
   onChange: (data: PlanData) => void;
   totalIncome: number;
-  savedThisMonth: number; // how far the savings balance moved this month
+  savedThisMonth: number | null; // how far the balance moved; null = not recorded
   year: number;
   month: number;
 }
@@ -265,9 +265,11 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
   // ── Overview highlights (current month) ──
   // Real savings rate: what the balance actually gained this month ÷ income.
   // (savedThisMonth already excludes pension — see App / calculateSavingsMetrics.)
-  const savingsRate = totalIncome > 0
+  // Unknown when the month's saving is unknown: 0% is a real, dispiriting result
+  // and must not be shown to someone who simply hasn't filled the month in.
+  const savingsRate = savedThisMonth !== null && totalIncome > 0
     ? Math.max(0, Math.round((savedThisMonth / totalIncome) * 100))
-    : 0;
+    : null;
   const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
   const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
   const goalProgress = totalTarget > 0
@@ -288,12 +290,22 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
         <div className="overview-highlights">
           <div className="overview-stat overview-stat-rate">
             <div className="overview-stat-label">{t.overviewSavingsRate}</div>
-            <div className="overview-stat-value">{savingsRate}%</div>
+            <div className="overview-stat-value">
+              {savingsRate === null
+                ? <span className="amount-unknown" title={t.notRecordedHint}>–</span>
+                : `${savingsRate}%`}
+            </div>
           </div>
           <div className="overview-stat overview-stat-saved">
             <div className="overview-stat-label">{t.overviewSavedThisMonth}</div>
-            <div className="overview-stat-value">{money(savedThisMonth)}</div>
-            <div className="overview-stat-sub">{monthLabel}</div>
+            <div className="overview-stat-value">
+              {savedThisMonth === null
+                ? <span className="amount-unknown" title={t.notRecordedHint}>–</span>
+                : money(savedThisMonth)}
+            </div>
+            <div className="overview-stat-sub">
+              {savedThisMonth === null ? t.notRecorded : monthLabel}
+            </div>
           </div>
           <div className="overview-stat overview-stat-goal">
             <div className="overview-stat-label">{t.overviewGoalProgress}</div>

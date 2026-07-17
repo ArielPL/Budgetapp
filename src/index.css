@@ -16,6 +16,11 @@
   --text: #e2e8f0;
   --text-muted: #8392a8; /* AA ≥4.5:1 on --surface (was #64748b, 3.07:1) */
   --text-dim: #94a3b8;
+  /* Chart ink — aliases so every chart tracks the theme (incl. custom themes,
+     which override --text-muted/--border). Recharts can't resolve var() inside
+     SVG attributes, so components read the computed value via chartColors(). */
+  --chart-text: var(--text-muted);
+  --chart-grid: var(--border);
   --income-color: #22d3ee;
   --positive: #22c55e;
   --negative: #ef4444;
@@ -249,7 +254,9 @@ a:focus-visible,
 
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, …): grid children default to min-width auto, so one extreme
+     amount would widen its column and push the others out of their cards. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -258,6 +265,7 @@ a:focus-visible,
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
+  min-width: 0;
 }
 
 /* Role-tinted hero/accent cards (Sorbet) */
@@ -297,6 +305,14 @@ a:focus-visible,
 .expense-amount { color: var(--tint-expense-text); }
 .positive-amount { color: var(--tint-remaining-text); }
 .negative-amount { color: var(--negative); }
+
+/* "–" where a figure would be, when the month has no savings recorded. Muted on
+   purpose: a missing answer is not a bad result, and must never read like the
+   red of a withdrawal. `help` cursor hints at the title explaining it. */
+.amount-unknown {
+  color: var(--text-muted);
+  cursor: help;
+}
 
 .card-sub {
   font-size: 0.75rem;
@@ -403,6 +419,12 @@ a:focus-visible,
   border-bottom: 1px solid var(--border);
   text-align: center;
 }
+/* Jump targets are focused programmatically; no ring on a plain heading. */
+.combined-section-title:focus { outline: none; }
+
+/* Combined jump-nav (§14): desktop scrolls fine — phones get it via the
+   mobile block at the end of this file. Hidden by default. */
+.combined-jump-nav { display: none; }
 
 /* ─── Custom layout (from-scratch section builder) ────────────────── */
 /* An ordered list of configurable section instances (Budget/Savings/Goals/
@@ -1344,13 +1366,29 @@ a:focus-visible,
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  flex: 1;
+  /* min-width: 0 is what lets the name SHRINK: flex items default to
+     min-width auto, so a long category name ("Prenumerationer") refused to
+     give way and pushed the collapse button off a 320px screen. The name
+     truncates with an ellipsis instead; the full text stays in title="". */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-total {
   font-size: 0.9rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* Everything around the title keeps its size — only the title yields. */
+.section-icon,
+.section-total,
+.cat-edit-btn,
+.collapse-arrow {
+  flex-shrink: 0;
 }
 
 .income-total {
@@ -2827,6 +2865,36 @@ a:focus-visible,
   color: var(--negative);
 }
 
+/* Suspense placeholder while a lazy view's chunk loads — reserves space so
+   the swap-in doesn't shift the page; invisible on purpose (loads are fast,
+   a spinner would just flash). */
+.lazy-fallback { min-height: 240px; }
+
+/* Inline per-field error (Sparplan inputs) — same tone as the goal form. */
+.field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--negative);
+}
+
+.sparplan-delete-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--negative) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--negative);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sparplan-delete-btn:hover {
+  background: color-mix(in srgb, var(--negative) 12%, transparent);
+}
+
 /* ─── Sparplan (savings plan projection + plan-vs-actual) ─────────── */
 .sparplan-card {
   background: var(--surface);
@@ -3604,9 +3672,16 @@ a:focus-visible,
     letter-spacing: 0.04em;
     margin-bottom: 4px;
   }
+  /* Fixed size, not vw: viewport-driven text can't be zoomed reliably and
+     still overflowed on billion-kr amounts. Compacting happens in the DATA
+     (formatMoneyCompact ≥ 1e9), so the text always fits at a readable size. */
   .summary-card .card-amount {
-    font-size: clamp(0.78rem, 3.2vw, 0.98rem);
+    font-size: 0.95rem;
     white-space: nowrap;
+    letter-spacing: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .summary-cards .card-sub { display: none; }
 
@@ -3739,4 +3814,46 @@ a:focus-visible,
 
   /* Sparplan: stack the three plan inputs on phones. */
   .sparplan-inputs { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Combined layout on phones (§14): the four stacked sections run ~10 000px
+   tall, so a slim sticky nav keeps each one a single tap away. Sticky (not
+   fixed) so it never covers headings or form fields — it occupies its own
+   row and yields at the end of the page. */
+@media (max-width: 640px) {
+  .combined-jump-nav {
+    display: flex;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: 8px 0;
+    background: var(--header-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .combined-jump-btn {
+    flex: 1 1 0;
+    min-height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Anchored headings stop below the sticky bar instead of under it. */
+  .combined-section-title { scroll-margin-top: 64px; }
+}
+
+/* Very narrow phones (320px class): the category header carries icon + name +
+   total + two 40px buttons, so the only room left to give is the gaps. Touch
+   targets stay at 40px — the title's ellipsis absorbs the rest. */
+@media (max-width: 340px) {
+  .section-header { gap: 6px; }
 }

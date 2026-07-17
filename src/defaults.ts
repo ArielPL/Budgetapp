@@ -1,6 +1,7 @@
 import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
+import { calculateSavingsMetrics } from './metrics';
 
 export const CATEGORY_COLORS: Record<string, string> = {
   boende: '#6366f1',
@@ -388,7 +389,7 @@ export function makeGoalColor(index: number): string {
 }
 
 // Read savings totals for every month in a year, for the growth chart
-export function loadYearSavingsTotals(year: number, lang: Lang = 'sv'): { month: string; total: number; byCategory: Record<string, number> }[] {
+export function loadYearSavingsTotals(year: number, lang: Lang = 'sv'): { month: string; total: number; hasSnapshot: boolean; byCategory: Record<string, number> }[] {
   return Array.from({ length: 12 }, (_, m) => {
     const data = loadMonthData(year, m, lang);
     const byCategory: Record<string, number> = {};
@@ -398,6 +399,13 @@ export function loadYearSavingsTotals(year: number, lang: Lang = 'sv'): { month:
       byCategory[cat.id] = sum;
       total += sum;
     }
-    return { month: MONTHS_SHORT[lang][m], total, byCategory };
+    // `hasSnapshot: false` = the month was never filled in, so callers must plot
+    // a gap rather than a 0 (which draws the pot crashing to the axis).
+    // Sourced from metrics so there's exactly one definition of "recorded".
+    return {
+      month: MONTHS_SHORT[lang][m], total,
+      hasSnapshot: calculateSavingsMetrics(data).hasSnapshot,
+      byCategory,
+    };
   });
 }

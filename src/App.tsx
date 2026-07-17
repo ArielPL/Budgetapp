@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, type ChangeEvent } from 'react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -6,12 +6,19 @@ import { IncomeSection } from './components/IncomeSection';
 import { ExpenseCategory } from './components/ExpenseCategory';
 import { SummaryCards } from './components/SummaryCards';
 import { DailyBudget } from './components/DailyBudget';
-import { Charts } from './components/Charts';
-import { SavingsTab } from './components/SavingsTab';
-import { PlanTab } from './components/PlanTab';
-import { YearTab } from './components/YearTab';
-import { CustomV3 } from './components/CustomV3';
 import { BackupBanner } from './components/BackupBanner';
+
+// ── Code-split the chart-heavy views (stress test §12) ──
+// Recharts is ~half the bundle, and these five components are the only paths
+// to it — loading them on demand keeps the first paint (the Budget entry
+// view) free of chart code. Each Suspense fallback reserves the region's
+// height so the swap-in doesn't shift the layout.
+const Charts = lazy(() => import('./components/Charts').then(m => ({ default: m.Charts })));
+const SavingsTab = lazy(() => import('./components/SavingsTab').then(m => ({ default: m.SavingsTab })));
+const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: m.PlanTab })));
+const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
+const CustomV3 = lazy(() => import('./components/CustomV3').then(m => ({ default: m.CustomV3 })));
+const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
@@ -31,6 +38,7 @@ import {
   type ThemeVars,
 } from './themes';
 import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth } from './metrics';
+import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 
@@ -325,26 +333,17 @@ function App() {
     };
   }, [menuOpen]);
 
-  // ── Backup: export all budget_* keys to a JSON file ──────────────
+  // ── Backup: export every backup-owned key to a JSON file ─────────
+  // The key policy, validation and replace-with-rollback all live in backup.ts
+  // so they can be unit-tested without a real localStorage; this is just the
+  // browser plumbing (file download, confirm dialog, reload).
   const exportData = () => {
-    const dataObj: Record<string, string> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('budget_')) {
-        dataObj[key] = localStorage.getItem(key) ?? '';
-      }
-    }
-    const payload = {
-      app: 'budget',
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      data: dataObj,
-    };
+    const payload = buildBackup(localStorage);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `budget-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = backupFilename();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -360,32 +359,30 @@ function App() {
     setShowBackupReminder(false);
   };
 
-  // ── Backup: import a JSON file and replace all data ──────────────
+  // ── Backup: import a JSON file, REPLACING all data ───────────────
+  // Validate the whole file first, then ask, then swap — so a refused file and
+  // a cancelled dialog both leave the user's data exactly as it was, and a
+  // failed write rolls back rather than stranding a half-restored mixture.
   const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-selecting the same file later
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result as string);
-        const incoming = parsed?.data;
-        const looksValid =
-          incoming && typeof incoming === 'object' &&
-          (parsed.app === 'budget' || Object.keys(incoming).some(k => k.startsWith('budget_')));
-        if (!looksValid) {
-          alert(t.importInvalid);
-          return;
-        }
-        if (!window.confirm(t.importConfirm)) return;
-        for (const [key, value] of Object.entries(incoming)) {
-          localStorage.setItem(key, value as string);
-        }
-        location.reload();
-      } catch {
-        alert(t.importInvalid);
+      const check = checkBackup(reader.result as string);
+      if (!check.ok) {
+        alert(importErrorText(check.reason, t));
+        return;
       }
+      if (!window.confirm(t.importConfirm)) return;
+      const result = applyBackup(localStorage, check.payload);
+      if (!result.ok) {
+        alert(importErrorText(result.reason, t));
+        return;
+      }
+      location.reload();
     };
+    reader.onerror = () => alert(t.importInvalid);
     reader.readAsText(file);
   };
 
@@ -636,11 +633,13 @@ function App() {
   // The Savings tab records a running BALANCE, so what was actually saved this
   // month is how far that balance moved since last month. Pension is excluded
   // (separate bucket). Plan, Savings and Year all use this same definition.
-  const savingsBalance = calculateSavingsMetrics(data).balance;
-  const prevSavingsBalance = calculateSavingsMetrics(
+  // `null` = this month or last month has no savings recorded, so the answer is
+  // genuinely unknown and the views show "–" rather than inventing a number.
+  const savingsSnapshot = calculateSavingsMetrics(data);
+  const prevSavingsSnapshot = calculateSavingsMetrics(
     loadMonthData(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1, lang),
-  ).balance;
-  const savedThisMonthAmount = savedThisMonth(savingsBalance, prevSavingsBalance);
+  );
+  const savedThisMonthAmount = savedThisMonth(savingsSnapshot, prevSavingsSnapshot);
 
   // ── Onboarding heroes & starter buttons ──────────────────────────
   // A brand-new empty month gets a guided "get started" hero with a primary
@@ -710,7 +709,9 @@ function App() {
           {budgetStarter}
         </div>
         <div className="budget-right">
-          <Charts categories={data.expenses} totalIncome={totalIncome} />
+          <Suspense fallback={lazyFallback}>
+            <Charts categories={data.expenses} totalIncome={totalIncome} />
+          </Suspense>
         </div>
       </div>
     </>
@@ -719,30 +720,38 @@ function App() {
   const savingsView = (
     <>
       {savingsHero}
-      <SavingsTab
-        categories={data.savings}
-        onChange={setSavingsCategory}
-        onAddCategory={addSavingsCategory}
-        onDeleteCategory={deleteSavingsCategory}
-        year={year}
-        currentMonth={month}
-        starterSlot={savingsStarter}
-      />
+      <Suspense fallback={lazyFallback}>
+        <SavingsTab
+          categories={data.savings}
+          onChange={setSavingsCategory}
+          onAddCategory={addSavingsCategory}
+          onDeleteCategory={deleteSavingsCategory}
+          year={year}
+          currentMonth={month}
+          starterSlot={savingsStarter}
+        />
+      </Suspense>
     </>
   );
 
   const planView = (
-    <PlanTab
-      data={planData}
-      onChange={handlePlanDataChange}
-      totalIncome={totalIncome}
-      savedThisMonth={savedThisMonthAmount}
-      year={year}
-      month={month}
-    />
+    <Suspense fallback={lazyFallback}>
+      <PlanTab
+        data={planData}
+        onChange={handlePlanDataChange}
+        totalIncome={totalIncome}
+        savedThisMonth={savedThisMonthAmount}
+        year={year}
+        month={month}
+      />
+    </Suspense>
   );
 
-  const yearView = <YearTab year={year} />;
+  const yearView = (
+    <Suspense fallback={lazyFallback}>
+      <YearTab year={year} />
+    </Suspense>
+  );
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t, currency, setCurrency, money }}>
@@ -1018,22 +1027,50 @@ function App() {
 
         {layout === 'combined' && (
           /* ── Combined: tab bar hidden (see header), all four views stacked on
-               one scrollable page. Same components/data/handlers as classic. */
+               one scrollable page. Same components/data/handlers as classic.
+               On phones the page runs ~10 000px tall, so a sticky mini-nav
+               (CSS shows it ≤640px only) jumps between the four sections. */
           <div className="combined-page">
+            <nav className="combined-jump-nav" aria-label={t.layoutCombined}>
+              {([
+                ['combined-budget', '📋', t.tabBudget],
+                ['combined-savings', '📈', t.tabSavingsShort],
+                ['combined-year', '🗓️', t.tabYearShort],
+                ['combined-plan', '🎯', t.tabPlanShort],
+              ] as const).map(([id, icon, label]) => (
+                <button
+                  key={id}
+                  className="combined-jump-btn"
+                  onClick={() => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    // Focus FIRST (keyboard/SR users land where they jumped —
+                    // the heading is focusable via tabIndex=-1), then scroll:
+                    // Chrome cancels an in-flight smooth scrollIntoView when
+                    // focus() runs after it, even with preventScroll.
+                    el.focus({ preventScroll: true });
+                    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+                  }}
+                >
+                  <span aria-hidden="true">{icon}</span> {label}
+                </button>
+              ))}
+            </nav>
             <section className="combined-section">
-              <h2 className="combined-section-title">{t.tabBudget}</h2>
+              <h2 className="combined-section-title" id="combined-budget" tabIndex={-1}>{t.tabBudget}</h2>
               {budgetView}
             </section>
             <section className="combined-section">
-              <h2 className="combined-section-title">{t.tabSavings}</h2>
+              <h2 className="combined-section-title" id="combined-savings" tabIndex={-1}>{t.tabSavings}</h2>
               {savingsView}
             </section>
             <section className="combined-section">
-              <h2 className="combined-section-title">{t.tabYear}</h2>
+              <h2 className="combined-section-title" id="combined-year" tabIndex={-1}>{t.tabYear}</h2>
               {yearView}
             </section>
             <section className="combined-section">
-              <h2 className="combined-section-title">{t.tabPlan}</h2>
+              <h2 className="combined-section-title" id="combined-plan" tabIndex={-1}>{t.tabPlan}</h2>
               {planView}
             </section>
           </div>
@@ -1044,7 +1081,9 @@ function App() {
                separate data (never touches the shared Classic/Combined budget).
                Tab bar hidden; the global month selector drives its per-month
                amounts. */
-          <CustomV3 year={year} month={month} />
+          <Suspense fallback={lazyFallback}>
+            <CustomV3 year={year} month={month} />
+          </Suspense>
         )}
       </main>
     </div>

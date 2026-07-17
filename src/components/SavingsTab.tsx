@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { BudgetCategory } from '../types';
 import { loadMonthData } from '../defaults';
-import { savedThisMonth } from '../metrics';
+import { calculateSavingsMetrics, savedThisMonth } from '../metrics';
 import { useLang } from '../i18n';
 import { ExpenseCategory } from './ExpenseCategory';
 import { GrowthChart } from './GrowthChart';
@@ -23,43 +23,49 @@ export const SavingsSummary = ({ categories, year, currentMonth }: {
   categories: BudgetCategory[]; year: number; currentMonth: number;
 }) => {
   const { lang, t, money } = useLang();
-  const catTotal = (cat: BudgetCategory) => cat.rows.reduce((cs, r) => cs + r.amount, 0);
 
   // The amounts recorded here are a running BALANCE (what you have), not this
   // month's deposit — so "saved this month" is how far the balance MOVED.
-  // Pension is excluded: a separate long-term bucket.
-  const balance = categories.reduce(
-    (s, cat) => (cat.id === 'pension' ? s : s + catTotal(cat)), 0
-  );
-  const pensionTotal = categories
-    .filter(cat => cat.id === 'pension')
-    .reduce((s, cat) => s + catTotal(cat), 0);
+  // Pension is excluded: a separate long-term bucket. All of that lives in
+  // calculateSavingsMetrics; computing it again by hand here is how the rule
+  // drifted out of sync with the other tabs in the first place.
+  const snapshot = calculateSavingsMetrics({ income: [], expenses: [], savings: categories });
+  const { balance, pension: pensionTotal } = snapshot;
 
-  // Previous month's balance — the baseline for this month's change.
+  // Previous month — the baseline for this month's change. An untouched month
+  // is unknown, not empty, so `saved` can legitimately be null.
   const prevYear = currentMonth === 0 ? year - 1 : year;
   const prevMonthIdx = currentMonth === 0 ? 11 : currentMonth - 1;
-  const prevData = loadMonthData(prevYear, prevMonthIdx, lang);
-  const prevBalance = prevData.savings.reduce(
-    (s, cat) => (cat.id === 'pension' ? s : s + cat.rows.reduce((cs, r) => cs + r.amount, 0)), 0
-  );
-  const saved = savedThisMonth(balance, prevBalance);
+  const prev = calculateSavingsMetrics(loadMonthData(prevYear, prevMonthIdx, lang));
+  const saved = savedThisMonth(snapshot, prev);
 
   return (
     <div className="savings-summary-wrap">
       <div className="savings-summary">
         <div className="summary-card savings-card">
           <div className="card-label">{t.totalSaved}</div>
-          <div className="card-amount">{money(balance)}</div>
+          <div className="card-amount">
+            {snapshot.hasSnapshot ? money(balance) : <span className="amount-unknown">–</span>}
+          </div>
         </div>
 
         <div className="summary-card savings-prev-card">
           <div className="card-label">{t.savedThisMonth}</div>
-          <div className="card-amount" style={{ color: saved < 0 ? '#f87171' : undefined }}>
-            {saved > 0 ? '+' : ''}{money(saved)}
-          </div>
-          <div className="card-sub">
-            {t.savedPrevMonth}: {money(prevBalance)}
-          </div>
+          {saved === null ? (
+            <>
+              <div className="card-amount amount-unknown" title={t.notRecordedHint}>–</div>
+              <div className="card-sub">{t.notRecorded}</div>
+            </>
+          ) : (
+            <>
+              <div className="card-amount" style={{ color: saved < 0 ? '#f87171' : undefined }}>
+                {saved > 0 ? '+' : ''}{money(saved)}
+              </div>
+              <div className="card-sub">
+                {t.savedPrevMonth}: {money(prev.balance)}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

@@ -10,6 +10,17 @@
 // applied — v = (v + monthly) × (1 + r) — with r the monthly rate equivalent to
 // the yearly percentage ((1+annual)^(1/12) − 1), i.e. real compounding, not
 // annual/12.
+//
+// ── Start-month rule (product decision, 2026-07-16) ──
+// The start month is the BASELINE: it holds the starting pot and expects no
+// deposit of its own; the first monthly deposit is expected in the month AFTER
+// it. This matches how the plan is anchored in practice — the start month
+// defaults to the first month with a recorded balance, and that balance IS the
+// starting pot, not a deposit the plan gets to demand twice. Concretely:
+// projectPlan()[0] = startAmount ("now"), [1] = one deposit in; and in
+// plan-vs-actual, the start month's expected progress is 0.
+// A plan whose start month is in the future has no recorded month to compare
+// against yet, so no ahead/behind badge is shown until it begins.
 
 export interface SavingsPlan {
   monthlyAmount: number;   // planned deposit per month
@@ -52,10 +63,10 @@ export function toYM(year: number, monthIndex: number): string {
 }
 
 export interface PlanVsActualPoint {
-  actualTotal: number;    // your real pot that month
-  planTotal: number;      // where the plan says the pot should be by then
-  actualProgress: number; // what you've really added since the plan started
-  planProgress: number;   // what the plan expected you to have added
+  actualTotal: number | null;    // your real pot that month; null = not recorded
+  planTotal: number;             // where the plan says the pot should be by then
+  actualProgress: number | null; // what you've really added since the plan started
+  planProgress: number;          // what the plan expected you to have added
 }
 
 /**
@@ -68,39 +79,91 @@ export interface PlanVsActualPoint {
  * simply carries that same baseline forward and adds its deposits on top.
  *
  * `balances[k]` = the savings balance recorded for month k of the plan (k = 0 is
- * the start month). `planSeries[k]` = the plan's expected deposits+growth after
- * k months (so planSeries[0] is 0).
+ * the start month), or `null` for a month with nothing recorded — which stays
+ * null all the way to the chart, so an unfilled month leaves a gap in the line
+ * instead of a plunge to zero that never happened. The plan line is drawn from
+ * the first RECORDED month, since that's the only baseline we actually know.
+ * `planSeries[k]` = the plan's expected deposits+growth after k months (so
+ * planSeries[0] is 0).
  */
-export function planVsActual(balances: number[], planSeries: number[]): PlanVsActualPoint[] {
-  const baseline = balances[0] ?? 0;
+export function planVsActual(
+  balances: Array<number | null>,
+  planSeries: number[],
+): PlanVsActualPoint[] {
+  const baseline = balances.find(b => b !== null) ?? 0;
   return balances.map((b, k) => {
     const planProgress = planSeries[k] ?? 0;
     return {
       actualTotal: b,
       planTotal: baseline + planProgress,
-      actualProgress: b - baseline,
+      actualProgress: b === null ? null : b - baseline,
       planProgress,
     };
   });
 }
 
-/** The earliest "YYYY-MM" among months that actually have savings (saved > 0),
- *  or null if none do. YM strings sort lexically = chronologically. Used to
- *  auto-default a new plan's start to the beginning of your real saving history. */
-export function earliestSavingsYM(months: Array<{ ym: string; saved: number }>): string | null {
-  const withSavings = months.filter(m => m.saved > 0).map(m => m.ym).sort();
-  return withSavings.length ? withSavings[0] : null;
+/** The earliest "YYYY-MM" among months with a savings snapshot RECORDED, or null
+ *  if none are. YM strings sort lexically = chronologically. Used to auto-default
+ *  a new plan's start to the beginning of your real saving history.
+ *
+ *  Recorded, not non-zero: a month you filled in as 0 is you telling us you
+ *  started from nothing, which is an ideal place to anchor a plan. Filtering on
+ *  `saved > 0` would silently skip it and start the plan late. */
+export function earliestSavingsYM(months: Array<{ ym: string; hasSnapshot: boolean }>): string | null {
+  const recorded = months.filter(m => m.hasSnapshot).map(m => m.ym).sort();
+  return recorded.length ? recorded[0] : null;
+}
+
+// ── validation — ONE set of rules for the form, the save and the load ──────
+//
+// The form used to check `isNaN` while the loader checked `isFinite`, so a
+// typed `1e309` sailed through the UI as Infinity, JSON.stringify turned it
+// into null, and the whole plan silently failed validation — and vanished — on
+// the next reload. Everything now funnels through validateSavingsPlan.
+
+/** Documented product limits. Generous on purpose: they exist to keep numbers
+ *  finite and inside JavaScript's safe range, not to police anyone's budget. */
+export const PLAN_LIMITS = {
+  maxAmount: 999_999_999_999, // monthly saving and start amount, ~1e12
+  maxReturnPct: 100,          // 0–100% per year
+  minYear: 1900,
+  maxYear: 2200,
+} as const;
+
+export type PlanField = 'monthlyAmount' | 'annualReturnPct' | 'startAmount' | 'startYM';
+
+/** A real calendar month within the product's year range — "2026-13" and
+ *  "2026-00" both match the loose \d{4}-\d{2} pattern that used to pass. */
+export function isValidYM(ym: string): boolean {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(ym);
+  if (!m) return false;
+  const year = Number(m[1]);
+  return year >= PLAN_LIMITS.minYear && year <= PLAN_LIMITS.maxYear;
+}
+
+/** The fields that are invalid — empty array means the plan is good.
+ *  Number.isFinite is the load-bearing check: NaN and ±Infinity both fail it. */
+export function validateSavingsPlan(p: SavingsPlan): PlanField[] {
+  const bad: PlanField[] = [];
+  const amountOk = (v: number) => Number.isFinite(v) && v >= 0 && v <= PLAN_LIMITS.maxAmount;
+  if (!amountOk(p.monthlyAmount)) bad.push('monthlyAmount');
+  if (!(Number.isFinite(p.annualReturnPct) && p.annualReturnPct >= 0 && p.annualReturnPct <= PLAN_LIMITS.maxReturnPct)) {
+    bad.push('annualReturnPct');
+  }
+  if (!amountOk(p.startAmount)) bad.push('startAmount');
+  if (typeof p.startYM !== 'string' || !isValidYM(p.startYM)) bad.push('startYM');
+  return bad;
 }
 
 function isValidPlan(p: unknown): p is SavingsPlan {
   if (typeof p !== 'object' || p === null) return false;
   const o = p as Record<string, unknown>;
-  return (
-    typeof o.monthlyAmount === 'number' && isFinite(o.monthlyAmount) && o.monthlyAmount >= 0 &&
-    typeof o.annualReturnPct === 'number' && isFinite(o.annualReturnPct) &&
-    typeof o.startAmount === 'number' && isFinite(o.startAmount) && o.startAmount >= 0 &&
-    typeof o.startYM === 'string' && /^\d{4}-\d{2}$/.test(o.startYM)
-  );
+  const shapeOk =
+    typeof o.monthlyAmount === 'number' &&
+    typeof o.annualReturnPct === 'number' &&
+    typeof o.startAmount === 'number' &&
+    typeof o.startYM === 'string';
+  return shapeOk && validateSavingsPlan(o as unknown as SavingsPlan).length === 0;
 }
 
 export function loadSavingsPlan(): SavingsPlan | null {
@@ -114,6 +177,16 @@ export function loadSavingsPlan(): SavingsPlan | null {
   }
 }
 
-export function saveSavingsPlan(plan: SavingsPlan): void {
+/** Persist the plan — refuses invalid ones so storage can never hold a plan
+ *  the loader would throw away. Returns whether it saved. */
+export function saveSavingsPlan(plan: SavingsPlan): boolean {
+  if (validateSavingsPlan(plan).length > 0) return false;
   localStorage.setItem(SPARPLAN_KEY, JSON.stringify(plan));
+  return true;
+}
+
+/** Remove the plan. Month data and savings goals live under other keys and are
+ *  untouched — deleting the plan only clears the projection settings. */
+export function deleteSavingsPlan(): void {
+  localStorage.removeItem(SPARPLAN_KEY);
 }

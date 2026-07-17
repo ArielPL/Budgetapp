@@ -6,9 +6,11 @@ import {
 import { loadMonthData } from '../defaults';
 import { calculateSavingsMetrics } from '../metrics';
 import { useLang, MONTHS_SHORT, formatAxisTick, type Translations } from '../i18n';
+import { chartColors } from '../themes';
 import {
-  loadSavingsPlan, saveSavingsPlan, projectPlan, monthsBetween, toYM, earliestSavingsYM,
-  planVsActual, type SavingsPlan, type PlanVsActualPoint,
+  loadSavingsPlan, saveSavingsPlan, deleteSavingsPlan, validateSavingsPlan,
+  projectPlan, monthsBetween, toYM, earliestSavingsYM,
+  planVsActual, type SavingsPlan, type PlanVsActualPoint, type PlanField,
 } from '../sparplan';
 
 type VsRow = { label: string } & PlanVsActualPoint;
@@ -58,7 +60,9 @@ const VsTooltip = ({ active, payload, label, money, t }: {
     <div className="chart-tooltip">
       <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
       <div style={{ color: TEAL, fontSize: '0.8rem' }}>
-        {t.totalSaved}: {money(Math.round(row.actualTotal))} · {signed(row.actualProgress)} {t.sparplanSinceStart}
+        {t.totalSaved}: {row.actualTotal === null || row.actualProgress === null
+          ? t.notRecorded
+          : `${money(Math.round(row.actualTotal))} · ${signed(row.actualProgress)} ${t.sparplanSinceStart}`}
       </div>
       <div style={{ color: GRAY, fontSize: '0.8rem' }}>
         {t.sparplanPlanLine}: {money(Math.round(row.planTotal))} · {signed(row.planProgress)} {t.sparplanSinceStart}
@@ -69,9 +73,7 @@ const VsTooltip = ({ active, payload, label, money, t }: {
 
 export const SparPlanSection = () => {
   const { lang, t, money } = useLang();
-  const isLight = document.documentElement.dataset.theme === 'light';
-  const tickColor = '#64748b';
-  const gridColor = isLight ? '#e2e8f0' : '#1e293b';
+  const { text: tickColor, grid: gridColor } = chartColors();
 
   const [plan, setPlanState] = useState<SavingsPlan | null>(loadSavingsPlan);
 
@@ -80,15 +82,15 @@ export const SparPlanSection = () => {
   // month you happened to open the planner. Falls back to this month if there's
   // no saving history yet. The user can still override it via the field below.
   const autoStartYM = useMemo(() => {
-    const months: Array<{ ym: string; saved: number }> = [];
+    const months: Array<{ ym: string; hasSnapshot: boolean }> = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       const match = key && /^budget_(\d{4})_(\d+)$/.exec(key);
       if (!match) continue;
       const y = Number(match[1]);
       const mi = Number(match[2]);
-      const saved = calculateSavingsMetrics(loadMonthData(y, mi, lang)).balance;
-      if (saved > 0) months.push({ ym: toYM(y, mi), saved });
+      const snap = calculateSavingsMetrics(loadMonthData(y, mi, lang));
+      months.push({ ym: toYM(y, mi), hasSnapshot: snap.hasSnapshot });
     }
     const d = new Date();
     return earliestSavingsYM(months) ?? toYM(d.getFullYear(), d.getMonth());
@@ -100,27 +102,53 @@ export const SparPlanSection = () => {
   const [start, setStart] = useState(() => (plan && plan.startAmount > 0 ? String(plan.startAmount) : ''));
   const [startYM, setStartYM] = useState(() => plan?.startYM ?? autoStartYM);
 
-  // Persist on every valid edit. The start month is user-editable (defaults to
-  // the first savings month) and drives the plan-vs-actual comparison window.
+  // Persist on every VALID edit; an invalid one shows a field error, keeps the
+  // draft so it can be fixed, and touches neither storage nor the chart. The
+  // same validateSavingsPlan runs here, in saveSavingsPlan and in the loader —
+  // the old form-only isNaN check let `1e309` through as Infinity, which
+  // JSON.stringify wrote as null and the loader then rejected: the plan
+  // silently vanished on the next reload.
+  const [fieldErrors, setFieldErrors] = useState<PlanField[]>([]);
   const commit = (m: string, r: string, s: string, sy: string) => {
-    const mv = parseAmount(m);
-    const rv = parseAmount(r);
-    const sv = s.trim() === '' ? 0 : parseAmount(s);
-    if (isNaN(mv) || mv < 0 || isNaN(rv) || rv < 0 || sv < 0 || isNaN(sv)) return;
-    if (!/^\d{4}-\d{2}$/.test(sy)) return;
-    const next: SavingsPlan = { monthlyAmount: mv, annualReturnPct: rv, startAmount: sv, startYM: sy };
+    const next: SavingsPlan = {
+      monthlyAmount: parseAmount(m),
+      annualReturnPct: parseAmount(r),
+      startAmount: s.trim() === '' ? 0 : parseAmount(s),
+      startYM: sy,
+    };
+    const errors = validateSavingsPlan(next);
+    setFieldErrors(errors);
+    if (errors.length > 0) return;
     saveSavingsPlan(next);
     setPlanState(next);
   };
 
+  const removePlan = () => {
+    if (!window.confirm(t.sparplanDeleteConfirm)) return;
+    deleteSavingsPlan();
+    setPlanState(null);
+    setFieldErrors([]);
+    setMonthly('2000');
+    setRet('7');
+    setStart('');
+    setStartYM(autoStartYM);
+  };
+
   // Projection uses the saved plan, or a preview from the current drafts so the
-  // chart is alive before the first edit is persisted.
-  const previewPlan: SavingsPlan = plan ?? {
+  // chart is alive before the first edit is persisted. The draft preview is
+  // validated too — `parseAmount('1e309') || 0` is Infinity, not 0, so an
+  // unvalidated draft could feed Recharts a non-finite series. Every path into
+  // the chart goes through validateSavingsPlan; NaN/Infinity cannot reach it.
+  const draftPreview: SavingsPlan = {
     monthlyAmount: parseAmount(monthly) || 0,
     annualReturnPct: parseAmount(ret) || 0,
     startAmount: start.trim() === '' ? 0 : parseAmount(start) || 0,
     startYM,
   };
+  const previewPlan: SavingsPlan = plan
+    ?? (validateSavingsPlan(draftPreview).length === 0
+      ? draftPreview
+      : { monthlyAmount: 0, annualReturnPct: 0, startAmount: 0, startYM });
   const series = projectPlan(previewPlan, HORIZON_MONTHS);
   const projData = series.map((v, k) => ({
     k,
@@ -146,30 +174,39 @@ export const SparPlanSection = () => {
   const nowYM = toYM(now.getFullYear(), now.getMonth());
   let vsRows: VsRow[] = [];
   let vsDiff = 0;
+  let hasVsData = false; // any month with a real snapshot to compare against
   if (plan) {
     const elapsed = Math.max(0, monthsBetween(plan.startYM, nowYM)) + 1; // incl. current month
     const planSeries = projectPlan({ ...plan, startAmount: 0 }, elapsed);
     const [sy, sm] = plan.startYM.split('-').map(Number);
     const labels: string[] = [];
-    const balances: number[] = [];
+    const balances: Array<number | null> = [];
     for (let k = 0; k < elapsed; k++) {
       const y = sy + Math.floor((sm - 1 + k) / 12);
       const mi = (sm - 1 + k) % 12;
       labels.push(MONTHS_SHORT[lang][mi]);
-      balances.push(calculateSavingsMetrics(loadMonthData(y, mi, lang)).balance);
+      // An unrecorded month is unknown, not a balance of 0 — pass null through
+      // so the line breaks rather than diving to the axis.
+      const snap = calculateSavingsMetrics(loadMonthData(y, mi, lang));
+      balances.push(snap.hasSnapshot ? snap.balance : null);
     }
     vsRows = planVsActual(balances, planSeries).map((p, k) => ({ label: labels[k], ...p }));
     // Keep the chart readable if a plan has run for years: show the last 24 months.
     if (vsRows.length > 24) vsRows = vsRows.slice(-24);
-    const last = vsRows[vsRows.length - 1];
-    vsDiff = last ? last.actualTotal - last.planTotal : 0;
+    // Ahead or behind is judged on the last month you actually recorded — not on
+    // a trailing empty month, which would read as "you're 61 443 kr behind".
+    const lastReal = [...vsRows].reverse().find(r => r.actualTotal !== null);
+    hasVsData = !!lastReal;
+    vsDiff = lastReal ? lastReal.actualTotal! - lastReal.planTotal : 0;
   }
   const onTrack = Math.abs(vsDiff) < 50;
 
   // The two lines sit on top of a shared starting pot, so a zero-based axis
   // would squash the gap between them into a hairline. Fit the axis to the data
   // (with breathing room) so being ahead or behind is actually visible.
-  const vsValues = vsRows.flatMap(r => [r.actualTotal, r.planTotal]);
+  const vsValues = vsRows
+    .flatMap(r => [r.actualTotal, r.planTotal])
+    .filter((v): v is number => v !== null);
   const vsMin = vsValues.length ? Math.min(...vsValues) : 0;
   const vsMax = vsValues.length ? Math.max(...vsValues) : 0;
   const vsPad = Math.max(100, (vsMax - vsMin) * 0.25);
@@ -177,17 +214,21 @@ export const SparPlanSection = () => {
 
   const field = (
     id: string, label: string, value: string, placeholder: string,
-    set: (v: string) => void, after: (v: string) => void,
+    set: (v: string) => void, after: (v: string) => void, errorText?: string,
   ) => (
     <div className="goal-form-field">
       <label htmlFor={id}>{label}</label>
       <input
         id={id} className="label-input" inputMode="decimal" value={value}
         placeholder={placeholder}
+        aria-invalid={errorText ? true : undefined}
+        aria-describedby={errorText ? `${id}-err` : undefined}
         onChange={e => { set(e.target.value); after(e.target.value); }}
       />
+      {errorText && <span className="field-error" id={`${id}-err`} role="alert">{errorText}</span>}
     </div>
   );
+  const errFor = (f: PlanField, text: string) => (fieldErrors.includes(f) ? text : undefined);
 
   return (
     <section className="plan-section">
@@ -198,17 +239,30 @@ export const SparPlanSection = () => {
       <div className="sparplan-card">
         <p className="sparplan-body">{t.sparplanBody}</p>
         <div className="sparplan-inputs">
-          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly, v => commit(v, ret, start, startYM))}
-          {field('sp-return', t.sparplanReturn, ret, '7', setRet, v => commit(monthly, v, start, startYM))}
-          {field('sp-start', t.sparplanStartAmount, start, '0', setStart, v => commit(monthly, ret, v, startYM))}
+          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly,
+            v => commit(v, ret, start, startYM), errFor('monthlyAmount', t.sparplanErrAmount))}
+          {field('sp-return', t.sparplanReturn, ret, '7', setRet,
+            v => commit(monthly, v, start, startYM), errFor('annualReturnPct', t.sparplanErrReturn))}
+          {field('sp-start', t.sparplanStartAmount, start, '0', setStart,
+            v => commit(monthly, ret, v, startYM), errFor('startAmount', t.sparplanErrAmount))}
           <div className="goal-form-field">
             <label htmlFor="sp-startym">{t.sparplanStartMonth}</label>
             <input
               id="sp-startym" className="label-input" type="month" value={startYM}
+              aria-invalid={fieldErrors.includes('startYM') ? true : undefined}
+              aria-describedby={fieldErrors.includes('startYM') ? 'sp-startym-err' : undefined}
               onChange={e => { setStartYM(e.target.value); commit(monthly, ret, start, e.target.value); }}
             />
+            {fieldErrors.includes('startYM') && (
+              <span className="field-error" id="sp-startym-err" role="alert">{t.sparplanErrMonth}</span>
+            )}
           </div>
         </div>
+        {plan && (
+          <button className="sparplan-delete-btn" onClick={removePlan}>
+            🗑 {t.sparplanDelete}
+          </button>
+        )}
 
         <div className="sparplan-hero">
           <span className="sparplan-hero-value">{money(Math.round(finalValue))}</span>
@@ -221,7 +275,29 @@ export const SparPlanSection = () => {
           <span className="sparplan-legend-item"><span className="sparplan-swatch" style={{ background: TEAL }} />{t.sparplanWithGrowth}</span>
           <span className="sparplan-legend-item"><span className="sparplan-swatch sparplan-swatch-line" style={{ background: GRAY }} />{t.sparplanDepositsOnly}</span>
         </div>
-        <ResponsiveContainer width="100%" height={200}>
+        {/* SR alternative for the projection: whole-year points as a hidden
+            table (sr-only, not display:none — AT must still reach it). The
+            headline figure is the visible hero text above. */}
+        <table className="sr-only">
+          <caption>{t.sparplanTitle}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t.tabYear}</th>
+              <th scope="col">{t.sparplanWithGrowth}</th>
+              <th scope="col">{t.sparplanDepositsOnly}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[0, 12, 24, 36, 48, 60].map(k => (
+              <tr key={k}>
+                <th scope="row">{yearLabel(k)}</th>
+                <td>{money(Math.round(projData[k].growth))}</td>
+                <td>{money(Math.round(projData[k].flat))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ResponsiveContainer width="100%" height={200} aria-hidden="true">
           <AreaChart data={projData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
             <XAxis
@@ -244,7 +320,7 @@ export const SparPlanSection = () => {
         </ResponsiveContainer>
       </div>
 
-      {plan && vsRows.length > 0 && (
+      {plan && vsRows.length > 0 && hasVsData && (
         <div className="sparplan-card">
           <h3 className="sparplan-subtitle">🎯 {t.sparplanVsTitle}</h3>
           <p className="sparplan-body">{t.sparplanVsBody}</p>
@@ -259,7 +335,28 @@ export const SparPlanSection = () => {
             <span className="sparplan-legend-item"><span className="sparplan-swatch" style={{ background: TEAL }} />{t.totalSaved}</span>
             <span className="sparplan-legend-item"><span className="sparplan-swatch sparplan-swatch-dash" style={{ background: GRAY }} />{t.sparplanPlanLine}</span>
           </div>
-          <ResponsiveContainer width="100%" height={190}>
+          {/* SR alternative for plan-vs-reality; the badge above carries the
+              verdict as visible text. */}
+          <table className="sr-only">
+            <caption>{t.sparplanVsTitle}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t.colMonth}</th>
+                <th scope="col">{t.totalSaved}</th>
+                <th scope="col">{t.sparplanPlanLine}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vsRows.map((r, i) => (
+                <tr key={i}>
+                  <th scope="row">{r.label}</th>
+                  <td>{r.actualTotal === null ? t.notRecorded : money(Math.round(r.actualTotal))}</td>
+                  <td>{money(Math.round(r.planTotal))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <ResponsiveContainer width="100%" height={190} aria-hidden="true">
             <LineChart data={vsRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />

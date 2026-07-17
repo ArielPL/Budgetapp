@@ -15,12 +15,22 @@
 //     balances across months; that double-counts (the old Year-tab total and the
 //     old plan-vs-actual chart both did, and both were wrong).
 //     Pension is a separate long-term bucket, never folded into the balance.
+//   • ⚠️ A month with NO savings recorded is UNKNOWN, not zero. "I haven't filled
+//     August in yet" and "I emptied the account" are different facts, and reading
+//     the first as the second told users they'd withdrawn everything (the
+//     −10 000 kr bug of 2026-07-16). Absence is never a number: the helpers below
+//     take/return SavingsSnapshot and `null`, and the UI shows "–" for unknown.
+//     An explicitly recorded 0 IS a real balance and must survive every filter —
+//     never resurrect `balance > 0` or `a || b` as a has-data test.
 //   • Saved this month = how much the balance MOVED since last month (may be
-//     negative if you withdrew).
+//     negative if you withdrew). Unknown unless BOTH months have a snapshot: with
+//     no previous snapshot the current one is just a baseline, and calling the
+//     whole pot "saved this month" would be a lie.
 //   • Savings rate = saved this month ÷ income. NOT balance ÷ income — a 50 000
-//     balance on a 30 000 income would read 167%.
+//     balance on a 30 000 income would read 167%. Unknown when the month's saving
+//     is unknown (0% is a real result and must not stand in for "no data").
 //   • Year's savings = where the balance ended minus what carried in from the
-//     previous December (see yearSavingsGrowth).
+//     previous December (see yearSavingsGrowth) — unknown without that baseline.
 //   • Leftover rate = remaining ÷ income = the share of income not yet budgeted.
 
 import type { MonthData, BudgetCategory, BudgetRow } from './types';
@@ -90,37 +100,62 @@ export function splitRemaining(remaining: number, daysLeft: number): RemainingSp
   return { perDay: Math.trunc(perDay), perWeek: Math.trunc(perDay * 7) };
 }
 
-export interface SavingsMetrics {
+export interface SavingsSnapshot {
+  /** Did the user actually record savings for this month? `false` = no answer.
+   *  Inferred from the presence of savings categories, NOT from the amount —
+   *  a category sitting at 0 is someone telling us their balance is 0. */
+  hasSnapshot: boolean;
   balance: number;  // savings categories EXCLUDING pension — a RUNNING TOTAL
   pension: number;  // pension bucket balance (shown separately)
 }
 
-/** The savings balance recorded on a month. Never sum these across months. */
-export function calculateSavingsMetrics(month: MonthData): SavingsMetrics {
+/** The savings snapshot recorded on a month. Never sum balances across months.
+ *  A month the user never touched comes back `hasSnapshot: false` — callers must
+ *  branch on that rather than reading `balance` (which is 0 for "unknown" only
+ *  because there's nothing to add up). Safe on old data: months predate the
+ *  field entirely, and an empty `savings` array has always meant "untouched"
+ *  (loadMonthData never seeds categories — the starter pack is opt-in). */
+export function calculateSavingsMetrics(month: MonthData): SavingsSnapshot {
   const savings = month.savings ?? [];
   const balance = sumCategories(savings, PENSION_CATEGORY_ID);
   const pension = savings
     .filter(c => c.id === PENSION_CATEGORY_ID)
     .reduce((s, c) => s + categoryTotal(c), 0);
-  return { balance, pension };
+  return { hasSnapshot: savings.length > 0, balance, pension };
 }
 
 /** What you actually put away this month = how far the balance moved.
- *  Negative when you withdrew more than you added. */
-export function savedThisMonth(currentBalance: number, previousBalance: number): number {
-  return currentBalance - previousBalance;
+ *  Negative when you withdrew more than you added.
+ *
+ *  `null` when either month is unknown, and the two reasons are both real:
+ *  without THIS month we'd report the whole previous balance as a withdrawal,
+ *  and without the PREVIOUS one this month is merely a baseline — the pot might
+ *  be a lifetime of saving rather than this month's work. */
+export function savedThisMonth(
+  current: SavingsSnapshot,
+  previous: SavingsSnapshot,
+): number | null {
+  if (!current.hasSnapshot || !previous.hasSnapshot) return null;
+  return current.balance - previous.balance;
 }
 
 /** How much you actually saved across a year: where the balance ENDED minus what
- *  carried in from the previous December. `monthlyBalances` is Jan..Dec; a month
- *  with no data reads as 0, so the year's end is the last month that has a
- *  balance recorded — not December's empty cell. Summing twelve balances (which
- *  the Year tab used to do) is meaningless; this is the honest annual figure. */
-export function yearSavingsGrowth(monthlyBalances: number[], carryIn: number): number {
+ *  carried in from the previous December. `monthly` is Jan..Dec.
+ *
+ *  The year ends at the last month with a snapshot — which may be an explicit 0
+ *  (you emptied the account), so this walks `hasSnapshot`, never `balance > 0`.
+ *  `null` when nothing was recorded all year, or when the carry-in is unknown:
+ *  without December's baseline we can't tell a 50 000 pot you built this year
+ *  from one you already had. Summing twelve balances is meaningless. */
+export function yearSavingsGrowth(
+  monthly: SavingsSnapshot[],
+  carryIn: SavingsSnapshot | null,
+): number | null {
   let last = -1;
-  for (let i = monthlyBalances.length - 1; i >= 0; i--) {
-    if (monthlyBalances[i] > 0) { last = i; break; }
+  for (let i = monthly.length - 1; i >= 0; i--) {
+    if (monthly[i].hasSnapshot) { last = i; break; }
   }
-  if (last === -1) return 0;
-  return monthlyBalances[last] - carryIn;
+  if (last === -1) return null;
+  if (!carryIn?.hasSnapshot) return null;
+  return monthly[last].balance - carryIn.balance;
 }

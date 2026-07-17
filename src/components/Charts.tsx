@@ -7,6 +7,7 @@ import {
 import type { BudgetCategory } from '../types';
 import { shownName, loadMonthData } from '../defaults';
 import { useLang, CURRENCIES, MONTHS_SHORT, formatAxisTick } from '../i18n';
+import { chartColors } from '../themes';
 
 interface Props {
   categories: BudgetCategory[];
@@ -70,8 +71,7 @@ interface ExpenseChartProps {
 export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
   const { lang } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
-  const gridColor = isLight ? '#ece9f5' : '#243044';
-  const tickColor = isLight ? '#9a96ad' : '#64748b';
+  const { text: tickColor, grid: gridColor } = chartColors();
   const tickColorStrong = isLight ? '#5d5972' : '#94a3b8';
   const cursorFill = 'rgba(139, 92, 246, 0.10)';
 
@@ -278,9 +278,7 @@ const TrendTooltip = ({ active, payload, label, money }: TrendTooltipProps) => {
 
 export const BudgetTrendChart = ({ year, height }: { year: number; height: number }) => {
   const { lang, t, money } = useLang();
-  const isLight = document.documentElement.dataset.theme === 'light';
-  const tickColor = '#64748b';
-  const gridColor = isLight ? '#e2e8f0' : '#1e293b';
+  const { text: tickColor, grid: gridColor } = chartColors();
 
   const data = MONTHS_SHORT[lang].map((label, m) => {
     const md = loadMonthData(year, m, lang);
