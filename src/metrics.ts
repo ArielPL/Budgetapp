@@ -112,16 +112,28 @@ export interface SavingsSnapshot {
 /** The savings snapshot recorded on a month. Never sum balances across months.
  *  A month the user never touched comes back `hasSnapshot: false` — callers must
  *  branch on that rather than reading `balance` (which is 0 for "unknown" only
- *  because there's nothing to add up). Safe on old data: months predate the
- *  field entirely, and an empty `savings` array has always meant "untouched"
- *  (loadMonthData never seeds categories — the starter pack is opt-in). */
+ *  because there's nothing to add up).
+ *
+ *  `hasSnapshot` is the stored `savingsSnapshotRecorded` flag when present:
+ *  inferring it from `savings.length > 0` broke the moment the savings template
+ *  landed — "Use savings template" created four 0 kr categories and the app
+ *  instantly reported the previous balance as withdrawn (main review §5).
+ *  Structure is not a statement about money; only an amount edit is.
+ *
+ *  Old months predate the flag and fall back to the length inference, which is
+ *  correct FOR THEM: before templates could create empty categories, categories
+ *  only existed alongside recorded numbers — and treating old history as
+ *  recorded keeps it (a false "unknown" would erase real balances from charts). */
 export function calculateSavingsMetrics(month: MonthData): SavingsSnapshot {
   const savings = month.savings ?? [];
   const balance = sumCategories(savings, PENSION_CATEGORY_ID);
   const pension = savings
     .filter(c => c.id === PENSION_CATEGORY_ID)
     .reduce((s, c) => s + categoryTotal(c), 0);
-  return { hasSnapshot: savings.length > 0, balance, pension };
+  const hasSnapshot = typeof month.savingsSnapshotRecorded === 'boolean'
+    ? month.savingsSnapshotRecorded
+    : savings.length > 0;
+  return { hasSnapshot, balance, pension };
 }
 
 /** What you actually put away this month = how far the balance moved.

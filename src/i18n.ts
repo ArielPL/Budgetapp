@@ -99,9 +99,14 @@ export function formatAxisTick(value: number, lang: Lang): string {
   const one = new Intl.NumberFormat(AXIS_LOCALE[lang], { maximumFractionDigits: 1 });
   const sfx = AXIS_SUFFIX[lang];
   if (abs < 1000) return new Intl.NumberFormat(AXIS_LOCALE[lang]).format(value);
-  if (abs < 1e6) return one.format(value / 1e3) + 'k';
-  if (abs < 1e9) return one.format(value / 1e6) + sfx.m;
-  if (abs < 1e12) return one.format(value / 1e9) + sfx.b;
+  // Tier boundaries respect ROUNDING: 999 999 999 999 must read "1T", not
+  // "1,000B" — the raw magnitude sits under 1e12 but the one-decimal display
+  // rounds up to the next unit. A tier fits while the scaled value still
+  // renders below 1000 (999.95 is where one decimal starts saying 1 000).
+  const fitsTier = (divisor: number) => abs < divisor * 999.95;
+  if (fitsTier(1e3)) return one.format(value / 1e3) + 'k';
+  if (fitsTier(1e6)) return one.format(value / 1e6) + sfx.m;
+  if (fitsTier(1e9)) return one.format(value / 1e9) + sfx.b;
   return one.format(value / 1e12) + sfx.t;
 }
 
@@ -415,6 +420,10 @@ export interface Translations {
    *  year's total row shows how much that balance CHANGED over the year. */
   colSavingsBalance: string;
   colSavedDuringYear: string;
+  /** Shown when the year's change can't be computed: the missing fact is LAST
+   *  year's December baseline, and the hint must say so — "fill in this month"
+   *  pointed the user at the wrong cell entirely. */
+  yearBaselineHint: (year: number) => string;
   colRemaining: string;
   yearTotal: string;
   yearEmpty: string;
@@ -739,6 +748,7 @@ export const translations: Record<Lang, Translations> = {
     colExpenses: 'Utgifter',
     colSavingsBalance: 'Sparsaldo',
     colSavedDuringYear: 'Sparat under året',
+    yearBaselineHint: (year) => `Registrera sparsaldot för december ${year - 1} så kan vi räkna ut hur mycket du sparat under ${year}.`,
     colRemaining: 'Kvar',
     yearTotal: 'Helår',
     yearEmpty: 'Ingen data för detta år ännu',
@@ -1056,6 +1066,7 @@ export const translations: Record<Lang, Translations> = {
     colExpenses: 'Expenses',
     colSavingsBalance: 'Savings balance',
     colSavedDuringYear: 'Saved during the year',
+    yearBaselineHint: (year) => `Record your savings balance for December ${year - 1} and we can work out how much you saved during ${year}.`,
     colRemaining: 'Remaining',
     yearTotal: 'Full year',
     yearEmpty: 'No data for this year yet',
@@ -1373,6 +1384,7 @@ export const translations: Record<Lang, Translations> = {
     colExpenses: 'Gastos',
     colSavingsBalance: 'Saldo de ahorro',
     colSavedDuringYear: 'Ahorrado durante el año',
+    yearBaselineHint: (year) => `Registra tu saldo de ahorro de diciembre de ${year - 1} y podremos calcular cuánto ahorraste durante ${year}.`,
     colRemaining: 'Restante',
     yearTotal: 'Año completo',
     yearEmpty: 'Aún no hay datos para este año',

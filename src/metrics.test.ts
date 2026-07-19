@@ -225,6 +225,56 @@ describe('backwards compatibility with pre-snapshot month data', () => {
   });
 });
 
+// The explicit flag (main review §5): structure is not a statement about money.
+// "Use savings template" creates four 0 kr categories — before the flag, that
+// read as "balance recorded: 0" and instantly showed the previous balance as a
+// withdrawal the user never made.
+describe('savingsSnapshotRecorded — structure vs recorded balance', () => {
+  const template = () => [
+    cat('sparkonto', 0), cat('isk', 0), cat('fonder', 0), cat('pension', 0),
+  ];
+
+  it('a month with only template structure is UNKNOWN, not a recorded 0', () => {
+    const m = month({ savings: template(), savingsSnapshotRecorded: false });
+    expect(calculateSavingsMetrics(m).hasSnapshot).toBe(false);
+  });
+
+  it('the reported bug end to end: July 10 000, template applied to August', () => {
+    const july = month({ savings: [cat('sparkonto', 10000)] }); // old data → recorded
+    const august = month({ savings: template(), savingsSnapshotRecorded: false });
+    // Not −10 000. Not any number. The user has said nothing about August.
+    expect(savedThisMonth(calculateSavingsMetrics(august), calculateSavingsMetrics(july))).toBe(null);
+  });
+
+  it('an own empty category is also just structure', () => {
+    const m = month({ savings: [cat('mitt-konto', 0)], savingsSnapshotRecorded: false });
+    expect(calculateSavingsMetrics(m).hasSnapshot).toBe(false);
+  });
+
+  it('a CONFIRMED zero balance is a real snapshot: withdrawal to 0 counts', () => {
+    const july = month({ savings: [cat('sparkonto', 10000)] });
+    const august = month({ savings: template(), savingsSnapshotRecorded: true });
+    expect(savedThisMonth(calculateSavingsMetrics(august), calculateSavingsMetrics(july))).toBe(-10000);
+  });
+
+  it('recording a real amount over the template works normally', () => {
+    const july = month({ savings: [cat('sparkonto', 10000)] });
+    const august = month({ savings: [cat('sparkonto', 12000)], savingsSnapshotRecorded: true });
+    expect(savedThisMonth(calculateSavingsMetrics(august), calculateSavingsMetrics(july))).toBe(2000);
+  });
+
+  it('pension amounts in the template do not leak into the balance either way', () => {
+    const m = month({ savings: [cat('sparkonto', 5000), cat('pension', 99999)], savingsSnapshotRecorded: true });
+    expect(calculateSavingsMetrics(m)).toMatchObject({ hasSnapshot: true, balance: 5000, pension: 99999 });
+  });
+
+  it('an explicit true wins over an empty category list, and vice versa', () => {
+    // The stored flag is the authority whenever it exists.
+    expect(calculateSavingsMetrics(month({ savings: [], savingsSnapshotRecorded: true })).hasSnapshot).toBe(true);
+    expect(calculateSavingsMetrics(month({ savings: [cat('sparkonto', 500)], savingsSnapshotRecorded: false })).hasSnapshot).toBe(false);
+  });
+});
+
 describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
   it('daysInMonth returns the whole-month length', () => {
     expect(daysInMonth(2026, 6)).toBe(31);  // July

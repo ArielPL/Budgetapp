@@ -21,6 +21,9 @@ interface Props {
   year: number;
   currentMonth: number;
   currentSavings: BudgetCategory[]; // live React state — avoids stale localStorage bug
+  /** Live savingsSnapshotRecorded for the current month — template-created
+   *  categories are structure, not a recorded balance (main review §5). */
+  currentSnapshotRecorded?: boolean;
 }
 
 interface TooltipProps {
@@ -46,7 +49,7 @@ const CustomTooltip = ({ active, payload, label, money }: TooltipProps) => {
   );
 };
 
-export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
+export const GrowthChart = ({ year, currentMonth, currentSavings, currentSnapshotRecorded }: Props) => {
   const { lang, t, money } = useLang();
   const [chartType, setChartType] = useState<ChartType>(loadChartType);
 
@@ -77,7 +80,9 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
       for (const cat of currentSavings) {
         byCategory[cat.id] = cat.rows.reduce((s, r) => s + r.amount, 0);
       }
-      hasSnapshot = currentSavings.length > 0;
+      hasSnapshot = typeof currentSnapshotRecorded === 'boolean'
+        ? currentSnapshotRecorded
+        : currentSavings.length > 0;
     }
     // Flatten so Recharts can use simple dataKey="sparkonto" (no nested dot access).
     // Pension is intentionally excluded — it's a separate bucket, not charted.
@@ -164,9 +169,11 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
           </div>
         </div>
         {/* Screen-reader alternative: the SVG below is decorative noise to AT,
-            so the same data ships as a visually-hidden table (sr-only clips it
-            offscreen — display:none would hide it from AT too). */}
-        <table className="sr-only">
+            so the same data ships as a visually-hidden table. The wrapper (not
+            the table itself) is hidden — a clipped table still asserts its
+            intrinsic width and gave the page sideways scroll at 320px. */}
+        <div className="sr-only-table-wrap">
+        <table>
           <caption>{t.chartGrowth(year)}</caption>
           <thead>
             <tr>
@@ -189,6 +196,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings }: Props) => {
             ))}
           </tbody>
         </table>
+        </div>
         <ResponsiveContainer width="100%" height={260} aria-hidden="true">
           {chartType === 'area' ? (
             <AreaChart data={data} margin={margin}>

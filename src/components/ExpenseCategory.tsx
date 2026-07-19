@@ -3,25 +3,29 @@ import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
-import { useLang } from '../i18n';
+import { useLang, formatMoneyCompact } from '../i18n';
 
 interface Props {
   category: BudgetCategory;
-  onChange: (cat: BudgetCategory) => void;
+  /** `amountEdited` is true only when the change was a ROW AMOUNT edit — the
+   *  savings flow uses it to tell "the user recorded a balance" (even a 0)
+   *  apart from structural edits like renames and added rows, which must never
+   *  count as a recorded balance. Other consumers can ignore it. */
+  onChange: (cat: BudgetCategory, amountEdited?: boolean) => void;
   onDelete?: (id: string) => void;
   /** Note shown for protected categories; defaults to the Plan-linked message. */
   protectedNote?: string;
 }
 
 export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }: Props) => {
-  const { t, lang, money } = useLang();
+  const { t, lang, money, currency } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const protectedCat = isProtectedCategory(category.id);
 
   const updateAmount = (id: string, amount: number) => {
-    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, amount } : r) });
+    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, amount } : r) }, true);
   };
 
   const updateLabel = (id: string, label: string) => {
@@ -64,8 +68,15 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
         >
           {shownName(category, lang)}
         </h2>
-        <span className="section-total" style={{ color: category.color }}>
-          {money(total)}
+        {/* Billion-class totals compact ("10 md kr") so the amount can't
+            squeeze the category name out of a narrow header; the exact figure
+            stays reachable via title= (main review §12). */}
+        <span
+          className="section-total"
+          style={{ color: category.color }}
+          title={Math.abs(total) >= 1e9 ? money(total) : undefined}
+        >
+          {Math.abs(total) >= 1e9 ? formatMoneyCompact(total, currency, lang) : money(total)}
         </span>
         <button
           className="cat-edit-btn"

@@ -57,6 +57,13 @@ describe('formatAxisTick', () => {
     const labels = [900_000_000, 1_000_000_000, 1_100_000_000].map(v => formatAxisTick(v, 'en'));
     expect(new Set(labels).size).toBe(3); // 900M / 1B / 1.1B
   });
+
+  it('bumps to the next tier when rounding would print 1000', () => {
+    // 999 999 999 999 sits under 1e12 but must not read "1,000B".
+    expect(formatAxisTick(999_999_999_999, 'en')).toBe('1T');
+    expect(formatAxisTick(999_999, 'en')).toBe('1M');   // not "1,000k"
+    expect(formatAxisTick(999_400, 'en')).toBe('999.4k'); // still under the cusp
+  });
 });
 
 describe('formatMoneyCompact (summary cards at ≥ 1e9)', () => {

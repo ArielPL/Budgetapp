@@ -94,11 +94,15 @@ export const YearTab = ({ year }: Props) => {
   }));
 
   const remColor = (n: number) => (n >= 0 ? '#22c55e' : '#f87171');
+  // The year's change is unknown for a different REASON than a month's balance:
+  // the missing fact is last December's baseline, and the hint must say so.
+  const missingBaseline = savingsGrowth === null && rows.some(r => r.hasSavings);
   /** A savings figure, or "–" when the month/year has nothing recorded. */
-  const savingsCell = (v: number | null, recorded = true) =>
+  const savingsCell = (v: number | null, recorded = true, hint = t.notRecordedHint) =>
     v === null || !recorded
-      ? <span className="amount-unknown" title={t.notRecordedHint}>–</span>
+      ? <span className="amount-unknown" title={hint}>–</span>
       : money(v);
+  const yearCell = savingsCell(savingsGrowth, true, missingBaseline ? t.yearBaselineHint(year) : t.notRecordedHint);
 
   return (
     <div className="year-tab">
@@ -165,7 +169,7 @@ export const YearTab = ({ year }: Props) => {
               <div className="year-card-month">{t.yearTotal}</div>
               <div className="year-card-row"><span>{t.colIncome}</span><span>{money(totals.income)}</span></div>
               <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(totals.expenses)}</span></div>
-              <div className="year-card-row"><span>{t.colSavedDuringYear}</span><span style={{ color: SAVINGS_COLOR }}>{savingsCell(savingsGrowth)}</span></div>
+              <div className="year-card-row"><span>{t.colSavedDuringYear}</span><span style={{ color: SAVINGS_COLOR }}>{yearCell}</span></div>
               <div className="year-card-row year-card-remaining">
                 <span>{t.colRemaining}</span>
                 <span style={{ color: remColor(totals.remaining) }}>{totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}</span>
@@ -200,11 +204,15 @@ export const YearTab = ({ year }: Props) => {
               <tfoot>
                 <tr>
                   {/* The savings column changes meaning in this row: the months
-                      above are balances, this is the year's change. */}
+                      above are balances, this is the year's change — so the
+                      cell carries its own VISIBLE label, not just a title. */}
                   <td>{t.yearTotal}</td>
                   <td className="num">{money(totals.income)}</td>
                   <td className="num">{money(totals.expenses)}</td>
-                  <td className="num" style={{ color: SAVINGS_COLOR }} title={t.colSavedDuringYear}>{savingsCell(savingsGrowth)}</td>
+                  <td className="num" style={{ color: SAVINGS_COLOR }}>
+                    <span className="year-total-measure">{t.colSavedDuringYear}</span>
+                    {yearCell}
+                  </td>
                   <td className="num" style={{ color: remColor(totals.remaining) }}>
                     {totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}
                   </td>
@@ -212,6 +220,13 @@ export const YearTab = ({ year }: Props) => {
               </tfoot>
             </table>
           </div>
+
+          {/* Why the year total reads "–": the missing fact is LAST year's
+              December baseline. Visible text (not just a tooltip) so sighted
+              and screen-reader users get the same explanation. */}
+          {missingBaseline && (
+            <p className="year-baseline-hint">💡 {t.yearBaselineHint(year)}</p>
+          )}
         </>
       )}
     </div>

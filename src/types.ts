@@ -19,6 +19,13 @@ export interface MonthData {
   income: BudgetRow[];
   expenses: BudgetCategory[];
   savings: BudgetCategory[];
+  /** Has the user actually RECORDED a savings balance this month? Creating
+   *  categories (template, "+ add category") is just structure and stores
+   *  `false`; editing any savings amount — including to exactly 0 — stores
+   *  `true`. Absent on months saved before the flag existed: those infer from
+   *  `savings.length > 0`, because back then structure only appeared alongside
+   *  real numbers (see calculateSavingsMetrics). */
+  savingsSnapshotRecorded?: boolean;
 }
 
 export interface SavingsGoal {

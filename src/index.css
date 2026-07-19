@@ -132,6 +132,25 @@ a:focus-visible,
   border-radius: 4px;
 }
 
+/* Visually hidden TABLE container (chart data alternatives). Tables keep an
+   intrinsic minimum width even inside a clipped 1px box, and at 320px that
+   width leaked into the document's scroll width — the whole page could be
+   dragged sideways (main review §7). The fix is `fixed` positioning: the box
+   leaves the layout flow entirely and can never widen the document, while the
+   table inside keeps its full semantics for screen readers. Never use
+   display:none / visibility:hidden / aria-hidden here — those would hide it
+   from assistive tech too. */
+.sr-only-table-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Visually hidden but available to screen readers (section headings, etc.). */
 .sr-only {
   position: absolute;
@@ -1366,12 +1385,12 @@ a:focus-visible,
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  /* min-width: 0 is what lets the name SHRINK: flex items default to
-     min-width auto, so a long category name ("Prenumerationer") refused to
-     give way and pushed the collapse button off a 320px screen. The name
-     truncates with an ellipsis instead; the full text stays in title="". */
+  /* A small min-width (not 0, not auto) balances two failure modes: `auto`
+     let a long name push the collapse button off a 320px screen, while 0 let
+     a billion-kr total squeeze the name to nothing (main review §12). The
+     name always keeps a readable stub + ellipsis; full text in title="". */
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 56px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1664,6 +1683,24 @@ a:focus-visible,
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
+}
+
+/* Small visible label INSIDE the year-total cell: the column above shows
+   balances, this row shows the year's change — two measures, two names. */
+.year-total-measure {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Why the year total is "–": points at the real missing fact (last December). */
+.year-baseline-hint {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .year-table-wrap {
@@ -3825,8 +3862,11 @@ a:focus-visible,
     display: flex;
     gap: 6px;
     position: sticky;
-    top: 0;
-    z-index: 30;
+    /* BELOW the sticky app header, never on top of it: at top:0 the nav
+       covered the month selector and menu button (main review §6). The
+       header's measured height is published as --app-header-h from App. */
+    top: var(--app-header-h, 78px);
+    z-index: 9; /* under the header (z 10) during the hand-off while scrolling */
     padding: 8px 0;
     background: var(--header-bg);
     backdrop-filter: blur(8px);
@@ -3847,8 +3887,8 @@ a:focus-visible,
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Anchored headings stop below the sticky bar instead of under it. */
-  .combined-section-title { scroll-margin-top: 64px; }
+  /* Anchored headings stop below BOTH sticky layers (header + jump-nav). */
+  .combined-section-title { scroll-margin-top: calc(var(--app-header-h, 78px) + 64px); }
 }
 
 /* Very narrow phones (320px class): the category header carries icon + name +
