@@ -21,6 +21,7 @@
 // deleted, never overwritten. See isBackupOwnedKey.
 
 import type { Lang } from './i18n';
+import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -103,23 +104,38 @@ const isMonthData = (v: unknown): boolean =>
   isPlainObject(v) &&
   Array.isArray(v.income) && v.income.every(isRow) &&
   Array.isArray(v.expenses) && v.expenses.every(isCategory) &&
-  Array.isArray(v.savings) && v.savings.every(isCategory);
+  Array.isArray(v.savings) && v.savings.every(isCategory) &&
+  (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean');
 
 const isGoal = (v: unknown): boolean =>
   isPlainObject(v) && typeof v.id === 'string' && isMoney(v.targetAmount) && isMoney(v.currentAmount);
 
 const isPlanData = (v: unknown): boolean =>
-  isPlainObject(v) && Array.isArray(v.goals) && v.goals.every(isGoal);
+  isPlainObject(v) &&
+  Array.isArray(v.goals) && v.goals.every(isGoal) &&
+  (v.notes === undefined || typeof v.notes === 'string');
 
+/** THE savings-plan rules — the same validateSavingsPlan the form and the
+ *  loader use. This module used to carry its own looser copy, which approved
+ *  backups (negative returns, year 1899) that loadSavingsPlan then rejected
+ *  after the reload: the import "succeeded" and the plan silently vanished
+ *  (main review §9). One source of truth, no drift. */
 const isSavingsPlan = (v: unknown): boolean =>
   isPlainObject(v) &&
-  isMoney(v.monthlyAmount) && v.monthlyAmount >= 0 &&
-  isMoney(v.annualReturnPct) &&
-  isMoney(v.startAmount) && v.startAmount >= 0 &&
-  typeof v.startYM === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v.startYM);
+  typeof v.monthlyAmount === 'number' &&
+  typeof v.annualReturnPct === 'number' &&
+  typeof v.startAmount === 'number' &&
+  typeof v.startYM === 'string' &&
+  validateSavingsPlan(v as unknown as SavingsPlan).length === 0;
 
 const isCustomValues = (v: unknown): boolean =>
   isPlainObject(v) && Object.values(v).every(isMoney);
+
+/** Custom structure: an array of block-shaped objects. Lenient on purpose —
+ *  loadStructure normalizes unknown fields — but "it's an array" alone let
+ *  arbitrary junk through. */
+const isCustomStructure = (v: unknown): boolean =>
+  Array.isArray(v) && v.every(b => isPlainObject(b) && (b.name === undefined || typeof b.name === 'string'));
 
 /** Parse a JSON-valued key and check it against its own shape. Keys we don't
  *  recognise are accepted as opaque strings: they're inside a versioned backup
@@ -128,10 +144,16 @@ function isValidValue(key: string, raw: string): boolean {
   const parseThen = (check: (v: unknown) => boolean): boolean => {
     try { return check(JSON.parse(raw)); } catch { return false; }
   };
-  if (/^budget_\d{4}_\d{1,2}$/.test(key)) return parseThen(isMonthData);
+  const monthKey = /^budget_\d{4}_(\d{1,2})$/.exec(key);
+  if (monthKey) {
+    // The suffix is a 0-based month INDEX: budget_2026_11 is December.
+    // Anything above 11 (e.g. _99) is not a month the app can ever load.
+    if (Number(monthKey[1]) > 11) return false;
+    return parseThen(isMonthData);
+  }
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
-  if (key === 'budget_custom_v3') return parseThen(v => Array.isArray(v));
+  if (key === 'budget_custom_v3') return parseThen(isCustomStructure);
   if (/^budget_custom_v3_values_/.test(key)) return parseThen(isCustomValues);
   return true; // settings & unknown future keys: any string is fine
 }

@@ -16,6 +16,43 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.1',
+    date: '2026-07-19',
+    title: { sv: 'Trygghetsfixar', en: 'Trust fixes', es: 'Correcciones de confianza' },
+    items: {
+      sv: [
+        'Rättat: sparmallen kunde visa ett stort uttag du aldrig gjort — att skapa kategorier räknas inte längre som ett registrerat saldo',
+        'Rättat: snabbnavigeringen i Kombinerad layout täckte månadsväljaren och menyn på mobil',
+        'Rättat: en dold skärmläsartabell kunde göra hela sidan sidledes-scrollbar på mobil',
+        'År-fliken visar nu tydligt att helårsraden är "Sparat under året" och berättar vilken decembermånad som saknas',
+        'Ett skrivfel i sparplanen nollställer inte längre prognosen — grafen behåller senaste giltiga värde',
+        'Säkerhetskopior kontrolleras nu med exakt samma regler som appen — en godkänd import kan inte tappa sparplanen',
+        'Custom-dialoger har nu riktiga namn för skärmläsare',
+        'Extremt stora kategorisummor trycker inte längre bort kategorinamnet',
+      ],
+      en: [
+        'Fixed: the savings template could show a large withdrawal you never made — creating categories no longer counts as a recorded balance',
+        'Fixed: the quick-nav in Combined layout covered the month selector and menu on mobile',
+        'Fixed: a hidden screen-reader table could make the whole page scroll sideways on mobile',
+        'The Year tab now clearly labels the full-year row as "Saved during the year" and tells you which December is missing',
+        'A typo in the savings plan no longer zeroes the projection — the chart keeps the last valid value',
+        'Backups are now checked with exactly the app\'s own rules — an approved import can\'t silently lose the savings plan',
+        'Custom dialogs now have real names for screen readers',
+        'Extremely large category totals no longer push out the category name',
+      ],
+      es: [
+        'Corregido: la plantilla de ahorro podía mostrar una gran retirada que nunca hiciste — crear categorías ya no cuenta como saldo registrado',
+        'Corregido: la navegación rápida del diseño combinado tapaba el selector de mes y el menú en móvil',
+        'Corregido: una tabla oculta para lectores de pantalla podía hacer que toda la página se desplazara lateralmente',
+        'La pestaña Año ahora etiqueta claramente la fila anual como "Ahorrado durante el año" e indica qué diciembre falta',
+        'Un error al escribir en el plan de ahorro ya no pone la proyección a cero — el gráfico mantiene el último valor válido',
+        'Las copias de seguridad se validan con las mismas reglas de la app — una importación aprobada no puede perder el plan',
+        'Los diálogos de Custom ahora tienen nombres reales para lectores de pantalla',
+        'Los importes de categoría extremadamente grandes ya no ocultan el nombre de la categoría',
+      ],
+    },
+  },
+  {
     version: '1.10.0',
     date: '2026-07-16',
     title: { sv: 'Sparplan', en: 'Savings plan', es: 'Plan de ahorro' },

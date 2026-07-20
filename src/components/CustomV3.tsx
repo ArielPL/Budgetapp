@@ -611,7 +611,8 @@ export const CustomV3 = ({ year, month }: Props) => {
       {/* Phone tap-to-expand: full editable block in a centered modal. */}
       {expandedBlock && (
         <div className="custom-modal-backdrop" onClick={() => setExpandedFor(null)}>
-          <div className="custom-modal custom-expand" onClick={e => e.stopPropagation()} role="dialog" ref={expandRef}>
+          <div className="custom-modal custom-expand" onClick={e => e.stopPropagation()} role="dialog"
+            aria-modal="true" aria-label={expandedBlock.name} ref={expandRef}>
             {/* Header is just the close button — the block's kind tag + editable
                 title are rendered once inside BlockContent below (no duplicate). */}
             <div className="custom-expand-head" style={{ justifyContent: 'flex-end' }}>
@@ -650,9 +651,10 @@ const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClos
   useModalFocus(panelRef, true, onClose);
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
+      <div className="custom-modal custom-help" onClick={e => e.stopPropagation()} role="dialog"
+        aria-modal="true" aria-labelledby="custom-help-title" ref={panelRef}>
         <div className="custom-help-head">
-          <div className="custom-modal-title">❔ {t.customHelpTitle}</div>
+          <div className="custom-modal-title" id="custom-help-title">❔ {t.customHelpTitle}</div>
           <button className="custom-icon-btn" onClick={onClose} aria-label={t.cfgDone}>✕</button>
         </div>
         <p className="custom-help-intro">{t.customHelpIntro}</p>
@@ -1001,8 +1003,9 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
   useModalFocus(panelRef, true, onClose);
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
-        <div className="custom-modal-title">{t.addBlock}</div>
+      <div className="custom-modal" onClick={e => e.stopPropagation()} role="dialog"
+        aria-modal="true" aria-labelledby="custom-picker-title" ref={panelRef}>
+        <div className="custom-modal-title" id="custom-picker-title">{t.addBlock}</div>
         <div className="custom-picker-grid">
           <button className="custom-picker-btn" onClick={() => onAddBlock('in')}>
             <span className="custom-picker-emoji">💵</span><span>{t.tagIn}</span>
@@ -1058,8 +1061,9 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
 
   return (
     <div className="custom-modal-backdrop" onClick={onClose}>
-      <div className="custom-modal custom-config" onClick={e => e.stopPropagation()} role="dialog" ref={panelRef}>
-        <div className="custom-modal-title">{tagEmoji(block)} {block.name} — {t.sectionSettings}</div>
+      <div className="custom-modal custom-config" onClick={e => e.stopPropagation()} role="dialog"
+        aria-modal="true" aria-labelledby="custom-config-title" ref={panelRef}>
+        <div className="custom-modal-title" id="custom-config-title">{tagEmoji(block)} {block.name} — {t.sectionSettings}</div>
 
         {/* Width — bigger icons with a gap before the label */}
         <div className="cfg-row">

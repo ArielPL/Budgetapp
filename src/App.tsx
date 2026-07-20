@@ -288,6 +288,24 @@ function App() {
     localStorage.setItem('budget_layout', layout);
   }, [layout]);
 
+  // ── Sticky-header height → CSS var ────────────────────────────────
+  // The app header is sticky at top:0. Anything else sticky (the Combined
+  // jump-nav) must sit BELOW it — at top:0 the two stacked and the nav covered
+  // the month selector and menu button on phones (main review §6). The header's
+  // real height varies with language and width, so it's measured, not guessed;
+  // CSS reads it as --app-header-h for the nav's `top` and scroll margins.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty('--app-header-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
     // Backfill goal-linked budget rows for goals created before this month's
@@ -519,17 +537,38 @@ function App() {
     });
   };
 
+  // The month's CURRENT effective snapshot state, resolved the same way
+  // calculateSavingsMetrics resolves it. Structure operations (template, add /
+  // delete category, renames) pin this value explicitly instead of leaving it
+  // to inference — so creating four empty template categories can never turn
+  // into "the user recorded a balance of 0" (main review §5), while an old
+  // month whose history predates the flag keeps counting as recorded.
+  const effectiveSnapshotFlag = (d: MonthData): boolean =>
+    typeof d.savingsSnapshotRecorded === 'boolean'
+      ? d.savingsSnapshotRecorded
+      : d.savings.length > 0;
+
   const addStarterSavings = () => {
     const starter = starterMonthData(lang);
     setData(d => {
       const haveSav = new Set(d.savings.map(c => c.id));
-      return { ...d, savings: [...d.savings, ...starter.savings.filter(c => !haveSav.has(c.id))] };
+      return {
+        ...d,
+        savings: [...d.savings, ...starter.savings.filter(c => !haveSav.has(c.id))],
+        savingsSnapshotRecorded: effectiveSnapshotFlag(d),
+      };
     });
   };
 
   // ── Savings ───────────────────────────────────────────────────────
-  const setSavingsCategory = (cat: BudgetCategory) => {
-    setData(d => ({ ...d, savings: d.savings.map(c => c.id === cat.id ? cat : c) }));
+  // `amountEdited` comes from ExpenseCategory: editing an amount — 0 included —
+  // IS the user recording their balance; renames and added rows are not.
+  const setSavingsCategory = (cat: BudgetCategory, amountEdited?: boolean) => {
+    setData(d => ({
+      ...d,
+      savings: d.savings.map(c => c.id === cat.id ? cat : c),
+      savingsSnapshotRecorded: amountEdited ? true : effectiveSnapshotFlag(d),
+    }));
   };
 
   const addSavingsCategory = () => {
@@ -537,13 +576,21 @@ function App() {
     const color = CATEGORY_PALETTE[existing % CATEGORY_PALETTE.length];
     const icon = CATEGORY_ICONS[existing % CATEGORY_ICONS.length];
     const newCat = createCategory(t.newCategory, icon, color, t.newRow);
-    setData(d => ({ ...d, savings: [...d.savings, newCat] }));
+    setData(d => ({
+      ...d,
+      savings: [...d.savings, newCat],
+      savingsSnapshotRecorded: effectiveSnapshotFlag(d),
+    }));
   };
 
   const deleteSavingsCategory = (id: string) => {
     // The four default savings categories are protected.
     if (isProtectedCategory(id)) return;
-    setData(d => ({ ...d, savings: d.savings.filter(c => c.id !== id) }));
+    setData(d => ({
+      ...d,
+      savings: d.savings.filter(c => c.id !== id),
+      savingsSnapshotRecorded: effectiveSnapshotFlag(d),
+    }));
   };
 
   // ── Plan — with goal↔budget sync ─────────────────────────────────
@@ -728,6 +775,7 @@ function App() {
           onDeleteCategory={deleteSavingsCategory}
           year={year}
           currentMonth={month}
+          snapshotRecorded={data.savingsSnapshotRecorded}
           starterSlot={savingsStarter}
         />
       </Suspense>
@@ -756,7 +804,7 @@ function App() {
   return (
     <LanguageContext.Provider value={{ lang, setLang, t, currency, setCurrency, money }}>
     <div className="app">
-      <header className="app-header">
+      <header className="app-header" ref={headerRef}>
         <div className="header-top">
           <MonthNav
             year={year}

@@ -9,18 +9,22 @@ import { SavingsDonuts } from './SavingsDonuts';
 
 interface Props {
   categories: BudgetCategory[];
-  onChange: (cat: BudgetCategory) => void;
+  onChange: (cat: BudgetCategory, amountEdited?: boolean) => void;
   onAddCategory: () => void;
   onDeleteCategory: (id: string) => void;
   year: number;
   currentMonth: number;
+  /** The month's savingsSnapshotRecorded flag — the components here only get
+   *  the category list, and categories alone can't distinguish "template just
+   *  created structure" from "balance recorded" (main review §5). */
+  snapshotRecorded?: boolean;
   starterSlot?: ReactNode;
 }
 
 // Savings summary cards (saved this month / prev month) + the faint pension box.
 // Extracted so the Custom layout's `savings-inputs` block can reuse it.
-export const SavingsSummary = ({ categories, year, currentMonth }: {
-  categories: BudgetCategory[]; year: number; currentMonth: number;
+export const SavingsSummary = ({ categories, year, currentMonth, snapshotRecorded }: {
+  categories: BudgetCategory[]; year: number; currentMonth: number; snapshotRecorded?: boolean;
 }) => {
   const { lang, t, money } = useLang();
 
@@ -29,7 +33,10 @@ export const SavingsSummary = ({ categories, year, currentMonth }: {
   // Pension is excluded: a separate long-term bucket. All of that lives in
   // calculateSavingsMetrics; computing it again by hand here is how the rule
   // drifted out of sync with the other tabs in the first place.
-  const snapshot = calculateSavingsMetrics({ income: [], expenses: [], savings: categories });
+  const snapshot = calculateSavingsMetrics({
+    income: [], expenses: [], savings: categories,
+    savingsSnapshotRecorded: snapshotRecorded,
+  });
   const { balance, pension: pensionTotal } = snapshot;
 
   // Previous month — the baseline for this month's change. An untouched month
@@ -80,7 +87,7 @@ export const SavingsSummary = ({ categories, year, currentMonth }: {
 // The editable savings category list + "add category" button.
 export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDeleteCategory, starterSlot }: {
   categories: BudgetCategory[];
-  onChange: (cat: BudgetCategory) => void;
+  onChange: (cat: BudgetCategory, amountEdited?: boolean) => void;
   onAddCategory: () => void;
   onDeleteCategory: (id: string) => void;
   starterSlot?: ReactNode;
@@ -105,11 +112,11 @@ export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDel
   );
 };
 
-export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCategory, year, currentMonth, starterSlot }: Props) => {
+export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCategory, year, currentMonth, snapshotRecorded, starterSlot }: Props) => {
   return (
     <div className="tab-content">
       {/* Summary cards + separate, faint pension box */}
-      <SavingsSummary categories={categories} year={year} currentMonth={currentMonth} />
+      <SavingsSummary categories={categories} year={year} currentMonth={currentMonth} snapshotRecorded={snapshotRecorded} />
 
       {/* Main grid: categories left, charts right */}
       <div className="budget-grid savings-grid">
@@ -123,7 +130,7 @@ export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCatego
           />
         </div>
         <div className="budget-right">
-          <GrowthChart year={year} currentMonth={currentMonth} currentSavings={categories} />
+          <GrowthChart year={year} currentMonth={currentMonth} currentSavings={categories} currentSnapshotRecorded={snapshotRecorded} />
           <SavingsDonuts categories={categories} />
         </div>
       </div>

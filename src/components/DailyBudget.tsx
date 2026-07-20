@@ -1,5 +1,5 @@
 import { daysInMonth, daysLeftInMonth, splitRemaining } from '../metrics';
-import { useLang, MONTHS } from '../i18n';
+import { useLang, MONTHS, formatMoneyCompact } from '../i18n';
 
 interface Props {
   remaining: number; // income − budgeted expenses for the viewed month
@@ -12,13 +12,19 @@ interface Props {
 // today) so the number adapts as the month passes. For any other month it
 // spreads the money across the whole month — a flat planning/retrospective figure.
 export const DailyBudget = ({ remaining, year, month }: Props) => {
-  const { lang, t, money } = useLang();
+  const { lang, t, money, currency } = useLang();
   const now = new Date();
   const isCurrent = year === now.getFullYear() && month === now.getMonth();
 
   const days = isCurrent ? daysLeftInMonth(now) : daysInMonth(year, month);
   const { perDay, perWeek } = splitRemaining(remaining, days);
   const tone = perDay < 0 ? ' daily-budget-negative' : '';
+  // Billion-class figures compact like the summary cards — a 12-digit expense
+  // made the per-day tile the last element still widening the page at 320px.
+  const tileMoney = (n: number) =>
+    Math.abs(n) >= 1e9
+      ? <span title={money(n)}>{formatMoneyCompact(n, currency, lang)}</span>
+      : money(n);
   const daysLabel = isCurrent
     ? t.dailyBudgetDaysLeft(days, MONTHS[lang][month])
     : t.dailyBudgetDaysInMonth(days, MONTHS[lang][month]);
@@ -32,11 +38,11 @@ export const DailyBudget = ({ remaining, year, month }: Props) => {
       <div className="daily-budget-tiles">
         <div className="daily-budget-tile">
           <span className="daily-budget-label"><span aria-hidden="true">☀️</span> {t.dailyBudgetPerDay}</span>
-          <span className={`daily-budget-value${tone}`}>{money(perDay)}</span>
+          <span className={`daily-budget-value${tone}`}>{tileMoney(perDay)}</span>
         </div>
         <div className="daily-budget-tile">
           <span className="daily-budget-label"><span aria-hidden="true">📅</span> {t.dailyBudgetPerWeek}</span>
-          <span className={`daily-budget-value${tone}`}>{money(perWeek)}</span>
+          <span className={`daily-budget-value${tone}`}>{tileMoney(perWeek)}</span>
         </div>
       </div>
     </div>

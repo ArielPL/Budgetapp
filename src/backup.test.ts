@@ -125,6 +125,47 @@ describe('import validation — nothing is written unless the whole file is good
     expect(checkBackup(backupFile({ budget_savings_plan: plan('2026-00') }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_savings_plan: plan('2026-05') })).ok).toBe(true);
   });
+
+  // §9: the backup checker must apply the SAME plan rules as the app's loader —
+  // its old looser copy approved files whose plan then vanished after reload.
+  it('rejects every savings plan the app loader would reject', () => {
+    const plan = (over: Record<string, unknown>) => JSON.stringify({
+      monthlyAmount: 2000, annualReturnPct: 7, startAmount: 0, startYM: '2026-05', ...over,
+    });
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ annualReturnPct: -1 }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ annualReturnPct: 101 }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ startYM: '1899-05' }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ startYM: '2201-05' }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    // Boundary values the loader accepts must import fine.
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ annualReturnPct: 100, startYM: '2200-12' }) })).ok).toBe(true);
+    expect(checkBackup(backupFile({ budget_savings_plan: plan({ annualReturnPct: 0, startYM: '1900-01' }) })).ok).toBe(true);
+  });
+
+  it('rejects a budget_plan whose notes is not a string', () => {
+    expect(checkBackup(backupFile({ budget_plan: JSON.stringify({ goals: [], notes: 42 }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_plan: JSON.stringify({ goals: [], notes: 'my plan' }) })).ok).toBe(true);
+    expect(checkBackup(backupFile({ budget_plan: JSON.stringify({ goals: [] }) })).ok).toBe(true); // notes optional
+  });
+
+  it('rejects a custom structure that is an array of junk', () => {
+    expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify([1, 2, 3]) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify(['a']) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify([{ id: 'b1', name: 'Block' }]) })).ok).toBe(true);
+  });
+
+  it('rejects a month key with an impossible month index', () => {
+    expect(checkBackup(backupFile({ budget_2026_99: monthJSON(100) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_2026_11: monthJSON(100) })).ok).toBe(true); // December
+  });
+
+  it('accepts the new savingsSnapshotRecorded flag and rejects a junk one', () => {
+    const withFlag = (v: unknown) => JSON.stringify({
+      income: [], expenses: [], savings: [], savingsSnapshotRecorded: v,
+    });
+    expect(checkBackup(backupFile({ budget_2026_6: withFlag(true) })).ok).toBe(true);
+    expect(checkBackup(backupFile({ budget_2026_6: withFlag(undefined) })).ok).toBe(true);
+    expect(checkBackup(backupFile({ budget_2026_6: withFlag('yes') }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
   it('accepts a valid file and reports how much is in it', () => {
     const check = checkBackup(backupFile({ budget_2026_6: monthJSON(100), budget_lang: 'sv' }));
     expect(check).toMatchObject({ ok: true, keyCount: 2 });

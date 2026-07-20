@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -145,10 +145,21 @@ export const SparPlanSection = () => {
     startAmount: start.trim() === '' ? 0 : parseAmount(start) || 0,
     startYM,
   };
+  const draftValid = validateSavingsPlan(draftPreview).length === 0;
+
+  // While a draft is INVALID the chart holds the last valid projection instead
+  // of collapsing to a zero plan — a typo shows a field error, not a graph
+  // where five years of saving vanish (main review §11).
+  const [lastValidDraft, setLastValidDraft] = useState<SavingsPlan | null>(null);
+  useEffect(() => {
+    if (draftValid) setLastValidDraft(draftPreview);
+    // Drafts are derived 1:1 from these strings, so they are the dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthly, ret, start, startYM]);
+
   const previewPlan: SavingsPlan = plan
-    ?? (validateSavingsPlan(draftPreview).length === 0
-      ? draftPreview
-      : { monthlyAmount: 0, annualReturnPct: 0, startAmount: 0, startYM });
+    ?? (draftValid ? draftPreview : lastValidDraft
+      ?? { monthlyAmount: 0, annualReturnPct: 0, startAmount: 0, startYM });
   const series = projectPlan(previewPlan, HORIZON_MONTHS);
   const projData = series.map((v, k) => ({
     k,
@@ -276,9 +287,10 @@ export const SparPlanSection = () => {
           <span className="sparplan-legend-item"><span className="sparplan-swatch sparplan-swatch-line" style={{ background: GRAY }} />{t.sparplanDepositsOnly}</span>
         </div>
         {/* SR alternative for the projection: whole-year points as a hidden
-            table (sr-only, not display:none — AT must still reach it). The
-            headline figure is the visible hero text above. */}
-        <table className="sr-only">
+            table. Hidden via the wrapper — a clipped table still asserts its
+            intrinsic width and widened the page at 320px (main review §7). */}
+        <div className="sr-only-table-wrap">
+        <table>
           <caption>{t.sparplanTitle}</caption>
           <thead>
             <tr>
@@ -297,6 +309,7 @@ export const SparPlanSection = () => {
             ))}
           </tbody>
         </table>
+        </div>
         <ResponsiveContainer width="100%" height={200} aria-hidden="true">
           <AreaChart data={projData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
@@ -336,8 +349,9 @@ export const SparPlanSection = () => {
             <span className="sparplan-legend-item"><span className="sparplan-swatch sparplan-swatch-dash" style={{ background: GRAY }} />{t.sparplanPlanLine}</span>
           </div>
           {/* SR alternative for plan-vs-reality; the badge above carries the
-              verdict as visible text. */}
-          <table className="sr-only">
+              verdict as visible text. Wrapper-hidden — see the projection table. */}
+          <div className="sr-only-table-wrap">
+          <table>
             <caption>{t.sparplanVsTitle}</caption>
             <thead>
               <tr>
@@ -356,6 +370,7 @@ export const SparPlanSection = () => {
               ))}
             </tbody>
           </table>
+          </div>
           <ResponsiveContainer width="100%" height={190} aria-hidden="true">
             <LineChart data={vsRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
