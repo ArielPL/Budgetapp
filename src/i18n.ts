@@ -451,6 +451,9 @@ export interface Translations {
   chooseIcon: string;
   chooseColor: string;
   protectedCategory: string;
+  /** Confirmation that removing a goal's budget row unlinked the goal — the row
+   *  will not reappear, and the goal keeps the progress it already has. */
+  goalUnlinkedFromBudget: (goal: string) => string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -774,6 +777,7 @@ export const translations: Record<Lang, Translations> = {
     chooseIcon: 'Välj ikon',
     chooseColor: 'Välj färg',
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
+    goalUnlinkedFromBudget: (goal) => `"${goal}" är inte längre kopplat till budgeten. Målet behåller det du sparat.`,
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -1092,6 +1096,7 @@ export const translations: Record<Lang, Translations> = {
     chooseIcon: 'Choose icon',
     chooseColor: 'Choose color',
     protectedCategory: 'Linked to Plan — cannot be deleted',
+    goalUnlinkedFromBudget: (goal) => `"${goal}" is no longer linked to your budget. The goal keeps what you've saved.`,
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -1410,6 +1415,7 @@ export const translations: Record<Lang, Translations> = {
     chooseIcon: 'Elegir icono',
     chooseColor: 'Elegir color',
     protectedCategory: 'Vinculada al Plan — no se puede eliminar',
+    goalUnlinkedFromBudget: (goal) => `"${goal}" ya no está vinculada a tu presupuesto. La meta conserva lo que has ahorrado.`,
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

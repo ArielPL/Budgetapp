@@ -16,6 +16,28 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.2',
+    date: '2026-07-25',
+    title: { sv: 'Sparmål i budgeten', en: 'Goals in the budget', es: 'Metas en el presupuesto' },
+    items: {
+      sv: [
+        'Rättat: sparmålens rader dök upp i månader som redan passerat — avslutade månader lämnas nu orörda',
+        'Rättat: att bara bläddra till en månad skrev inte längre om den; raden erbjuds men sparas först när du fyller i något',
+        'Rättat: en borttagen målrad kom tillbaka med 0 kr och åt upp beloppet som stod där — nu stannar den borta och målet behåller det du sparat',
+      ],
+      en: [
+        'Fixed: savings-goal rows appeared in months that had already ended — finished months are now left untouched',
+        'Fixed: merely browsing to a month no longer rewrites it; the row is offered but only saved once you enter something',
+        'Fixed: a deleted goal row came back at 0 kr and swallowed the amount that was in it — it now stays gone and the goal keeps what you saved',
+      ],
+      es: [
+        'Corregido: las filas de metas aparecían en meses ya terminados — los meses cerrados ahora quedan intactos',
+        'Corregido: con solo abrir un mes ya no se reescribe; la fila se ofrece pero solo se guarda cuando introduces algo',
+        'Corregido: una fila de meta eliminada volvía con 0 kr y se comía el importe que había — ahora no vuelve y la meta conserva lo ahorrado',
+      ],
+    },
+  },
+  {
     version: '1.10.1',
     date: '2026-07-19',
     title: { sv: 'Trygghetsfixar', en: 'Trust fixes', es: 'Correcciones de confianza' },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ensureGoalLinkedBudgetRows, defaultMonthData, starterMonthData } from './defaults';
+import { ensureGoalLinkedBudgetRows, defaultMonthData, starterMonthData, isHistoricMonth } from './defaults';
 import type { MonthData, SavingsGoal, BudgetCategory } from './types';
 
 const goal = (id: string, budgetRowId?: string, name = id): SavingsGoal => ({
@@ -60,5 +60,32 @@ describe('ensureGoalLinkedBudgetRows', () => {
     const out = ensureGoalLinkedBudgetRows(starterMonthData('sv'), goals, 'sv');
     const rows = sparandeOf(out)!.rows;
     expect(rows.some(r => r.id === 'row-x' && r.amount === 0)).toBe(true);
+  });
+});
+
+// Bug report 2026-07-19: entering an amount in a goal row, then browsing to an
+// earlier month, planted that row in the earlier month too — and it looked like
+// it had always been there. Finished months are history and stay untouched.
+describe('isHistoricMonth (which months may receive goal rows)', () => {
+  const now = new Date('2026-07-19T12:00:00Z'); // July 2026 = month index 6
+
+  it('treats earlier months in the same year as history', () => {
+    expect(isHistoricMonth(2026, 5, now)).toBe(true); // June
+    expect(isHistoricMonth(2026, 0, now)).toBe(true); // January
+  });
+
+  it('treats the current month as still open', () => {
+    expect(isHistoricMonth(2026, 6, now)).toBe(false);
+  });
+
+  it('treats future months as open — budgeting ahead is the point', () => {
+    expect(isHistoricMonth(2026, 7, now)).toBe(false);  // August
+    expect(isHistoricMonth(2027, 0, now)).toBe(false);
+  });
+
+  it('compares across year boundaries, not just month numbers', () => {
+    expect(isHistoricMonth(2025, 11, now)).toBe(true);  // Dec 2025 is past
+    expect(isHistoricMonth(2025, 8, now)).toBe(true);
+    expect(isHistoricMonth(2026, 11, now)).toBe(false); // Dec 2026 is future
   });
 });

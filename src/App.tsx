@@ -23,7 +23,7 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -213,6 +213,10 @@ function App() {
   // but the OLD `data` still in scope (load's setData hasn't applied yet),
   // writing the previous month's amounts into the new month's key (data bleed).
   const skipNextSave = useRef(false);
+  // JSON of the month exactly as the load effect produced it (stored data plus
+  // any goal-linked rows offered for it). While `data` still equals this, the
+  // user hasn't changed anything and the month must not be written back.
+  const loadedSnapshot = useRef<string | null>(null);
 
   // ── Theme ─────────────────────────────────────────────────────────
   // Apply the active theme (palette family + mode + any custom overrides) to
@@ -308,18 +312,25 @@ function App() {
 
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
+    const stored = loadMonthData(year, month, lang);
     // Backfill goal-linked budget rows for goals created before this month's
     // data was saved. The shared helper creates the sparande category if the
     // month doesn't have one yet (e.g. a blank month) and never duplicates rows.
-    const monthData = ensureGoalLinkedBudgetRows(
-      loadMonthData(year, month, lang),
-      planData.goals,
-      lang,
-    );
+    // Finished months are skipped entirely — see isHistoricMonth.
+    const monthData = isHistoricMonth(year, month)
+      ? stored
+      : ensureGoalLinkedBudgetRows(stored, planData.goals, lang);
     // A month/year switch just loaded fresh data; the save effect will run in
     // this same commit (month/year changed) with the PREVIOUS `data` still in
     // scope. Skip that one save so we never write one month's data into another.
     skipNextSave.current = true;
+    // Remember exactly what the load produced. The save effect refuses to write
+    // this back: a backfilled row is only an OFFER to budget for a goal, and
+    // merely opening a month must not rewrite it (that's how browsing to June
+    // made a row look like it had always been there). The first real edit
+    // changes `data` away from this snapshot and saves the whole month, rows
+    // included.
+    loadedSnapshot.current = JSON.stringify(monthData);
     setData(monthData);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
@@ -330,6 +341,9 @@ function App() {
       skipNextSave.current = false;
       return;
     }
+    // Nothing user-driven has happened yet — this is still the freshly loaded
+    // (possibly backfilled) month. Don't create or rewrite the month's record.
+    if (JSON.stringify(data) === loadedSnapshot.current) return;
     saveMonthData(year, month, data);
   }, [data, year, month]);
   useEffect(() => { savePlanData(planData); },             [planData]);
@@ -474,10 +488,23 @@ function App() {
       const oldSparande = data.expenses.find(c => c.id === 'sparande');
       if (oldSparande) {
         let goalsChanged = false;
+        let unlinkedName = '';
         const updatedGoals = planData.goals.map(goal => {
           if (!goal.budgetRowId) return goal;
           const oldRow = oldSparande.rows.find(r => r.id === goal.budgetRowId);
           const newRow = updatedCat.rows.find(r => r.id === goal.budgetRowId);
+
+          // The row was DELETED. Drop the link, or the backfill would put the
+          // row straight back on the next month switch — at 0 kr, quietly
+          // erasing whatever was in it while the goal still claimed the money
+          // (the 1 000 kr that vanished from Buffert). Removing the row is the
+          // user saying "stop budgeting for this goal here"; the goal keeps the
+          // progress it has already recorded.
+          if (oldRow && !newRow) {
+            unlinkedName = goal.name;
+            goalsChanged = true;
+            return { ...goal, budgetRowId: undefined };
+          }
           if (!oldRow || !newRow) return goal;
 
           let updated = goal;
@@ -498,6 +525,9 @@ function App() {
           return updated;
         });
         if (goalsChanged) setPlanData(pd => ({ ...pd, goals: updatedGoals }));
+        // Say so out loud — an unlink is invisible otherwise, and the row not
+        // coming back is exactly the behaviour change worth explaining.
+        if (unlinkedName) showMsg(t.goalUnlinkedFromBudget(unlinkedName));
       }
     }
 
