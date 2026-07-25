@@ -325,6 +325,19 @@ export function storageKey(year: number, month: number): string {
   return `budget_${year}_${month}`;
 }
 
+/**
+ * Is this month already over? A finished month is HISTORY: the goal↔budget
+ * backfill must never reach into it and add rows the user never budgeted for.
+ * Creating a goal today used to inject a 0 kr row into every earlier month the
+ * user happened to browse — rows that then looked like they had always been
+ * there (bug report 2026-07-19). The current month counts as open, so a goal
+ * created today can still be filled in for today.
+ */
+export function isHistoricMonth(year: number, monthIndex: number, now = new Date()): boolean {
+  const nowYM = now.getFullYear() * 12 + now.getMonth();
+  return year * 12 + monthIndex < nowYM;
+}
+
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
   const key = storageKey(year, month);
   const raw = localStorage.getItem(key);
