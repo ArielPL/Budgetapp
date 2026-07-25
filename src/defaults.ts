@@ -2,6 +2,7 @@ import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
 import { calculateSavingsMetrics } from './metrics';
+import type { StorageLike } from './backup';
 
 export const CATEGORY_COLORS: Record<string, string> = {
   boende: '#6366f1',
@@ -366,6 +367,68 @@ export function saveMonthData(year: number, month: number, data: MonthData): voi
   const empty = data.income.length === 0 && data.expenses.length === 0 && data.savings.length === 0;
   if (empty && localStorage.getItem(key) === null) return;
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+/**
+ * One-time repair for months the OLD backfill already polluted.
+ *
+ * Before isHistoricMonth existed, opening a finished month planted a 0 kr row
+ * for every goal and saved it there. Blocking new writes doesn't undo that —
+ * the rows are already on disk, which is why the bug looked unfixed. This
+ * removes exactly those rows, and nothing else:
+ *
+ *   • only months that are already over (the current/future offer stays),
+ *   • only rows whose id IS a goal's budgetRowId — an id the app generated for
+ *     the link, never one a user-created row can have,
+ *   • only rows still at 0 kr — a row with real money in it is budget history
+ *     and survives, same rule as everywhere else.
+ *
+ * Idempotent: once the rows are gone there is nothing left to match.
+ */
+export function cleanupHistoricGoalRows(
+  goals: SavingsGoal[],
+  now = new Date(),
+  // Injected so the repair is unit-testable without a browser, same port style
+  // as backup.ts. Defaults to the real thing in the app.
+  storage: StorageLike = localStorage,
+): number {
+  const linkedIds = new Set(goals.map(g => g.budgetRowId).filter((id): id is string => !!id));
+  if (linkedIds.size === 0) return 0;
+
+  let cleaned = 0;
+  // Snapshot the keys first: writing while iterating localStorage by index can
+  // shift the indices under us.
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const k = storage.key(i);
+    if (k) keys.push(k);
+  }
+
+  for (const key of keys) {
+    const match = /^budget_(\d{4})_(\d{1,2})$/.exec(key);
+    if (!match) continue;
+    const year = Number(match[1]);
+    const monthIndex = Number(match[2]);
+    if (monthIndex > 11 || !isHistoricMonth(year, monthIndex, now)) continue;
+
+    try {
+      const month = JSON.parse(storage.getItem(key)!) as MonthData;
+      const sparande = month.expenses?.find(c => c.id === 'sparande');
+      if (!sparande) continue;
+      const kept = sparande.rows.filter(r => !(linkedIds.has(r.id) && (r.amount || 0) === 0));
+      if (kept.length === sparande.rows.length) continue;
+
+      // A sparande category left with nothing is just clutter — drop it too.
+      const expenses = kept.length > 0
+        ? month.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
+        : month.expenses.filter(c => c.id !== 'sparande');
+      storage.setItem(key, JSON.stringify({ ...month, expenses }));
+      cleaned += sparande.rows.length - kept.length;
+    } catch {
+      // Malformed month blob — leave it alone rather than risk data.
+    }
+  }
+  return cleaned;
 }
 
 export function loadPlanData(lang: Lang = 'sv'): PlanData {
