@@ -16,24 +16,27 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
-    version: '1.10.2',
+    version: '1.10.3',
     date: '2026-07-25',
     title: { sv: 'Sparmål i budgeten', en: 'Goals in the budget', es: 'Metas en el presupuesto' },
     items: {
       sv: [
         'Rättat: sparmålens rader dök upp i månader som redan passerat — avslutade månader lämnas nu orörda',
-        'Rättat: att bara bläddra till en månad skrev inte längre om den; raden erbjuds men sparas först när du fyller i något',
+        'Rättat: att bara bläddra till en månad skriver inte längre om den; raden erbjuds men sparas först när du fyller i något',
         'Rättat: en borttagen målrad kom tillbaka med 0 kr och åt upp beloppet som stod där — nu stannar den borta och målet behåller det du sparat',
+        'Städar automatiskt bort de spökrader som den gamla versionen redan hunnit spara i passerade månader — rader med pengar i behålls',
       ],
       en: [
         'Fixed: savings-goal rows appeared in months that had already ended — finished months are now left untouched',
         'Fixed: merely browsing to a month no longer rewrites it; the row is offered but only saved once you enter something',
         'Fixed: a deleted goal row came back at 0 kr and swallowed the amount that was in it — it now stays gone and the goal keeps what you saved',
+        'Automatically clears the leftover rows the old version had already saved into finished months — rows with money in them are kept',
       ],
       es: [
         'Corregido: las filas de metas aparecían en meses ya terminados — los meses cerrados ahora quedan intactos',
         'Corregido: con solo abrir un mes ya no se reescribe; la fila se ofrece pero solo se guarda cuando introduces algo',
         'Corregido: una fila de meta eliminada volvía con 0 kr y se comía el importe que había — ahora no vuelve y la meta conserva lo ahorrado',
+        'Limpia automáticamente las filas que la versión anterior ya había guardado en meses cerrados — las filas con dinero se conservan',
       ],
     },
   },

@@ -23,7 +23,7 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, cleanupHistoricGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -310,6 +310,14 @@ function App() {
     return () => ro.disconnect();
   }, []);
 
+  // Repair months the OLD backfill already wrote goal rows into. Runs before
+  // the month-load effect below (declaration order = effect order), so the
+  // month we're about to show is already clean. Idempotent and cheap.
+  useEffect(() => {
+    cleanupHistoricGoalRows(planData.goals);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Persistence ───────────────────────────────────────────────────
   useEffect(() => {
     const stored = loadMonthData(year, month, lang);
@@ -494,13 +502,17 @@ function App() {
           const oldRow = oldSparande.rows.find(r => r.id === goal.budgetRowId);
           const newRow = updatedCat.rows.find(r => r.id === goal.budgetRowId);
 
-          // The row was DELETED. Drop the link, or the backfill would put the
-          // row straight back on the next month switch — at 0 kr, quietly
-          // erasing whatever was in it while the goal still claimed the money
-          // (the 1 000 kr that vanished from Buffert). Removing the row is the
-          // user saying "stop budgeting for this goal here"; the goal keeps the
-          // progress it has already recorded.
+          // The row was DELETED from an OPEN month. Drop the link, or the
+          // backfill would put the row straight back on the next month switch —
+          // at 0 kr, quietly erasing whatever was in it while the goal still
+          // claimed the money (the 1 000 kr that vanished from Buffert).
+          // Removing the row here means "stop budgeting for this goal"; the goal
+          // keeps the progress it has already recorded.
+          // In a FINISHED month the row is only history being tidied up, so it
+          // just goes away — unlinking there would break the link in the open
+          // month where the goal is actually in use.
           if (oldRow && !newRow) {
+            if (isHistoricMonth(year, month)) return goal;
             unlinkedName = goal.name;
             goalsChanged = true;
             return { ...goal, budgetRowId: undefined };
