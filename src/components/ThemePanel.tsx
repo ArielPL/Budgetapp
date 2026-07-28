@@ -13,16 +13,19 @@ import {
 
 // A row of accent swatches offered as quick picks (plus a native color input
 // for a fully custom accent). Tuned to read well on both dark and light bases.
+// Each carries a translation key: a screen reader announcing "#a78bfa" tells
+// the user nothing about the colour, and nothing about it being the chosen one
+// (main review §10) — hence the names below plus aria-pressed.
 const ACCENT_SWATCHES = [
-  '#a78bfa', // sorbet lavender
-  '#8b5cf6', // violet
-  '#38bdf8', // sky
-  '#2dd4bf', // teal
-  '#5ec98a', // green
-  '#fb7185', // rose
-  '#fbbf24', // amber
-  '#f472b6', // pink
-];
+  { hex: '#a78bfa', key: 'accentLavender' },
+  { hex: '#8b5cf6', key: 'accentViolet' },
+  { hex: '#38bdf8', key: 'accentSky' },
+  { hex: '#2dd4bf', key: 'accentTeal' },
+  { hex: '#5ec98a', key: 'accentGreen' },
+  { hex: '#fb7185', key: 'accentRose' },
+  { hex: '#fbbf24', key: 'accentAmber' },
+  { hex: '#f472b6', key: 'accentPink' },
+] as const;
 
 interface Props {
   palette: PaletteId;
@@ -135,18 +138,27 @@ export const ThemePanel = ({
 
           {/* ── Accent ── */}
           <section className="theme-section">
-            <div className="theme-section-label">{t.accent}</div>
-            <div className="theme-accent-row">
-              {ACCENT_SWATCHES.map((c) => (
-                <button
-                  key={c}
-                  className={`theme-accent-swatch${accent.toLowerCase() === c.toLowerCase() ? ' theme-accent-selected' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => onSetAccent(c)}
-                  aria-label={c}
-                  title={c}
-                />
-              ))}
+            <div className="theme-section-label" id="theme-accent-label">{t.accent}</div>
+            {/* group + label: the swatches are one control, not eight loose
+                buttons, so the group announces what it is choosing. */}
+            <div className="theme-accent-row" role="group" aria-labelledby="theme-accent-label">
+              {ACCENT_SWATCHES.map(({ hex, key }) => {
+                const selected = accent.toLowerCase() === hex.toLowerCase();
+                const name = t[key];
+                return (
+                  <button
+                    key={hex}
+                    className={`theme-accent-swatch${selected ? ' theme-accent-selected' : ''}`}
+                    style={{ background: hex }}
+                    onClick={() => onSetAccent(hex)}
+                    // aria-pressed exposes the chosen colour programmatically —
+                    // the ring alone was visual-only.
+                    aria-pressed={selected}
+                    aria-label={`${name} (${hex})`}
+                    title={`${name} (${hex})`}
+                  />
+                );
+              })}
               <label className="theme-accent-custom" title={t.accentCustom}>
                 <input
                   type="color"

@@ -300,6 +300,18 @@ a:focus-visible,
   background: var(--tint-remaining-bg);
   border-color: transparent;
 }
+/* Overspend uses the theme's negative pair — the same tokens the expense card
+   uses, which measure 9.5–12.5:1 in every palette and both modes.
+   Two class selectors, not one: plain `.card-sub` is declared later in this
+   file with the same specificity, so a single class would lose to it and the
+   text would fall back to --text-muted (~4:1 on a tinted card). */
+.remaining-card.is-deficit {
+  background: var(--tint-expense-bg);
+}
+.remaining-card.is-deficit .card-label,
+.remaining-card.is-deficit .card-amount { color: var(--tint-expense-text); }
+.card-sub.card-sub-positive { color: var(--tint-remaining-text); }
+.card-sub.card-sub-deficit { color: var(--tint-expense-text); }
 
 .card-label {
   font-size: 0.75rem;
@@ -1475,6 +1487,21 @@ a:focus-visible,
   background: transparent;
   transition: background 0.1s, color 0.1s;
   white-space: nowrap;
+  color: var(--amount-color, var(--text));
+}
+
+/* Row amounts are tinted with the category's colour, which reads very
+   differently against a light and a dark card — so each mode pulls the hue
+   toward its own end until the figure is comfortably legible. The mix ratios
+   are measured, not guessed: each is the point where the WORST hue in the
+   palette still clears WCAG AA, with the rest landing well above.
+     light — cyan is the weakest, 55% colour + black → 5.02:1 (was 4.67)
+     dark  — indigo is the weakest, 72% colour + white → 4.82:1 (was 3.01) */
+:root[data-theme='light'] .amount-display {
+  color: color-mix(in srgb, var(--amount-color, var(--text)) 55%, #000);
+}
+:root[data-theme='dark'] .amount-display {
+  color: color-mix(in srgb, var(--amount-color, var(--text)) 72%, #fff);
 }
 
 @media (hover: hover) {
@@ -1506,6 +1533,14 @@ a:focus-visible,
 
 .amount-input:focus {
   border-color: var(--accent, #22d3ee);
+}
+
+/* Fixed trailing slot on every budget row, whether or not it holds a delete
+   button. Reserving the space is what lines the amounts up into a column. */
+.row-action {
+  flex: 0 0 22px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .delete-btn {
@@ -2907,6 +2942,27 @@ a:focus-visible,
    a spinner would just flash). */
 .lazy-fallback { min-height: 240px; }
 
+/* Rejected amount in a budget row. The row is a flex line, so the message is
+   taken out of flow and hung under the field — it explains the refusal without
+   shifting any row. Wraps rather than forcing the page wider. */
+.budget-row { position: relative; }
+.amount-error {
+  position: absolute;
+  right: 8px;
+  top: 100%;
+  z-index: 2;
+  max-width: min(260px, calc(100% - 16px));
+  margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--negative);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--negative);
+}
+
 /* Inline per-field error (Sparplan inputs) — same tone as the goal form. */
 .field-error {
   display: block;
@@ -3825,6 +3881,9 @@ a:focus-visible,
   /* ≥40px touch targets on phones (design system). */
   .custom-icon-btn { width: 40px; height: 40px; }
   .width-seg { width: 40px; height: 36px; font-size: 0.95rem; }
+  /* The reserved slot has to grow with the button it holds, or rows WITH a
+     delete button push their amount 18px left of the rows without one. */
+  .row-action { flex-basis: 40px; }
   .delete-btn,
   .cat-edit-btn,
   .collapse-arrow,
@@ -3874,6 +3933,7 @@ a:focus-visible,
   }
   .combined-jump-btn {
     flex: 1 1 0;
+    min-width: 0;
     min-height: 40px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -3896,4 +3956,14 @@ a:focus-visible,
    targets stay at 40px — the title's ellipsis absorbs the rest. */
 @media (max-width: 340px) {
   .section-header { gap: 6px; }
+}
+
+/* Four jump buttons in one row leave ~70px each, which clips "Sparande" and
+   "Presupuesto". Below 380px they wrap to 2×2 so every language reads in full;
+   wider phones keep the single compact row. */
+@media (max-width: 380px) {
+  .combined-jump-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }

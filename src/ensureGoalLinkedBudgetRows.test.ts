@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   ensureGoalLinkedBudgetRows, defaultMonthData, starterMonthData,
   isHistoricMonth, cleanupHistoricGoalRows,
+  runHistoricGoalRowMigration, HISTORIC_GOAL_ROWS_MIGRATION,
 } from './defaults';
 import type { MonthData, SavingsGoal, BudgetCategory } from './types';
 
@@ -211,5 +212,48 @@ describe('cleanupHistoricGoalRows (repairing months already written to)', () => 
     ])));
     expect(clean([goal('g3')])).toBe(0);
     expect(rowsOf('budget_2026_5')).toContain('row-tillnagon');
+  });
+
+  // Main review 2026-07-26 §8: the repair was described as one-time but ran on
+  // every start. Its rule also matches a zero a user deliberately records in a
+  // past month later, so repeating it would quietly delete real entries.
+  describe('runHistoricGoalRowMigration (marker-guarded)', () => {
+    const migrate = (gs = goals) => runHistoricGoalRowMigration(gs, now, store);
+
+    it('repairs on the first run and writes the marker', () => {
+      put('budget_2026_5', JSON.stringify(polluted([
+        { id: 'row-tillnagon', label: 'Till någon', amount: 0 },
+      ])));
+      expect(migrate()).toBe(1);
+      expect(store.getItem(HISTORIC_GOAL_ROWS_MIGRATION)).toBeTruthy();
+    });
+
+    it('does not run a second time', () => {
+      put('budget_2026_5', JSON.stringify(polluted([
+        { id: 'row-tillnagon', label: 'Till någon', amount: 0 },
+      ])));
+      migrate();
+      // A row the user deliberately zeroes AFTER the migration must survive,
+      // even though it matches the old rule exactly.
+      put('budget_2026_5', JSON.stringify(polluted([
+        { id: 'row-tillnagon', label: 'Till någon', amount: 0 },
+      ])));
+      expect(migrate()).toBe(0);
+      expect(rowsOf('budget_2026_5')).toContain('row-tillnagon');
+    });
+
+    it('writes the marker even when there was nothing to repair', () => {
+      expect(migrate()).toBe(0);
+      expect(store.getItem(HISTORIC_GOAL_ROWS_MIGRATION)).toBeTruthy();
+    });
+
+    it('leaves months alone once the marker is present', () => {
+      store.setItem(HISTORIC_GOAL_ROWS_MIGRATION, '2026-07-26T00:00:00.000Z');
+      put('budget_2026_5', JSON.stringify(polluted([
+        { id: 'row-buffert', label: 'Buffert (Nordnet)', amount: 0 },
+      ])));
+      expect(migrate()).toBe(0);
+      expect(rowsOf('budget_2026_5')).toContain('row-buffert');
+    });
   });
 });

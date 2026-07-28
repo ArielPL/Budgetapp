@@ -165,10 +165,16 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
                   color={category.color}
                   label={shownName(row, lang)}
                 />
-                {row.isCustom && (
-                  <button className="delete-btn" onClick={() => deleteRow(row.id)}
-                    title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
-                )}
+                {/* The slot is always here, empty or not, so every amount in
+                    the category ends at the same right edge — otherwise rows
+                    with a delete button sat 34px to the left of the ones
+                    without, and the column looked ragged. */}
+                <span className="row-action">
+                  {row.isCustom && (
+                    <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                      title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
+                  )}
+                </span>
               </div>
             ))}
           </div>

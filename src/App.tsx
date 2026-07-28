@@ -23,7 +23,7 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, cleanupHistoricGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -312,9 +312,11 @@ function App() {
 
   // Repair months the OLD backfill already wrote goal rows into. Runs before
   // the month-load effect below (declaration order = effect order), so the
-  // month we're about to show is already clean. Idempotent and cheap.
+  // month we're about to show is already clean. Guarded by a migration marker:
+  // once done it never runs again, so a 0 the user deliberately records in a
+  // past month later is safe from the sweep.
   useEffect(() => {
-    cleanupHistoricGoalRows(planData.goals);
+    runHistoricGoalRowMigration(planData.goals);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1122,15 +1124,22 @@ function App() {
                (CSS shows it ≤640px only) jumps between the four sections. */
           <div className="combined-page">
             <nav className="combined-jump-nav" aria-label={t.layoutCombined}>
+              {/* Two labels per destination: a short visible one, and the full
+                  section name as the accessible name — so a screen reader always
+                  hears "Sparande & Investeringar", never a clipped word. CSS
+                  drops the row to 2×2 on the narrowest phones, which fits every
+                  language without inventing abbreviations (main review §9). */}
               {([
-                ['combined-budget', '📋', t.tabBudget],
-                ['combined-savings', '📈', t.tabSavingsShort],
-                ['combined-year', '🗓️', t.tabYearShort],
-                ['combined-plan', '🎯', t.tabPlanShort],
-              ] as const).map(([id, icon, label]) => (
+                ['combined-budget', '📋', t.tabBudget, t.tabBudget],
+                ['combined-savings', '📈', t.tabSavingsShort, t.tabSavings],
+                ['combined-year', '🗓️', t.tabYearShort, t.tabYear],
+                ['combined-plan', '🎯', t.tabPlanShort, t.tabPlan],
+              ] as const).map(([id, icon, label, fullName]) => (
                 <button
                   key={id}
                   className="combined-jump-btn"
+                  aria-label={fullName}
+                  title={fullName}
                   onClick={() => {
                     const el = document.getElementById(id);
                     if (!el) return;

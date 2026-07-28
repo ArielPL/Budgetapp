@@ -1,4 +1,4 @@
-import { daysInMonth, daysLeftInMonth, splitRemaining } from '../metrics';
+import { daysInMonth, splitRemaining } from '../metrics';
 import { useLang, MONTHS, formatMoneyCompact } from '../i18n';
 
 interface Props {
@@ -7,16 +7,20 @@ interface Props {
   month: number;     // viewed month (0-based)
 }
 
-// "Left to live on" — the month's remaining money as a livable per-day / per-week
-// pace. For the month we're actually in, it divides by the days LEFT (including
-// today) so the number adapts as the month passes. For any other month it
-// spreads the money across the whole month — a flat planning/retrospective figure.
+// "Left to live on" — what's left spread evenly across the WHOLE month, so it
+// answers "what can I spend per day this month?" and stays put from the 1st to
+// the 31st.
+//
+// It used to divide by the days REMAINING in the current month, which inverted
+// the meaning: the fewer days left, the bigger the number. On 28 July, 5 968 kr
+// with 4 days left read as 1 492 kr/day and 10 444 kr/week — a spending pace
+// nobody could act on, and one that climbed precisely as the month ran out.
+// Dividing by the month's real length is a budget; dividing by what's left is a
+// burn-down, and that's a separate (planned) feature.
 export const DailyBudget = ({ remaining, year, month }: Props) => {
   const { lang, t, money, currency } = useLang();
-  const now = new Date();
-  const isCurrent = year === now.getFullYear() && month === now.getMonth();
 
-  const days = isCurrent ? daysLeftInMonth(now) : daysInMonth(year, month);
+  const days = daysInMonth(year, month);
   const { perDay, perWeek } = splitRemaining(remaining, days);
   const tone = perDay < 0 ? ' daily-budget-negative' : '';
   // Billion-class figures compact like the summary cards — a 12-digit expense
@@ -25,9 +29,7 @@ export const DailyBudget = ({ remaining, year, month }: Props) => {
     Math.abs(n) >= 1e9
       ? <span title={money(n)}>{formatMoneyCompact(n, currency, lang)}</span>
       : money(n);
-  const daysLabel = isCurrent
-    ? t.dailyBudgetDaysLeft(days, MONTHS[lang][month])
-    : t.dailyBudgetDaysInMonth(days, MONTHS[lang][month]);
+  const daysLabel = t.dailyBudgetDaysInMonth(days, MONTHS[lang][month]);
 
   return (
     <div className="daily-budget">
