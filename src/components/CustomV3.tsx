@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties }
 import { useLang } from '../i18n';
 import { ExpenseChart, type ExpenseChartStyle } from './Charts';
 import { useModalFocus } from '../useModalFocus';
+import { parseMoneyOrZero, coerceStoredMoney } from '../money';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -232,7 +233,16 @@ function loadValues(y: number, m: number): Record<string, number> {
     const raw = localStorage.getItem(valuesKey(y, m));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    // Defensive read: an older build could store `null` here (that is what
+    // JSON.stringify does with Infinity/NaN), and a null amount would poison
+    // every total it touched. Unusable entries read as 0; storage is left as
+    // it is until the user actually edits the month.
+    const out: Record<string, number> = {};
+    for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
+      out[id] = coerceStoredMoney(value);
+    }
+    return out;
   } catch { return {}; }
 }
 
@@ -970,8 +980,8 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
   useEffect(() => {
     // Sync from external changes (copy-last-month, clear) without clobbering
     // the user's in-progress typing ("970," would otherwise snap to "970").
-    const current = parseFloat(draft.replace(',', '.'));
-    if ((isNaN(current) ? 0 : current) !== value) setDraft(value ? String(value) : '');
+    const current = parseMoneyOrZero(draft);
+    if (!current.ok || current.value !== value) setDraft(value ? String(value) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
@@ -984,8 +994,12 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
       onChange={e => {
         const raw = e.target.value.replace(/[^\d.,]/g, '');
         setDraft(raw);
-        const parsed = parseFloat(raw.replace(',', '.'));
-        onChange(isNaN(parsed) ? 0 : Math.max(0, parsed));
+        // Only a valid amount reaches state. A few hundred digits parse to
+        // Infinity, which JSON.stringify stores as null and the next load reads
+        // as 0 — the block's total silently gone (main review §5). An
+        // over-long draft simply stops updating the total until it is fixed.
+        const parsed = parseMoneyOrZero(raw);
+        if (parsed.ok) onChange(parsed.value);
       }}
     />
   );

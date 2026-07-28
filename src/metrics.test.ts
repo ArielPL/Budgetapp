@@ -299,6 +299,28 @@ describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
     expect(splitRemaining(-1000, 20)).toEqual({ perDay: -50, perWeek: -350 });
   });
 
+  // "Left to live on" divides by the month's LENGTH, not by the days remaining.
+  // Dividing by what's left inverted the meaning — the figure grew as the month
+  // ran out (5 968 kr with 4 days left read as 1 492 kr/day), which is a
+  // burn-down rate, not a spending budget.
+  it('gives the same per-day figure on the 1st as on the 28th', () => {
+    const remaining = 24175;
+    const july = daysInMonth(2026, 6);
+    const onThe1st = splitRemaining(remaining, july);
+    const onThe28th = splitRemaining(remaining, july);
+    expect(onThe1st).toEqual(onThe28th);
+    expect(onThe1st).toEqual({ perDay: 779, perWeek: 5458 });
+  });
+
+  it('does NOT use the days-remaining figure, which climbs as the month ends', () => {
+    const remaining = 5968;
+    const byMonthLength = splitRemaining(remaining, daysInMonth(2026, 6));
+    const byDaysLeft = splitRemaining(remaining, daysLeftInMonth(new Date(2026, 6, 28)));
+    expect(byMonthLength.perDay).toBe(192);   // a pace you can actually keep
+    expect(byDaysLeft.perDay).toBe(1492);     // what the card used to show
+    expect(byMonthLength.perDay).not.toBe(byDaysLeft.perDay);
+  });
+
   it('is safe when no days are left', () => {
     expect(splitRemaining(5000, 0)).toEqual({ perDay: 0, perWeek: 0 });
   });

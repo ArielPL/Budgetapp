@@ -141,6 +141,79 @@ describe('import validation — nothing is written unless the whole file is good
     expect(checkBackup(backupFile({ budget_savings_plan: plan({ annualReturnPct: 0, startYM: '1900-01' }) })).ok).toBe(true);
   });
 
+  // Main review 2026-07-26 §7: isGoal checked id + the two amounts only, so a
+  // half-formed goal imported cleanly and then acted as real app data.
+  describe('savings goals are validated in full', () => {
+    const goal = (over: Record<string, unknown> = {}) => JSON.stringify({
+      goals: [{
+        id: 'g1', name: 'Semester', targetAmount: 15000, currentAmount: 500,
+        deadline: '2026-12', color: '#a78bfa', budgetRowId: 'row-1', userNamed: true,
+        ...over,
+      }],
+    });
+    const check = (over?: Record<string, unknown>) => checkBackup(backupFile({ budget_plan: goal(over) }));
+
+    it('accepts a fully formed goal', () => {
+      expect(check().ok).toBe(true);
+    });
+
+    it('accepts an older goal without budgetRowId, userNamed or deadline', () => {
+      const older = JSON.stringify({
+        goals: [{ id: 'g1', name: 'Bil', targetAmount: 1000, currentAmount: 0, color: '#fff' }],
+      });
+      expect(checkBackup(backupFile({ budget_plan: older })).ok).toBe(true);
+    });
+
+    it('rejects a missing or non-string name', () => {
+      expect(check({ name: undefined })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ name: 42 })).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects an empty id', () => {
+      expect(check({ id: '' })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ id: 7 })).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects amounts that are null, negative or beyond the ceiling', () => {
+      // null is what JSON.stringify leaves behind for an Infinity.
+      expect(check({ currentAmount: null })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ targetAmount: null })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ targetAmount: -1 })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ targetAmount: 9_999_999_999_999 })).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects an impossible deadline but allows an empty one', () => {
+      expect(check({ deadline: '2026-13' })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ deadline: '2026-00' })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ deadline: 'soon' })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ deadline: '' }).ok).toBe(true);
+    });
+
+    it('rejects wrongly typed optional fields', () => {
+      expect(check({ budgetRowId: 5 })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ userNamed: 'yes' })).toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(check({ color: 12 })).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects the WHOLE file when just one of several goals is corrupt', () => {
+      const mixed = JSON.stringify({
+        goals: [
+          { id: 'g1', name: 'Bra', targetAmount: 1000, currentAmount: 0 },
+          { id: 'g2', name: 'Trasig', targetAmount: null, currentAmount: 0 },
+        ],
+      });
+      expect(checkBackup(backupFile({ budget_plan: mixed }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+  });
+
+  it('rejects a row amount beyond the money ceiling', () => {
+    const month = JSON.stringify({
+      income: [{ id: 'i1', label: 'Lön', amount: 9_999_999_999_999 }],
+      expenses: [], savings: [],
+    });
+    expect(checkBackup(backupFile({ budget_2026_6: month }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
+
   it('rejects a budget_plan whose notes is not a string', () => {
     expect(checkBackup(backupFile({ budget_plan: JSON.stringify({ goals: [], notes: 42 }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_plan: JSON.stringify({ goals: [], notes: 'my plan' }) })).ok).toBe(true);

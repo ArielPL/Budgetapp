@@ -272,6 +272,15 @@ export interface Translations {
   themeClose: string;
   presets: string;
   accent: string;
+  /** Colour NAMES for the accent swatches — a hex code is not a description. */
+  accentLavender: string;
+  accentViolet: string;
+  accentSky: string;
+  accentTeal: string;
+  accentGreen: string;
+  accentRose: string;
+  accentAmber: string;
+  accentPink: string;
   accentCustom: string;
   advancedOverride: string;
   resetToPreset: string;
@@ -325,6 +334,10 @@ export interface Translations {
   vsPrev: string;
   samePrevMonth: string;
   leftAfterBudget: (pct: number) => string;
+  /** Overspend says so IN WORDS. Colour alone can't carry the message —
+   *  the old card showed a green "0% left" line under a red negative total. */
+  deficitAmount: (amount: string) => string;
+  deficitOverBudget: (pct: number) => string;
   // Income section
   incomeSection: string;
   addRow: string;
@@ -367,6 +380,8 @@ export interface Translations {
   goalErrorTarget: string;
   // Daily/weekly budget split ("left to live on")
   dailyBudgetTitle: string;
+  /** Reserved for the planned "rest of the month" burn-down mode. The card
+   *  itself now always spreads across the whole month — see DailyBudget. */
   dailyBudgetDaysLeft: (n: number, month: string) => string;
   dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
@@ -429,6 +444,9 @@ export interface Translations {
   yearEmpty: string;
   // Editable
   clickToEdit: string;
+  /** Shown when a typed amount is rejected — the previous value is kept rather
+   *  than silently storing something the user never meant. */
+  invalidAmount: string;
   clickToRename: string;
   ariaEditAmount: (name: string, amount: string) => string;
   ariaAmountInput: (name: string) => string;
@@ -624,6 +642,14 @@ export const translations: Record<Lang, Translations> = {
     themeClose: 'Stäng',
     presets: 'Förinställningar',
     accent: 'Accentfärg',
+    accentLavender: 'Lavendel',
+    accentViolet: 'Violett',
+    accentSky: 'Himmelsblå',
+    accentTeal: 'Turkos',
+    accentGreen: 'Grön',
+    accentRose: 'Rosenröd',
+    accentAmber: 'Bärnsten',
+    accentPink: 'Rosa',
     accentCustom: 'Egen accentfärg',
     advancedOverride: 'Avancerat — ändra alla färger',
     resetToPreset: 'Återställ till förinställning',
@@ -671,6 +697,8 @@ export const translations: Record<Lang, Translations> = {
     vsPrev: 'vs förra',
     samePrevMonth: '= förra månaden',
     leftAfterBudget: (pct) => `${pct}% kvar efter budgeterade utgifter`,
+    deficitAmount: (amount) => `Underskott: ${amount}`,
+    deficitOverBudget: (pct) => `${pct}% över inkomsten`,
     incomeSection: 'Inkomst',
     addRow: '+ Lägg till rad',
     deleteRow: 'Ta bort rad',
@@ -756,6 +784,7 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Helår',
     yearEmpty: 'Ingen data för detta år ännu',
     clickToEdit: 'Klicka för att redigera',
+    invalidAmount: 'Ogiltigt belopp — skriv en siffra mellan 0 och 999 999 999 999',
     ariaEditAmount: (name, amount) => `Redigera belopp för ${name}, nu ${amount}`,
     ariaAmountInput: (name) => `Belopp för ${name}`,
     ariaOpenMenu: 'Öppna meny',
@@ -943,6 +972,14 @@ export const translations: Record<Lang, Translations> = {
     themeClose: 'Close',
     presets: 'Presets',
     accent: 'Accent',
+    accentLavender: 'Lavender',
+    accentViolet: 'Violet',
+    accentSky: 'Sky blue',
+    accentTeal: 'Teal',
+    accentGreen: 'Green',
+    accentRose: 'Rose',
+    accentAmber: 'Amber',
+    accentPink: 'Pink',
     accentCustom: 'Custom accent',
     advancedOverride: 'Advanced — override every color',
     resetToPreset: 'Reset to preset',
@@ -990,6 +1027,8 @@ export const translations: Record<Lang, Translations> = {
     vsPrev: 'vs prev',
     samePrevMonth: '= last month',
     leftAfterBudget: (pct) => `${pct}% left after budgeted expenses`,
+    deficitAmount: (amount) => `Overspend: ${amount}`,
+    deficitOverBudget: (pct) => `${pct}% over your income`,
     incomeSection: 'Income',
     addRow: '+ Add row',
     deleteRow: 'Delete row',
@@ -1075,6 +1114,7 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Full year',
     yearEmpty: 'No data for this year yet',
     clickToEdit: 'Click to edit',
+    invalidAmount: 'Invalid amount — enter a number between 0 and 999,999,999,999',
     ariaEditAmount: (name, amount) => `Edit amount for ${name}, now ${amount}`,
     ariaAmountInput: (name) => `Amount for ${name}`,
     ariaOpenMenu: 'Open menu',
@@ -1262,6 +1302,14 @@ export const translations: Record<Lang, Translations> = {
     themeClose: 'Cerrar',
     presets: 'Preajustes',
     accent: 'Color de acento',
+    accentLavender: 'Lavanda',
+    accentViolet: 'Violeta',
+    accentSky: 'Azul cielo',
+    accentTeal: 'Turquesa',
+    accentGreen: 'Verde',
+    accentRose: 'Rosa fuerte',
+    accentAmber: 'Ámbar',
+    accentPink: 'Rosa',
     accentCustom: 'Acento personalizado',
     advancedOverride: 'Avanzado — cambiar todos los colores',
     resetToPreset: 'Restablecer al preajuste',
@@ -1309,6 +1357,8 @@ export const translations: Record<Lang, Translations> = {
     vsPrev: 'vs anterior',
     samePrevMonth: '= mes anterior',
     leftAfterBudget: (pct) => `${pct}% restante tras los gastos presupuestados`,
+    deficitAmount: (amount) => `Déficit: ${amount}`,
+    deficitOverBudget: (pct) => `${pct}% por encima de tus ingresos`,
     incomeSection: 'Ingresos',
     addRow: '+ Añadir fila',
     deleteRow: 'Eliminar fila',
@@ -1394,6 +1444,7 @@ export const translations: Record<Lang, Translations> = {
     yearTotal: 'Año completo',
     yearEmpty: 'Aún no hay datos para este año',
     clickToEdit: 'Pulsa para editar',
+    invalidAmount: 'Importe no válido — introduce un número entre 0 y 999.999.999.999',
     ariaEditAmount: (name, amount) => `Editar importe de ${name}, ahora ${amount}`,
     ariaAmountInput: (name) => `Importe de ${name}`,
     ariaOpenMenu: 'Abrir menú',

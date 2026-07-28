@@ -22,6 +22,7 @@
 
 import type { Lang } from './i18n';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
+import { isValidMoney } from './money';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -93,7 +94,9 @@ const isMoney = (v: unknown): v is number => typeof v === 'number' && Number.isF
 const isRow = (v: unknown): boolean =>
   isPlainObject(v) &&
   typeof v.id === 'string' &&
-  isMoney(v.amount) &&
+  // Same ceiling and finiteness rule the UI enforces — a backup must not be
+  // able to introduce an amount the app would have refused on the keyboard.
+  isValidMoney(v.amount) &&
   (v.label === undefined || typeof v.label === 'string') &&
   (v.name === undefined || typeof v.name === 'string');
 
@@ -107,8 +110,29 @@ const isMonthData = (v: unknown): boolean =>
   Array.isArray(v.savings) && v.savings.every(isCategory) &&
   (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean');
 
-const isGoal = (v: unknown): boolean =>
-  isPlainObject(v) && typeof v.id === 'string' && isMoney(v.targetAmount) && isMoney(v.currentAmount);
+/** A savings goal, checked in full. The old version looked at id + the two
+ *  amounts only, so a goal missing its name, or carrying a numeric name or a
+ *  `2026-13` deadline, imported cleanly and then behaved as app data
+ *  (main review §7). Amounts go through the shared money rules, so a backup
+ *  can't smuggle in a value the UI itself would refuse. */
+const isGoal = (v: unknown): boolean => {
+  if (!isPlainObject(v)) return false;
+  const optionalString = (x: unknown) => x === undefined || typeof x === 'string';
+  return (
+    typeof v.id === 'string' && v.id !== '' &&
+    typeof v.name === 'string' &&
+    isValidMoney(v.targetAmount) &&
+    isValidMoney(v.currentAmount) &&
+    // Deadline is an optional "YYYY-MM"; empty means "no deadline".
+    (v.deadline === undefined || v.deadline === '' ||
+      (typeof v.deadline === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v.deadline))) &&
+    // Type only — older data predates any hex convention, and rejecting a
+    // legitimate old backup over a colour string would be worse than useless.
+    optionalString(v.color) &&
+    optionalString(v.budgetRowId) &&
+    (v.userNamed === undefined || typeof v.userNamed === 'boolean')
+  );
+};
 
 const isPlanData = (v: unknown): boolean =>
   isPlainObject(v) &&

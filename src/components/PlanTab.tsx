@@ -1,7 +1,7 @@
 import { useState, useId, useRef } from 'react';
 import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
-import { validateNewGoal, parseAmount, type GoalFormError } from '../goalForm';
+import { validateNewGoal, type GoalFormError } from '../goalForm';
 import { useLang, MONTHS } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 import { SparPlanSection } from './SparPlan';
@@ -149,20 +149,21 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
 
   const createGoal = () => {
     if (submittingRef.current) return;
-    const result = validateNewGoal(name, target);
+    const result = validateNewGoal(name, target, saved);
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
     submittingRef.current = true;
-    const savedNum = parseAmount(saved);
     const newGoal: SavingsGoal = {
       id: generateId(),
       budgetRowId: generateId(), // links a row in Budget → Sparande (created on confirm)
       name: result.name,
       userNamed: true,
       targetAmount: result.target,
-      currentAmount: isNaN(savedNum) ? 0 : Math.max(0, savedNum),
+      // Both amounts are already validated by validateNewGoal — neither can be
+      // Infinity/NaN, so neither can turn into a silent 0 after a reload.
+      currentAmount: result.saved,
       deadline,
       color: makeGoalColor(data.goals.length),
     };
@@ -214,7 +215,9 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
           </div>
           {formError && (
             <p className="goal-form-error" role="alert">
-              {formError === 'name' ? t.goalErrorName : t.goalErrorTarget}
+              {formError === 'name' ? t.goalErrorName
+                : formError === 'saved' ? t.invalidAmount
+                : t.goalErrorTarget}
             </p>
           )}
           <div className="goal-form-actions">

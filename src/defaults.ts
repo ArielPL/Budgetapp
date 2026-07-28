@@ -3,6 +3,7 @@ import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
 import { calculateSavingsMetrics } from './metrics';
 import type { StorageLike } from './backup';
+import { coerceStoredMoney, isValidMoney } from './money';
 
 export const CATEGORY_COLORS: Record<string, string> = {
   boende: '#6366f1',
@@ -353,11 +354,25 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
     if (!Array.isArray(parsed.savings)) parsed.savings = [];
     if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
     else parsed.expenses = parsed.expenses.filter(c => c.id !== 'givande');
+    // Defensive read: a build before the shared money validation could store an
+    // amount as `null` (JSON.stringify's rendering of Infinity/NaN). One null
+    // would turn every total that touched it into NaN, so amounts are coerced
+    // on the way in. This does NOT rewrite storage — the month is only written
+    // back when the user edits it.
+    parsed.income = parsed.income.map(normalizeRow);
+    parsed.expenses = parsed.expenses.map(normalizeCategory);
+    parsed.savings = parsed.savings.map(normalizeCategory);
     return parsed;
   } catch {
     return defaultMonthData(lang);
   }
 }
+
+const normalizeRow = (r: BudgetRow): BudgetRow =>
+  isValidMoney(r?.amount) ? r : { ...r, amount: coerceStoredMoney(r?.amount) };
+
+const normalizeCategory = (c: BudgetCategory): BudgetCategory =>
+  Array.isArray(c?.rows) ? { ...c, rows: c.rows.map(normalizeRow) } : { ...c, rows: [] };
 
 export function saveMonthData(year: number, month: number, data: MonthData): void {
   const key = storageKey(year, month);
@@ -383,7 +398,9 @@ export function saveMonthData(year: number, month: number, data: MonthData): voi
  *   • only rows still at 0 kr — a row with real money in it is budget history
  *     and survives, same rule as everywhere else.
  *
- * Idempotent: once the rows are gone there is nothing left to match.
+ * Idempotent, but see runHistoricGoalRowMigration: this must NOT keep running
+ * on every start, or a zero a user deliberately records in a past month would
+ * later match the rule and be swept away.
  */
 export function cleanupHistoricGoalRows(
   goals: SavingsGoal[],
@@ -431,11 +448,53 @@ export function cleanupHistoricGoalRows(
   return cleaned;
 }
 
+/** Marks the historic-goal-row repair as done. Versioned in the name so a
+ *  future, differently-scoped repair can ship without disturbing this one. */
+export const HISTORIC_GOAL_ROWS_MIGRATION = 'budget_migration_historic_goal_rows_v1';
+
+/**
+ * Run the historic-goal-row repair ONCE per device.
+ *
+ * The repair is idempotent, so re-running it was harmless for the rows it was
+ * written for — but not for the user: its rule ("a goal-linked row at exactly
+ * 0 in a finished month") also matches a zero someone deliberately records
+ * later, and running on every start would quietly delete that (main review §8).
+ * The marker is written only after the sweep finishes, so an interrupted first
+ * run simply tries again next time.
+ */
+export function runHistoricGoalRowMigration(
+  goals: SavingsGoal[],
+  now = new Date(),
+  storage: StorageLike = localStorage,
+): number {
+  if (storage.getItem(HISTORIC_GOAL_ROWS_MIGRATION)) return 0;
+  const cleaned = cleanupHistoricGoalRows(goals, now, storage);
+  storage.setItem(HISTORIC_GOAL_ROWS_MIGRATION, new Date().toISOString());
+  return cleaned;
+}
+
 export function loadPlanData(lang: Lang = 'sv'): PlanData {
   const raw = localStorage.getItem('budget_plan');
   if (!raw) return defaultPlanData(lang);
   try {
-    return JSON.parse(raw) as PlanData;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object') return defaultPlanData(lang);
+    const obj = parsed as Partial<PlanData>;
+    // A blind `as PlanData` cast used to be enough to make a malformed plan
+    // look like app data. Shape and amounts are checked instead: a goal whose
+    // amount was stored as `null` reads as 0 rather than making every
+    // progress bar NaN, and a non-object goal is dropped instead of crashing.
+    const goals = Array.isArray(obj.goals)
+      ? obj.goals
+        .filter((g): g is SavingsGoal => !!g && typeof g === 'object' && typeof g.id === 'string')
+        .map(g => ({
+          ...g,
+          name: typeof g.name === 'string' ? g.name : '',
+          targetAmount: coerceStoredMoney(g.targetAmount),
+          currentAmount: coerceStoredMoney(g.currentAmount),
+        }))
+      : [];
+    return { ...defaultPlanData(lang), ...obj, goals };
   } catch {
     return defaultPlanData(lang);
   }

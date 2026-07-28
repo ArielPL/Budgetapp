@@ -46,10 +46,14 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               color="#22d3ee"
               label={shownName(row, lang)}
             />
-            {row.isCustom && (
-              <button className="delete-btn" onClick={() => deleteRow(row.id)}
-                title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
-            )}
+            {/* Always-present slot keeps every amount on the same right edge —
+                see the same pattern in ExpenseCategory. */}
+            <span className="row-action">
+              {row.isCustom && (
+                <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                  title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
+              )}
+            </span>
           </div>
         ))}
       </div>
