@@ -16,6 +16,25 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.6',
+    date: '2026-07-31',
+    title: { sv: 'Målbeloppet också', en: 'The target field too', es: 'También el importe objetivo' },
+    items: {
+      sv: [
+        'Rättat: blockets målbelopp i Anpassad layout hade samma fel som beloppsfälten — "1e309" blev tyst målet 1 309 kr, och några hundra siffror gjorde att målet försvann helt',
+        'Målbeloppet visar nu samma tydliga fel som övriga belopp, och ditt tidigare mål står kvar',
+      ],
+      en: [
+        'Fixed: the block target field in Custom layout had the same bug as the amount fields — "1e309" quietly became a target of 1,309 kr, and a few hundred digits made the target disappear entirely',
+        'The target field now shows the same clear error as every other amount, and your previous target stands',
+      ],
+      es: [
+        'Corregido: el importe objetivo del bloque en el diseño personalizado tenía el mismo fallo que los importes — "1e309" se convertía silenciosamente en un objetivo de 1.309 kr, y unos cientos de dígitos hacían desaparecer el objetivo',
+        'El importe objetivo muestra ahora el mismo error claro que los demás importes, y tu objetivo anterior se mantiene',
+      ],
+    },
+  },
+  {
     version: '1.10.5',
     date: '2026-07-30',
     title: { sv: 'Inga tysta ändringar', en: 'No silent changes', es: 'Sin cambios silenciosos' },

@@ -1022,6 +1022,48 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
   );
 };
 
+// The block's optional goal amount. Same contract as AmountInput — the typed
+// text reaches the parser untouched — because this field had the identical bug:
+// it stripped every non-digit and then parseInt'd the remains, so `1e309`
+// became a saved target of 1 309, and a few hundred digits became `Infinity`,
+// which JSON.stringify writes as null (found while building the guard for the
+// 2026-07-30 §4 fix, in a field that review had not looked at).
+// Blank or 0 means "no target" — that is a real choice, not an error.
+const TargetInput = ({ value, onChange }: { value?: number; onChange: (v: number | undefined) => void }) => {
+  const [draft, setDraft] = useState<string>(value ? String(value) : '');
+  const [invalid, setInvalid] = useState(false);
+  const errorId = useId();
+  const { t } = useLang();
+  useEffect(() => {
+    const current = parseMoneyOrZero(draft);
+    const shown = current.ok ? current.value : NaN;
+    if (shown !== (value ?? 0)) { setDraft(value ? String(value) : ''); setInvalid(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return (
+    <span className="cv3-amount-wrap">
+      <input
+        className={`cv3-amount-input cfg-target-input${invalid ? ' cv3-amount-invalid' : ''}`}
+        inputMode="decimal"
+        value={draft}
+        placeholder="0"
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        onChange={e => {
+          const raw = e.target.value;
+          setDraft(raw);
+          const parsed = parseMoneyOrZero(raw);
+          setInvalid(!parsed.ok);
+          if (parsed.ok) onChange(parsed.value > 0 ? parsed.value : undefined);
+        }}
+      />
+      {invalid && (
+        <span className="cv3-amount-error" id={errorId} role="alert">{t.invalidAmount}</span>
+      )}
+    </span>
+  );
+};
+
 // ── Add-block picker ──
 const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
   onAddBlock: (tag: BlockTag) => void;
@@ -1143,12 +1185,7 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
         {isRegular && (
           <div className="cfg-row">
             <span className="cfg-label">{t.cfgTarget}</span>
-            <input className="cv3-amount-input cfg-target-input" inputMode="numeric"
-              value={block.target ? String(block.target) : ''} placeholder="0"
-              onChange={e => {
-                const raw = e.target.value.replace(/[^\d]/g, '');
-                onChange({ target: raw ? parseInt(raw, 10) : undefined });
-              }} />
+            <TargetInput value={block.target} onChange={target => onChange({ target })} />
           </div>
         )}
 
