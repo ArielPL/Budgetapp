@@ -16,6 +16,34 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.5',
+    date: '2026-07-30',
+    title: { sv: 'Inga tysta ändringar', en: 'No silent changes', es: 'Sin cambios silenciosos' },
+    items: {
+      sv: [
+        'Rättat: i Anpassad layout kunde "1e309" tyst bli 1 309 kr och sparas — appen ändrar aldrig ditt belopp längre, den säger ifrån',
+        'Ogiltiga belopp i Anpassad layout visar nu samma tydliga fel som Budget, och din summa ligger kvar',
+        'Rättat: säkerhetskopior godkände Custom-belopp som appen sedan nollställde vid inläsning — de avvisas nu direkt',
+        'Rättat: sektionsrubriken hamnade delvis bakom snabbnavigeringen på smala mobiler',
+        'Sparmål: felmeddelandet beskriver nu vad som faktiskt är fel — tomt, noll eller ogiltigt belopp',
+      ],
+      en: [
+        'Fixed: in Custom layout "1e309" could quietly become 1,309 kr and be saved — the app never rewrites your amount now, it tells you',
+        'Invalid amounts in Custom layout show the same clear error as Budget, and your total stays put',
+        'Fixed: backups accepted Custom amounts the app then reset to 0 on load — they are now rejected up front',
+        'Fixed: the section heading sat partly behind the quick-nav on narrow phones',
+        'Savings goals: the error now describes the actual problem — blank, zero, or an invalid amount',
+      ],
+      es: [
+        'Corregido: en el diseño personalizado "1e309" podía convertirse silenciosamente en 1.309 kr y guardarse — la app ya nunca reescribe tu importe, te avisa',
+        'Los importes no válidos en el diseño personalizado muestran el mismo error claro que Presupuesto, y tu total se mantiene',
+        'Corregido: las copias aceptaban importes personalizados que la app luego ponía a 0 al cargar — ahora se rechazan de entrada',
+        'Corregido: el título de sección quedaba parcialmente detrás de la navegación rápida en móviles estrechos',
+        'Metas de ahorro: el error ahora describe el problema real — vacío, cero o importe no válido',
+      ],
+    },
+  },
+  {
     version: '1.10.4',
     date: '2026-07-26',
     title: { sv: 'Säkrare belopp', en: 'Safer amounts', es: 'Importes más seguros' },

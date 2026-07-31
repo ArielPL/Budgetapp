@@ -9,7 +9,18 @@
 
 import { parseMoneyInput, parseMoneyOrZero } from './money';
 
-export type GoalFormError = 'name' | 'target' | 'saved';
+/**
+ * One reason per actual problem. These used to collapse into a single 'target'
+ * error, so typing `1e309` was reported as "the target must be greater than 0"
+ * — advice that describes a different mistake entirely and can't be acted on
+ * (main review 2026-07-30 §7).
+ */
+export type GoalFormError =
+  | 'name'              // no goal name
+  | 'targetRequired'    // target left blank
+  | 'targetNonPositive' // 0 or negative — a goal you've already met
+  | 'targetInvalid'     // unparseable, or outside the allowed range
+  | 'savedInvalid';     // "saved so far" typed but not a usable amount
 
 export type GoalFormResult =
   | { ok: true; name: string; target: number; saved: number }
@@ -31,13 +42,18 @@ export function validateNewGoal(
   const name = rawName.trim();
   if (!name) return { ok: false, error: 'name' };
 
+  // Blank, unparseable and "not a positive number" are three different
+  // mistakes and each gets its own answer.
   const target = parseMoneyInput(rawTarget);
-  if (!target.ok || target.value <= 0) return { ok: false, error: 'target' };
+  if (!target.ok) {
+    return { ok: false, error: target.reason === 'empty' ? 'targetRequired' : 'targetInvalid' };
+  }
+  if (target.value <= 0) return { ok: false, error: 'targetNonPositive' };
 
   // "Saved so far" is optional — blank means 0 — but a typed value must still
   // be a real amount, not Infinity.
   const saved = parseMoneyOrZero(rawSaved);
-  if (!saved.ok) return { ok: false, error: 'saved' };
+  if (!saved.ok) return { ok: false, error: 'savedInvalid' };
 
   return { ok: true, name, target: target.value, saved: saved.value };
 }

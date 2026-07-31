@@ -206,6 +206,54 @@ describe('import validation — nothing is written unless the whole file is good
     });
   });
 
+  // Main review 2026-07-30 §5: the Custom check only asked "is it finite", so
+  // −5 and over-ceiling values imported "successfully" and were then turned
+  // into 0 by coerceStoredMoney on the next load — a loss reported as a win.
+  describe('Custom amounts obey the same limits as the UI', () => {
+    const values = (v: unknown) => checkBackup(backupFile({
+      budget_custom_v3_values_2026_6: JSON.stringify({ r1: v }),
+    }));
+
+    it('rejects a negative Custom amount', () => {
+      expect(values(-5)).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects a Custom amount above the ceiling', () => {
+      expect(values(9_999_999_999_999)).toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('accepts the exact ceiling, 0 and an everyday amount', () => {
+      expect(values(999_999_999_999).ok).toBe(true);
+      expect(values(0).ok).toBe(true);
+      expect(values(500).ok).toBe(true);
+      expect(values(1200.5).ok).toBe(true);
+    });
+
+    it('rejects non-numbers used as amounts', () => {
+      for (const bad of [null, 'abc', [1], { a: 1 }, true]) {
+        expect(values(bad)).toMatchObject({ ok: false, reason: 'corrupt' });
+      }
+    });
+
+    it('rejects the whole file when a single amount among many is bad', () => {
+      const many = JSON.stringify({ r1: 500, r2: 250, r3: -5, r4: 100 });
+      expect(checkBackup(backupFile({ budget_custom_v3_values_2026_6: many })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('writes nothing at all when the file is rejected', () => {
+      const before = { budget_2026_6: monthJSON(100) };
+      const s = new FakeStorage(before);
+      const check = checkBackup(backupFile({
+        budget_2026_5: monthJSON(200),
+        budget_custom_v3_values_2026_6: JSON.stringify({ r1: -5 }),
+      }));
+      expect(check.ok).toBe(false);
+      // The caller never reaches applyBackup, so storage is byte-identical.
+      expect(s.snapshot()).toEqual(before);
+    });
+  });
+
   it('rejects a row amount beyond the money ceiling', () => {
     const month = JSON.stringify({
       income: [{ id: 'i1', label: 'Lön', amount: 9_999_999_999_999 }],

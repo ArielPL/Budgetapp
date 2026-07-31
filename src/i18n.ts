@@ -377,7 +377,11 @@ export interface Translations {
   createGoal: string;
   cancel: string;
   goalErrorName: string;
-  goalErrorTarget: string;
+  /** One message per real problem — "must be greater than 0" was shown for
+   *  unparseable input too, which described the wrong mistake. */
+  goalErrorTarget: string;        // 0 or negative
+  goalErrorTargetRequired: string;
+  goalErrorTargetInvalid: string;
   // Daily/weekly budget split ("left to live on")
   dailyBudgetTitle: string;
   /** Reserved for the planned "rest of the month" burn-down mode. The card
@@ -731,6 +735,8 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Avbryt',
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
+    goalErrorTargetRequired: 'Ange ett målbelopp',
+    goalErrorTargetInvalid: 'Skriv ett giltigt belopp mellan 0 och 999 999 999 999',
     dailyBudgetTitle: 'Kvar att leva på',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'dag' : 'dagar'} kvar i ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
@@ -1061,6 +1067,8 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancel',
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
+    goalErrorTargetRequired: 'Enter a goal amount',
+    goalErrorTargetInvalid: 'Enter a valid amount between 0 and 999,999,999,999',
     dailyBudgetTitle: 'Left to live on',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'day' : 'days'} left in ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
@@ -1391,6 +1399,8 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancelar',
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
+    goalErrorTargetRequired: 'Introduce un importe para la meta',
+    goalErrorTargetInvalid: 'Introduce un importe válido entre 0 y 999.999.999.999',
     dailyBudgetTitle: 'Para vivir este mes',
     dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'día restante' : 'días restantes'} de ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,

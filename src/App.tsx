@@ -310,6 +310,28 @@ function App() {
     return () => ro.disconnect();
   }, []);
 
+  // Same trick for the Combined jump-nav, which is the OTHER sticky layer. Its
+  // height is not one number: below 380px it wraps to a 2×2 grid (56px → 102px)
+  // so the labels aren't clipped, and a fixed scroll-margin sized for one row
+  // left ~38px of the section heading hidden behind it after a jump
+  // (main review 2026-07-30 §6). Measuring covers every language and row count.
+  // A callback ref (state, not useRef) so the effect re-runs exactly when the
+  // nav attaches or detaches. With a plain ref the effect could fire while the
+  // node was still unlaid-out and publish a height of 0, which is precisely the
+  // wrong answer — and nothing would re-run to correct it.
+  const [jumpNavEl, setJumpNavEl] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    // No nav (other layouts, or desktop where it's display:none) → no offset.
+    if (!jumpNavEl) { root.style.setProperty('--jump-nav-h', '0px'); return; }
+    const publish = () =>
+      root.style.setProperty('--jump-nav-h', `${Math.ceil(jumpNavEl.getBoundingClientRect().height)}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(jumpNavEl);
+    return () => { ro.disconnect(); root.style.setProperty('--jump-nav-h', '0px'); };
+  }, [jumpNavEl]);
+
   // Repair months the OLD backfill already wrote goal rows into. Runs before
   // the month-load effect below (declaration order = effect order), so the
   // month we're about to show is already clean. Guarded by a migration marker:
@@ -1123,7 +1145,7 @@ function App() {
                On phones the page runs ~10 000px tall, so a sticky mini-nav
                (CSS shows it ≤640px only) jumps between the four sections. */
           <div className="combined-page">
-            <nav className="combined-jump-nav" aria-label={t.layoutCombined}>
+            <nav className="combined-jump-nav" aria-label={t.layoutCombined} ref={setJumpNavEl}>
               {/* Two labels per destination: a short visible one, and the full
                   section name as the accessible name — so a screen reader always
                   hears "Sparande & Investeringar", never a clipped word. CSS
