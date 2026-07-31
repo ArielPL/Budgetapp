@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
 import { useLang } from '../i18n';
 import { ExpenseChart, type ExpenseChartStyle } from './Charts';
 import { useModalFocus } from '../useModalFocus';
@@ -975,33 +975,50 @@ const InlineName = ({ value, editable, onChange, className, placeholder, ariaLab
 // Amount entry — blank when zero, accepts decimals like Classic's
 // EditableAmount ("970,5" or "970.5" → 970.5). Previously this stripped the
 // separator, so "970,5" silently became 9705 — a 10× footgun.
+//
+// ⚠️ What the user typed goes to the parser UNTOUCHED. Stripping the characters
+// the parser is supposed to reject turns a rejection into a silent edit: this
+// field used to run `.replace(/[^\d.,]/g, '')` first, so `1e309` arrived as
+// "1309" — a perfectly valid amount — and 1 309 kr was saved and reloaded as
+// though the user had asked for it (main review 2026-07-30 §4). `123abc`
+// became 123 the same way. A budget app may refuse a number; it may never
+// quietly substitute a different one.
 const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: (v: number) => void; ariaLabel?: string }) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
+  const [invalid, setInvalid] = useState(false);
+  const errorId = useId();
+  const { t } = useLang();
   useEffect(() => {
     // Sync from external changes (copy-last-month, clear) without clobbering
     // the user's in-progress typing ("970," would otherwise snap to "970").
     const current = parseMoneyOrZero(draft);
-    if (!current.ok || current.value !== value) setDraft(value ? String(value) : '');
+    if (!current.ok || current.value !== value) { setDraft(value ? String(value) : ''); setInvalid(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
-    <input
-      className="cv3-amount-input"
-      inputMode="decimal"
-      value={draft}
-      placeholder="0"
-      aria-label={ariaLabel}
-      onChange={e => {
-        const raw = e.target.value.replace(/[^\d.,]/g, '');
-        setDraft(raw);
-        // Only a valid amount reaches state. A few hundred digits parse to
-        // Infinity, which JSON.stringify stores as null and the next load reads
-        // as 0 — the block's total silently gone (main review §5). An
-        // over-long draft simply stops updating the total until it is fixed.
-        const parsed = parseMoneyOrZero(raw);
-        if (parsed.ok) onChange(parsed.value);
-      }}
-    />
+    <span className="cv3-amount-wrap">
+      <input
+        className={`cv3-amount-input${invalid ? ' cv3-amount-invalid' : ''}`}
+        inputMode="decimal"
+        value={draft}
+        placeholder="0"
+        aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        onChange={e => {
+          const raw = e.target.value;
+          setDraft(raw); // the draft always shows exactly what was typed
+          const parsed = parseMoneyOrZero(raw);
+          setInvalid(!parsed.ok);
+          // An invalid draft leaves the stored amount — and every total built
+          // from it — on the last value the user actually confirmed.
+          if (parsed.ok) onChange(parsed.value);
+        }}
+      />
+      {invalid && (
+        <span className="cv3-amount-error" id={errorId} role="alert">{t.invalidAmount}</span>
+      )}
+    </span>
   );
 };
 

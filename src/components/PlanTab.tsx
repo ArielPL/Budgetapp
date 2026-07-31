@@ -2,9 +2,19 @@ import { useState, useId, useRef } from 'react';
 import type { PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { validateNewGoal, type GoalFormError } from '../goalForm';
-import { useLang, MONTHS } from '../i18n';
+import { useLang, MONTHS, type Translations } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 import { SparPlanSection } from './SparPlan';
+
+// Every form error maps to the message that describes THAT problem. Exhaustive
+// by construction: adding a GoalFormError without a message is a type error.
+const GOAL_ERROR_TEXT: Record<GoalFormError, (t: Translations) => string> = {
+  name: t => t.goalErrorName,
+  targetRequired: t => t.goalErrorTargetRequired,
+  targetNonPositive: t => t.goalErrorTarget,
+  targetInvalid: t => t.goalErrorTargetInvalid,
+  savedInvalid: t => t.invalidAmount,
+};
 
 interface Props {
   data: PlanData;
@@ -215,9 +225,7 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
           </div>
           {formError && (
             <p className="goal-form-error" role="alert">
-              {formError === 'name' ? t.goalErrorName
-                : formError === 'saved' ? t.invalidAmount
-                : t.goalErrorTarget}
+              {GOAL_ERROR_TEXT[formError](t)}
             </p>
           )}
           <div className="goal-form-actions">

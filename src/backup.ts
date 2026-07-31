@@ -89,7 +89,6 @@ const isPlainObject = (v: unknown): v is Record<string, unknown> =>
 
 /** Finite number: rejects NaN and ±Infinity, which JSON.stringify turns into
  *  `null` and which then poison every total they touch. */
-const isMoney = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 const isRow = (v: unknown): boolean =>
   isPlainObject(v) &&
@@ -153,7 +152,12 @@ const isSavingsPlan = (v: unknown): boolean =>
   validateSavingsPlan(v as unknown as SavingsPlan).length === 0;
 
 const isCustomValues = (v: unknown): boolean =>
-  isPlainObject(v) && Object.values(v).every(isMoney);
+  // isValidMoney, not just "is it finite": a local finite-only check accepted
+  // −5 and values past the ceiling, the import reported success, and then
+  // coerceStoredMoney turned each one into 0 on the next load — a silent loss
+  // dressed up as a working restore (main review 2026-07-30 §5). Backup and UI
+  // now share one limit.
+  isPlainObject(v) && Object.values(v).every(isValidMoney);
 
 /** Custom structure: an array of block-shaped objects. Lenient on purpose —
  *  loadStructure normalizes unknown fields — but "it's an array" alone let
