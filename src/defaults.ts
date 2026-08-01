@@ -39,11 +39,11 @@ export const CATEGORY_ICONS = [
 
 // The four default savings categories — power the growth-chart lines and per-id
 // structure, so they must always exist and never be deletable.
-export const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
+const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
 
 // Categories that must never be deletable: the one wired to the Plan tab
 // (sparande) plus the four fixed savings defaults.
-export const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
+const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
 
 export function isProtectedCategory(id: string): boolean {
   return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
@@ -129,7 +129,7 @@ for (const entry of Object.values(L)) {
 }
 
 /** Translate a built-in default label to the current language; pass through custom labels. */
-export function displayLabel(label: string, lang: Lang): string {
+function displayLabel(label: string, lang: Lang): string {
   return REVERSE_LABELS[label]?.[lang] ?? label;
 }
 
@@ -146,7 +146,7 @@ export function shownName(
   return item.userNamed ? raw : displayLabel(raw, lang);
 }
 
-export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
+function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   return [
     { id: makeId(), label: tr(L.salary, lang), amount: 0 },
     { id: makeId(), label: tr(L.sideIncome, lang), amount: 0 },
@@ -154,7 +154,7 @@ export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   ];
 }
 
-export function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
+function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
   return [
     {
       id: 'boende', name: tr(L.boende, lang), icon: '🏠', color: CATEGORY_COLORS.boende,
@@ -215,7 +215,7 @@ export function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
   ];
 }
 
-export function defaultSavings(lang: Lang = 'sv'): BudgetCategory[] {
+function defaultSavings(lang: Lang = 'sv'): BudgetCategory[] {
   return [
     {
       id: 'sparkonto', name: tr(L.sparkonto, lang), icon: '🏦', color: SAVINGS_COLORS.sparkonto,

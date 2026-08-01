@@ -143,23 +143,10 @@ export interface Translations {
   layoutCustom: string;
   // Custom layout: edit mode + block headings
   editLayout: string;
-  hiddenBlock: string;
   moveUp: string;
   moveDown: string;
   dragToReorder: string;
-  showBlock: string;
-  hideBlock: string;
-  blockSummary: string;
-  blockBudgetInputs: string;
-  blockExpenseChart: string;
-  blockSavingsInputs: string;
-  blockSavingsDonuts: string;
-  blockGrowthChart: string;
-  blockGoals: string;
-  blockYear: string;
-  blockNotes: string;
   // Expense chart style switch
-  chartStyle: string;
   chartStyleDonut: string;
   chartStyleBars: string;
   chartStylePie: string;
@@ -171,21 +158,10 @@ export interface Translations {
   // Custom section builder
   customEmptyTitle: string;
   customEmptyBody: string;
-  addSection: string;
-  quickStartAll: string;
   removeSection: string;
   sectionSettings: string;
-  sectionBudget: string;
-  sectionSavings: string;
-  sectionGoals: string;
-  sectionYear: string;
-  sectionNotes: string;
-  cfgLabels: string;
-  cfgLabelIcon: string;
-  cfgLabelIconText: string;
   cfgBackground: string;
   cfgBgNone: string;
-  cfgChart: string;
   cfgShowChart: string;
   cfgChartType: string;
   cfgChartSize: string;
@@ -265,8 +241,6 @@ export interface Translations {
   badgeNew: string;
   themeLight: string;
   themeDark: string;
-  themeToLight: string;
-  themeToDark: string;
   // Theme Builder panel
   themeTitle: string;
   themeClose: string;
@@ -297,17 +271,13 @@ export interface Translations {
     sunset: string;
     custom: string;
   };
-  switchToSwedish: string;
-  switchToEnglish: string;
   copyBudget: string;
-  copyBudgetTitle: string;
   copyNextMonth: string;
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
   // Backup (export / import)
   backup: string;
-  backupTitle: string;
   exportData: string;
   importData: string;
   importConfirm: string;
@@ -317,7 +287,6 @@ export interface Translations {
   importTooNew: string;
   importCorrupt: string;
   importWriteFailed: string;
-  importSuccess: string;
   // Reset month
   resetMonth: string;
   resetMonthConfirm: (monthName: string) => string;
@@ -351,8 +320,6 @@ export interface Translations {
   placeholderExpenses: string;
   placeholderSavings: string;
   // Custom stat tiles
-  goalCount: (n: number) => string;
-  avgPerMonth: string;
   // Savings tab
   totalSaved: string;
   savedThisMonth: string;
@@ -424,8 +391,6 @@ export interface Translations {
   goal: string;
   of: string;
   deadline: string;
-  addPost: string;
-  newPost: string;
   notes: string;
   notesPlaceholder: string;
   // Year overview
@@ -486,7 +451,6 @@ export interface Translations {
   lineSparkonto: string;
   lineIsk: string;
   lineFonder: string;
-  linePension: string;
   // Growth chart type toggle
   chartTypeArea: string;
   chartTypeLine: string;
@@ -510,22 +474,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Kombinerad',
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
-    hiddenBlock: 'Dolt block',
     moveUp: 'Flytta upp',
     moveDown: 'Flytta ner',
     dragToReorder: 'Dra för att ändra ordning',
-    showBlock: 'Visa block',
-    hideBlock: 'Dölj block',
-    blockSummary: 'Budgetöversikt',
-    blockBudgetInputs: 'Inkomster & utgifter',
-    blockExpenseChart: 'Utgiftsfördelning',
-    blockSavingsInputs: 'Sparposter',
-    blockSavingsDonuts: 'Spardiagram',
-    blockGrowthChart: 'Spartillväxt',
-    blockGoals: 'Sparmål',
-    blockYear: 'Årsöversikt',
-    blockNotes: 'Anteckningar',
-    chartStyle: 'Diagramtyp',
     chartStyleDonut: 'Munk',
     chartStyleBars: 'Staplar',
     chartStylePie: 'Paj',
@@ -536,21 +487,10 @@ export const translations: Record<Lang, Translations> = {
     chartStyleTrend: 'Trend',
     customEmptyTitle: 'Din panel är tom',
     customEmptyBody: 'Lägg till de sektioner du vill ha.',
-    addSection: 'Lägg till sektion',
-    quickStartAll: 'Snabbstart: lägg till allt',
     removeSection: 'Ta bort sektion',
     sectionSettings: 'Sektionsinställningar',
-    sectionBudget: 'Budget',
-    sectionSavings: 'Sparande',
-    sectionGoals: 'Sparmål',
-    sectionYear: 'Årsöversikt',
-    sectionNotes: 'Anteckningar',
-    cfgLabels: 'Etiketter',
-    cfgLabelIcon: 'Endast ikon',
-    cfgLabelIconText: 'Ikon + text',
     cfgBackground: 'Bakgrund',
     cfgBgNone: 'Ingen',
-    cfgChart: 'Diagram',
     cfgShowChart: 'Visa diagram',
     cfgChartType: 'Diagramtyp',
     cfgChartSize: 'Storlek',
@@ -640,8 +580,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NYTT',
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
-    themeToLight: 'Byt till ljust tema',
-    themeToDark: 'Byt till mörkt tema',
     themeTitle: 'Tema',
     themeClose: 'Stäng',
     presets: 'Förinställningar',
@@ -670,16 +608,12 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Solnedgång',
       custom: 'Egen',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
     copyBudget: 'Kopiera budget',
-    copyBudgetTitle: 'Kopiera denna månads budget',
     copyNextMonth: 'Nästa månad',
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
     copiedTo: (month) => `✓ Kopierat till ${month}`,
     copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
     backup: 'Data',
-    backupTitle: 'Säkerhetskopiera eller återställ data',
     exportData: '⬇ Exportera data',
     importData: '⬆ Importera data',
     importConfirm: 'Detta ERSÄTTER all nuvarande data med innehållet i filen. Vill du fortsätta?',
@@ -687,7 +621,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'Filen kommer från en nyare version av appen. Uppdatera appen och försök igen. Din data är oförändrad.',
     importCorrupt: 'Filen är skadad och kunde inte läsas. Ingenting har ändrats — din nuvarande data är kvar.',
     importWriteFailed: 'Importen misslyckades och avbröts. Din tidigare data är återställd och oförändrad.',
-    importSuccess: '✓ Data importerad',
     resetMonth: '↺ Återställ månad',
     resetMonthConfirm: (monthName) => `Detta nollställer ${monthName} och kan inte ångras. Vill du fortsätta?`,
     resetMonthDone: '✓ Månad återställd',
@@ -713,8 +646,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Tillväxt ${year}`,
     placeholderExpenses: 'Fyll i några utgifter så visas diagrammet här',
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
-    goalCount: (n) => `${n} mål`,
-    avgPerMonth: 'Snitt/månad',
     totalSaved: 'Totalt sparat',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
@@ -774,8 +705,6 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Mål',
     of: 'av',
     deadline: 'Deadline',
-    addPost: '+ Lägg till post',
-    newPost: 'Ny post',
     notes: 'Anteckningar & Strategi',
     notesPlaceholder: 'Skriv din plan, strategi, tankar om investeringar...',
     yearOverview: (year) => `Årsöversikt ${year}`,
@@ -821,7 +750,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Sparkonto',
     lineIsk: 'ISK / Aktiedepå',
     lineFonder: 'Fonder',
-    linePension: 'Pension',
     chartTypeArea: 'Yta',
     chartTypeLine: 'Linje',
     chartTypeStacked: 'Staplar',
@@ -842,22 +770,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combined',
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
-    hiddenBlock: 'Hidden block',
     moveUp: 'Move up',
     moveDown: 'Move down',
     dragToReorder: 'Drag to reorder',
-    showBlock: 'Show block',
-    hideBlock: 'Hide block',
-    blockSummary: 'Budget summary',
-    blockBudgetInputs: 'Income & expenses',
-    blockExpenseChart: 'Expense breakdown',
-    blockSavingsInputs: 'Savings entries',
-    blockSavingsDonuts: 'Savings donuts',
-    blockGrowthChart: 'Savings growth',
-    blockGoals: 'Savings goals',
-    blockYear: 'Year overview',
-    blockNotes: 'Notes',
-    chartStyle: 'Chart style',
     chartStyleDonut: 'Donut',
     chartStyleBars: 'Bars',
     chartStylePie: 'Pie',
@@ -868,21 +783,10 @@ export const translations: Record<Lang, Translations> = {
     chartStyleTrend: 'Trend',
     customEmptyTitle: 'Your dashboard is empty',
     customEmptyBody: 'Add the sections you want.',
-    addSection: 'Add section',
-    quickStartAll: 'Quick start: add everything',
     removeSection: 'Remove section',
     sectionSettings: 'Section settings',
-    sectionBudget: 'Budget',
-    sectionSavings: 'Savings',
-    sectionGoals: 'Goals',
-    sectionYear: 'Year overview',
-    sectionNotes: 'Notes',
-    cfgLabels: 'Labels',
-    cfgLabelIcon: 'Icon only',
-    cfgLabelIconText: 'Icon + text',
     cfgBackground: 'Background',
     cfgBgNone: 'None',
-    cfgChart: 'Chart',
     cfgShowChart: 'Show chart',
     cfgChartType: 'Chart type',
     cfgChartSize: 'Size',
@@ -972,8 +876,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NEW',
     themeLight: 'Light',
     themeDark: 'Dark',
-    themeToLight: 'Switch to light theme',
-    themeToDark: 'Switch to dark theme',
     themeTitle: 'Theme',
     themeClose: 'Close',
     presets: 'Presets',
@@ -1002,16 +904,12 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Sunset',
       custom: 'Custom',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
     copyBudget: 'Copy budget',
-    copyBudgetTitle: "Copy this month's budget",
     copyNextMonth: 'Next month',
     copyAllRemaining: (n) => `All remaining (${n} months)`,
     copiedTo: (month) => `✓ Copied to ${month}`,
     copiedToMonths: (n) => `✓ Copied to ${n} months`,
     backup: 'Data',
-    backupTitle: 'Back up or restore data',
     exportData: '⬇ Export data',
     importData: '⬆ Import data',
     importConfirm: 'This will REPLACE all current data with the contents of the file. Continue?',
@@ -1019,7 +917,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'This file comes from a newer version of the app. Update the app and try again. Your data is unchanged.',
     importCorrupt: 'This file is damaged and could not be read. Nothing was changed — your current data is still here.',
     importWriteFailed: 'The import failed and was cancelled. Your previous data has been restored and is unchanged.',
-    importSuccess: '✓ Data imported',
     resetMonth: '↺ Reset month',
     resetMonthConfirm: (monthName) => `This clears ${monthName} and can't be undone. Continue?`,
     dangerZone: 'Danger zone',
@@ -1045,8 +942,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Growth ${year}`,
     placeholderExpenses: 'Fill in a few expenses and the chart appears here',
     placeholderSavings: 'Fill in savings & investments to see the growth',
-    goalCount: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}`,
-    avgPerMonth: 'Avg/month',
     totalSaved: 'Total saved',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
@@ -1106,8 +1001,6 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Goal',
     of: 'of',
     deadline: 'Deadline',
-    addPost: '+ Add item',
-    newPost: 'New item',
     notes: 'Notes & Strategy',
     notesPlaceholder: 'Write your plan, strategy, thoughts on investments...',
     yearOverview: (year) => `Year overview ${year}`,
@@ -1153,7 +1046,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Savings account',
     lineIsk: 'Investment account',
     lineFonder: 'Funds',
-    linePension: 'Pension',
     chartTypeArea: 'Area',
     chartTypeLine: 'Line',
     chartTypeStacked: 'Stacked',
@@ -1174,22 +1066,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combinado',
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
-    hiddenBlock: 'Bloque oculto',
     moveUp: 'Subir',
     moveDown: 'Bajar',
     dragToReorder: 'Arrastra para reordenar',
-    showBlock: 'Mostrar bloque',
-    hideBlock: 'Ocultar bloque',
-    blockSummary: 'Resumen del presupuesto',
-    blockBudgetInputs: 'Ingresos y gastos',
-    blockExpenseChart: 'Desglose de gastos',
-    blockSavingsInputs: 'Entradas de ahorro',
-    blockSavingsDonuts: 'Gráficos de ahorro',
-    blockGrowthChart: 'Crecimiento del ahorro',
-    blockGoals: 'Metas de ahorro',
-    blockYear: 'Resumen anual',
-    blockNotes: 'Notas',
-    chartStyle: 'Tipo de gráfico',
     chartStyleDonut: 'Dona',
     chartStyleBars: 'Barras',
     chartStylePie: 'Circular',
@@ -1200,21 +1079,10 @@ export const translations: Record<Lang, Translations> = {
     chartStyleTrend: 'Tendencia',
     customEmptyTitle: 'Tu panel está vacío',
     customEmptyBody: 'Añade las secciones que quieras.',
-    addSection: 'Añadir sección',
-    quickStartAll: 'Inicio rápido: añadir todo',
     removeSection: 'Quitar sección',
     sectionSettings: 'Ajustes de sección',
-    sectionBudget: 'Presupuesto',
-    sectionSavings: 'Ahorro',
-    sectionGoals: 'Metas',
-    sectionYear: 'Resumen anual',
-    sectionNotes: 'Notas',
-    cfgLabels: 'Etiquetas',
-    cfgLabelIcon: 'Solo icono',
-    cfgLabelIconText: 'Icono + texto',
     cfgBackground: 'Fondo',
     cfgBgNone: 'Ninguno',
-    cfgChart: 'Gráfico',
     cfgShowChart: 'Mostrar gráfico',
     cfgChartType: 'Tipo de gráfico',
     cfgChartSize: 'Tamaño',
@@ -1304,8 +1172,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NUEVO',
     themeLight: 'Claro',
     themeDark: 'Oscuro',
-    themeToLight: 'Cambiar a tema claro',
-    themeToDark: 'Cambiar a tema oscuro',
     themeTitle: 'Tema',
     themeClose: 'Cerrar',
     presets: 'Preajustes',
@@ -1334,16 +1200,12 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Atardecer',
       custom: 'Personalizado',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
     copyBudget: 'Copiar presupuesto',
-    copyBudgetTitle: 'Copiar el presupuesto de este mes',
     copyNextMonth: 'Mes siguiente',
     copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
     copiedTo: (month) => `✓ Copiado a ${month}`,
     copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
     backup: 'Datos',
-    backupTitle: 'Hacer copia de seguridad o restaurar datos',
     exportData: '⬇ Exportar datos',
     importData: '⬆ Importar datos',
     importConfirm: 'Esto REEMPLAZARÁ todos los datos actuales con el contenido del archivo. ¿Continuar?',
@@ -1351,7 +1213,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'El archivo procede de una versión más reciente de la app. Actualízala e inténtalo de nuevo. Tus datos no han cambiado.',
     importCorrupt: 'El archivo está dañado y no se pudo leer. No se ha cambiado nada: tus datos siguen intactos.',
     importWriteFailed: 'La importación falló y se canceló. Tus datos anteriores se han restaurado y están intactos.',
-    importSuccess: '✓ Datos importados',
     resetMonth: '↺ Restablecer mes',
     resetMonthConfirm: (monthName) => `Esto borra ${monthName} y no se puede deshacer. ¿Continuar?`,
     dangerZone: 'Zona de peligro',
@@ -1377,8 +1238,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Crecimiento ${year}`,
     placeholderExpenses: 'Rellena algunos gastos y el gráfico aparecerá aquí',
     placeholderSavings: 'Rellena el ahorro e inversiones para ver el crecimiento',
-    goalCount: (n) => `${n} ${n === 1 ? 'meta' : 'metas'}`,
-    avgPerMonth: 'Media/mes',
     totalSaved: 'Ahorro total',
     savedThisMonth: 'Ahorrado este mes',
     savedPrevMonth: 'Ahorrado el mes anterior',
@@ -1438,8 +1297,6 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Meta',
     of: 'de',
     deadline: 'Fecha límite',
-    addPost: '+ Añadir elemento',
-    newPost: 'Nuevo elemento',
     notes: 'Notas y Estrategia',
     notesPlaceholder: 'Escribe tu plan, estrategia, ideas sobre inversiones...',
     yearOverview: (year) => `Resumen anual ${year}`,
@@ -1485,7 +1342,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Cuenta de ahorro',
     lineIsk: 'Cuenta de inversión',
     lineFonder: 'Fondos',
-    linePension: 'Pensión',
     chartTypeArea: 'Área',
     chartTypeLine: 'Línea',
     chartTypeStacked: 'Apiladas',

@@ -2,11 +2,10 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Treemap, RadialBarChart, RadialBar, Legend,
-  AreaChart, Area, Line,
 } from 'recharts';
 import type { BudgetCategory } from '../types';
-import { shownName, loadMonthData } from '../defaults';
-import { useLang, CURRENCIES, MONTHS_SHORT, formatAxisTick } from '../i18n';
+import { shownName } from '../defaults';
+import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
 
 interface Props {
@@ -256,64 +255,8 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
 };
 
 // ── Budget trend: income vs expenses across the 12 months of the year ──
-interface TrendTooltipProps {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
-  label?: string;
-  money?: (n: number) => string;
-}
-const TrendTooltip = ({ active, payload, label, money }: TrendTooltipProps) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tooltip">
-      <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontSize: '0.8rem' }}>
-          {p.name}: {money ? money(p.value) : p.value}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export const BudgetTrendChart = ({ year, height }: { year: number; height: number }) => {
-  const { lang, t, money } = useLang();
-  const { text: tickColor, grid: gridColor } = chartColors();
-
-  const data = MONTHS_SHORT[lang].map((label, m) => {
-    const md = loadMonthData(year, m, lang);
-    const income = md.income.reduce((s, r) => s + r.amount, 0);
-    const expenses = md.expenses.reduce((s, c) => s + c.rows.reduce((cs, r) => cs + r.amount, 0), 0);
-    return { month: label, income, expenses };
-  });
-
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="grad-budget-exp" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#f87171" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: tickColor, fontSize: 11 }}
-          tickFormatter={v => formatAxisTick(v, lang)} axisLine={false} tickLine={false} width={38} />
-        <Tooltip content={<TrendTooltip money={money} />} />
-        <Legend iconType="circle" iconSize={8}
-          wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }} />
-        <Area type="monotone" dataKey="expenses" name={t.expenses} stroke="#f87171" strokeWidth={2}
-          fill="url(#grad-budget-exp)" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="income" name={t.income} stroke="#22c55e" strokeWidth={2}
-          dot={false} isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-};
-
 // Build the {name,value,color,icon} list from categories (shared).
-export function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
+function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
   return categories
     .map(cat => ({
       name: shownName(cat, lang),

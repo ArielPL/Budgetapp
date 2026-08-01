@@ -96,7 +96,7 @@ export interface CustomBlock {
 }
 
 // Common emoji palette for the per-block icon picker.
-export const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
+const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
 
 const LS_STRUCT = 'budget_custom_v3';
 const valuesKey = (y: number, m: number) => `budget_custom_v3_values_${y}_${m}`;

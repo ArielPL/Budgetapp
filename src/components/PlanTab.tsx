@@ -130,7 +130,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
 
 // ── Extracted, reusable sections (used by PlanTab AND the Custom layout) ──
 
-export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
+const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
   const { t } = useLang();
   const fid = useId();
 
@@ -252,7 +252,7 @@ export const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (da
   );
 };
 
-export const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
+const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (data: PlanData) => void }) => {
   const { t } = useLang();
   return (
     <section className="plan-section">
