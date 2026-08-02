@@ -465,6 +465,45 @@ function App() {
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
 
+  // Pull the PREVIOUS month's budget into this one — the mirror of "copy to next
+  // month", and the Classic/Combined counterpart of Custom's "copy last month".
+  //
+  // Income + expenses ONLY. The Savings tab records a running BALANCE plus an
+  // explicit `savingsSnapshotRecorded` flag, so copying last month's savings
+  // would claim a snapshot the user never took: savedThisMonth would compute
+  // balance − balance = 0, and the Year table would print a recorded "0 kr"
+  // where it should print "not recorded". Savings are left exactly as they are.
+  const copyFromPrevMonth = () => {
+    const py = month === 0 ? year - 1 : year;
+    const pm = month === 0 ? 11 : month - 1;
+    const prevName = MONTHS[lang][pm];
+
+    // A month that was never saved loads as blank defaults, so guard on the raw
+    // key — otherwise "pull" would silently wipe this month with an empty one.
+    if (!localStorage.getItem(storageKey(py, pm))) {
+      setMenuOpen(false);
+      showMsg(t.copyPrevMonthEmpty(prevName));
+      return;
+    }
+    // Only interrupt when there is actually something to lose.
+    const cur = calculateBudgetMetrics(data);
+    const hasAmounts = cur.income > 0 || cur.expenses > 0;
+    if (hasAmounts && !window.confirm(
+      t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
+    )) return;
+
+    const prev = loadMonthData(py, pm, lang);
+    // Re-link goal rows afterwards: the incoming expenses come from a month that
+    // may predate a goal, and the Plan tab's goal↔budget link must survive.
+    setData(cur => ensureGoalLinkedBudgetRows(
+      { ...cur, income: prev.income, expenses: prev.expenses },
+      planData.goals,
+      lang,
+    ));
+    setMenuOpen(false);
+    showMsg(t.copiedLastMonth);
+  };
+
   const copyToNextMonth = () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
@@ -1023,6 +1062,9 @@ function App() {
 
                   {/* Copy budget */}
                   <div className="utils-group-label">{t.copyBudget}</div>
+                  <button className="utils-action" onClick={copyFromPrevMonth}>
+                    ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
+                  </button>
                   <button className="utils-action" onClick={copyToNextMonth}>
                     → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
                   </button>

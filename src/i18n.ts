@@ -276,6 +276,9 @@ export interface Translations {
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
+  copyPrevMonth: (month: string) => string;
+  copyPrevMonthConfirm: (from: string, to: string) => string;
+  copyPrevMonthEmpty: (month: string) => string;
   // Backup (export / import)
   backup: string;
   exportData: string;
@@ -613,6 +616,10 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
     copiedTo: (month) => `✓ Kopierat till ${month}`,
     copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    copyPrevMonth: (month) => `Hämta från ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `Detta ersätter inkomster och utgifter i ${to} med de från ${from}. Sparande rörs inte. Vill du fortsätta?`,
+    copyPrevMonthEmpty: (month) => `${month} är tom — inget att hämta`,
     backup: 'Data',
     exportData: '⬇ Exportera data',
     importData: '⬆ Importera data',
@@ -909,6 +916,10 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `All remaining (${n} months)`,
     copiedTo: (month) => `✓ Copied to ${month}`,
     copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    copyPrevMonth: (month) => `Pull from ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `This replaces income and expenses in ${to} with those from ${from}. Savings are left alone. Continue?`,
+    copyPrevMonthEmpty: (month) => `${month} is empty — nothing to pull`,
     backup: 'Data',
     exportData: '⬇ Export data',
     importData: '⬆ Import data',
@@ -1205,6 +1216,10 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
     copiedTo: (month) => `✓ Copiado a ${month}`,
     copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
+    copyPrevMonth: (month) => `Traer de ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `Esto reemplaza los ingresos y gastos de ${to} con los de ${from}. El ahorro no se toca. ¿Continuar?`,
+    copyPrevMonthEmpty: (month) => `${month} está vacío — no hay nada que traer`,
     backup: 'Datos',
     exportData: '⬇ Exportar datos',
     importData: '⬆ Importar datos',

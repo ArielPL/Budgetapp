@@ -16,6 +16,28 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.11.0',
+    date: '2026-08-02',
+    title: { sv: 'Hämta förra månaden', en: 'Pull last month', es: 'Traer el mes anterior' },
+    items: {
+      sv: [
+        'Nytt: "Hämta från <förra månaden>" i menyn under Kopiera budget — samma sak som Anpassad layout redan kunde, nu även i Klassisk och Kombinerad',
+        'Bara inkomster och utgifter hämtas. Sparandet lämnas orört, eftersom det är ett registrerat saldo — annars hade månaden påstått ett sparande du aldrig fyllt i',
+        'Har månaden redan belopp får du en fråga först, och en tom föregående månad hämtas inte alls',
+      ],
+      en: [
+        'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
+        'Only income and expenses are pulled. Savings are left alone, because that is a recorded balance — otherwise the month would claim savings you never entered',
+        'If the month already has amounts you get a confirmation first, and an empty previous month is never pulled',
+      ],
+      es: [
+        'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
+        'Solo se traen ingresos y gastos. El ahorro no se toca, porque es un saldo registrado — si no, el mes afirmaría un ahorro que nunca introdujiste',
+        'Si el mes ya tiene importes se te pregunta primero, y un mes anterior vacío nunca se trae',
+      ],
+    },
+  },
+  {
     version: '1.10.6',
     date: '2026-07-31',
     title: { sv: 'Målbeloppet också', en: 'The target field too', es: 'También el importe objetivo' },
