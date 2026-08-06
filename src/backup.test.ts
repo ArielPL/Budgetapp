@@ -274,6 +274,60 @@ describe('import validation — nothing is written unless the whole file is good
     expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify([{ id: 'b1', name: 'Block' }]) })).ok).toBe(true);
   });
 
+  describe('Custom block chart settings share the UI rules', () => {
+    const struct = (chart: unknown) =>
+      JSON.stringify([{ id: 'b1', name: 'Block', ...(chart === undefined ? {} : { chart }) }]);
+
+    it('accepts a fully valid chart config', () => {
+      expect(checkBackup(backupFile({
+        budget_custom_v3: struct({ show: true, type: 'radial', size: 'L', position: 'between' }),
+      })).ok).toBe(true);
+    });
+
+    it('accepts a block with no chart config as an older format', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct(undefined) })).ok).toBe(true);
+    });
+
+    it('accepts legacy trend — it migrates to bars on read', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ type: 'trend' }) })).ok).toBe(true);
+    });
+
+    it('rejects an unknown chart type', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ type: 'felaktig' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects an unknown size or position', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ size: 'XXL' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ position: 'mitt-i' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects a stringified show', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ show: 'ja' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects the WHOLE file when one block among several is bad', () => {
+      const mixed = JSON.stringify([
+        { id: 'b1', name: 'Bra', chart: { show: true, type: 'donut', size: 'M', position: 'top' } },
+        { id: 'b2', name: 'Trasig', chart: { type: 'felaktig' } },
+      ]);
+      expect(checkBackup(backupFile({ budget_custom_v3: mixed })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('writes NOTHING when a bad chart config is rejected', () => {
+      const store = new FakeStorage({ budget_2026_6: 'MINE', budget_custom_v3: 'MINE TOO' });
+      const check = checkBackup(backupFile({ budget_custom_v3: struct({ type: 'felaktig' }) }));
+      expect(check.ok).toBe(false);
+      // A rejected file never reaches applyBackup — the user's data stands.
+      expect(store.getItem('budget_2026_6')).toBe('MINE');
+      expect(store.getItem('budget_custom_v3')).toBe('MINE TOO');
+    });
+  });
+
   it('rejects a month key with an impossible month index', () => {
     expect(checkBackup(backupFile({ budget_2026_99: monthJSON(100) }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_2026_11: monthJSON(100) })).ok).toBe(true); // December

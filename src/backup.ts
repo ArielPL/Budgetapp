@@ -23,6 +23,7 @@
 import type { Lang } from './i18n';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
+import { isValidBlockChart } from './blockChart';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -159,11 +160,22 @@ const isCustomValues = (v: unknown): boolean =>
   // now share one limit.
   isPlainObject(v) && Object.values(v).every(isValidMoney);
 
-/** Custom structure: an array of block-shaped objects. Lenient on purpose —
- *  loadStructure normalizes unknown fields — but "it's an array" alone let
- *  arbitrary junk through. */
+/** Custom structure: an array of block-shaped objects.
+ *
+ *  This used to stop at "is an object with an optional string name", justified
+ *  by a claim that loadStructure normalized the rest. It didn't — it spread the
+ *  stored chart over the defaults, which PRESERVES unknown values. So a backup
+ *  carrying {"show":"ja","type":"felaktig","size":"XXL"} imported as a success
+ *  and left the config panel with nothing selected while the block drew a
+ *  fallback. Import is the strict gate (new data, about to overwrite what the
+ *  user has); the loader stays defensive. Both now read the allowed values from
+ *  blockChart.ts. Legacy 'trend' is the one explicit exception — it is accepted
+ *  and migrated to the bars it always actually drew. */
 const isCustomStructure = (v: unknown): boolean =>
-  Array.isArray(v) && v.every(b => isPlainObject(b) && (b.name === undefined || typeof b.name === 'string'));
+  Array.isArray(v) && v.every(b =>
+    isPlainObject(b)
+    && (b.name === undefined || typeof b.name === 'string')
+    && isValidBlockChart(b.chart));
 
 /** Parse a JSON-valued key and check it against its own shape. Keys we don't
  *  recognise are accepted as opaque strings: they're inside a versioned backup

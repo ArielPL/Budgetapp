@@ -504,16 +504,32 @@ function App() {
     showMsg(t.copiedLastMonth);
   };
 
+  // Write this month's BUDGET into a target month, keeping whatever savings that
+  // month already holds. The menu group is "Copy budget", and budget means income
+  // + expenses: savings is a recorded BALANCE guarded by savingsSnapshotRecorded,
+  // so carrying it forward made the target claim a snapshot the user never took —
+  // savedThisMonth then read balance − balance = 0 and the Year tab printed a
+  // recorded "0 kr" where it should print "not recorded". A month that was never
+  // saved keeps the blank savings a fresh month gets, so nothing is invented.
+  const copyBudgetInto = (targetYear: number, targetMonth: number) => {
+    const target = loadMonthData(targetYear, targetMonth, lang);
+    saveMonthData(targetYear, targetMonth, {
+      ...target,
+      income: data.income,
+      expenses: data.expenses,
+    });
+  };
+
   const copyToNextMonth = () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
-    saveMonthData(nextYear, nextMth, data);
+    copyBudgetInto(nextYear, nextMth);
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
   const copyToAllRemaining = () => {
-    for (let m = month + 1; m <= 11; m++) saveMonthData(year, m, data);
+    for (let m = month + 1; m <= 11; m++) copyBudgetInto(year, m);
     setMenuOpen(false);
     showMsg(t.copiedToMonths(11 - month));
   };

@@ -17,23 +17,29 @@ export interface Release {
 export const CHANGELOG: Release[] = [
   {
     version: '1.11.0',
-    date: '2026-08-02',
-    title: { sv: 'Hämta förra månaden', en: 'Pull last month', es: 'Traer el mes anterior' },
+    date: '2026-08-06',
+    title: { sv: 'Månader och diagram som stämmer', en: 'Months and charts that match', es: 'Meses y gráficos que coinciden' },
     items: {
       sv: [
         'Nytt: "Hämta från <förra månaden>" i menyn under Kopiera budget — samma sak som Anpassad layout redan kunde, nu även i Klassisk och Kombinerad',
-        'Bara inkomster och utgifter hämtas. Sparandet lämnas orört, eftersom det är ett registrerat saldo — annars hade månaden påstått ett sparande du aldrig fyllt i',
+        'Kopiering flyttar bara inkomster och utgifter, aldrig sparandet. Sparandet är ett registrerat saldo, så en kopia hade fått månaden att påstå ett sparande du aldrig fyllt i — Årsfliken visade "0 kr" i stället för "ej registrerat". Det gällde även "Nästa månad", som nu är rättad',
         'Har månaden redan belopp får du en fråga först, och en tom föregående månad hämtas inte alls',
+        'Diagramtypen "Trend" är borttagen ur Anpassad layout. Den ritade alltid staplar, oavsett att den stod som vald. Befintliga block som använder den visas som Staplar och behåller namn, rader, färger, storlek och position',
+        'Backup vägrar nu en fil med diagraminställningar appen inte kan visa, i stället för att importera dem och lämna inställningspanelen tom',
       ],
       en: [
         'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
-        'Only income and expenses are pulled. Savings are left alone, because that is a recorded balance — otherwise the month would claim savings you never entered',
+        'Copying moves income and expenses only, never savings. Savings is a recorded balance, so a copy made the month claim savings you never entered — the Year tab showed "0 kr" instead of "not recorded". That applied to "Next month" too, which is now fixed',
         'If the month already has amounts you get a confirmation first, and an empty previous month is never pulled',
+        'The "Trend" chart type is gone from the Custom layout. It always drew bars despite showing as selected. Existing blocks using it now display as Bars and keep their name, rows, colors, size and position',
+        'Backup now refuses a file holding chart settings the app cannot display, instead of importing them and leaving the settings panel blank',
       ],
       es: [
         'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
-        'Solo se traen ingresos y gastos. El ahorro no se toca, porque es un saldo registrado — si no, el mes afirmaría un ahorro que nunca introdujiste',
+        'Copiar mueve solo ingresos y gastos, nunca el ahorro. El ahorro es un saldo registrado, así que una copia hacía que el mes afirmara un ahorro que nunca introdujiste — la pestaña Año mostraba "0 kr" en lugar de "no registrado". También ocurría con "Mes siguiente", ya corregido',
         'Si el mes ya tiene importes se te pregunta primero, y un mes anterior vacío nunca se trae',
+        'El tipo de gráfico "Tendencia" se ha eliminado del diseño personalizado. Siempre dibujaba barras aunque apareciera como seleccionado. Los bloques existentes se muestran como Barras y conservan nombre, filas, colores, tamaño y posición',
+        'La copia de seguridad ahora rechaza un archivo con ajustes de gráfico que la app no puede mostrar, en lugar de importarlos y dejar el panel vacío',
       ],
     },
   },

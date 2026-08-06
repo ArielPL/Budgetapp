@@ -154,7 +154,6 @@ export interface Translations {
   chartStyleStacked: string;
   chartStyleTreemap: string;
   chartStyleRadial: string;
-  chartStyleTrend: string;
   // Custom section builder
   customEmptyTitle: string;
   customEmptyBody: string;
@@ -356,7 +355,6 @@ export interface Translations {
   dailyBudgetTitle: string;
   /** Reserved for the planned "rest of the month" burn-down mode. The card
    *  itself now always spreads across the whole month — see DailyBudget. */
-  dailyBudgetDaysLeft: (n: number, month: string) => string;
   dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
   dailyBudgetPerWeek: string;
@@ -487,7 +485,6 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Staplad',
     chartStyleTreemap: 'Trädkarta',
     chartStyleRadial: 'Radiell',
-    chartStyleTrend: 'Trend',
     customEmptyTitle: 'Din panel är tom',
     customEmptyBody: 'Lägg till de sektioner du vill ha.',
     removeSection: 'Ta bort sektion',
@@ -676,7 +673,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Ange ett målbelopp',
     goalErrorTargetInvalid: 'Skriv ett giltigt belopp mellan 0 och 999 999 999 999',
     dailyBudgetTitle: 'Kvar att leva på',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'dag' : 'dagar'} kvar i ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
@@ -787,7 +783,6 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Stacked',
     chartStyleTreemap: 'Treemap',
     chartStyleRadial: 'Radial',
-    chartStyleTrend: 'Trend',
     customEmptyTitle: 'Your dashboard is empty',
     customEmptyBody: 'Add the sections you want.',
     removeSection: 'Remove section',
@@ -976,7 +971,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Enter a goal amount',
     goalErrorTargetInvalid: 'Enter a valid amount between 0 and 999,999,999,999',
     dailyBudgetTitle: 'Left to live on',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'day' : 'days'} left in ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
@@ -1087,7 +1081,6 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Apilado',
     chartStyleTreemap: 'Mapa de árbol',
     chartStyleRadial: 'Radial',
-    chartStyleTrend: 'Tendencia',
     customEmptyTitle: 'Tu panel está vacío',
     customEmptyBody: 'Añade las secciones que quieras.',
     removeSection: 'Quitar sección',
@@ -1276,7 +1269,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Introduce un importe para la meta',
     goalErrorTargetInvalid: 'Introduce un importe válido entre 0 y 999.999.999.999',
     dailyBudgetTitle: 'Para vivir este mes',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'día restante' : 'días restantes'} de ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',

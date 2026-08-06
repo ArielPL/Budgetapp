@@ -7,17 +7,17 @@ import type { BudgetCategory } from '../types';
 import { shownName } from '../defaults';
 import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import type { ExpenseChartStyle } from '../blockChart';
 
 interface Props {
   categories: BudgetCategory[];
   totalIncome: number;
 }
 
-// Expense-composition chart styles (single category snapshot) + the
-// month-spanning 'trend'. Chosen per-block in Custom mode's config panel.
-export type ExpenseChartStyle =
-  | 'donut' | 'bars' | 'pie' | 'list'
-  | 'stacked' | 'treemap' | 'radial' | 'trend';
+// Chart styles live in blockChart.ts — the shared source UI, the localStorage
+// loader and the backup validator all agree on. Re-exported so existing
+// importers of this module keep working.
+export type { ExpenseChartStyle };
 
 interface CatDatum { name: string; value: number; color: string; icon: string; }
 
@@ -254,8 +254,8 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
   );
 };
 
-// ── Budget trend: income vs expenses across the 12 months of the year ──
-// Build the {name,value,color,icon} list from categories (shared).
+// Build the {name,value,color,icon} list a chart renders, dropping empty
+// categories. Shared by the Classic/Combined donut and per-category bars.
 function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
   return categories
     .map(cat => ({

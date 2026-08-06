@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
 import { useLang } from '../i18n';
-import { ExpenseChart, type ExpenseChartStyle } from './Charts';
+import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney } from '../money';
+import {
+  EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
+  type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
+} from '../blockChart';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -12,16 +16,11 @@ import { parseMoneyOrZero, coerceStoredMoney } from '../money';
 
 export type BlockTag = 'in' | 'out' | 'save';
 export type BlockWidth = 'full' | 'half' | 'third';
-export type ChartPosition = 'top' | 'bottom' | 'left' | 'right' | 'between';
-export type ChartSize = 'S' | 'M' | 'L';
 export type BlockKind = 'block' | 'summary' | 'note';
 
-export interface BlockChart {
-  show: boolean;
-  type: ExpenseChartStyle;
-  size: ChartSize;
-  position: ChartPosition;
-}
+// Chart shape + allowed values now live in blockChart.ts so the loader and the
+// backup validator can share them. Re-exported for existing importers.
+export type { BlockChart, ChartSize, ChartPosition };
 
 // ── Language-safe default names (stress test §9) ──
 // Quick-start used to bake the CURRENT language's strings ("Inkomster", "Ny
@@ -105,10 +104,6 @@ function uid(): string {
   try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); }
   catch { /* ignore */ }
   return `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function defaultChart(): BlockChart {
-  return { show: false, type: 'donut', size: 'M', position: 'bottom' };
 }
 
 export function newBlock(name: string, tag: BlockTag): CustomBlock {
@@ -205,7 +200,10 @@ export function loadStructure(): CustomBlock[] | null {
         tag: b.tag === 'out' || b.tag === 'save' ? b.tag : 'in',
         width: b.width === 'half' || b.width === 'third' ? b.width : 'full',
         bg: typeof b.bg === 'string' ? b.bg : null,
-        chart: { ...defaultChart(), ...(b.chart ?? {}) },
+        // Spreading the stored chart over the defaults PRESERVED junk instead of
+        // normalizing it: a stored type of "felaktig" survived into the config
+        // panel, leaving no option selected while the block drew something else.
+        chart: normalizeBlockChart(b.chart),
         rows: Array.isArray(b.rows)
           ? b.rows.map((r, i) => {
               const rowName = typeof r?.name === 'string' ? r.name : '';
@@ -280,7 +278,22 @@ export const CustomV3 = ({ year, month }: Props) => {
   useModalFocus(expandRef, expandedFor !== null, () => setExpandedFor(null));
 
   // Persist structure whenever it changes (after the user has started).
+  //
+  // The first run is skipped on purpose. `blocks` starts out as the NORMALIZED
+  // read of storage, so saving on mount would rewrite the stored structure just
+  // because the page was opened — quietly turning a legacy `trend` into `bars`
+  // and flattening junk fields on a device the user hadn't touched. That went
+  // unnoticed while the loader preserved unknown values (the blob it wrote back
+  // was identical); normalizing made it a real write. Normalization stays in
+  // memory until the user actually changes something, matching the app's
+  // existing "only persist real edits" pattern.
+  // Identity, not a "skip the first run" flag: StrictMode double-invokes effects
+  // in dev, so a one-shot flag is spent on the first invocation and the second
+  // writes anyway. Every real edit goes through setBlocks and produces a NEW
+  // array, so "same array we started with" is exactly "the user changed nothing".
+  const loadedBlocks = useRef(blocks);
   useEffect(() => {
+    if (blocks === loadedBlocks.current) return;
     if (started) localStorage.setItem(LS_STRUCT, JSON.stringify(blocks));
   }, [blocks, started]);
 
@@ -770,7 +783,7 @@ const BlockContent = ({
     ].filter(d => d.value > 0);
     const sumChart = block.chart.show && sumData.length > 0 ? (() => {
       const totalV = sumData.reduce((s, d) => s + d.value, 0);
-      const style: ExpenseChartStyle = block.chart.type === 'trend' ? 'bars' : block.chart.type;
+      const style: ExpenseChartStyle = block.chart.type;
       return (
         <div className="cv3-chart-slot"><div className="charts-container"><div className="chart-block">
           <ExpenseChart data={sumData} totalIncome={0} totalExpenses={totalV}
@@ -815,25 +828,12 @@ const BlockContent = ({
     );
   }
 
-  // The chart (if enabled) — composition of this block's rows, or a trend.
+  // The chart (if enabled) — composition of this block's own rows.
   const chartNode = block.chart.show ? (() => {
     const data = block.rows
       .map(r => ({ name: r.name || '—', value: values[r.id] || 0, color: r.color, icon: '' }))
       .filter(d => d.value > 0);
     const height = chartHeightPx(block.chart.size);
-    if (block.chart.type === 'trend') {
-      // A single-block trend isn't meaningful per-row; show the year income/expense
-      // trend of the SHARED structure isn't right either — use a bar fallback.
-      if (data.length === 0) return null;
-      const totalV = data.reduce((s, d) => s + d.value, 0);
-      return (
-        <div className="charts-container"><div className="chart-block">
-          <ExpenseChart data={data} totalIncome={0} totalExpenses={totalV}
-            style="bars" height={data.length * 44 + 20}
-            money={money} currency={currency} totalLabel={t.blockTotal} />
-        </div></div>
-      );
-    }
     if (data.length === 0) return null;
     const totalV = data.reduce((s, d) => s + d.value, 0);
     return (
@@ -1103,7 +1103,9 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
 };
 
 // ── Per-block settings panel ──
-const CHART_TYPES: ExpenseChartStyle[] = ['donut', 'pie', 'bars', 'list', 'stacked', 'treemap', 'radial', 'trend'];
+// The picker renders the shared list itself — no second copy to drift — so it
+// can never offer a style the renderer, loader or backup validator rejects.
+const CHART_TYPES: readonly ExpenseChartStyle[] = EXPENSE_CHART_STYLES;
 
 const ConfigPanel = ({ block, onChange, onClose, t }: {
   block: CustomBlock;
@@ -1119,7 +1121,7 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
   const chartTypeLabel: Record<ExpenseChartStyle, string> = {
     donut: t.chartStyleDonut, pie: t.chartStylePie, bars: t.chartStyleBars,
     list: t.chartStyleList, stacked: t.chartStyleStacked, treemap: t.chartStyleTreemap,
-    radial: t.chartStyleRadial, trend: t.chartStyleTrend,
+    radial: t.chartStyleRadial,
   };
   const setChart = (patch: Partial<BlockChart>) => onChange({ chart: { ...block.chart, ...patch } });
   // On a phone, blocks are full-width so left/right/between all collapse to a
