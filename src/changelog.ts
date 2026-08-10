@@ -18,7 +18,7 @@ export const CHANGELOG: Release[] = [
   {
     version: '1.11.0',
     date: '2026-08-06',
-    title: { sv: 'Månader och diagram som stämmer', en: 'Months and charts that match', es: 'Meses y gráficos que coinciden' },
+    title: { sv: 'Ett år i Anpassad — och siffror som stämmer', en: 'A year in Custom — and figures that match', es: 'Un año en Personalizado — y cifras que coinciden' },
     items: {
       sv: [
         'Nytt: "Hämta från <förra månaden>" i menyn under Kopiera budget — samma sak som Anpassad layout redan kunde, nu även i Klassisk och Kombinerad',
@@ -26,6 +26,10 @@ export const CHANGELOG: Release[] = [
         'Har månaden redan belopp får du en fråga först, och en tom föregående månad hämtas inte alls',
         'Diagramtypen "Trend" är borttagen ur Anpassad layout. Den ritade alltid staplar, oavsett att den stod som vald. Befintliga block som använder den visas som Staplar och behåller namn, rader, färger, storlek och position',
         'Backup vägrar nu en fil med diagraminställningar appen inte kan visa, i stället för att importera dem och lämna inställningspanelen tom',
+        'Nytt: Anpassad layout har en årsöversikt. Växla mellan 📋 Budget och 📅 År högst upp — hela året med in, ut, sparat och kvar, plus totaler. Tidigare såg du bara en månad i taget, eftersom Anpassad döljer flikraden',
+        'I årsöversikten visas en månad du aldrig fyllt i som "–", inte som 0 kr. Sparat summeras över året, eftersom Anpassad lagrar vad du la undan varje månad',
+        'Nytt: duplicera ett block med ⧉ i redigeringsläget. Kopian får samma rader, färger och diagraminställningar och hamnar direkt efter originalet — men utan belopp, så du fyller i den på nytt',
+        'Nytt: färdiga block i "Lägg till block" — Boende, Mat, Transport och Sparande, med rätt typ och förnamngivna rader. De följer språkbytet precis som appens övriga standardnamn',
       ],
       en: [
         'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
@@ -33,6 +37,10 @@ export const CHANGELOG: Release[] = [
         'If the month already has amounts you get a confirmation first, and an empty previous month is never pulled',
         'The "Trend" chart type is gone from the Custom layout. It always drew bars despite showing as selected. Existing blocks using it now display as Bars and keep their name, rows, colors, size and position',
         'Backup now refuses a file holding chart settings the app cannot display, instead of importing them and leaving the settings panel blank',
+        'New: the Custom layout has a year overview. Switch between 📋 Budget and 📅 Year at the top — the whole year with in, out, saved and left, plus totals. Until now you could only ever see one month, because Custom hides the tab bar',
+        'In the year overview a month you never filled in shows "–", not 0 kr. Saved is summed across the year, because Custom stores what you set aside each month',
+        'New: duplicate a block with ⧉ in edit mode. The copy keeps the same rows, colors and chart settings and lands right after the original — but without amounts, so you fill it in fresh',
+        'New: ready-made blocks in "Add block" — Housing, Food, Transport and Savings, with the right type and pre-named rows. They follow a language switch like every other built-in name',
       ],
       es: [
         'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
@@ -40,6 +48,10 @@ export const CHANGELOG: Release[] = [
         'Si el mes ya tiene importes se te pregunta primero, y un mes anterior vacío nunca se trae',
         'El tipo de gráfico "Tendencia" se ha eliminado del diseño personalizado. Siempre dibujaba barras aunque apareciera como seleccionado. Los bloques existentes se muestran como Barras y conservan nombre, filas, colores, tamaño y posición',
         'La copia de seguridad ahora rechaza un archivo con ajustes de gráfico que la app no puede mostrar, en lugar de importarlos y dejar el panel vacío',
+        'Nuevo: el diseño personalizado tiene una vista anual. Cambia entre 📋 Presupuesto y 📅 Año arriba — todo el año con entradas, salidas, ahorro y resto, más totales. Hasta ahora solo podías ver un mes, porque Personalizado oculta las pestañas',
+        'En la vista anual, un mes que nunca rellenaste muestra "–", no 0 kr. El ahorro se suma a lo largo del año, porque Personalizado guarda lo que apartaste cada mes',
+        'Nuevo: duplica un bloque con ⧉ en modo edición. La copia conserva filas, colores y ajustes de gráfico y aparece justo después del original — pero sin importes, para que la rellenes de nuevo',
+        'Nuevo: bloques listos en "Añadir bloque" — Vivienda, Comida, Transporte y Ahorro, con el tipo correcto y filas ya nombradas. Siguen el cambio de idioma como los demás nombres integrados',
       ],
     },
   },

@@ -143,6 +143,14 @@ export interface Translations {
   layoutCustom: string;
   // Custom layout: edit mode + block headings
   editLayout: string;
+  duplicateBlock: string;
+  // Ready-made blocks in the Custom add-picker. Stored as KEYS on the block, so
+  // they follow a language switch instead of freezing in the creation language.
+  tplHousing: string; tplRent: string; tplUtilities: string;
+  tplFood: string; tplGroceries: string;
+  tplTransport: string; tplCommute: string;
+  tplSavings: string; tplBuffer: string;
+  copyOfName: (name: string) => string;
   moveUp: string;
   moveDown: string;
   dragToReorder: string;
@@ -475,6 +483,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Kombinerad',
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
+    duplicateBlock: 'Duplicera block',
+    tplHousing: 'Boende', tplRent: 'Hyra', tplUtilities: 'El & Internet',
+    tplFood: 'Mat', tplGroceries: 'Matvaror',
+    tplTransport: 'Transport', tplCommute: 'Resor',
+    tplSavings: 'Sparande', tplBuffer: 'Buffert',
+    copyOfName: (name) => `${name} (kopia)`,
     moveUp: 'Flytta upp',
     moveDown: 'Flytta ner',
     dragToReorder: 'Dra för att ändra ordning',
@@ -773,6 +787,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combined',
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
+    duplicateBlock: 'Duplicate block',
+    tplHousing: 'Housing', tplRent: 'Rent', tplUtilities: 'Power & Internet',
+    tplFood: 'Food', tplGroceries: 'Groceries',
+    tplTransport: 'Transport', tplCommute: 'Travel',
+    tplSavings: 'Savings', tplBuffer: 'Buffer',
+    copyOfName: (name) => `${name} (copy)`,
     moveUp: 'Move up',
     moveDown: 'Move down',
     dragToReorder: 'Drag to reorder',
@@ -1071,6 +1091,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combinado',
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
+    duplicateBlock: 'Duplicar bloque',
+    tplHousing: 'Vivienda', tplRent: 'Alquiler', tplUtilities: 'Luz e Internet',
+    tplFood: 'Comida', tplGroceries: 'Comestibles',
+    tplTransport: 'Transporte', tplCommute: 'Viajes',
+    tplSavings: 'Ahorro', tplBuffer: 'Reserva',
+    copyOfName: (name) => `${name} (copia)`,
     moveUp: 'Subir',
     moveDown: 'Bajar',
     dragToReorder: 'Arrastra para reordenar',

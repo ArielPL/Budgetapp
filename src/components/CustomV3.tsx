@@ -7,6 +7,8 @@ import {
   EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
   type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
 } from '../blockChart';
+import { customValuesKey } from '../customYear';
+import { CustomYear } from './CustomYear';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -27,9 +29,20 @@ export type { BlockChart, ChartSize, ChartPosition };
 // rad") into the stored structure, so switching language left Swedish block
 // names inside a Spanish app. Built-in names are now stored as a KEY and
 // resolved through t at render time; only names the user typed are literal.
-export type CustomDefaultNameKey =
-  | 'summaryIncome' | 'summaryExpenses' | 'summarySaved' | 'summaryBlock'
-  | 'newBlockName' | 'newRowName' | 'newNoteName';
+// One list, from which BOTH the type and the runtime guard are derived. They
+// used to be written out twice; adding a name in one place and forgetting the
+// other would have compiled fine and then silently refused to migrate.
+const DEFAULT_NAME_KEYS = [
+  'summaryIncome', 'summaryExpenses', 'summarySaved', 'summaryBlock',
+  'newBlockName', 'newRowName', 'newNoteName',
+  // Ready-made blocks offered in the add-picker.
+  'tplHousing', 'tplRent', 'tplUtilities',
+  'tplFood', 'tplGroceries',
+  'tplTransport', 'tplCommute',
+  'tplSavings', 'tplBuffer',
+] as const;
+
+export type CustomDefaultNameKey = typeof DEFAULT_NAME_KEYS[number];
 
 /** Every language's spelling of every default name → its key. Used to migrate
  *  structures saved before nameKey existed. Only EXACT matches migrate —
@@ -45,10 +58,23 @@ const DEFAULT_NAME_TO_KEY = new Map<string, CustomDefaultNameKey>([
 ]);
 
 function isDefaultNameKey(v: unknown): v is CustomDefaultNameKey {
-  return typeof v === 'string' &&
-    ['summaryIncome', 'summaryExpenses', 'summarySaved', 'summaryBlock',
-      'newBlockName', 'newRowName', 'newNoteName'].includes(v);
+  return typeof v === 'string' && (DEFAULT_NAME_KEYS as readonly string[]).includes(v);
 }
+
+/** A ready-made block offered in the add-picker. */
+export interface BlockTemplate {
+  key: CustomDefaultNameKey;
+  tag: BlockTag;
+  emoji: string;
+  rows: CustomDefaultNameKey[];
+}
+
+export const BLOCK_TEMPLATES: BlockTemplate[] = [
+  { key: 'tplHousing', tag: 'out', emoji: '🏠', rows: ['tplRent', 'tplUtilities'] },
+  { key: 'tplFood', tag: 'out', emoji: '🛒', rows: ['tplGroceries'] },
+  { key: 'tplTransport', tag: 'out', emoji: '🚌', rows: ['tplCommute'] },
+  { key: 'tplSavings', tag: 'save', emoji: '🏦', rows: ['tplBuffer'] },
+];
 
 /** Exact-match migration for pre-nameKey data; undefined = user's own name. */
 export function inferDefaultNameKey(name: string): CustomDefaultNameKey | undefined {
@@ -98,7 +124,9 @@ export interface CustomBlock {
 const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
 
 const LS_STRUCT = 'budget_custom_v3';
-const valuesKey = (y: number, m: number) => `budget_custom_v3_values_${y}_${m}`;
+// Key formula lives in customYear.ts so the year aggregation and this component
+// can never drift apart on where a month's amounts are stored.
+const valuesKey = customValuesKey;
 
 function uid(): string {
   try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); }
@@ -268,6 +296,10 @@ export const CustomV3 = ({ year, month }: Props) => {
   const [started, setStarted] = useState<boolean>(() => loadStructure() !== null);
   const [values, setValues] = useState<Record<string, number>>(() => loadValues(year, month));
 
+  // Budget canvas or the year overview. Deliberately NOT persisted: the month
+  // selector still drives the app, and coming back to a saved "year" view would
+  // hide the blocks the user came to edit.
+  const [view, setView] = useState<'budget' | 'year'>('budget');
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const [configFor, setConfigFor] = useState<string | null>(null);
@@ -384,6 +416,23 @@ export const CustomV3 = ({ year, month }: Props) => {
   const defaultRow = (i: number): BlockRow => ({
     id: uid(), name: t.newRowName, nameKey: 'newRowName', userNamed: false, color: paletteColor(i),
   });
+  // A ready-made block: correct name, tag and emoji, plus a starter row — instead
+  // of a "New block" the user has to rename and re-tag every time. Names are
+  // stored as KEYS, so a template added in Swedish reads correctly in Spanish.
+  const addTemplate = (tpl: BlockTemplate) => {
+    const b: CustomBlock = {
+      ...newBlock(t[tpl.key], tpl.tag),
+      nameKey: tpl.key,
+      userNamed: false,
+      icon: tpl.emoji,
+      rows: tpl.rows.map((rowKey, i) => ({
+        id: uid(), name: t[rowKey], nameKey: rowKey, userNamed: false, color: paletteColor(i),
+      })),
+    };
+    setBlocks(prev => [...prev, b]);
+    setStarted(true);
+    setPicking(false);
+  };
   const quickStart = () => {
     setBlocks([
       { ...newBlock(t.summaryIncome, 'in'), nameKey: 'summaryIncome', userNamed: false, rows: [defaultRow(0)] },
@@ -394,6 +443,28 @@ export const CustomV3 = ({ year, month }: Props) => {
     setStarted(true);
   };
   const removeBlock = (id: string) => setBlocks(prev => prev.filter(b => b.id !== id));
+
+  // Copy a block's STRUCTURE — rows, colors, chart config, width, background —
+  // and drop it right after the original. Every row gets a fresh id, so the copy
+  // starts with no amounts: values are keyed by row id, and duplicating "Housing"
+  // to build a second one should not drag this month's rent along with it.
+  const duplicateBlock = (id: string) => setBlocks(prev => {
+    const i = prev.findIndex(b => b.id === id);
+    if (i === -1) return prev;
+    const src = prev[i];
+    const copy: CustomBlock = {
+      ...src,
+      id: uid(),
+      // The copy is named, so it must never be reverse-translated back to the
+      // original's built-in name on a language switch — hence userNamed + no key.
+      name: t.copyOfName(resolveDisplayName(src, t)),
+      nameKey: undefined,
+      userNamed: true,
+      chart: { ...src.chart },
+      rows: src.rows.map(r => ({ ...r, id: uid() })),
+    };
+    return [...prev.slice(0, i + 1), copy, ...prev.slice(i + 1)];
+  });
   const patchBlock = (id: string, patch: Partial<CustomBlock>) =>
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
 
@@ -484,7 +555,8 @@ export const CustomV3 = ({ year, month }: Props) => {
             ❔ {t.howItWorks}
           </button>
         </div>
-        {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock} onClose={() => setPicking(false)} />}
+        {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock}
+          onAddTemplate={addTemplate} onClose={() => setPicking(false)} />}
         {helpOpen && <CustomHelp t={t} onClose={() => setHelpOpen(false)} />}
       </div>
     );
@@ -500,25 +572,41 @@ export const CustomV3 = ({ year, month }: Props) => {
         <h2 className="sr-only">{t.layoutCustom}</h2>
         <div className="custom-toolbar">
           {toast && <span className="custom-toast">{toast}</span>}
-          <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
-            ❔ {t.howItWorks}
-          </button>
-          <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
-            📋 {t.copyLastMonth}
-          </button>
-          <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
-            onClick={() => setEditing(e => !e)}>
-            {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
-          </button>
-          {editing && (
-            <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
-              title={t.clearAmounts}>
-              🧹 {t.clearAmounts}
+          {/* Custom hides the app's tab bar, so this is the only route to a view
+              spanning more than the selected month. */}
+          <div className="utils-seg custom-view-seg" role="group" aria-label={t.layoutCustom}>
+            <button className={`seg-btn${view === 'budget' ? ' seg-active' : ''}`}
+              onClick={() => setView('budget')} aria-pressed={view === 'budget'}>
+              📋 {t.tabBudget}
             </button>
-          )}
+            <button className={`seg-btn${view === 'year' ? ' seg-active' : ''}`}
+              onClick={() => setView('year')} aria-pressed={view === 'year'}>
+              📅 {t.tabYear}
+            </button>
+          </div>
+          {view === 'budget' && <>
+            <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
+              ❔ {t.howItWorks}
+            </button>
+            <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
+              📋 {t.copyLastMonth}
+            </button>
+            <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
+              onClick={() => setEditing(e => !e)}>
+              {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
+            </button>
+            {editing && (
+              <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
+                title={t.clearAmounts}>
+                🧹 {t.clearAmounts}
+              </button>
+            )}
+          </>}
         </div>
 
-        {viewBlocks.map((b, index) => {
+        {view === 'year' && <CustomYear blocks={blocks} year={year} />}
+
+        {view === 'budget' && viewBlocks.map((b, index) => {
           const isSummary = b.kind === 'summary';
           const total = blockTotal(b);
           // Phone: every block is a compact tile (tap → modal). Desktop: full inline.
@@ -570,6 +658,9 @@ export const CustomV3 = ({ year, month }: Props) => {
                     <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
                       title={t.moveDown} aria-label={t.moveDown}>↓</button>
                   </>}
+                  <button className="custom-icon-btn" onClick={() => duplicateBlock(b.id)}
+                    title={t.duplicateBlock}
+                    aria-label={`${t.duplicateBlock}: ${resolveDisplayName(b, t)}`}>⧉</button>
                   <button className="custom-icon-btn" onClick={() => setConfigFor(b.id)}
                     title={t.sectionSettings} aria-label={t.sectionSettings}>⚙</button>
                   <button className="custom-icon-btn custom-remove-btn" onClick={() => removeBlock(b.id)}
@@ -615,7 +706,7 @@ export const CustomV3 = ({ year, month }: Props) => {
           );
         })}
 
-        {editing && (
+        {view === 'budget' && editing && (
           <button className="custom-add-card" onClick={() => setPicking(true)}>
             <span className="custom-add-plus">＋</span>
             <span>{t.addBlock}</span>
@@ -623,7 +714,8 @@ export const CustomV3 = ({ year, month }: Props) => {
         )}
       </div>
 
-      {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock} onClose={() => setPicking(false)} />}
+      {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock}
+          onAddTemplate={addTemplate} onClose={() => setPicking(false)} />}
 
       {cfgBlock && (
         <ConfigPanel block={cfgBlock}
@@ -1065,10 +1157,11 @@ const TargetInput = ({ value, onChange }: { value?: number; onChange: (v: number
 };
 
 // ── Add-block picker ──
-const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
+const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose }: {
   onAddBlock: (tag: BlockTag) => void;
   onAddSummary: () => void;
   onAddNote: () => void;
+  onAddTemplate: (tpl: BlockTemplate) => void;
   onClose: () => void;
 }) => {
   const { t } = useLang();
@@ -1096,6 +1189,16 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
             <span className="custom-picker-emoji">📝</span><span>{t.addNote}</span>
           </button>
         </div>
+
+        <div className="custom-picker-sep" role="separator" />
+        <div className="custom-picker-grid">
+          {BLOCK_TEMPLATES.map(tpl => (
+            <button className="custom-picker-btn" key={tpl.key} onClick={() => onAddTemplate(tpl)}>
+              <span className="custom-picker-emoji">{tpl.emoji}</span><span>{t[tpl.key]}</span>
+            </button>
+          ))}
+        </div>
+
         <button className="custom-modal-close" onClick={onClose}>{t.cfgDone}</button>
       </div>
     </div>

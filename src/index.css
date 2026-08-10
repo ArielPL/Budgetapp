@@ -492,6 +492,18 @@ a:focus-visible,
   flex-wrap: wrap;
 }
 
+/* Budget/Year switch sits at the START of the toolbar; everything else stays
+   right-aligned. It is the only route to a multi-month view in Custom, so it
+   reads first rather than being lost among the edit actions. */
+.custom-view-seg { margin-right: auto; }
+
+/* Divides the "what kind of block" choices from the ready-made ones. */
+.custom-picker-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 12px;
+}
+
 /* Brief confirmation toast (e.g. "Copied from last month"). */
 .custom-toast {
   font-size: 0.85rem;
