@@ -9,6 +9,10 @@ import {
   splitRemaining,
   savedThisMonth,
   yearSavingsGrowth,
+  rowMonthly,
+  categoryTotal,
+  isRowPeriod,
+  ROW_PERIODS,
   type SavingsSnapshot,
 } from './metrics';
 import type { MonthData, BudgetCategory, BudgetRow } from './types';
@@ -331,5 +335,65 @@ describe('decimals', () => {
   it('keeps öre without drift', () => {
     const m = month({ income: [row(1200.5), row(0.3)] });
     expect(calculateBudgetMetrics(m).income).toBeCloseTo(1200.8, 5);
+  });
+});
+
+// ── Row period: an amount that falls due less often than monthly ──────────
+describe('rowMonthly / period', () => {
+  const row = (amount: number, period?: 'month' | 'quarter' | 'year') =>
+    ({ id: 'r', label: 'x', amount, ...(period ? { period } : {}) });
+
+  it('leaves a row without a period exactly as it is', () => {
+    // Every row written before the field existed is this case.
+    expect(rowMonthly(row(8801))).toBe(8801);
+    expect(rowMonthly(row(8801, 'month'))).toBe(8801);
+  });
+
+  it('spreads a yearly amount over twelve months', () => {
+    expect(rowMonthly(row(4800, 'year'))).toBe(400);
+  });
+
+  it('spreads a quarterly amount over three', () => {
+    expect(rowMonthly(row(1500, 'quarter'))).toBe(500);
+  });
+
+  it('keeps twelve monthly shares adding back up to the year', () => {
+    // No rounding in the math layer — rounding a twelfth here would make the
+    // year total disagree with the figure the user typed.
+    const yearly = row(5000, 'year');
+    expect(rowMonthly(yearly) * 12).toBeCloseTo(5000, 6);
+  });
+
+  it('counts the monthly share in a category total, not the typed figure', () => {
+    const cat = {
+      id: 'boende', name: 'Boende', icon: '', color: '',
+      rows: [row(8801), row(4800, 'year')],
+    };
+    expect(categoryTotal(cat)).toBe(9201); // 8801 + 400
+  });
+
+  it('never divides a savings BALANCE, even if a period sneaks in', () => {
+    // A balance is what you have, not something that falls due. A hand-edited
+    // or imported file could carry a period here; it must not shrink the pot.
+    const month = {
+      income: [], expenses: [],
+      savings: [{
+        id: 'sparkonto', name: 'S', icon: '', color: '',
+        rows: [row(60000, 'year')],
+      }],
+      savingsSnapshotRecorded: true,
+    };
+    expect(calculateSavingsMetrics(month).balance).toBe(60000);
+  });
+});
+
+describe('isRowPeriod', () => {
+  it('accepts the three the UI offers', () => {
+    expect(ROW_PERIODS.every(isRowPeriod)).toBe(true);
+  });
+  it('rejects anything else', () => {
+    for (const bad of ['week', 'yearly', '', 12, null, undefined]) {
+      expect(isRowPeriod(bad)).toBe(false);
+    }
   });
 });

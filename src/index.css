@@ -3098,6 +3098,35 @@ a:focus-visible,
 .sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
 .sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
 .sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
+/* ─── Row period (monthly / quarterly / yearly) ──────────────────────
+   Quiet by default: most rows are monthly and the control should read as
+   part of the amount column, not as another thing to deal with. It gains
+   a visible tint only once a row is actually periodised. */
+.row-period {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding: 2px 4px;
+  max-width: 92px;
+  cursor: pointer;
+}
+.row-period:hover,
+.row-period:focus-visible { border-color: var(--border); color: var(--text); }
+.row-period-set {
+  color: var(--accent-brand);
+  border-color: color-mix(in srgb, var(--accent-brand) 40%, transparent);
+}
+/* The monthly share, so the typed figure and the budgeted figure never look
+   like they contradict each other. */
+.row-period-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ─── Insight line ───────────────────────────────────────────────────
    One sentence under the summary cards. Neutral by default: colouring
    every observation red is what trains people to stop opening a budget

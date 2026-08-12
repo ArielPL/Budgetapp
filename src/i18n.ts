@@ -144,6 +144,10 @@ export interface Translations {
   // Custom layout: edit mode + block headings
   editLayout: string;
   duplicateBlock: string;
+  // Per-row period: how often the typed amount actually falls due.
+  periodMonth: string; periodQuarter: string; periodYear: string;
+  periodAria: (row: string) => string;
+  periodMonthlyShare: (amount: string) => string;
   // The one-line insight under the summary cards. Amounts arrive pre-formatted.
   insightDeficit: (over: string) => string;
   insightSavingsDown: (amount: string) => string;
@@ -491,6 +495,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
     duplicateBlock: 'Duplicera block',
+    periodMonth: 'Per månad', periodQuarter: 'Per kvartal', periodYear: 'Per år',
+    periodAria: (row) => `Hur ofta ${row} betalas`,
+    periodMonthlyShare: (amount) => `= ${amount}/mån`,
     insightDeficit: (over) => `Utgifterna överstiger inkomsten med ${over}.`,
     insightSavingsDown: (amount) => `Ditt sparande minskade med ${amount} den här månaden.`,
     insightGoalClose: (name, remaining) => `Bara ${remaining} kvar till ${name}.`,
@@ -801,6 +808,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
     duplicateBlock: 'Duplicate block',
+    periodMonth: 'Monthly', periodQuarter: 'Quarterly', periodYear: 'Yearly',
+    periodAria: (row) => `How often ${row} is paid`,
+    periodMonthlyShare: (amount) => `= ${amount}/mo`,
     insightDeficit: (over) => `Expenses exceed income by ${over}.`,
     insightSavingsDown: (amount) => `Your savings fell by ${amount} this month.`,
     insightGoalClose: (name, remaining) => `Only ${remaining} to go for ${name}.`,
@@ -1111,6 +1121,9 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
     duplicateBlock: 'Duplicar bloque',
+    periodMonth: 'Mensual', periodQuarter: 'Trimestral', periodYear: 'Anual',
+    periodAria: (row) => `Con qué frecuencia se paga ${row}`,
+    periodMonthlyShare: (amount) => `= ${amount}/mes`,
     insightDeficit: (over) => `Los gastos superan los ingresos en ${over}.`,
     insightSavingsDown: (amount) => `Tu ahorro bajó ${amount} este mes.`,
     insightGoalClose: (name, remaining) => `Solo faltan ${remaining} para ${name}.`,

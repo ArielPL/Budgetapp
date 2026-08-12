@@ -328,6 +328,36 @@ describe('import validation — nothing is written unless the whole file is good
     });
   });
 
+  describe('row period obeys the same rules as the picker', () => {
+    const monthWithPeriod = (period: unknown) => JSON.stringify({
+      income: [{ id: 'i1', label: 'Lön', amount: 30000 }],
+      expenses: [{
+        id: 'boende', name: 'Boende', icon: '', color: '',
+        rows: [{ id: 'r1', label: 'Försäkring', amount: 4800, ...(period === undefined ? {} : { period }) }],
+      }],
+      savings: [],
+    });
+
+    it('accepts the three periods the UI offers', () => {
+      for (const p of ['month', 'quarter', 'year']) {
+        expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(p) })).ok).toBe(true);
+      }
+    });
+
+    it('accepts a row with no period — that is every row predating the field', () => {
+      expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(undefined) })).ok).toBe(true);
+    });
+
+    it('rejects a period the app cannot represent', () => {
+      // Accepting it would mean the file says "weekly" while the app silently
+      // shows a monthly figure — storage and display disagreeing again.
+      for (const bad of ['week', 'yearly', 'Year', '', 12, null]) {
+        expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(bad) })))
+          .toMatchObject({ ok: false, reason: 'corrupt' });
+      }
+    });
+  });
+
   it('rejects a month key with an impossible month index', () => {
     expect(checkBackup(backupFile({ budget_2026_99: monthJSON(100) }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_2026_11: monthJSON(100) })).ok).toBe(true); // December

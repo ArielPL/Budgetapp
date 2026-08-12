@@ -1,9 +1,17 @@
+/** How often the amount on a row actually falls due. */
+export type RowPeriod = 'month' | 'quarter' | 'year';
+
 export interface BudgetRow {
   id: string;
   label: string;
   amount: number;
   isCustom?: boolean;
   userNamed?: boolean;
+  /** Absent = monthly, which is every row written before this existed — so no
+   *  migration, and an untouched budget behaves exactly as it always did.
+   *  When set, `amount` is the WHOLE-PERIOD figure the user typed (4 800 for a
+   *  yearly insurance) and the budget counts its monthly share (400). */
+  period?: RowPeriod;
 }
 
 export interface BudgetCategory {

@@ -23,6 +23,7 @@
 import type { Lang } from './i18n';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
+import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
@@ -98,7 +99,12 @@ const isRow = (v: unknown): boolean =>
   // able to introduce an amount the app would have refused on the keyboard.
   isValidMoney(v.amount) &&
   (v.label === undefined || typeof v.label === 'string') &&
-  (v.name === undefined || typeof v.name === 'string');
+  (v.name === undefined || typeof v.name === 'string') &&
+  // A period the app cannot represent would silently fall back to monthly on
+  // read, so the imported file and what the app shows would disagree about what
+  // a row costs. Absent is fine — that IS monthly, and every row predating the
+  // field is absent.
+  (v.period === undefined || isRowPeriod(v.period));
 
 const isCategory = (v: unknown): boolean =>
   isPlainObject(v) && typeof v.id === 'string' && Array.isArray(v.rows) && v.rows.every(isRow);
