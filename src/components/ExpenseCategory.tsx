@@ -4,6 +4,9 @@ import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
 import { useLang, formatMoneyCompact } from '../i18n';
+import { categoryTotal } from '../metrics';
+import { RowPeriodPicker, RowPeriodHint } from './RowPeriod';
+import type { RowPeriod } from '../types';
 
 interface Props {
   category: BudgetCategory;
@@ -28,6 +31,10 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
     onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, amount } : r) }, true);
   };
 
+  const updatePeriod = (id: string, period: RowPeriod | undefined) => {
+    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, period } : r) });
+  };
+
   const updateLabel = (id: string, label: string) => {
     onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, label, userNamed: true } : r) });
   };
@@ -47,7 +54,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
     }
   };
 
-  const total = category.rows.reduce((s, r) => s + r.amount, 0);
+  const total = categoryTotal(category);
 
   return (
     <section className="budget-section expense-section" style={{ '--accent': category.color } as CSSProperties}>
@@ -169,6 +176,9 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
                     the category ends at the same right edge — otherwise rows
                     with a delete button sat 34px to the left of the ones
                     without, and the column looked ragged. */}
+                <RowPeriodPicker row={row} label={shownName(row, lang)}
+                  onChange={p => updatePeriod(row.id, p)} />
+                <RowPeriodHint row={row} />
                 <span className="row-action">
                   {row.isCustom && (
                     <button className="delete-btn" onClick={() => deleteRow(row.id)}

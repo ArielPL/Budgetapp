@@ -3,6 +3,9 @@ import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId, shownName } from '../defaults';
 import { useLang } from '../i18n';
+import { sumRows } from '../metrics';
+import { RowPeriodPicker, RowPeriodHint } from './RowPeriod';
+import type { RowPeriod } from '../types';
 
 interface Props {
   rows: BudgetRow[];
@@ -27,7 +30,11 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
     onChange(rows.filter(r => r.id !== id));
   };
 
-  const total = rows.reduce((s, r) => s + r.amount, 0);
+  const updatePeriod = (id: string, period: RowPeriod | undefined) => {
+    onChange(rows.map(r => r.id === id ? { ...r, period } : r));
+  };
+
+  const total = sumRows(rows);
 
   return (
     <section className="budget-section income-section">
@@ -46,6 +53,9 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               color="#22d3ee"
               label={shownName(row, lang)}
             />
+            <RowPeriodPicker row={row} label={shownName(row, lang)}
+              onChange={p => updatePeriod(row.id, p)} />
+            <RowPeriodHint row={row} />
             {/* Always-present slot keeps every amount on the same right edge —
                 see the same pattern in ExpenseCategory. */}
             <span className="row-action">

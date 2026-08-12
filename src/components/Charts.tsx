@@ -7,6 +7,7 @@ import type { BudgetCategory } from '../types';
 import { shownName } from '../defaults';
 import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { categoryTotal } from '../metrics';
 import type { ExpenseChartStyle } from '../blockChart';
 
 interface Props {
@@ -260,7 +261,7 @@ function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): C
   return categories
     .map(cat => ({
       name: shownName(cat, lang),
-      value: cat.rows.reduce((s, r) => s + r.amount, 0),
+      value: categoryTotal(cat),
       color: cat.color,
       icon: cat.icon,
     }))

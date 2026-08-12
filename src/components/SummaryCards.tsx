@@ -1,4 +1,5 @@
 import { loadMonthData } from '../defaults';
+import { calculateBudgetMetrics } from '../metrics';
 import { useLang, formatMoneyCompact } from '../i18n';
 import type { Translations } from '../i18n';
 
@@ -46,10 +47,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
   const prevYear = month === 0 ? year - 1 : year;
   const prevMonth = month === 0 ? 11 : month - 1;
   const prev = loadMonthData(prevYear, prevMonth, lang);
-  const prevIncome = prev.income.reduce((s, r) => s + r.amount, 0);
-  const prevExpenses = prev.expenses.reduce(
-    (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
-  );
+  const { income: prevIncome, expenses: prevExpenses } = calculateBudgetMetrics(prev);
   const prevRemaining = prevIncome - prevExpenses;
 
   return (

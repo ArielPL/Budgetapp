@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 import { loadMonthData } from '../defaults';
-import { calculateSavingsMetrics, yearSavingsGrowth, type SavingsSnapshot } from '../metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, yearSavingsGrowth, type SavingsSnapshot } from '../metrics';
 import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
 
@@ -50,10 +50,7 @@ export const YearTab = ({ year }: Props) => {
   const snapshots: SavingsSnapshot[] = [];
   const rows: MonthRow[] = Array.from({ length: 12 }, (_, m) => {
     const data = loadMonthData(year, m, lang);
-    const income = data.income.reduce((s, r) => s + r.amount, 0);
-    const expenses = data.expenses.reduce(
-      (s, cat) => s + cat.rows.reduce((cs, r) => cs + r.amount, 0), 0
-    );
+    const { income, expenses } = calculateBudgetMetrics(data);
     // Savings BALANCE for the month (excludes pension — a separate long-term
     // bucket). A month with nothing recorded is unknown, not a balance of 0.
     const snap = calculateSavingsMetrics(data);
