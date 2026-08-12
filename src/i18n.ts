@@ -144,6 +144,13 @@ export interface Translations {
   // Custom layout: edit mode + block headings
   editLayout: string;
   duplicateBlock: string;
+  // The one-line insight under the summary cards. Amounts arrive pre-formatted.
+  insightDeficit: (over: string) => string;
+  insightSavingsDown: (amount: string) => string;
+  insightGoalClose: (name: string, remaining: string) => string;
+  insightSavingsStreak: (months: number) => string;
+  insightSavedRate: (pct: number) => string;
+  insightTopCategory: (name: string, pct: number) => string;
   // Ready-made blocks in the Custom add-picker. Stored as KEYS on the block, so
   // they follow a language switch instead of freezing in the creation language.
   tplHousing: string; tplRent: string; tplUtilities: string;
@@ -484,6 +491,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
     duplicateBlock: 'Duplicera block',
+    insightDeficit: (over) => `Utgifterna överstiger inkomsten med ${over}.`,
+    insightSavingsDown: (amount) => `Ditt sparande minskade med ${amount} den här månaden.`,
+    insightGoalClose: (name, remaining) => `Bara ${remaining} kvar till ${name}.`,
+    insightSavingsStreak: (months) => `Ditt sparande har vuxit ${months} månader i rad.`,
+    insightSavedRate: (pct) => `Du la undan ${pct} % av inkomsten den här månaden.`,
+    insightTopCategory: (name, pct) => `${name} är din största utgiftspost — ${pct} % av inkomsten.`,
     tplHousing: 'Boende', tplRent: 'Hyra', tplUtilities: 'El & Internet',
     tplFood: 'Mat', tplGroceries: 'Matvaror',
     tplTransport: 'Transport', tplCommute: 'Resor',
@@ -788,6 +801,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
     duplicateBlock: 'Duplicate block',
+    insightDeficit: (over) => `Expenses exceed income by ${over}.`,
+    insightSavingsDown: (amount) => `Your savings fell by ${amount} this month.`,
+    insightGoalClose: (name, remaining) => `Only ${remaining} to go for ${name}.`,
+    insightSavingsStreak: (months) => `Your savings have grown ${months} months running.`,
+    insightSavedRate: (pct) => `You set aside ${pct}% of your income this month.`,
+    insightTopCategory: (name, pct) => `${name} is your largest expense — ${pct}% of income.`,
     tplHousing: 'Housing', tplRent: 'Rent', tplUtilities: 'Power & Internet',
     tplFood: 'Food', tplGroceries: 'Groceries',
     tplTransport: 'Transport', tplCommute: 'Travel',
@@ -1092,6 +1111,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
     duplicateBlock: 'Duplicar bloque',
+    insightDeficit: (over) => `Los gastos superan los ingresos en ${over}.`,
+    insightSavingsDown: (amount) => `Tu ahorro bajó ${amount} este mes.`,
+    insightGoalClose: (name, remaining) => `Solo faltan ${remaining} para ${name}.`,
+    insightSavingsStreak: (months) => `Tu ahorro ha crecido ${months} meses seguidos.`,
+    insightSavedRate: (pct) => `Apartaste el ${pct} % de tus ingresos este mes.`,
+    insightTopCategory: (name, pct) => `${name} es tu mayor gasto: el ${pct} % de los ingresos.`,
     tplHousing: 'Vivienda', tplRent: 'Alquiler', tplUtilities: 'Luz e Internet',
     tplFood: 'Comida', tplGroceries: 'Comestibles',
     tplTransport: 'Transporte', tplCommute: 'Viajes',

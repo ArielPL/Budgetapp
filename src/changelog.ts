@@ -30,6 +30,7 @@ export const CHANGELOG: Release[] = [
         'I årsöversikten visas en månad du aldrig fyllt i som "–", inte som 0 kr. Sparat summeras över året, eftersom Anpassad lagrar vad du la undan varje månad',
         'Nytt: duplicera ett block med ⧉ i redigeringsläget. Kopian får samma rader, färger och diagraminställningar och hamnar direkt efter originalet — men utan belopp, så du fyller i den på nytt',
         'Nytt: färdiga block i "Lägg till block" — Boende, Mat, Transport och Sparande, med rätt typ och förnamngivna rader. De följer språkbytet precis som appens övriga standardnamn',
+        'Nytt: en rad under korten som säger något om månaden i stället för att bara visa siffror — största utgiftsposten, hur mycket du la undan, eller ett underskott. Är du nära ett sparmål eller har sparandet växt flera månader i rad står det där i stället',
       ],
       en: [
         'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
@@ -41,6 +42,7 @@ export const CHANGELOG: Release[] = [
         'In the year overview a month you never filled in shows "–", not 0 kr. Saved is summed across the year, because Custom stores what you set aside each month',
         'New: duplicate a block with ⧉ in edit mode. The copy keeps the same rows, colors and chart settings and lands right after the original — but without amounts, so you fill it in fresh',
         'New: ready-made blocks in "Add block" — Housing, Food, Transport and Savings, with the right type and pre-named rows. They follow a language switch like every other built-in name',
+        'New: a line under the summary cards that says something about the month instead of only showing figures — your largest expense, how much you set aside, or a deficit. If a goal is within reach or your savings have grown several months running, it says that instead',
       ],
       es: [
         'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
@@ -52,6 +54,7 @@ export const CHANGELOG: Release[] = [
         'En la vista anual, un mes que nunca rellenaste muestra "–", no 0 kr. El ahorro se suma a lo largo del año, porque Personalizado guarda lo que apartaste cada mes',
         'Nuevo: duplica un bloque con ⧉ en modo edición. La copia conserva filas, colores y ajustes de gráfico y aparece justo después del original — pero sin importes, para que la rellenes de nuevo',
         'Nuevo: bloques listos en "Añadir bloque" — Vivienda, Comida, Transporte y Ahorro, con el tipo correcto y filas ya nombradas. Siguen el cambio de idioma como los demás nombres integrados',
+        'Nuevo: una línea bajo las tarjetas que dice algo sobre el mes en vez de solo mostrar cifras — tu mayor gasto, cuánto apartaste o un déficit. Si una meta está cerca o tu ahorro ha crecido varios meses seguidos, lo dice en su lugar',
       ],
     },
   },

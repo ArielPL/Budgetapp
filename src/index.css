@@ -3098,6 +3098,37 @@ a:focus-visible,
 .sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
 .sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
 .sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
+/* ─── Insight line ───────────────────────────────────────────────────
+   One sentence under the summary cards. Neutral by default: colouring
+   every observation red is what trains people to stop opening a budget
+   app, so only a real deficit gets a warning tone. */
+.insight-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 11px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+  min-width: 0;
+}
+.insight-line-icon { flex-shrink: 0; }
+.insight-line-warn {
+  border-color: var(--negative);
+  color: var(--tint-deficit-text, var(--negative));
+}
+/* Only the two EARNED observations get this — a goal within reach or a real
+   savings streak. Never applied to a figure the user merely typed in. */
+.insight-line-good {
+  border-color: color-mix(in srgb, var(--positive) 45%, var(--border));
+  color: var(--positive);
+}
+
+
 @media (max-width: 640px) {
   .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }

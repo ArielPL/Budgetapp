@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -23,7 +23,7 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -37,7 +37,9 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
-import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth } from './metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal } from './metrics';
+import { InsightLine } from './components/InsightLine';
+import { savingsStreakFrom } from './insight';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
@@ -809,6 +811,21 @@ function App() {
   );
   const savedThisMonthAmount = savedThisMonth(savingsSnapshot, prevSavingsSnapshot);
 
+  // Savings balances for the months leading up to this one, oldest first, so the
+  // insight line can tell a real growth streak from a lucky month. Bounded at
+  // four look-backs (a claim of "3 months running" is the most it can make) and
+  // memoised — this is four localStorage reads plus parses.
+  const savingsStreakMonths = useMemo(() => {
+    const balances: (number | null)[] = [];
+    for (let back = 3; back >= 0; back--) {
+      let y = year, m = month - back;
+      while (m < 0) { m += 12; y -= 1; }
+      const snap = calculateSavingsMetrics(back === 0 ? data : loadMonthData(y, m, lang));
+      balances.push(snap.hasSnapshot ? snap.balance : null);
+    }
+    return savingsStreakFrom(balances);
+  }, [year, month, data, lang]);
+
   // ── Onboarding heroes & starter buttons ──────────────────────────
   // A brand-new empty month gets a guided "get started" hero with a primary
   // template CTA. Once the user has chosen "start from empty" (persisted),
@@ -856,6 +873,23 @@ function App() {
     <>
       {budgetHero}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
+      {/* Says something about the numbers instead of only showing them. Names
+          are resolved here so the insight text follows the current language. */}
+      <InsightLine
+        income={totalIncome}
+        expenses={totalExpenses}
+        categories={data.expenses.map(c => ({
+          name: shownName(c, lang),
+          total: categoryTotal(c),
+        }))}
+        saved={savedThisMonthAmount}
+        goals={planData.goals.map(g => ({
+          name: shownName(g, lang),
+          current: g.currentAmount,
+          target: g.targetAmount,
+        }))}
+        savingsStreak={savingsStreakMonths}
+      />
       {/* Daily/weekly pace for the remaining money — current real month only. */}
       {totalIncome > 0 && (
         <DailyBudget remaining={totalIncome - totalExpenses} year={year} month={month} />
