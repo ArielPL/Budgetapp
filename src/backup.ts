@@ -25,6 +25,7 @@ import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
+import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -114,7 +115,11 @@ const isMonthData = (v: unknown): boolean =>
   Array.isArray(v.income) && v.income.every(isRow) &&
   Array.isArray(v.expenses) && v.expenses.every(isCategory) &&
   Array.isArray(v.savings) && v.savings.every(isCategory) &&
-  (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean');
+  (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean') &&
+  // A label, so anything readable goes — but capped, because this renders in the
+  // page header and a novel pasted in would push the month navigation off screen.
+  (v.periodLabel === undefined ||
+    (typeof v.periodLabel === 'string' && v.periodLabel.length <= PERIOD_LABEL_MAX));
 
 /** A savings goal, checked in full. The old version looked at id + the two
  *  amounts only, so a goal missing its name, or carrying a numeric name or a

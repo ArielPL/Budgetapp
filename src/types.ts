@@ -34,6 +34,11 @@ export interface MonthData {
    *  `savings.length > 0`, because back then structure only appeared alongside
    *  real numbers (see calculateSavingsMetrics). */
   savingsSnapshotRecorded?: boolean;
+  /** The user's own name for what period this month stands for ("Lönevecka 34").
+   *  Overrides the label generated from the pay-day rule, for this month only.
+   *  Absent = use the rule, or show nothing if no rule is set. Purely a label:
+   *  it never touches a total. */
+  periodLabel?: string;
 }
 
 export interface SavingsGoal {

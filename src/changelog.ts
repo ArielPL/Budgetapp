@@ -32,6 +32,7 @@ export const CHANGELOG: Release[] = [
         'Nytt: färdiga block i "Lägg till block" — Boende, Mat, Transport och Sparande, med rätt typ och förnamngivna rader. De följer språkbytet precis som appens övriga standardnamn',
         'Nytt: en rad under korten som säger något om månaden i stället för att bara visa siffror — största utgiftsposten, hur mycket du la undan, eller ett underskott. Är du nära ett sparmål eller har sparandet växt flera månader i rad står det där i stället',
         'Nytt: en rad kan betalas per kvartal eller per år. Skriv beloppet du faktiskt betalar — 4 800 kr för hemförsäkringen — och markera raden "Per år". Budgeten räknar 400 kr i månaden i stället för att låta januari se ut som en katastrof. Rör du ingenting är allt månadsvis som förut',
+        'Nytt: löneperiod som text under månaden. Ange vilken dag din period börjar, så skriver appen "25 dec – 24 jan" under varje månad. Vill du hellre kalla en enskild månad något eget klickar du på texten och skriver — rensar du fältet är du tillbaka på den automatiska. Det är bara en etikett: inga belopp påverkas',
       ],
       en: [
         'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
@@ -45,6 +46,7 @@ export const CHANGELOG: Release[] = [
         'New: ready-made blocks in "Add block" — Housing, Food, Transport and Savings, with the right type and pre-named rows. They follow a language switch like every other built-in name',
         'New: a line under the summary cards that says something about the month instead of only showing figures — your largest expense, how much you set aside, or a deficit. If a goal is within reach or your savings have grown several months running, it says that instead',
         'New: a row can fall due quarterly or yearly. Type the amount you actually pay — 4,800 kr for the insurance — and mark the row "Yearly". The budget counts 400 kr a month instead of making January look like a disaster. Touch nothing and everything stays monthly as before',
+        'New: a pay-period line under the month. Set the day your period starts and the app writes "25 Dec – 24 Jan" under every month. Prefer your own words for one month? Click the text and type — clear the field to go back to automatic. It is only a label: no amounts change',
       ],
       es: [
         'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
@@ -58,6 +60,7 @@ export const CHANGELOG: Release[] = [
         'Nuevo: bloques listos en "Añadir bloque" — Vivienda, Comida, Transporte y Ahorro, con el tipo correcto y filas ya nombradas. Siguen el cambio de idioma como los demás nombres integrados',
         'Nuevo: una línea bajo las tarjetas que dice algo sobre el mes en vez de solo mostrar cifras — tu mayor gasto, cuánto apartaste o un déficit. Si una meta está cerca o tu ahorro ha crecido varios meses seguidos, lo dice en su lugar',
         'Nuevo: una fila puede pagarse trimestral o anualmente. Escribe el importe que pagas de verdad — 4.800 kr del seguro — y marca la fila "Anual". El presupuesto cuenta 400 kr al mes en vez de hacer que enero parezca una catástrofe. Si no tocas nada, todo sigue siendo mensual',
+        'Nuevo: una línea de periodo de pago bajo el mes. Indica el día en que empieza tu periodo y la app escribe "25 dic – 24 ene" bajo cada mes. ¿Prefieres tus propias palabras para un mes? Haz clic en el texto y escribe — vacía el campo para volver a lo automático. Es solo una etiqueta: no cambia ningún importe',
       ],
     },
   },

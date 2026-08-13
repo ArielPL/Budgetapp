@@ -379,7 +379,11 @@ export function saveMonthData(year: number, month: number, data: MonthData): voi
   // Don't CREATE a key for a brand-new, completely empty month — that just
   // litters localStorage with blank entries while navigating (e.g. in Custom
   // mode). An already-saved month is still updated (so clearing it persists).
-  const empty = data.income.length === 0 && data.expenses.length === 0 && data.savings.length === 0;
+  // A hand-written period label is content too. Without this, typing one on an
+  // otherwise-untouched month looked like it worked and was gone on reload —
+  // the label was the month's ONLY content, and this guard dropped it.
+  const empty = data.income.length === 0 && data.expenses.length === 0
+    && data.savings.length === 0 && !data.periodLabel;
   if (empty && localStorage.getItem(key) === null) return;
   localStorage.setItem(key, JSON.stringify(data));
 }

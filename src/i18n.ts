@@ -144,6 +144,13 @@ export interface Translations {
   // Custom layout: edit mode + block headings
   editLayout: string;
   duplicateBlock: string;
+  // Pay-period label under the month heading. Purely descriptive.
+  periodSection: string;
+  periodStartDay: string;
+  periodStartHint: string;
+  periodStartOff: string;
+  periodLabelAria: (month: string) => string;
+  periodLabelPlaceholder: string;
   // Per-row period: how often the typed amount actually falls due.
   periodMonth: string; periodQuarter: string; periodYear: string;
   periodAria: (row: string) => string;
@@ -495,6 +502,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
     duplicateBlock: 'Duplicera block',
+    periodSection: 'Löneperiod',
+    periodStartDay: 'Perioden börjar den',
+    periodStartHint: 'Visas bara som text under månaden — påverkar inga belopp.',
+    periodStartOff: 'Av',
+    periodLabelAria: (month) => `Egen periodtext för ${month}`,
+    periodLabelPlaceholder: 'Egen text',
     periodMonth: 'Per månad', periodQuarter: 'Per kvartal', periodYear: 'Per år',
     periodAria: (row) => `Hur ofta ${row} betalas`,
     periodMonthlyShare: (amount) => `= ${amount}/mån`,
@@ -808,6 +821,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
     duplicateBlock: 'Duplicate block',
+    periodSection: 'Pay period',
+    periodStartDay: 'The period starts on the',
+    periodStartHint: 'Shown as text under the month only — it changes no amounts.',
+    periodStartOff: 'Off',
+    periodLabelAria: (month) => `Custom period text for ${month}`,
+    periodLabelPlaceholder: 'Custom text',
     periodMonth: 'Monthly', periodQuarter: 'Quarterly', periodYear: 'Yearly',
     periodAria: (row) => `How often ${row} is paid`,
     periodMonthlyShare: (amount) => `= ${amount}/mo`,
@@ -1121,6 +1140,12 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
     duplicateBlock: 'Duplicar bloque',
+    periodSection: 'Periodo de pago',
+    periodStartDay: 'El periodo empieza el día',
+    periodStartHint: 'Solo se muestra como texto bajo el mes — no cambia ningún importe.',
+    periodStartOff: 'Desactivado',
+    periodLabelAria: (month) => `Texto propio del periodo para ${month}`,
+    periodLabelPlaceholder: 'Texto propio',
     periodMonth: 'Mensual', periodQuarter: 'Trimestral', periodYear: 'Anual',
     periodAria: (row) => `Con qué frecuencia se paga ${row}`,
     periodMonthlyShare: (amount) => `= ${amount}/mes`,

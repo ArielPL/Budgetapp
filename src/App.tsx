@@ -40,6 +40,7 @@ import {
 import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal } from './metrics';
 import { InsightLine } from './components/InsightLine';
 import { savingsStreakFrom } from './insight';
+import { loadStartDay, isValidStartDay, PERIOD_START_KEY } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
@@ -156,6 +157,15 @@ function App() {
   // Real-modal behavior for the menu: focus in, Tab trapped, Esc closes,
   // focus returns to the ⚙ button.
   useModalFocus(menuPanelRef, menuOpen, () => setMenuOpen(false));
+
+  // Pay-period start day. Null = off, which is the default and how the app
+  // behaved before this existed.
+  const [periodStartDay, setPeriodStartDay] = useState<number | null>(() => loadStartDay(localStorage));
+  const changeStartDay = (day: number | null) => {
+    setPeriodStartDay(day);
+    if (day === null) localStorage.removeItem(PERIOD_START_KEY);
+    else localStorage.setItem(PERIOD_START_KEY, String(day));
+  };
 
   // Tap-to-open month picker (the 12-month strip)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -968,6 +978,9 @@ function App() {
             onNext={nextMonth}
             pickerOpen={pickerOpen}
             onTogglePicker={() => setPickerOpen(o => !o)}
+            periodLabel={data.periodLabel}
+            periodStartDay={periodStartDay}
+            onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
           />
 
           {/* Single utilities menu: language, theme, copy budget, data */}
@@ -1107,6 +1120,30 @@ function App() {
                     <span>🎉 {t.whatsNew}</span>
                     {hasNewUpdate && <span className="utils-new-pill">{t.badgeNew}</span>}
                   </button>
+
+                  <div className="utils-divider" />
+
+                  {/* Pay period — a LABEL under the month heading. It changes
+                      no amounts, which the hint says out loud so nobody expects
+                      their totals to move. */}
+                  <div className="utils-group-label">{t.periodSection}</div>
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.periodStartDay}</span>
+                    <select
+                      className="utils-select"
+                      value={periodStartDay ?? ''}
+                      onChange={e => {
+                        const v = e.target.value === '' ? null : Number(e.target.value);
+                        changeStartDay(v !== null && isValidStartDay(v) ? v : null);
+                      }}
+                    >
+                      <option value="">{t.periodStartOff}</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="utils-hint">{t.periodStartHint}</div>
 
                   <div className="utils-divider" />
 

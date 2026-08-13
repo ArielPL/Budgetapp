@@ -3098,6 +3098,52 @@ a:focus-visible,
 .sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
 .sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
 .sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
+/* ─── Pay-period label under the month heading ───────────────────────
+   Descriptive only — it never changes an amount. Quiet enough that the
+   month itself stays the headline. */
+.month-nav-wrap { display: flex; flex-direction: column; align-items: center; }
+.period-label {
+  margin-top: 2px;
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.period-label:hover,
+.period-label:focus-visible { border-color: var(--border); color: var(--text); }
+/* The user's own text reads as theirs, not as something the app generated. */
+.period-label-own { color: var(--text); font-style: italic; }
+.period-label-input {
+  margin-top: 2px;
+  width: min(240px, 80vw);
+  text-align: center;
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+}
+
+/* Menu row holding a label and a select side by side. */
+.utils-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.utils-row-label { font-size: 0.82rem; color: var(--text-muted); }
+.utils-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.82rem;
+  padding: 4px 8px;
+}
+
 /* ─── Row period (monthly / quarterly / yearly) ──────────────────────
    Quiet by default: most rows are monthly and the control should read as
    part of the amount column, not as another thing to deal with. It gains
