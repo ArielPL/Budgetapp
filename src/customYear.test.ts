@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  customYearRows, customYearTotals, customValuesKey,
+  customYearRows, customYearTotals, customValuesKey, customSnapshotKey,
+  snapshotOf, isMonthSnapshot, snapshotToWrite,
   type YearBlockLike,
 } from './customYear';
 import type { StorageLike } from './backup';
@@ -56,11 +57,17 @@ describe('customYearRows', () => {
     expect(rows).toHaveLength(12);
   });
 
-  it('ignores amounts whose block has since been deleted', () => {
+  it('reports an unfilable amount as archived instead of dropping it', () => {
+    // This test used to assert the opposite — that money from a deleted row is
+    // simply ignored — which made it a guard for the bug rather than against
+    // it. A row that predates snapshots and no longer exists cannot be filed,
+    // but "we cannot classify this" and "this was never there" are different
+    // statements, and only one of them is true.
     const store = new FakeStorage(month(2026, 0, { lon: 30000, spoke: 99999 }));
     const [jan] = customYearRows(store, blocks, 2026);
     expect(jan.income).toBe(30000);
     expect(jan.expenses + jan.saved).toBe(0);
+    expect(jan.archived).toBe(99999);
   });
 
   it('takes nothing from summary or note blocks', () => {
@@ -120,7 +127,7 @@ describe('customYearTotals', () => {
     });
     const totals = customYearTotals(customYearRows(store, blocks, 2026));
     expect(totals).toEqual({
-      income: 61000, expenses: 18000, saved: 5000, remaining: 43000,
+      income: 61000, expenses: 18000, saved: 5000, remaining: 43000, archived: 0,
     });
   });
 
@@ -140,6 +147,130 @@ describe('customYearTotals', () => {
 
   it('is all zeroes for a year that was never used', () => {
     const totals = customYearTotals(customYearRows(new FakeStorage(), blocks, 2026));
-    expect(totals).toEqual({ income: 0, expenses: 0, saved: 0, remaining: 0 });
+    expect(totals).toEqual({ income: 0, expenses: 0, saved: 0, remaining: 0, archived: 0 });
+  });
+});
+
+// ── History belongs to the month it was written in ────────────────────────
+describe('per-month snapshots keep history stable', () => {
+  const snapshot = (year: number, m: number, tags: Record<string, string>) =>
+    ({ [customSnapshotKey(year, m)]: JSON.stringify({ v: 1, tags }) });
+
+  it('keeps September at 555 kr after the block is deleted in October', () => {
+    // The reported bug: deleting a block made an earlier month read 0 kr.
+    const store = new FakeStorage({
+      ...month(2026, 8, { lon: 555 }),
+      ...snapshot(2026, 8, { lon: 'in' }),
+    });
+    // October's structure no longer contains that row at all.
+    const rows = customYearRows(store, [], 2026);
+    expect(rows[8].income).toBe(555);
+    expect(rows[8].archived).toBe(0);
+  });
+
+  it('does not reclassify earlier months when a block changes tag', () => {
+    // September recorded 'lon' as income. Today the same block is tagged 'out'.
+    const store = new FakeStorage({
+      ...month(2026, 8, { lon: 555 }),
+      ...snapshot(2026, 8, { lon: 'in' }),
+    });
+    const retagged: YearBlockLike[] = [
+      { kind: 'block', tag: 'out', rows: [{ id: 'lon' }] },
+    ];
+    const rows = customYearRows(store, retagged, 2026);
+    expect(rows[8].income).toBe(555);
+    expect(rows[8].expenses).toBe(0);
+  });
+
+  it('falls back to today\'s structure for a month with no snapshot', () => {
+    // Legacy data: amounts written before snapshots existed.
+    const store = new FakeStorage(month(2026, 0, { lon: 30000 }));
+    expect(customYearRows(store, blocks, 2026)[0].income).toBe(30000);
+  });
+
+  it('lets each month keep its own answer', () => {
+    const store = new FakeStorage({
+      ...month(2026, 0, { x: 100 }), ...snapshot(2026, 0, { x: 'in' }),
+      ...month(2026, 1, { x: 100 }), ...snapshot(2026, 1, { x: 'out' }),
+    });
+    const rows = customYearRows(store, [], 2026);
+    expect(rows[0]).toMatchObject({ income: 100, expenses: 0 });
+    expect(rows[1]).toMatchObject({ income: 0, expenses: 100 });
+  });
+
+  it('ignores a corrupt snapshot rather than trusting it', () => {
+    const store = new FakeStorage({
+      ...month(2026, 0, { lon: 30000 }),
+      [customSnapshotKey(2026, 0)]: '{"v":99,"tags":{"lon":"in"}}',
+    });
+    // Falls back to today's structure, which still knows 'lon' is income.
+    expect(customYearRows(store, blocks, 2026)[0].income).toBe(30000);
+  });
+
+  it('drops an unusable tag inside an otherwise valid snapshot', () => {
+    const store = new FakeStorage({
+      ...month(2026, 0, { lon: 30000 }),
+      [customSnapshotKey(2026, 0)]: '{"v":1,"tags":{"lon":"nonsense"}}',
+    });
+    const [jan] = customYearRows(store, blocks, 2026);
+    expect(jan.income).toBe(0);
+    expect(jan.archived).toBe(30000);
+  });
+});
+
+describe('snapshotOf / isMonthSnapshot', () => {
+  it('records the tag of every row a block owns', () => {
+    expect(snapshotOf(blocks).tags).toMatchObject({
+      lon: 'in', extra: 'in', hyra: 'out', mat: 'out', spar: 'save',
+    });
+  });
+
+  it('skips summary and note blocks, which own no rows', () => {
+    expect(Object.keys(snapshotOf([
+      { kind: 'summary', tag: 'in', rows: [] },
+      { kind: 'note', tag: 'out', rows: [] },
+    ]).tags)).toHaveLength(0);
+  });
+
+  it('accepts what it writes and refuses what it does not', () => {
+    expect(isMonthSnapshot(snapshotOf(blocks))).toBe(true);
+    expect(isMonthSnapshot({ v: 1, tags: {} })).toBe(true);
+    for (const bad of [
+      null, 'x', [], { v: 2, tags: {} }, { v: 1 },
+      { v: 1, tags: { a: 'week' } }, { v: 1, tags: [] },
+    ]) expect(isMonthSnapshot(bad)).toBe(false);
+  });
+});
+
+describe('snapshotToWrite — deleting a block does not unfile money already recorded', () => {
+  const prev = { v: 1 as const, tags: { lon: 'in' as const, hyra: 'out' as const } };
+
+  it('keeps the old filing for a row the month still holds an amount for', () => {
+    // The income block was just deleted, but this month recorded 32 976 against
+    // it. Replacing the snapshot outright made that money unclassifiable in the
+    // one month the user was standing in, while every other month kept its answer.
+    const remaining: YearBlockLike[] = [
+      { kind: 'block', tag: 'out', rows: [{ id: 'hyra' }] },
+    ];
+    const out = snapshotToWrite(remaining, { lon: 32976, hyra: 8801 }, prev);
+    expect(out.tags).toEqual({ lon: 'in', hyra: 'out' });
+  });
+
+  it('drops a stale entry once the month no longer holds that amount', () => {
+    const out = snapshotToWrite([], { hyra: 8801 }, prev);
+    expect(out.tags).toEqual({ hyra: 'out' });
+  });
+
+  it('lets today\'s structure win for a row that still exists', () => {
+    // Retagging a block applies from now on; the current month follows it.
+    const retagged: YearBlockLike[] = [
+      { kind: 'block', tag: 'out', rows: [{ id: 'lon' }] },
+    ];
+    expect(snapshotToWrite(retagged, { lon: 100 }, prev).tags.lon).toBe('out');
+  });
+
+  it('works with no previous snapshot', () => {
+    const blocks2: YearBlockLike[] = [{ kind: 'block', tag: 'in', rows: [{ id: 'x' }] }];
+    expect(snapshotToWrite(blocks2, { x: 1 }, null).tags).toEqual({ x: 'in' });
   });
 });

@@ -68,15 +68,19 @@ export function savingsStreakFrom(balances: (number | null)[]): number {
 export function pickInsight(
   { income, expenses, categories, saved, goals = [], savingsStreak = 0 }: InsightInput,
 ): Insight | null {
-  // Without income every percentage is meaningless and a deficit is just an
-  // unfilled month. Say nothing rather than something hollow.
+  // A falling savings balance is measured, not planned, and it does not depend
+  // on income at all — so it is reported even for a month with no income filled
+  // in. The income guard below used to swallow it, which meant the app went
+  // quiet about real money leaving the account precisely when the month looked
+  // empty. It stays first because it is also the fact most worth knowing.
+  if (saved !== null && saved < 0) return { kind: 'savingsDown', amount: -saved };
+
+  // Everything past here is a share OF income, or a claim about a plan. Without
+  // income a percentage is meaningless and a "deficit" is just an unfilled
+  // month. Say nothing rather than something hollow.
   if (income <= 0) return null;
 
   if (expenses > income) return { kind: 'deficit', over: expenses - income };
-
-  // A falling balance outranks a nice-looking rate: it is the fact the user
-  // would most want flagged, and it is measured, not planned.
-  if (saved !== null && saved < 0) return { kind: 'savingsDown', amount: -saved };
 
   // ── Encouragement, ranked above the routine figures ──
   // Both of these are earned: they describe something the user chose to aim at

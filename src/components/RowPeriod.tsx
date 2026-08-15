@@ -1,17 +1,18 @@
 import type { BudgetRow, RowPeriod as Period } from '../types';
-import { ROW_PERIODS, rowMonthly } from '../metrics';
+import { ROW_PERIODS } from '../metrics';
 import { useLang } from '../i18n';
 
-// How often a row's amount actually falls due. Opt-in per row: leave it alone
-// and the row is monthly, which is what every row was before this existed.
+// When a row's amount actually leaves the account. Opt-in per row: leave it
+// alone and the row is monthly, which is what every row was before this existed.
 //
-// The AMOUNT FIELD keeps showing what the user typed (4 800 for a yearly
-// insurance) — that is the figure they know and the one they will edit. Only the
-// TOTALS use the monthly share, and the hint below spells that out so the two
-// numbers on screen never look like a contradiction.
+// A LABEL, not a multiplier. A yearly subscription is charged in full in the
+// month you pay it, so that month's budget shows the full figure — that is the
+// question a budget answers: what leaves the account, and when. Marking it lets
+// the app leave the row behind when the budget is copied to next month, and
+// tells you at a glance that it is not a recurring monthly cost.
 
 const LABELS: Record<Period, keyof ReturnType<typeof useLang>['t']> = {
-  month: 'periodMonth', quarter: 'periodQuarter', year: 'periodYear',
+  month: 'periodMonth', quarter: 'periodQuarter', year: 'periodYear', once: 'periodOnce',
 };
 
 export const RowPeriodPicker = ({ row, label, onChange }: {
@@ -41,10 +42,14 @@ export const RowPeriodPicker = ({ row, label, onChange }: {
   );
 };
 
-/** "= 400 kr/mån" under a periodised amount. Nothing for a monthly row — there
- *  would be no second number to explain. */
+/** A plain note on when the amount is charged. Nothing for a monthly row, which
+ *  is the default and needs no explanation.
+ *
+ *  This used to read "= 400 kr/mån" — the monthly share of a divided amount.
+ *  The division is gone: a yearly charge leaves the account in full, in the
+ *  month it is paid, and the budget now says so. */
 export const RowPeriodHint = ({ row }: { row: BudgetRow }) => {
-  const { t, money } = useLang();
-  if (!row.period) return null;
-  return <span className="row-period-hint">{t.periodMonthlyShare(money(rowMonthly(row)))}</span>;
+  const { t } = useLang();
+  if (!row.period || row.period === 'month') return null;
+  return <span className="row-period-hint">{t.periodChargedNote(row.period)}</span>;
 };

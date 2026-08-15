@@ -9,7 +9,7 @@ import {
   splitRemaining,
   savedThisMonth,
   yearSavingsGrowth,
-  rowMonthly,
+  recursNextMonth,
   categoryTotal,
   isRowPeriod,
   ROW_PERIODS,
@@ -338,58 +338,79 @@ describe('decimals', () => {
   });
 });
 
-// ── Row period: an amount that falls due less often than monthly ──────────
-describe('rowMonthly / period', () => {
-  const row = (amount: number, period?: 'month' | 'quarter' | 'year') =>
-    ({ id: 'r', label: 'x', amount, ...(period ? { period } : {}) });
+describe('isRowPeriod', () => {
+  it('accepts the three the UI offers', () => {
+    expect(ROW_PERIODS.every(isRowPeriod)).toBe(true);
+  });
+  it('rejects anything else', () => {
+    for (const bad of ['week', 'yearly', '', 12, null, undefined]) {
+      expect(isRowPeriod(bad)).toBe(false);
+    }
+  });
+});
 
-  it('leaves a row without a period exactly as it is', () => {
-    // Every row written before the field existed is this case.
-    expect(rowMonthly(row(8801))).toBe(8801);
-    expect(rowMonthly(row(8801, 'month'))).toBe(8801);
+
+// ── Row period is a TIMING LABEL, never a multiplier ──────────────────────
+describe('period never changes an amount', () => {
+  const r = (amount: number, period?: unknown) =>
+    ({ id: 'x', label: 'y', amount, ...(period === undefined ? {} : { period }) } as BudgetRow);
+
+  it('counts a yearly charge in full, in the month it is paid', () => {
+    // The earlier build divided this by twelve, which answers "what does it cost
+    // per month on average?" — the opposite of what the control asks, and it
+    // made the budget disagree with the bank in the month the money left.
+    expect(sumRows([r(4800, 'year')])).toBe(4800);
+    expect(sumRows([r(1500, 'quarter')])).toBe(1500);
+    expect(sumRows([r(9000, 'once')])).toBe(9000);
+    expect(sumRows([r(8801, 'month')])).toBe(8801);
+    expect(sumRows([r(8801)])).toBe(8801);
   });
 
-  it('spreads a yearly amount over twelve months', () => {
-    expect(rowMonthly(row(4800, 'year'))).toBe(400);
+  it('cannot produce NaN from a period nobody recognises', () => {
+    for (const bad of ['week', '', 12, null, {}, []]) {
+      const out = sumRows([r(12000, bad)]);
+      expect(Number.isFinite(out)).toBe(true);
+      expect(out).toBe(12000);
+    }
   });
 
-  it('spreads a quarterly amount over three', () => {
-    expect(rowMonthly(row(1500, 'quarter'))).toBe(500);
-  });
-
-  it('keeps twelve monthly shares adding back up to the year', () => {
-    // No rounding in the math layer — rounding a twelfth here would make the
-    // year total disagree with the figure the user typed.
-    const yearly = row(5000, 'year');
-    expect(rowMonthly(yearly) * 12).toBeCloseTo(5000, 6);
-  });
-
-  it('counts the monthly share in a category total, not the typed figure', () => {
+  it('leaves a category total equal to the sum of what was typed', () => {
     const cat = {
-      id: 'boende', name: 'Boende', icon: '', color: '',
-      rows: [row(8801), row(4800, 'year')],
+      id: 'boende', name: '', icon: '', color: '',
+      rows: [r(8801), r(4800, 'year'), r(9000, 'once')],
     };
-    expect(categoryTotal(cat)).toBe(9201); // 8801 + 400
+    expect(categoryTotal(cat)).toBe(22601);
+  });
+});
+
+describe('recursNextMonth', () => {
+  const r = (period?: unknown) =>
+    ({ id: 'x', label: 'y', amount: 1, ...(period === undefined ? {} : { period }) } as BudgetRow);
+
+  it('carries a monthly row forward', () => {
+    expect(recursNextMonth(r())).toBe(true);
+    expect(recursNextMonth(r('month'))).toBe(true);
   });
 
-  it('never divides a savings BALANCE, even if a period sneaks in', () => {
-    // A balance is what you have, not something that falls due. A hand-edited
-    // or imported file could carry a period here; it must not shrink the pot.
-    const month = {
-      income: [], expenses: [],
-      savings: [{
-        id: 'sparkonto', name: 'S', icon: '', color: '',
-        rows: [row(60000, 'year')],
-      }],
-      savingsSnapshotRecorded: true,
-    };
-    expect(calculateSavingsMetrics(month).balance).toBe(60000);
+  it('leaves behind anything that does not repeat next month', () => {
+    // Copying a yearly subscription into February would invent a charge that
+    // never happens.
+    expect(recursNextMonth(r('year'))).toBe(false);
+    expect(recursNextMonth(r('quarter'))).toBe(false);
+    expect(recursNextMonth(r('once'))).toBe(false);
+  });
+
+  it('treats an unrecognised period as monthly, so nothing is silently dropped', () => {
+    // Losing a row on a copy is worse than copying one row too many.
+    expect(recursNextMonth(r('week'))).toBe(true);
+    expect(recursNextMonth(r(null))).toBe(true);
   });
 });
 
 describe('isRowPeriod', () => {
-  it('accepts the three the UI offers', () => {
+  it('accepts the four the UI offers', () => {
     expect(ROW_PERIODS.every(isRowPeriod)).toBe(true);
+    expect(ROW_PERIODS).toContain('once');
   });
   it('rejects anything else', () => {
     for (const bad of ['week', 'yearly', '', 12, null, undefined]) {

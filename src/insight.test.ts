@@ -38,6 +38,19 @@ describe('pickInsight — when to stay quiet', () => {
     expect(pickInsight({ ...base, income: 0, expenses: 5000 })).toBeNull();
   });
 
+  it('still reports a falling savings balance on a month with no income', () => {
+    // A withdrawal is measured, not planned, and has nothing to do with income.
+    // The income guard used to swallow it, so the app went quiet about real
+    // money leaving the account exactly when the month looked empty.
+    expect(pickInsight({ ...base, income: 0, saved: -1500 }))
+      .toEqual({ kind: 'savingsDown', amount: 1500 });
+  });
+
+  it('does not report a savings GAIN without income — that is a percentage', () => {
+    // savedRate is a share of income, so it needs one.
+    expect(pickInsight({ ...base, income: 0, saved: 3600 })).toBeNull();
+  });
+
   it('says nothing when there is no category with an amount', () => {
     expect(pickInsight({ ...base, categories: [] })).toBeNull();
     expect(pickInsight({ ...base, categories: [{ name: 'Tom', total: 0 }] })).toBeNull();

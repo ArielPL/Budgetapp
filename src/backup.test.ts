@@ -339,7 +339,7 @@ describe('import validation — nothing is written unless the whole file is good
     });
 
     it('accepts the three periods the UI offers', () => {
-      for (const p of ['month', 'quarter', 'year']) {
+      for (const p of ['month', 'quarter', 'year', 'once']) {
         expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(p) })).ok).toBe(true);
       }
     });

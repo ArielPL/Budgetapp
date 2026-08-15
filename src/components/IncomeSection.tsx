@@ -53,9 +53,11 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               color="#22d3ee"
               label={shownName(row, lang)}
             />
-            <RowPeriodPicker row={row} label={shownName(row, lang)}
-              onChange={p => updatePeriod(row.id, p)} />
-            <RowPeriodHint row={row} />
+            <span className="row-period-group">
+              <RowPeriodPicker row={row} label={shownName(row, lang)}
+                onChange={p => updatePeriod(row.id, p)} />
+              <RowPeriodHint row={row} />
+            </span>
             {/* Always-present slot keeps every amount on the same right edge —
                 see the same pattern in ExpenseCategory. */}
             <span className="row-action">

@@ -39,11 +39,7 @@ import type { MonthData, BudgetCategory, BudgetRow, RowPeriod } from './types';
  *  every "saved" total so Savings, Plan and Year never disagree. */
 export const PENSION_CATEGORY_ID = 'pension';
 
-/** Months each period spans — the divisor from a whole-period figure to a
- *  monthly one. */
-export const PERIOD_DIVISOR: Record<RowPeriod, number> = { month: 1, quarter: 3, year: 12 };
-
-export const ROW_PERIODS = ['month', 'quarter', 'year'] as const;
+export const ROW_PERIODS = ['month', 'quarter', 'year', 'once'] as const;
 
 /** Shared by the picker and the backup validator, so the UI can never offer a
  *  period an import would reject, or vice versa. */
@@ -51,45 +47,22 @@ export function isRowPeriod(v: unknown): v is RowPeriod {
   return typeof v === 'string' && (ROW_PERIODS as readonly string[]).includes(v);
 }
 
-/**
- * What a row contributes to a MONTHLY total.
- *
- * A row marked quarterly or yearly stores the figure the user actually typed —
- * 4 800 for a yearly insurance — because that is the number they know and the
- * one they will want to edit. The budget counts its monthly share instead, so
- * January stops looking like a catastrophe and the other eleven months stop
- * lying about what the year costs.
- *
- * No rounding here: the display layer formats, this layer stays exact. Rounding
- * a twelfth would make twelve months add up to something other than the year.
- */
-export function rowMonthly(row: BudgetRow): number {
-  const amount = row.amount || 0;
-  return row.period ? amount / PERIOD_DIVISOR[row.period] : amount;
+/** Rows that do NOT recur next month, so copying a budget forward must leave
+ *  them behind. Carrying a yearly subscription into February would add a charge
+ *  that never happens; the cost of skipping is that the user re-adds it when it
+ *  is genuinely due, which the app cannot know — it has no calendar. */
+export function recursNextMonth(row: BudgetRow): boolean {
+  return !isRowPeriod(row.period) || row.period === 'month';
 }
 
+/** A row contributes exactly what it says. `period` is a timing label, never
+ *  a multiplier — see RowPeriod in types.ts for why the division was removed. */
 export function sumRows(rows: BudgetRow[]): number {
-  return rows.reduce((s, r) => s + rowMonthly(r), 0);
+  return rows.reduce((s, r) => s + (r.amount || 0), 0);
 }
 
 export function categoryTotal(cat: BudgetCategory): number {
   return sumRows(cat.rows ?? []);
-}
-
-/** Sum row amounts EXACTLY as stored, ignoring any period.
- *
- *  For savings, where a row holds a recorded BALANCE. A balance cannot be "per
- *  year": it is what you have right now, not something that falls due. Dividing
- *  it would not be a rounding difference, it would be a wrong balance. */
-export function sumBalanceRows(rows: BudgetRow[]): number {
-  return rows.reduce((s, r) => s + (r.amount || 0), 0);
-}
-
-export function sumBalanceCategories(cats: BudgetCategory[], excludeId?: string): number {
-  return cats.reduce(
-    (s, c) => (excludeId && c.id === excludeId ? s : s + sumBalanceRows(c.rows ?? [])),
-    0,
-  );
 }
 
 /** Sum a list of categories, optionally skipping one id (used to drop pension). */
@@ -176,10 +149,10 @@ export function calculateSavingsMetrics(month: MonthData): SavingsSnapshot {
   // balance by twelve, turning 60 000 kr into 5 000 kr on every chart that
   // reads it. The UI never offers a period here, but a hand-edited or imported
   // file could carry one, and "the UI wouldn't do that" is not a safeguard.
-  const balance = sumBalanceCategories(savings, PENSION_CATEGORY_ID);
+  const balance = sumCategories(savings, PENSION_CATEGORY_ID);
   const pension = savings
     .filter(c => c.id === PENSION_CATEGORY_ID)
-    .reduce((s, c) => s + sumBalanceRows(c.rows ?? []), 0);
+    .reduce((s, c) => s + categoryTotal(c), 0);
   const hasSnapshot = typeof month.savingsSnapshotRecorded === 'boolean'
     ? month.savingsSnapshotRecorded
     : savings.length > 0;

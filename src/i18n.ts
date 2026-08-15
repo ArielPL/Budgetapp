@@ -144,6 +144,12 @@ export interface Translations {
   // Custom layout: edit mode + block headings
   editLayout: string;
   duplicateBlock: string;
+  deleteBlockHistoryConfirm: (months: number) => string;
+  yearArchivedNote: (amount: string) => string;
+  // Copy confirmations — every copy path names its target before overwriting.
+  copyOverwriteOne: (target: string, source: string) => string;
+  copyOverwriteMany: (n: number) => string;
+  copyNothingToDo: string;
   // Pay-period label under the month heading. Purely descriptive.
   periodSection: string;
   periodStartDay: string;
@@ -154,7 +160,8 @@ export interface Translations {
   // Per-row period: how often the typed amount actually falls due.
   periodMonth: string; periodQuarter: string; periodYear: string;
   periodAria: (row: string) => string;
-  periodMonthlyShare: (amount: string) => string;
+  periodOnce: string;
+  periodChargedNote: (period: string) => string;
   // The one-line insight under the summary cards. Amounts arrive pre-formatted.
   insightDeficit: (over: string) => string;
   insightSavingsDown: (amount: string) => string;
@@ -502,15 +509,20 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
     duplicateBlock: 'Duplicera block',
+    deleteBlockHistoryConfirm: (months) => `Blocket har belopp i ${months} ${months === 1 ? 'annan månad' : 'andra månader'}. De försvinner ur årsöversikten om du tar bort det. Fortsätta?`,
+    yearArchivedNote: (amount) => `${amount} kunde inte kopplas till något block — rader som togs bort innan appen började spara historik.`,
+    copyOverwriteOne: (target, source) => `${target} har redan en budget. Ersätta inkomster och utgifter med ${source}?`,
+    copyOverwriteMany: (n) => `${n} av de återstående månaderna har redan en budget. Ersätta dem?`,
+    copyNothingToDo: 'Ingenting att hämta — månaden är tom.',
     periodSection: 'Löneperiod',
     periodStartDay: 'Perioden börjar den',
     periodStartHint: 'Visas bara som text under månaden — påverkar inga belopp.',
     periodStartOff: 'Av',
     periodLabelAria: (month) => `Egen periodtext för ${month}`,
     periodLabelPlaceholder: 'Egen text',
-    periodMonth: 'Per månad', periodQuarter: 'Per kvartal', periodYear: 'Per år',
-    periodAria: (row) => `Hur ofta ${row} betalas`,
-    periodMonthlyShare: (amount) => `= ${amount}/mån`,
+    periodMonth: 'Varje månad', periodQuarter: 'Per kvartal', periodYear: 'Per år', periodOnce: 'Engångskostnad',
+    periodAria: (row) => `När ${row} dras`,
+    periodChargedNote: (p) => p === 'year' ? 'dras en gång per år' : p === 'quarter' ? 'dras per kvartal' : 'engångskostnad',
     insightDeficit: (over) => `Utgifterna överstiger inkomsten med ${over}.`,
     insightSavingsDown: (amount) => `Ditt sparande minskade med ${amount} den här månaden.`,
     insightGoalClose: (name, remaining) => `Bara ${remaining} kvar till ${name}.`,
@@ -821,15 +833,20 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
     duplicateBlock: 'Duplicate block',
+    deleteBlockHistoryConfirm: (months) => `This block has amounts in ${months} other ${months === 1 ? 'month' : 'months'}. They will drop out of the year overview if you delete it. Continue?`,
+    yearArchivedNote: (amount) => `${amount} could not be matched to a block — rows deleted before the app started recording history.`,
+    copyOverwriteOne: (target, source) => `${target} already has a budget. Replace its income and expenses with ${source}?`,
+    copyOverwriteMany: (n) => `${n} of the remaining months already have a budget. Replace them?`,
+    copyNothingToDo: 'Nothing to pull — that month is empty.',
     periodSection: 'Pay period',
     periodStartDay: 'The period starts on the',
     periodStartHint: 'Shown as text under the month only — it changes no amounts.',
     periodStartOff: 'Off',
     periodLabelAria: (month) => `Custom period text for ${month}`,
     periodLabelPlaceholder: 'Custom text',
-    periodMonth: 'Monthly', periodQuarter: 'Quarterly', periodYear: 'Yearly',
-    periodAria: (row) => `How often ${row} is paid`,
-    periodMonthlyShare: (amount) => `= ${amount}/mo`,
+    periodMonth: 'Every month', periodQuarter: 'Quarterly', periodYear: 'Yearly', periodOnce: 'One-off',
+    periodAria: (row) => `When ${row} is charged`,
+    periodChargedNote: (p) => p === 'year' ? 'charged once a year' : p === 'quarter' ? 'charged quarterly' : 'one-off cost',
     insightDeficit: (over) => `Expenses exceed income by ${over}.`,
     insightSavingsDown: (amount) => `Your savings fell by ${amount} this month.`,
     insightGoalClose: (name, remaining) => `Only ${remaining} to go for ${name}.`,
@@ -1140,15 +1157,20 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
     duplicateBlock: 'Duplicar bloque',
+    deleteBlockHistoryConfirm: (months) => `Este bloque tiene importes en ${months} ${months === 1 ? 'otro mes' : 'otros meses'}. Desaparecerán de la vista anual si lo eliminas. ¿Continuar?`,
+    yearArchivedNote: (amount) => `${amount} no se pudo asociar a ningún bloque — filas eliminadas antes de que la app empezara a guardar el historial.`,
+    copyOverwriteOne: (target, source) => `${target} ya tiene un presupuesto. ¿Reemplazar sus ingresos y gastos con ${source}?`,
+    copyOverwriteMany: (n) => `${n} de los meses restantes ya tienen presupuesto. ¿Reemplazarlos?`,
+    copyNothingToDo: 'Nada que traer — ese mes está vacío.',
     periodSection: 'Periodo de pago',
     periodStartDay: 'El periodo empieza el día',
     periodStartHint: 'Solo se muestra como texto bajo el mes — no cambia ningún importe.',
     periodStartOff: 'Desactivado',
     periodLabelAria: (month) => `Texto propio del periodo para ${month}`,
     periodLabelPlaceholder: 'Texto propio',
-    periodMonth: 'Mensual', periodQuarter: 'Trimestral', periodYear: 'Anual',
-    periodAria: (row) => `Con qué frecuencia se paga ${row}`,
-    periodMonthlyShare: (amount) => `= ${amount}/mes`,
+    periodMonth: 'Cada mes', periodQuarter: 'Trimestral', periodYear: 'Anual', periodOnce: 'Pago único',
+    periodAria: (row) => `Cuándo se cobra ${row}`,
+    periodChargedNote: (p) => p === 'year' ? 'se cobra una vez al año' : p === 'quarter' ? 'se cobra cada trimestre' : 'pago único',
     insightDeficit: (over) => `Los gastos superan los ingresos en ${over}.`,
     insightSavingsDown: (amount) => `Tu ahorro bajó ${amount} este mes.`,
     insightGoalClose: (name, remaining) => `Solo faltan ${remaining} para ${name}.`,

@@ -25,6 +25,7 @@ import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
+import { isMonthSnapshot } from './customYear';
 import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
@@ -206,6 +207,9 @@ function isValidValue(key: string, raw: string): boolean {
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);
   if (/^budget_custom_v3_values_/.test(key)) return parseThen(isCustomValues);
+  // The per-month structure snapshot the year view reads. Rejecting a bad one
+  // matters: a wrong tag would refile a month's money into the wrong column.
+  if (/^budget_custom_v3_meta_/.test(key)) return parseThen(isMonthSnapshot);
   return true; // settings & unknown future keys: any string is fine
 }
 
