@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
-import { useLang } from '../i18n';
+import { useLang, MONTHS } from '../i18n';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney } from '../money';
@@ -7,7 +7,7 @@ import {
   EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
   type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
 } from '../blockChart';
-import { customValuesKey } from '../customYear';
+import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot } from '../customYear';
 import { CustomYear } from './CustomYear';
 
 // ── Schema ──────────────────────────────────────────────────────────
@@ -289,7 +289,7 @@ function useIsPhone(): boolean {
 interface Props { year: number; month: number; }
 
 export const CustomV3 = ({ year, month }: Props) => {
-  const { t, money, currency } = useLang();
+  const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
   const [blocks, setBlocks] = useState<CustomBlock[]>(() => loadStructure() ?? []);
@@ -350,7 +350,15 @@ export const CustomV3 = ({ year, month }: Props) => {
     const key = valuesKey(year, month);
     if (Object.keys(values).length === 0 && localStorage.getItem(key) === null) return;
     localStorage.setItem(key, JSON.stringify(values));
-  }, [values, year, month]);
+    // Record WHICH block each row belonged to when these amounts were written.
+    // Without it the year view had to classify every month with today's layout,
+    // so deleting a block rewrote history. Written next to the amounts, never
+    // on its own — a month with no amounts has no history to protect.
+    localStorage.setItem(
+      customSnapshotKey(year, month),
+      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(localStorage, year, month))),
+    );
+  }, [values, year, month, blocks]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {
     setValues(v => ({ ...v, [rowId]: amount }));
@@ -371,6 +379,14 @@ export const CustomV3 = ({ year, month }: Props) => {
   const copyLastMonth = () => {
     const py = month === 0 ? year - 1 : year;
     const pm = month === 0 ? 11 : month - 1;
+    // This month's amounts are about to be replaced wholesale. Ask first when
+    // there is something there — an explicitly recorded 0 included, since the
+    // user typed that too.
+    const hasOwn = localStorage.getItem(valuesKey(year, month)) !== null
+      && Object.keys(values).length > 0;
+    if (hasOwn && !window.confirm(
+      t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, MONTHS[lang][pm]),
+    )) return;
     setValues(loadValues(py, pm)); // the save effect persists it to this month's key
     setToast(t.copiedLastMonth);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -442,7 +458,31 @@ export const CustomV3 = ({ year, month }: Props) => {
     ]);
     setStarted(true);
   };
-  const removeBlock = (id: string) => setBlocks(prev => prev.filter(b => b.id !== id));
+  /** Months (other than the one on screen) that hold an amount for these rows. */
+  const monthsHolding = (rowIds: string[]): number => {
+    if (rowIds.length === 0) return 0;
+    let count = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('budget_custom_v3_values_')) continue;
+      if (key === valuesKey(year, month)) continue;
+      try {
+        const vals = JSON.parse(localStorage.getItem(key) ?? '{}');
+        if (rowIds.some(id => typeof vals?.[id] === 'number' && vals[id] !== 0)) count++;
+      } catch { /* unreadable month — nothing to warn about */ }
+    }
+    return count;
+  };
+
+  const removeBlock = (id: string) => {
+    // Deleting a block is instant and has no undo. Amounts recorded against its
+    // rows in OTHER months stay on disk but stop being reachable, which reads to
+    // the user as history quietly changing. Say so before it happens.
+    const block = blocks.find(b => b.id === id);
+    const affected = monthsHolding(block?.rows.map(r => r.id) ?? []);
+    if (affected > 0 && !window.confirm(t.deleteBlockHistoryConfirm(affected))) return;
+    setBlocks(prev => prev.filter(b => b.id !== id));
+  };
 
   // Copy a block's STRUCTURE — rows, colors, chart config, width, background —
   // and drop it right after the original. Every row gets a fresh id, so the copy

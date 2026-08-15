@@ -1,7 +1,7 @@
 import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
-import { calculateSavingsMetrics } from './metrics';
+import { calculateSavingsMetrics, isRowPeriod } from './metrics';
 import type { StorageLike } from './backup';
 import { coerceStoredMoney, isValidMoney } from './money';
 
@@ -368,8 +368,17 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
   }
 }
 
-const normalizeRow = (r: BudgetRow): BudgetRow =>
-  isValidMoney(r?.amount) ? r : { ...r, amount: coerceStoredMoney(r?.amount) };
+const normalizeRow = (r: BudgetRow): BudgetRow => {
+  const amount = isValidMoney(r?.amount) ? r.amount : coerceStoredMoney(r?.amount);
+  // Backup import is strict about `period`, but data read straight out of
+  // localStorage never passes through it — an older build, a hand edit or a
+  // half-written record could carry `period: "week"`. Anything unrecognised is
+  // dropped here so it can never reach the arithmetic. Storage itself is left
+  // alone; this is a defensive READ, not a migration.
+  const period = isRowPeriod(r?.period) ? r.period : undefined;
+  if (amount === r?.amount && period === r?.period) return r;
+  return { ...r, amount, period };
+};
 
 const normalizeCategory = (c: BudgetCategory): BudgetCategory =>
   Array.isArray(c?.rows) ? { ...c, rows: c.rows.map(normalizeRow) } : { ...c, rows: [] };

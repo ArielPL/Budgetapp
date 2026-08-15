@@ -37,9 +37,10 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
-import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal } from './metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal, recursNextMonth } from './metrics';
 import { InsightLine } from './components/InsightLine';
 import { savingsStreakFrom } from './insight';
+import { hasBudgetContent } from './monthContent';
 import { loadStartDay, isValidStartDay, PERIOD_START_KEY } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
@@ -497,10 +498,10 @@ function App() {
       showMsg(t.copyPrevMonthEmpty(prevName));
       return;
     }
-    // Only interrupt when there is actually something to lose.
-    const cur = calculateBudgetMetrics(data);
-    const hasAmounts = cur.income > 0 || cur.expenses > 0;
-    if (hasAmounts && !window.confirm(
+    // Structure counts, not just amounts. A month worth 0 kr can still hold row
+    // names, categories, an order and a per-year marking — all of it the user's,
+    // and all of it about to be replaced.
+    if (hasBudgetContent(data) && !window.confirm(
       t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
     )) return;
 
@@ -508,7 +509,13 @@ function App() {
     // Re-link goal rows afterwards: the incoming expenses come from a month that
     // may predate a goal, and the Plan tab's goal↔budget link must survive.
     setData(cur => ensureGoalLinkedBudgetRows(
-      { ...cur, income: prev.income, expenses: prev.expenses },
+      {
+        ...cur,
+        // Same rule pulling backwards: last month's yearly charge is not this
+        // month's cost.
+        income: prev.income.filter(recursNextMonth),
+        expenses: prev.expenses.map(c => ({ ...c, rows: c.rows.filter(recursNextMonth) })),
+      },
       planData.goals,
       lang,
     ));
@@ -523,27 +530,46 @@ function App() {
   // savedThisMonth then read balance − balance = 0 and the Year tab printed a
   // recorded "0 kr" where it should print "not recorded". A month that was never
   // saved keeps the blank savings a fresh month gets, so nothing is invented.
+  /** The part of this month's budget that genuinely repeats next month.
+   *  A yearly subscription, a quarterly charge or a one-off purchase is money
+   *  that left the account once — carrying it forward would invent a cost that
+   *  never happens. The user re-adds it when it is actually due; the app has no
+   *  calendar and must not guess. */
+  const recurringBudget = () => ({
+    income: data.income.filter(recursNextMonth),
+    expenses: data.expenses.map(c => ({ ...c, rows: c.rows.filter(recursNextMonth) })),
+  });
+
   const copyBudgetInto = (targetYear: number, targetMonth: number) => {
     const target = loadMonthData(targetYear, targetMonth, lang);
-    saveMonthData(targetYear, targetMonth, {
-      ...target,
-      income: data.income,
-      expenses: data.expenses,
-    });
+    saveMonthData(targetYear, targetMonth, { ...target, ...recurringBudget() });
   };
+
+  /** The months this copy would land on that already hold a budget. */
+  const occupiedTargets = (targets: { y: number; m: number }[]) =>
+    targets.filter(({ y, m }) => hasBudgetContent(loadMonthData(y, m, lang)));
 
   const copyToNextMonth = () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
+    // Ask before replacing a month the user has already built.
+    if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
+      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
+    )) return;
     copyBudgetInto(nextYear, nextMth);
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
   const copyToAllRemaining = () => {
-    for (let m = month + 1; m <= 11; m++) copyBudgetInto(year, m);
+    const targets = Array.from({ length: 11 - month }, (_, i) => ({ y: year, m: month + 1 + i }));
+    // Count BEFORE writing anything: a half-finished mass copy that the user
+    // then declines would be the worst of both outcomes.
+    const occupied = occupiedTargets(targets);
+    if (occupied.length > 0 && !window.confirm(t.copyOverwriteMany(occupied.length))) return;
+    targets.forEach(({ y, m }) => copyBudgetInto(y, m));
     setMenuOpen(false);
-    showMsg(t.copiedToMonths(11 - month));
+    showMsg(t.copiedToMonths(targets.length));
   };
 
   // Reset ONLY the currently-selected month back to fresh defaults, then re-add

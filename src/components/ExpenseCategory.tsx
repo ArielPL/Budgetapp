@@ -18,9 +18,21 @@ interface Props {
   onDelete?: (id: string) => void;
   /** Note shown for protected categories; defaults to the Plan-linked message. */
   protectedNote?: string;
+  /**
+   * What the amounts on these rows MEAN.
+   *
+   * `flow` (budget income and expenses) — a recurring cost, so a row may fall
+   * due quarterly or yearly and the total counts its monthly share.
+   *
+   * `balance` (the Savings tab) — what is in the account right now. A balance
+   * cannot be "per year", so no period control is offered and the total is the
+   * plain sum. Without this the savings tab inherited the period picker and
+   * showed 12 000 kr and 1 000 kr for the same account at the same time.
+   */
+  amountKind?: 'flow' | 'balance';
 }
 
-export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }: Props) => {
+export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow' }: Props) => {
   const { t, lang, money, currency } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -54,6 +66,10 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
     }
   };
 
+  // Every row now counts exactly what it says, so both kinds sum identically.
+  // The distinction survives for the PICKER: a savings row holds a balance, and
+  // "charged yearly" is meaningless for what is sitting in an account today.
+  const isBalance = amountKind === 'balance';
   const total = categoryTotal(category);
 
   return (
@@ -176,9 +192,13 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
                     the category ends at the same right edge — otherwise rows
                     with a delete button sat 34px to the left of the ones
                     without, and the column looked ragged. */}
-                <RowPeriodPicker row={row} label={shownName(row, lang)}
-                  onChange={p => updatePeriod(row.id, p)} />
-                <RowPeriodHint row={row} />
+                {!isBalance && (
+                  <span className="row-period-group">
+                    <RowPeriodPicker row={row} label={shownName(row, lang)}
+                      onChange={p => updatePeriod(row.id, p)} />
+                    <RowPeriodHint row={row} />
+                  </span>
+                )}
                 <span className="row-action">
                   {row.isCustom && (
                     <button className="delete-btn" onClick={() => deleteRow(row.id)}
