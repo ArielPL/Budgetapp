@@ -30,8 +30,18 @@ describe('periodRange', () => {
     expect(range(2026, 7, 25)).toBe('2026-07-25 → 2026-08-24');
   });
 
-  it('is just the calendar month when the period starts on the 1st', () => {
-    expect(range(2026, 7, 1)).toBe('2026-07-01 → 2026-07-31');
+  it('is the calendar month itself when the period starts on the 1st', () => {
+    // This test used to assert JULY for August, under this very name. Getting
+    // paid on the 1st means August's money is August's — the label must not
+    // hand back the previous month.
+    expect(range(2026, 7, 1)).toBe('2026-08-01 → 2026-08-31');
+    expect(range(2026, 11, 1)).toBe('2026-12-01 → 2026-12-31');
+    expect(range(2026, 0, 1)).toBe('2026-01-01 → 2026-01-31');
+  });
+
+  it('gets February right on the 1st, leap year included', () => {
+    expect(range(2026, 1, 1)).toBe('2026-02-01 → 2026-02-28');
+    expect(range(2024, 1, 1)).toBe('2024-02-01 → 2024-02-29');
   });
 
   it('crosses the year boundary in January', () => {

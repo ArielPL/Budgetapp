@@ -57,6 +57,14 @@ export interface PeriodRange {
  * With a start day of 1 it is simply the calendar month.
  */
 export function periodRange(year: number, month: number, startDay: number): PeriodRange {
+  // Paid on the 1st? Then the budget month IS the calendar month. The general
+  // rule below would instead hand back the whole PREVIOUS month (1 Jul – 31 Jul
+  // while the heading said August), which is nobody's idea of their August pay
+  // period — and an earlier test asserted that wrong answer under the name
+  // "is just the calendar month", so the suite agreed with the bug.
+  if (startDay <= 1) {
+    return { from: new Date(year, month, 1), to: new Date(year, month + 1, 0) };
+  }
   const from = startDate(year, month - 1, startDay);
   const nextStart = startDate(year, month, startDay);
   // One day before the next period opens. Date handles month and year rollover,

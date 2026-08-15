@@ -65,7 +65,7 @@ export const CustomYear = ({ blocks, year }: Props) => {
   }));
 
   return (
-    <div className="year-tab">
+    <div className="year-tab custom-year-view">
       <h2 className="year-heading">{t.yearOverview(year)}</h2>
 
       {!hasData && (
@@ -164,6 +164,12 @@ export const CustomYear = ({ blocks, year }: Props) => {
               </tfoot>
             </table>
           </div>
+
+          {/* Money we cannot file is stated, not hidden. Showing 0 for it is
+              exactly how deleted rows appeared to erase history. */}
+          {totals.archived > 0 && (
+            <p className="year-baseline-hint">💡 {t.yearArchivedNote(money(totals.archived))}</p>
+          )}
         </>
       )}
     </div>

@@ -3098,6 +3098,21 @@ a:focus-visible,
 .sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
 .sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
 .sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
+/* ─── Custom year view ───────────────────────────────────────────────
+   .custom-page is a six-column grid whose children must declare their
+   span. Without this the year view took ONE column — about 426 px on a
+   1140 px canvas, and roughly 80 px of chart on a phone. */
+.custom-year-view {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+/* The chart and table must be able to shrink inside it rather than push
+   the page wider. */
+.custom-year-view .charts-container,
+.custom-year-view .chart-block,
+.custom-year-view .year-table-wrap { min-width: 0; max-width: 100%; }
+
 /* ─── Pay-period label under the month heading ───────────────────────
    Descriptive only — it never changes an amount. Quiet enough that the
    month itself stays the headline. */
@@ -3167,6 +3182,13 @@ a:focus-visible,
 }
 /* The monthly share, so the typed figure and the budgeted figure never look
    like they contradict each other. */
+.row-period-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .row-period-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -3731,11 +3753,30 @@ a:focus-visible,
     gap: 8px;
   }
 
-  .month-nav {
+  /* The wrapper is now the direct flex child of .header-top, so IT must be the
+     shrinkable one. While only the inner .month-nav had flex:1 the wrapper took
+     its content width and pushed the menu button off a 320 px screen. */
+  .month-nav-wrap {
     flex: 1;
+    min-width: 0;
+  }
+  .month-nav {
+    width: 100%;
     min-width: 0;
     justify-content: center;
     gap: 8px;
+  }
+  .period-label { max-width: 100%; }
+
+  /* A periodised row has five things on it — name, amount, period, monthly
+     share and the delete slot — which does not fit a phone. The period controls
+     drop to a second line instead of pushing the row wider than the screen. */
+  .budget-row { flex-wrap: wrap; row-gap: 2px; }
+  .row-action { order: 3; }
+  .row-period-group {
+    order: 4;
+    flex: 1 0 100%;
+    justify-content: flex-end;
   }
 
   /* Let the centered month title shrink before the arrows do, so the row
