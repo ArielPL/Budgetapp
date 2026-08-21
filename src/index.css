@@ -3180,8 +3180,9 @@ a:focus-visible,
   color: var(--accent-brand);
   border-color: color-mix(in srgb, var(--accent-brand) 40%, transparent);
 }
-/* The monthly share, so the typed figure and the budgeted figure never look
-   like they contradict each other. */
+/* Picker and hint travel together, so the timing and the words explaining it
+   never wrap apart onto separate lines. (This once described "the monthly
+   share" — there is no share; a period is a label, not a divisor.) */
 .row-period-group {
   display: inline-flex;
   align-items: center;

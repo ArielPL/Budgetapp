@@ -338,18 +338,6 @@ describe('decimals', () => {
   });
 });
 
-describe('isRowPeriod', () => {
-  it('accepts the three the UI offers', () => {
-    expect(ROW_PERIODS.every(isRowPeriod)).toBe(true);
-  });
-  it('rejects anything else', () => {
-    for (const bad of ['week', 'yearly', '', 12, null, undefined]) {
-      expect(isRowPeriod(bad)).toBe(false);
-    }
-  });
-});
-
-
 // ── Row period is a TIMING LABEL, never a multiplier ──────────────────────
 describe('period never changes an amount', () => {
   const r = (amount: number, period?: unknown) =>

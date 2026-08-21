@@ -21,13 +21,14 @@ interface Props {
   /**
    * What the amounts on these rows MEAN.
    *
-   * `flow` (budget income and expenses) — a recurring cost, so a row may fall
-   * due quarterly or yearly and the total counts its monthly share.
+   * `flow` (budget income and expenses) — money moving this month, so a row can
+   * say how often it falls due. The total still counts every row in full; the
+   * period is a label, not a divisor.
    *
-   * `balance` (the Savings tab) — what is in the account right now. A balance
-   * cannot be "per year", so no period control is offered and the total is the
-   * plain sum. Without this the savings tab inherited the period picker and
-   * showed 12 000 kr and 1 000 kr for the same account at the same time.
+   * `balance` (the Savings tab) — what is in the account right now. "Charged
+   * yearly" says nothing about a balance, so no period control is offered.
+   * Without this the savings tab inherited the picker and showed 12 000 kr and
+   * 1 000 kr for the same account at the same time.
    */
   amountKind?: 'flow' | 'balance';
 }

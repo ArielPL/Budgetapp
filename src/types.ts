@@ -18,8 +18,9 @@ export interface BudgetRow {
   userNamed?: boolean;
   /** Absent = monthly, which is every row written before this existed — so no
    *  migration, and an untouched budget behaves exactly as it always did.
-   *  When set, `amount` is the WHOLE-PERIOD figure the user typed (4 800 for a
-   *  yearly insurance) and the budget counts its monthly share (400). */
+   *  When set, `amount` is still the figure the user typed and the budget counts
+   *  ALL of it in the month the row sits in: a 4 800 yearly insurance is 4 800
+   *  that month, not 400. See RowPeriod above for why the division was removed. */
   period?: RowPeriod;
 }
 

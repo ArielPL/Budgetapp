@@ -10,16 +10,19 @@ import { describe, it, expect } from 'vitest';
 // charts and the income section. Identical arithmetic, five copies. Harmless
 // while a row's amount means exactly what it says.
 //
-// It stops being harmless the moment an amount needs INTERPRETING. A row marked
-// "per year" contributes a twelfth to a monthly total, and a copy that does not
-// know that prints a different number for the same row:
+// It stops being harmless the moment the meaning of an amount can move. It did:
+// a row marked "per year" briefly contributed a twelfth to the monthly total,
+// and every hand-rolled copy that had not been told kept printing the raw
+// figure. Same row, same screen, two answers.
 //
-//   Hemförsäkring 4 800 kr/år
-//     summary card ──sumRows──────────────▶  400 kr   ✅
-//     category header ──own reduce────────▶ 4 800 kr  ❌ same row, same screen
+// The division is gone — a yearly charge now counts in full, in the month it is
+// paid — so the two agree again TODAY. That is not a reason to relax the rule.
+// It is the record of what happens when five places each decide for themselves
+// what a stored number means, and the next change to that meaning will land the
+// same way. One choke point, checked here.
 //
-// Storage and display contradicting each other is the exact failure this repo
-// has had to fix twice already. One choke point, checked here.
+// ⚠️ Do not read this block as saying an amount is divided. It is not. See
+// RowPeriod in types.ts.
 //
 // SAVINGS IS EXCLUDED ON PURPOSE. A savings row holds a recorded BALANCE, not a
 // monthly flow, and a balance cannot be "per year" — dividing it would be the
