@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   customYearRows, customYearTotals, customValuesKey, customSnapshotKey,
   snapshotOf, isMonthSnapshot, snapshotToWrite,
+  migrateLegacySnapshots, monthsHoldingRows,
   type YearBlockLike,
 } from './customYear';
 import type { StorageLike } from './backup';
@@ -272,5 +273,203 @@ describe('snapshotToWrite — deleting a block does not unfile money already rec
   it('works with no previous snapshot', () => {
     const blocks2: YearBlockLike[] = [{ kind: 'block', tag: 'in', rows: [{ id: 'x' }] }];
     expect(snapshotToWrite(blocks2, { x: 1 }, null).tags).toEqual({ x: 'in' });
+  });
+});
+
+
+// ── Migrating months recorded before snapshots existed ────────────────────
+//
+// These months are the original bug held one step back: with no record of their
+// own they are classified with TODAY's blocks, so deleting or retagging a block
+// still rewrites what they say about the past.
+
+describe('migrateLegacySnapshots', () => {
+  it('gives a legacy month the record it never got', () => {
+    const st = new FakeStorage(month(2026, 8, { lon: 30000, hyra: 9000 }));
+    expect(migrateLegacySnapshots(st, blocks)).toBe(1);
+
+    const written = JSON.parse(st.getItem(customSnapshotKey(2026, 8))!);
+    expect(written).toEqual({ v: 1, tags: { lon: 'in', hyra: 'out' } });
+  });
+
+  it('records only the rows that month actually holds money for', () => {
+    // A snapshot says how THIS month's money is filed. Copying in tags for rows
+    // the month never had would be inventing history, not preserving it.
+    const st = new FakeStorage(month(2026, 8, { lon: 30000 }));
+    migrateLegacySnapshots(st, blocks);
+    const written = JSON.parse(st.getItem(customSnapshotKey(2026, 8))!);
+    expect(Object.keys(written.tags)).toEqual(['lon']);
+  });
+
+  it('never overwrites a snapshot that already exists', () => {
+    const existing = JSON.stringify({ v: 1, tags: { lon: 'save' } });
+    const st = new FakeStorage({
+      ...month(2026, 8, { lon: 30000 }),
+      [customSnapshotKey(2026, 8)]: existing,
+    });
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBe(existing);
+  });
+
+  it('leaves an unreadable snapshot alone rather than replacing it', () => {
+    // "Corrupt" is a guess. A month that made its own record is not this
+    // function's to revise, so it steps over it and the fallback still applies.
+    const st = new FakeStorage({
+      ...month(2026, 8, { lon: 30000 }),
+      [customSnapshotKey(2026, 8)]: '{{{ not json',
+    });
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBe('{{{ not json');
+  });
+
+  it('migrates the unprotected months in a mixed year and only those', () => {
+    const st = new FakeStorage({
+      ...month(2026, 0, { lon: 1000 }),
+      ...month(2026, 1, { lon: 2000 }),
+      [customSnapshotKey(2026, 1)]: JSON.stringify({ v: 1, tags: { lon: 'in' } }),
+      ...month(2026, 2, { hyra: 3000 }),
+    });
+    expect(migrateLegacySnapshots(st, blocks)).toBe(2);
+    expect(st.getItem(customSnapshotKey(2026, 0))).not.toBeNull();
+    expect(st.getItem(customSnapshotKey(2026, 2))).not.toBeNull();
+  });
+
+  it('is idempotent — a second run changes nothing', () => {
+    const st = new FakeStorage(month(2026, 8, { lon: 30000 }));
+    expect(migrateLegacySnapshots(st, blocks)).toBe(1);
+    const after = st.getItem(customSnapshotKey(2026, 8));
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBe(after);
+  });
+
+  it('never touches an amount', () => {
+    const raw = JSON.stringify({ lon: 30000, hyra: 9000 });
+    const st = new FakeStorage({ [customValuesKey(2026, 8)]: raw });
+    migrateLegacySnapshots(st, blocks);
+    expect(st.getItem(customValuesKey(2026, 8))).toBe(raw);
+  });
+
+  it('writes nothing when there is no structure to record', () => {
+    // An empty map would file every legacy month as unclassified — permanently.
+    // Doing nothing keeps the fallback, and every option, open.
+    const st = new FakeStorage(month(2026, 8, { lon: 30000 }));
+    expect(migrateLegacySnapshots(st, [])).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBeNull();
+  });
+
+  it('skips a month whose amounts will not parse', () => {
+    const st = new FakeStorage({ [customValuesKey(2026, 8)]: 'not json at all' });
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBeNull();
+  });
+
+  it('skips a month whose rows are all unknown today', () => {
+    // Snapshot and fallback would say the same thing (unclassified), so the
+    // write buys nothing and costs the chance the structure comes back.
+    const st = new FakeStorage(month(2026, 8, { gone: 500 }));
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+    expect(st.getItem(customSnapshotKey(2026, 8))).toBeNull();
+  });
+
+  it('ignores keys that only look like a month', () => {
+    const st = new FakeStorage({
+      'budget_custom_v3_values_2026': JSON.stringify({ lon: 1 }),
+      'budget_custom_v3_values_2026_13': JSON.stringify({ lon: 1 }),
+      'budget_2026_8': JSON.stringify({ income: [] }),
+    });
+    expect(migrateLegacySnapshots(st, blocks)).toBe(0);
+  });
+
+  it('holds September in place when the block is deleted in October', () => {
+    // The whole point, end to end.
+    const st = new FakeStorage(month(2026, 8, { lon: 555 }));
+    migrateLegacySnapshots(st, blocks);
+
+    const afterDeletingIncome: YearBlockLike[] = blocks.filter(b => b.tag !== 'in');
+    const rows = customYearRows(st, afterDeletingIncome, 2026);
+    expect(rows[8].income).toBe(555);
+    expect(rows[8].archived).toBe(0);
+  });
+
+  it('holds September in place when the block is retagged', () => {
+    const st = new FakeStorage(month(2026, 8, { lon: 555 }));
+    migrateLegacySnapshots(st, blocks);
+
+    const retagged: YearBlockLike[] = [
+      { kind: 'block', tag: 'out', rows: [{ id: 'lon' }, { id: 'extra' }] },
+      ...blocks.slice(1),
+    ];
+    const rows = customYearRows(st, retagged, 2026);
+    expect(rows[8].income).toBe(555);
+    expect(rows[8].expenses).toBe(0);
+  });
+
+  it('keeps an unknown row visible as archived instead of dropping it', () => {
+    const st = new FakeStorage(month(2026, 8, { lon: 555, gone: 120 }));
+    migrateLegacySnapshots(st, blocks);
+    const rows = customYearRows(st, blocks, 2026);
+    expect(rows[8].income).toBe(555);
+    expect(rows[8].archived).toBe(120);
+  });
+
+  it('produces snapshots a backup import will accept', () => {
+    const st = new FakeStorage(month(2026, 8, { lon: 555 }));
+    migrateLegacySnapshots(st, blocks);
+    const written = JSON.parse(st.getItem(customSnapshotKey(2026, 8))!);
+    expect(isMonthSnapshot(written)).toBe(true);
+  });
+});
+
+// ── Warning before a delete ───────────────────────────────────────────────
+
+describe('monthsHoldingRows', () => {
+  const seeded = () => new FakeStorage({
+    ...month(2026, 0, { lon: 1000 }),
+    ...month(2026, 1, { lon: 2000, hyra: 500 }),
+    ...month(2026, 2, { hyra: 700 }),
+  });
+
+  it('counts every month holding any of the rows', () => {
+    expect(monthsHoldingRows(seeded(), ['lon'])).toBe(2);
+    expect(monthsHoldingRows(seeded(), ['hyra'])).toBe(2);
+    expect(monthsHoldingRows(seeded(), ['lon', 'hyra'])).toBe(3);
+  });
+
+  it('counts a month at most once however many rows it holds', () => {
+    const st = new FakeStorage(month(2026, 1, { lon: 1, hyra: 2, mat: 3 }));
+    expect(monthsHoldingRows(st, ['lon', 'hyra', 'mat'])).toBe(1);
+  });
+
+  it('counts a recorded 0 — the user typed that too', () => {
+    const st = new FakeStorage(month(2026, 1, { lon: 0 }));
+    expect(monthsHoldingRows(st, ['lon'])).toBe(1);
+  });
+
+  it('does not count a corrupt entry as something the user recorded', () => {
+    // The reader coerces these to 0; a bad write is not a decision.
+    // Written as raw JSON rather than an object literal: `1e999` is exactly what
+    // a bad build left on disk, and TypeScript will not accept it as source.
+    const st = new FakeStorage({
+      [customValuesKey(2026, 1)]: '{"lon":null,"hyra":"x","mat":1e999}',
+    });
+    expect(monthsHoldingRows(st, ['lon', 'hyra', 'mat'])).toBe(0);
+  });
+
+  it('says nothing about rows nobody has money against', () => {
+    expect(monthsHoldingRows(seeded(), ['spar'])).toBe(0);
+    expect(monthsHoldingRows(seeded(), [])).toBe(0);
+  });
+
+  it('survives a month that will not parse', () => {
+    const st = new FakeStorage({
+      ...month(2026, 0, { lon: 1000 }),
+      [customValuesKey(2026, 1)]: 'broken',
+    });
+    expect(monthsHoldingRows(st, ['lon'])).toBe(1);
+  });
+
+  it('looks only at Custom amount keys', () => {
+    const st = new FakeStorage({ budget_2026_8: JSON.stringify({ lon: 5 }) });
+    expect(monthsHoldingRows(st, ['lon'])).toBe(0);
   });
 });

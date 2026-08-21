@@ -151,6 +151,119 @@ function readValues(storage: StorageLike, year: number, month: number):
   } catch { return null; }
 }
 
+/** Matches a per-month amounts key and captures its year and month. */
+const VALUES_KEY_RE = /^budget_custom_v3_values_(\d+)_(\d+)$/;
+
+/**
+ * How many stored months hold a recorded amount for any of these rows.
+ *
+ * Used before a delete, so the user is told what a layout edit will do to
+ * history rather than discovering it afterwards.
+ *
+ * Two decisions worth keeping:
+ *
+ * The ACTIVE month is included. It was once skipped, on the reasoning that the
+ * user can see what they are removing — but the amount does not leave with the
+ * block. The month's snapshot keeps its filing, so the year view goes on
+ * counting money the monthly budget has stopped showing. That is the case most
+ * worth warning about, not the one to leave out.
+ *
+ * A recorded 0 counts, because the user typed it and Custom has no separate
+ * "recorded" flag to appeal to. Corruption still does not: the reader elsewhere
+ * coerces unusable entries to 0, so this looks at the RAW stored value and
+ * insists on a real finite number. A stored null or string is evidence of a bad
+ * write, not of anything a person did.
+ */
+export function monthsHoldingRows(storage: StorageLike, rowIds: string[]): number {
+  if (rowIds.length === 0) return 0;
+  let count = 0;
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (!key || !VALUES_KEY_RE.test(key)) continue;
+    try {
+      const vals = JSON.parse(storage.getItem(key) ?? '{}');
+      if (rowIds.some(id => Number.isFinite(vals?.[id]))) count++;
+    } catch { /* unreadable month — nothing to warn about */ }
+  }
+  return count;
+}
+
+/**
+ * Freeze today's filing for every month that has amounts but no snapshot.
+ *
+ * Snapshots only started being written when a month's amounts were saved, so
+ * every month recorded before that still relies on the fallback in
+ * `customYearRows`: today's block list. That fallback is the original bug held
+ * one step back — delete or retag a block and those older months change their
+ * answer about the past. Writing the snapshot they never got closes it.
+ *
+ * Rules this migration obeys, in order of how much damage breaking them would do:
+ *
+ * 1. It never touches an amount. It writes one new key per month and nothing else.
+ * 2. It never overwrites a snapshot that already exists — not even an unreadable
+ *    one. A month that already made its own record is not this function's to
+ *    revise, and "corrupt" is a guess we are not entitled to act on.
+ * 3. It is idempotent: a second run finds every month already covered and writes
+ *    nothing. That matters because it runs on every mount, and twice per mount
+ *    under StrictMode.
+ * 4. It records only the rows that month actually holds money for. A snapshot
+ *    describes how THIS month's money is filed; copying in tags for rows the
+ *    month never had would be inventing history rather than preserving it.
+ *
+ * Deliberately skipped, and why:
+ *
+ * - No blocks at all (Custom never set up, or storage lost). `snapshotOf` would
+ *   return an empty map, and writing it would permanently file every legacy
+ *   month as unclassified — turning a recoverable fallback into a locked-in
+ *   wrong answer. Doing nothing keeps every option open.
+ * - A month whose amounts will not parse. There is nothing readable to protect,
+ *   and guessing at its contents is how data gets rewritten.
+ * - A month whose rows are all unknown today. The fallback and the snapshot
+ *   would say the same thing (unclassified), so the write buys nothing and costs
+ *   the chance that the structure comes back — via a backup import, say.
+ *
+ * Returns how many months were written, for tests and for the caller to log.
+ */
+export function migrateLegacySnapshots(
+  storage: StorageLike,
+  blocks: YearBlockLike[],
+): number {
+  const currentTags = snapshotOf(blocks).tags;
+  if (Object.keys(currentTags).length === 0) return 0;
+
+  // Collect first, write after: mutating storage while walking its index by
+  // position can skip entries, and localStorage gives no iteration guarantee.
+  const pending: { key: string; tags: Record<string, BlockTag> }[] = [];
+
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    const match = key && VALUES_KEY_RE.exec(key);
+    if (!match) continue;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (!Number.isFinite(year) || month < 0 || month > 11) continue;
+    if (storage.getItem(customSnapshotKey(year, month)) !== null) continue;
+
+    const values = readValues(storage, year, month);
+    if (!values) continue;
+
+    const tags: Record<string, BlockTag> = {};
+    for (const id of Object.keys(values)) {
+      const tag = currentTags[id];
+      if (tag) tags[id] = tag;
+    }
+    if (Object.keys(tags).length === 0) continue;
+
+    pending.push({ key: customSnapshotKey(year, month), tags });
+  }
+
+  for (const { key, tags } of pending) {
+    storage.setItem(key, JSON.stringify({ v: 1, tags } satisfies MonthSnapshot));
+  }
+  return pending.length;
+}
+
 /**
  * Twelve rows for `year`, aggregated by block tag.
  *

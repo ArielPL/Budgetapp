@@ -7,7 +7,7 @@ import {
   EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
   type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
 } from '../blockChart';
-import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot } from '../customYear';
+import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
 
 // ── Schema ──────────────────────────────────────────────────────────
@@ -329,6 +329,15 @@ export const CustomV3 = ({ year, month }: Props) => {
     if (started) localStorage.setItem(LS_STRUCT, JSON.stringify(blocks));
   }, [blocks, started]);
 
+  // Give months recorded before snapshots existed the structure record they
+  // never got, BEFORE the user can delete or retag anything — from this mount
+  // on, editing today's layout cannot change what an older month says. Runs on
+  // mount only, reading the structure as it was loaded; it is idempotent, so
+  // StrictMode's second invocation is a no-op rather than a second write.
+  useEffect(() => {
+    migrateLegacySnapshots(localStorage, loadedBlocks.current);
+  }, []);
+
   // Guard so the save effect doesn't immediately rewrite freshly loaded values
   // into the NEW month's key on a month switch (data-bleed). Declared before the
   // load effect so it's armed before the save effect runs on the same commit.
@@ -396,8 +405,13 @@ export const CustomV3 = ({ year, month }: Props) => {
   // data left over from the old month-bleed bug. Confirmed before running.
   const clearAllAmounts = () => {
     if (!window.confirm(t.clearAmountsConfirm)) return;
+    // Snapshots go with the amounts they describe. A snapshot exists to say how
+    // a month's MONEY was filed, so once every amount is gone it documents
+    // nothing — and leaving it behind would let a stale filing outlive the
+    // figures it belonged to. Both keys are removed together, under the one
+    // confirmation the user already gave for the amounts themselves.
     Object.keys(localStorage)
-      .filter(k => k.startsWith('budget_custom_v3_values'))
+      .filter(k => k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))
       .forEach(k => localStorage.removeItem(k));
     setValues({});
     setToast(t.clearedAmounts);
@@ -459,20 +473,10 @@ export const CustomV3 = ({ year, month }: Props) => {
     setStarted(true);
   };
   /** Months (other than the one on screen) that hold an amount for these rows. */
-  const monthsHolding = (rowIds: string[]): number => {
-    if (rowIds.length === 0) return 0;
-    let count = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key?.startsWith('budget_custom_v3_values_')) continue;
-      if (key === valuesKey(year, month)) continue;
-      try {
-        const vals = JSON.parse(localStorage.getItem(key) ?? '{}');
-        if (rowIds.some(id => typeof vals?.[id] === 'number' && vals[id] !== 0)) count++;
-      } catch { /* unreadable month — nothing to warn about */ }
-    }
-    return count;
-  };
+  // Lives in customYear.ts so the rule is unit-testable without a DOM — the
+  // active month and the recorded-0 decisions are documented there.
+  const monthsHolding = (rowIds: string[]): number =>
+    monthsHoldingRows(localStorage, rowIds);
 
   const removeBlock = (id: string) => {
     // Deleting a block is instant and has no undo. Amounts recorded against its
@@ -519,9 +523,14 @@ export const CustomV3 = ({ year, month }: Props) => {
   const recolorRow = (id: string, rowId: string, color: string) =>
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.map(r => r.id === rowId ? { ...r, color } : r) } : b));
-  const deleteRow = (id: string, rowId: string) =>
+  // Same protection as removeBlock, one row wide. A single row carried a whole
+  // month's rent as easily as a block did, and deleting it asked nothing.
+  const deleteRow = (id: string, rowId: string) => {
+    const affected = monthsHolding([rowId]);
+    if (affected > 0 && !window.confirm(t.deleteRowHistoryConfirm(affected))) return;
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.filter(r => r.id !== rowId) } : b));
+  };
 
   const move = (id: string, dir: -1 | 1) => setBlocks(prev => {
     const i = prev.findIndex(b => b.id === id);

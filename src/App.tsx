@@ -491,9 +491,19 @@ function App() {
     const pm = month === 0 ? 11 : month - 1;
     const prevName = MONTHS[lang][pm];
 
-    // A month that was never saved loads as blank defaults, so guard on the raw
-    // key — otherwise "pull" would silently wipe this month with an empty one.
-    if (!localStorage.getItem(storageKey(py, pm))) {
+    // Load the source BEFORE this month can change. A stored key is not the same
+    // thing as a budget: a month holding only savings, only a period label, or
+    // only a recorded snapshot has a key, and pulling from one of those replaced
+    // this month's real budget with nothing at all.
+    //
+    // hasBudgetContent is the same rule the forward copies apply to their TARGET,
+    // so "is there a budget here" has one answer in both directions. It counts
+    // structure rather than amounts, so a deliberate zero budget with the user's
+    // own rows still copies. A month that was never saved loads as empty arrays
+    // (defaultMonthData), so this subsumes the old raw-key check rather than
+    // weakening it.
+    const prev = loadMonthData(py, pm, lang);
+    if (!hasBudgetContent(prev)) {
       setMenuOpen(false);
       showMsg(t.copyPrevMonthEmpty(prevName));
       return;
@@ -505,7 +515,6 @@ function App() {
       t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
     )) return;
 
-    const prev = loadMonthData(py, pm, lang);
     // Re-link goal rows afterwards: the incoming expenses come from a month that
     // may predate a goal, and the Plan tab's goal↔budget link must survive.
     setData(cur => ensureGoalLinkedBudgetRows(

@@ -145,6 +145,7 @@ export interface Translations {
   editLayout: string;
   duplicateBlock: string;
   deleteBlockHistoryConfirm: (months: number) => string;
+  deleteRowHistoryConfirm: (months: number) => string;
   yearArchivedNote: (amount: string) => string;
   // Copy confirmations — every copy path names its target before overwriting.
   copyOverwriteOne: (target: string, source: string) => string;
@@ -509,7 +510,8 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
     duplicateBlock: 'Duplicera block',
-    deleteBlockHistoryConfirm: (months) => `Blocket har belopp i ${months} ${months === 1 ? 'annan månad' : 'andra månader'}. De försvinner ur årsöversikten om du tar bort det. Fortsätta?`,
+    deleteBlockHistoryConfirm: (months) => `Blocket har belopp i ${months} ${months === 1 ? 'månad' : 'månader'}. Tar du bort det försvinner raderna ur månadsbudgeten, men beloppen räknas kvar i årsöversikten — de två vyerna kommer alltså visa olika siffror. Fortsätta?`,
+    deleteRowHistoryConfirm: (months) => `Raden har belopp i ${months} ${months === 1 ? 'månad' : 'månader'}. Tar du bort den försvinner den ur månadsbudgeten, men beloppen räknas kvar i årsöversikten. Fortsätta?`,
     yearArchivedNote: (amount) => `${amount} kunde inte kopplas till något block — rader som togs bort innan appen började spara historik.`,
     copyOverwriteOne: (target, source) => `${target} har redan en budget. Ersätta inkomster och utgifter med ${source}?`,
     copyOverwriteMany: (n) => `${n} av de återstående månaderna har redan en budget. Ersätta dem?`,
@@ -833,7 +835,8 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
     duplicateBlock: 'Duplicate block',
-    deleteBlockHistoryConfirm: (months) => `This block has amounts in ${months} other ${months === 1 ? 'month' : 'months'}. They will drop out of the year overview if you delete it. Continue?`,
+    deleteBlockHistoryConfirm: (months) => `This block has amounts in ${months} ${months === 1 ? 'month' : 'months'}. Deleting it takes the rows out of the monthly budget, but the amounts stay counted in the year overview — so the two views will show different figures. Continue?`,
+    deleteRowHistoryConfirm: (months) => `This row has amounts in ${months} ${months === 1 ? 'month' : 'months'}. Deleting it takes it out of the monthly budget, but the amounts stay counted in the year overview. Continue?`,
     yearArchivedNote: (amount) => `${amount} could not be matched to a block — rows deleted before the app started recording history.`,
     copyOverwriteOne: (target, source) => `${target} already has a budget. Replace its income and expenses with ${source}?`,
     copyOverwriteMany: (n) => `${n} of the remaining months already have a budget. Replace them?`,
@@ -1157,7 +1160,8 @@ export const translations: Record<Lang, Translations> = {
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
     duplicateBlock: 'Duplicar bloque',
-    deleteBlockHistoryConfirm: (months) => `Este bloque tiene importes en ${months} ${months === 1 ? 'otro mes' : 'otros meses'}. Desaparecerán de la vista anual si lo eliminas. ¿Continuar?`,
+    deleteBlockHistoryConfirm: (months) => `Este bloque tiene importes en ${months} ${months === 1 ? 'mes' : 'meses'}. Si lo eliminas, las filas salen del presupuesto mensual, pero los importes siguen contando en la vista anual — las dos vistas mostrarán cifras distintas. ¿Continuar?`,
+    deleteRowHistoryConfirm: (months) => `Esta fila tiene importes en ${months} ${months === 1 ? 'mes' : 'meses'}. Si la eliminas, sale del presupuesto mensual, pero los importes siguen contando en la vista anual. ¿Continuar?`,
     yearArchivedNote: (amount) => `${amount} no se pudo asociar a ningún bloque — filas eliminadas antes de que la app empezara a guardar el historial.`,
     copyOverwriteOne: (target, source) => `${target} ya tiene un presupuesto. ¿Reemplazar sus ingresos y gastos con ${source}?`,
     copyOverwriteMany: (n) => `${n} de los meses restantes ya tienen presupuesto. ¿Reemplazarlos?`,

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { hasBudgetContent } from './monthContent';
+import { defaultMonthData } from './defaults';
 import type { MonthData } from './types';
 
 const month = (over: Partial<MonthData> = {}): MonthData =>
@@ -9,6 +10,13 @@ const cat = (rows: MonthData['expenses'][number]['rows']) =>
   ({ id: 'boende', name: 'Boende', icon: '', color: '', rows });
 
 describe('hasBudgetContent', () => {
+  it('is false for the blank month a never-saved key loads as', () => {
+    // What copyFromPrevMonth's guard rests on: loadMonthData returns
+    // defaultMonthData for a month with no stored key, so checking content
+    // subsumes the old "does the key exist" check instead of weakening it.
+    expect(hasBudgetContent(defaultMonthData('sv'))).toBe(false);
+  });
+
   it('is false for a month nobody has touched', () => {
     expect(hasBudgetContent(month())).toBe(false);
     expect(hasBudgetContent(null)).toBe(false);
