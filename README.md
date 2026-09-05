@@ -35,25 +35,15 @@ Key prefixes: `budget_<year>_<month>` (shared monthly data), `budget_custom_v3*`
 
 ## Running locally
 
-Requires Node 20+.
+The Node version is pinned in `.nvmrc` — run `nvm use` first.
 
 ```bash
 npm install
+npm run dev     # dev server
+npm test        # the full suite, in one go (~1.5 s)
+npm run lint
+npm run build   # what Vercel runs — strict TS with noUnusedLocals
 ```
-
-> ⚠️ **Path gotcha:** if the project sits in a folder whose name contains a
-> colon (`:` is the Unix PATH separator), `npm run dev` / `npm run build` fail
-> with "command not found". Invoke the binaries via node directly instead:
-
-```bash
-# dev server
-node node_modules/vite/bin/vite.js --port 5173
-
-# production build (what Vercel runs — strict TS with noUnusedLocals)
-node node_modules/.bin/tsc -b && node node_modules/.bin/vite build
-```
-
-In a colon-free path, plain `npm run dev` / `npm run build` work fine.
 
 ## Deploying
 
@@ -70,8 +60,3 @@ no UI framework, no state library, no backend.
 - Data is per-device (no sync between phone and desktop) — use export/import.
 - Currency switching changes formatting only; there is no exchange-rate math.
 - The Custom layout keeps its own numbers, separate from Classic/Combined.
-
-## Docs
-
-- [`APP_REVIEW_ACTION_PLAN.md`](APP_REVIEW_ACTION_PLAN.md) — UX/UI review & action plan (2026-07)
-- [`UX_UI_RATING_LOG.md`](UX_UI_RATING_LOG.md) — honest UX/UI rating log
