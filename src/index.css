@@ -1973,15 +1973,27 @@ a:focus-visible,
   flex-direction: column;
   gap: 8px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  /* Never run past the bottom of the window. The app header is `position:
+     sticky`, so an overflowing dropdown could NOT be reached by scrolling the
+     page — the menu stayed pinned to the header and its lower items were simply
+     unreachable (Import and the whole danger zone, on a 1280x800 screen).
+     Capped here; .utils-menu-scroll below does the scrolling, the same split the
+     mobile sheet already uses. */
+  max-height: calc(100dvh - 96px);
+  overflow: hidden;
 }
 
-/* Scrollable body wrapper. On desktop it's a transparent passthrough (same flex
-   column + gap as the menu). On mobile it becomes the ONLY scrolling region so
-   the drag handle + header stay pinned (see the mobile block below). */
+/* Scrollable body wrapper — the ONLY scrolling region in the menu, on every
+   size, so the header row with the close button stays put while the list moves
+   under it. Deliberately NOT `flex: 1` on desktop: flex-basis auto keeps a short
+   menu hugging its content instead of stretching to the cap. The mobile block
+   overrides that, because the bottom sheet does want to fill its height. */
 .utils-menu-scroll {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  min-height: 0; /* let the flex child shrink below content size, so it scrolls */
 }
 
 /* Drag handle — hidden on desktop, visible on mobile */
