@@ -5,7 +5,7 @@ import { EditableLabel } from './EditableLabel';
 import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
 import { useLang, formatMoneyCompact } from '../i18n';
 import { categoryTotal } from '../metrics';
-import { RowPeriodPicker, RowPeriodHint } from './RowPeriod';
+import { RowPeriodPicker } from './RowPeriod';
 import type { RowPeriod } from '../types';
 
 interface Props {
@@ -197,7 +197,6 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                   <span className="row-period-group">
                     <RowPeriodPicker row={row} label={shownName(row, lang)}
                       onChange={p => updatePeriod(row.id, p)} />
-                    <RowPeriodHint row={row} />
                   </span>
                 )}
                 <span className="row-action">

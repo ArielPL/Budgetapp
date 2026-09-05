@@ -4,7 +4,7 @@ import { EditableLabel } from './EditableLabel';
 import { generateId, shownName } from '../defaults';
 import { useLang } from '../i18n';
 import { sumRows } from '../metrics';
-import { RowPeriodPicker, RowPeriodHint } from './RowPeriod';
+import { RowPeriodPicker } from './RowPeriod';
 import type { RowPeriod } from '../types';
 
 interface Props {
@@ -56,7 +56,6 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
             <span className="row-period-group">
               <RowPeriodPicker row={row} label={shownName(row, lang)}
                 onChange={p => updatePeriod(row.id, p)} />
-              <RowPeriodHint row={row} />
             </span>
             {/* Always-present slot keeps every amount on the same right edge —
                 see the same pattern in ExpenseCategory. */}

@@ -3183,7 +3183,9 @@ a:focus-visible,
   color: var(--text-muted);
   font-size: 0.72rem;
   padding: 2px 4px;
-  max-width: 92px;
+  /* Wide enough for the longest option in every language — Swedish
+     "Engångskostnad" is the one that used to be clipped to "Engångskostna". */
+  max-width: 132px;
   cursor: pointer;
 }
 .row-period:hover,
@@ -3202,11 +3204,6 @@ a:focus-visible,
   min-width: 0;
 }
 
-.row-period-hint {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
 
 /* ─── Insight line ───────────────────────────────────────────────────
    One sentence under the summary cards. Neutral by default: colouring

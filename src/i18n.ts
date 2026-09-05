@@ -162,7 +162,6 @@ export interface Translations {
   periodMonth: string; periodQuarter: string; periodYear: string;
   periodAria: (row: string) => string;
   periodOnce: string;
-  periodChargedNote: (period: string) => string;
   // The one-line insight under the summary cards. Amounts arrive pre-formatted.
   insightDeficit: (over: string) => string;
   insightSavingsDown: (amount: string) => string;
@@ -524,7 +523,6 @@ export const translations: Record<Lang, Translations> = {
     periodLabelPlaceholder: 'Egen text',
     periodMonth: 'Varje månad', periodQuarter: 'Per kvartal', periodYear: 'Per år', periodOnce: 'Engångskostnad',
     periodAria: (row) => `När ${row} dras`,
-    periodChargedNote: (p) => p === 'year' ? 'dras en gång per år' : p === 'quarter' ? 'dras per kvartal' : 'engångskostnad',
     insightDeficit: (over) => `Utgifterna överstiger inkomsten med ${over}.`,
     insightSavingsDown: (amount) => `Ditt sparande minskade med ${amount} den här månaden.`,
     insightGoalClose: (name, remaining) => `Bara ${remaining} kvar till ${name}.`,
@@ -849,7 +847,6 @@ export const translations: Record<Lang, Translations> = {
     periodLabelPlaceholder: 'Custom text',
     periodMonth: 'Every month', periodQuarter: 'Quarterly', periodYear: 'Yearly', periodOnce: 'One-off',
     periodAria: (row) => `When ${row} is charged`,
-    periodChargedNote: (p) => p === 'year' ? 'charged once a year' : p === 'quarter' ? 'charged quarterly' : 'one-off cost',
     insightDeficit: (over) => `Expenses exceed income by ${over}.`,
     insightSavingsDown: (amount) => `Your savings fell by ${amount} this month.`,
     insightGoalClose: (name, remaining) => `Only ${remaining} to go for ${name}.`,
@@ -1174,7 +1171,6 @@ export const translations: Record<Lang, Translations> = {
     periodLabelPlaceholder: 'Texto propio',
     periodMonth: 'Cada mes', periodQuarter: 'Trimestral', periodYear: 'Anual', periodOnce: 'Pago único',
     periodAria: (row) => `Cuándo se cobra ${row}`,
-    periodChargedNote: (p) => p === 'year' ? 'se cobra una vez al año' : p === 'quarter' ? 'se cobra cada trimestre' : 'pago único',
     insightDeficit: (over) => `Los gastos superan los ingresos en ${over}.`,
     insightSavingsDown: (amount) => `Tu ahorro bajó ${amount} este mes.`,
     insightGoalClose: (name, remaining) => `Solo faltan ${remaining} para ${name}.`,

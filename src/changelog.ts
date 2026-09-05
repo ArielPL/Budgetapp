@@ -45,6 +45,7 @@ export const CHANGELOG: Release[] = [
         'Varningen förklarar vad som faktiskt händer: raderna försvinner ur månadsbudgeten men beloppen räknas kvar i årsöversikten, så de två vyerna visar olika siffror',
         '"Rensa belopp" tar nu även bort de strukturanteckningar som hörde till beloppen, i stället för att lämna dem kvar utan något att beskriva',
         'Rättat: menyn gick inte att scrolla på datorn. Var fönstret för lågt hamnade dess nedre del utanför skärmen, och eftersom sidhuvudet är fastnålat hjälpte det inte att scrolla sidan — Importera data och hela Farozonen gick helt enkelt inte att nå. Menyn håller sig nu innanför fönstret och listan scrollar',
+        'Rättat: en rad som inte är månatlig skrev ut sin period två gånger — "Engångskostnad" i väljaren och "engångskostnad" bredvid — och väljaren var dessutom avklippt mitt i ordet. Perioden står nu på ett ställe, och hela ordet får plats',
       ],
       en: [
         'New: "Pull from <last month>" in the menu under Copy budget — what the Custom layout could already do, now in Classic and Combined too',
@@ -71,6 +72,7 @@ export const CHANGELOG: Release[] = [
         'The warning explains what actually happens: the rows leave the monthly budget but the amounts stay counted in the year overview, so the two views show different figures',
         '"Clear amounts" now also removes the structure notes that belonged to those amounts, instead of leaving them behind with nothing to describe',
         'Fixed: the menu could not be scrolled on desktop. In a short window its lower half fell outside the screen, and because the header is pinned, scrolling the page did not help — Import data and the whole danger zone were simply unreachable. The menu now stays inside the window and the list scrolls',
+        'Fixed: a row that is not monthly stated its period twice — "One-off" in the picker and "one-off cost" beside it — and the picker was clipped mid-word. The period is named in one place now, and the whole word fits',
       ],
       es: [
         'Nuevo: "Traer de <mes anterior>" en el menú bajo Copiar presupuesto — lo que el diseño personalizado ya hacía, ahora también en Clásico y Combinado',
@@ -97,6 +99,7 @@ export const CHANGELOG: Release[] = [
         'El aviso explica lo que ocurre de verdad: las filas salen del presupuesto mensual pero los importes siguen contando en la vista anual, así que las dos vistas muestran cifras distintas',
         '"Borrar importes" elimina ahora también las notas de estructura que acompañaban a esos importes, en vez de dejarlas sin nada que describir',
         'Corregido: el menú no se podía desplazar en el escritorio. Con una ventana baja, su parte inferior quedaba fuera de la pantalla, y como la cabecera está fijada, desplazar la página no servía — Importar datos y toda la zona de peligro eran inalcanzables. El menú ahora se queda dentro de la ventana y la lista se desplaza',
+        'Corregido: una fila que no es mensual indicaba su periodo dos veces — "Pago único" en el selector y "pago único" al lado — y el selector aparecía cortado a media palabra. El periodo se indica ahora en un solo lugar, y la palabra cabe entera',
       ],
     },
   },

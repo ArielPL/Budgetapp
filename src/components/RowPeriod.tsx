@@ -42,14 +42,9 @@ export const RowPeriodPicker = ({ row, label, onChange }: {
   );
 };
 
-/** A plain note on when the amount is charged. Nothing for a monthly row, which
- *  is the default and needs no explanation.
- *
- *  This used to read "= 400 kr/mån" — the monthly share of a divided amount.
- *  The division is gone: a yearly charge leaves the account in full, in the
- *  month it is paid, and the budget now says so. */
-export const RowPeriodHint = ({ row }: { row: BudgetRow }) => {
-  const { t } = useLang();
-  if (!row.period || row.period === 'month') return null;
-  return <span className="row-period-hint">{t.periodChargedNote(row.period)}</span>;
-};
+/* There is deliberately no second element restating the period. The picker
+   already names it, so a hint beside it said the same word twice — "Engångskostnad"
+   next to "engångskostnad", with the picker clipped mid-word. The hint predates
+   that: it used to read "= 400 kr/mån", the monthly share of a divided amount.
+   When the division was removed the figure went with it and only the echo was
+   left. Do not reintroduce a per-month figure here — see RowPeriod in types.ts. */

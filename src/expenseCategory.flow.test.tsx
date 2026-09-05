@@ -76,22 +76,32 @@ describe('Budget rows can say when they are charged', () => {
     expect(headerTotal().replace(/\s/g, '')).toContain('13601');
   });
 
-  it('explains a non-monthly row in words rather than a second figure', () => {
+  it('names a non-monthly period exactly once, and never as a second figure', () => {
     render(
       <ExpenseCategory
         category={cat([row('r2', 'Försäkring', 4800, 'year')])}
         onChange={() => {}}
       />,
     );
-    const hint = document.querySelector('.row-period-hint');
-    expect(hint?.textContent).toBe('dras en gång per år');
-    // The old "= 400 kr/mån" implied a division that no longer happens.
-    expect(hint?.textContent).not.toContain('/mån');
+    // The picker is the ONE place the period is named. A hint used to sit beside
+    // it repeating the same word — "Engångskostnad" next to "engångskostnad",
+    // with the picker itself clipped mid-word.
+    const picker = document.querySelector<HTMLSelectElement>('.row-period');
+    expect(picker?.value).toBe('year');
+    const rowText = document.querySelector('.budget-row')?.textContent ?? '';
+    expect(rowText).not.toContain('dras en gång per år');
+    // The old "= 400 kr/mån" implied a division that no longer happens. Neither
+    // the phrasing nor the divided figure may come back.
+    expect(rowText).not.toContain('/mån');
+    expect(rowText).not.toContain('400 kr');
   });
 
   it('says nothing extra for a plain monthly row', () => {
     render(<ExpenseCategory category={cat([row('r1', 'Hyra', 8801)])} onChange={() => {}} />);
-    expect(document.querySelector('.row-period-hint')).toBeNull();
+    // Monthly is the default, so the picker sits there unmarked and silent.
+    const picker = document.querySelector<HTMLSelectElement>('.row-period');
+    expect(picker?.value).toBe('month');
+    expect(picker?.className).not.toContain('row-period-set');
   });
 
   it('stores "monthly" as no period at all, so an untouched row stays untouched', async () => {
