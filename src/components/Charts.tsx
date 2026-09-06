@@ -12,7 +12,6 @@ import type { ExpenseChartStyle } from '../blockChart';
 
 interface Props {
   categories: BudgetCategory[];
-  totalIncome: number;
 }
 
 // Chart styles live in blockChart.ts — the shared source UI, the localStorage
@@ -57,7 +56,6 @@ const TreemapCell = ({ x = 0, y = 0, width = 0, height = 0, name = '', color }: 
 
 interface ExpenseChartProps {
   data: CatDatum[];
-  totalIncome: number;
   totalExpenses: number;
   style: ExpenseChartStyle;
   height: number;
@@ -68,16 +66,20 @@ interface ExpenseChartProps {
 
 // The reusable expense-composition engine — used by the inline expense chart
 // AND by Custom-mode sections (which pass their own style + height).
-export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
+export const ExpenseChart = ({ data, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
   const { lang } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
   const { text: tickColor, grid: gridColor } = chartColors();
   const tickColorStrong = isLight ? '#5d5972' : '#94a3b8';
   const cursorFill = 'rgba(139, 92, 246, 0.10)';
 
-  const pct = (value: number) => totalIncome > 0
-    ? Math.round((value / totalIncome) * 100)
-    : Math.round((value / totalExpenses) * 100);
+  // Share of TOTAL EXPENSES — the same quantity the donut arc is drawn from,
+  // so the label and the picture can never disagree. It used to divide by
+  // income whenever income was non-zero: a lone expense category filled the
+  // whole circle and was labelled "45 %" (review 2026-09-05, F5). Custom mode
+  // already opted out by passing an income of 0; now there is only one rule.
+  const pct = (value: number) =>
+    totalExpenses > 0 ? Math.round((value / totalExpenses) * 100) : 0;
 
   const legend = (
     <div className="donut-legend">
@@ -271,7 +273,7 @@ function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): C
 // Plain expense chart for Classic & Combined: always the default donut +
 // per-category bars (no inline style switcher — chart type is chosen only
 // per-block in Custom mode's config panel).
-export const Charts = ({ categories, totalIncome }: Props) => {
+export const Charts = ({ categories }: Props) => {
   const { t, lang, currency, money } = useLang();
   const data = buildCatData(categories, lang);
 
@@ -293,7 +295,6 @@ export const Charts = ({ categories, totalIncome }: Props) => {
         <h3 className="chart-title">{t.chartExpenseDistribution}</h3>
         <ExpenseChart
           data={data}
-          totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           style="donut"
           height={240}
@@ -307,7 +308,6 @@ export const Charts = ({ categories, totalIncome }: Props) => {
         <h3 className="chart-title">{t.chartPerCategory}</h3>
         <ExpenseChart
           data={data}
-          totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           style="bars"
           height={data.length * 44 + 20}

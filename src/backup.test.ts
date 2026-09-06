@@ -119,6 +119,30 @@ describe('import validation — nothing is written unless the whole file is good
     const withString = '{"income":[{"id":"i1","amount":"1e309"}],"expenses":[],"savings":[]}';
     expect(checkBackup(backupFile({ budget_2026_6: withString }))).toMatchObject({ ok: false, reason: 'corrupt' });
   });
+  // Review 2026-09-05, F3. "xx" passed validation, replaced a working budget,
+  // and then blanked the app on the next start — with no menu left to fix it.
+  it('rejects a settings value outside its known set', () => {
+    expect(checkBackup(backupFile({ budget_lang: 'xx' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_lang: '' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_currency: 'xx' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    // Inherited object properties are not values: "constructor" is not a language.
+    expect(checkBackup(backupFile({ budget_lang: 'constructor' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_lang: '__proto__' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
+  it('still accepts every language and currency the app itself offers', () => {
+    for (const l of ['sv', 'en', 'es']) {
+      expect(checkBackup(backupFile({ budget_lang: l })).ok).toBe(true);
+    }
+    for (const c of ['sek', 'eur', 'usd', 'gbp']) {
+      expect(checkBackup(backupFile({ budget_currency: c })).ok).toBe(true);
+    }
+  });
+  it('leaves unknown future settings keys alone', () => {
+    // The rule is "known key, known value" — not "reject anything unfamiliar".
+    // A key a later version writes is not the user's fault.
+    expect(checkBackup(backupFile({ budget_something_new: 'whatever' })).ok).toBe(true);
+  });
+
   it('rejects a savings plan with an impossible month', () => {
     const plan = (ym: string) => JSON.stringify({ monthlyAmount: 2000, annualReturnPct: 7, startAmount: 0, startYM: ym });
     expect(checkBackup(backupFile({ budget_savings_plan: plan('2026-13') }))).toMatchObject({ ok: false, reason: 'corrupt' });

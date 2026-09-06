@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
+import { safeSetItem } from '../storageWrite';
 import { useLang, MONTHS } from '../i18n';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
@@ -286,9 +287,16 @@ function useIsPhone(): boolean {
   return phone;
 }
 
-interface Props { year: number; month: number; }
+interface Props {
+  year: number;
+  month: number;
+  /** Called when a write to localStorage was refused, so the app can tell the
+   *  user the edit is still only on screen (review 2026-09-05, F4). Must be
+   *  stable — it sits in the save effect's dependencies. */
+  onSaveFailed: () => void;
+}
 
-export const CustomV3 = ({ year, month }: Props) => {
+export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
@@ -326,8 +334,8 @@ export const CustomV3 = ({ year, month }: Props) => {
   const loadedBlocks = useRef(blocks);
   useEffect(() => {
     if (blocks === loadedBlocks.current) return;
-    if (started) localStorage.setItem(LS_STRUCT, JSON.stringify(blocks));
-  }, [blocks, started]);
+    if (started && !safeSetItem(localStorage, LS_STRUCT, JSON.stringify(blocks))) onSaveFailed();
+  }, [blocks, started, onSaveFailed]);
 
   // Give months recorded before snapshots existed the structure record they
   // never got, BEFORE the user can delete or retag anything — from this mount
@@ -358,16 +366,21 @@ export const CustomV3 = ({ year, month }: Props) => {
     if (skipSave.current) { skipSave.current = false; return; }
     const key = valuesKey(year, month);
     if (Object.keys(values).length === 0 && localStorage.getItem(key) === null) return;
-    localStorage.setItem(key, JSON.stringify(values));
+    // Two writes, one meaning. If the amounts land but the snapshot does not,
+    // the month's money is recorded with no record of how it was filed — so the
+    // failure is reported even when the first half succeeded (F4).
+    let ok = safeSetItem(localStorage, key, JSON.stringify(values));
     // Record WHICH block each row belonged to when these amounts were written.
     // Without it the year view had to classify every month with today's layout,
     // so deleting a block rewrote history. Written next to the amounts, never
     // on its own — a month with no amounts has no history to protect.
-    localStorage.setItem(
+    ok = safeSetItem(
+      localStorage,
       customSnapshotKey(year, month),
       JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(localStorage, year, month))),
-    );
-  }, [values, year, month, blocks]);
+    ) && ok;
+    if (!ok) onSaveFailed();
+  }, [values, year, month, blocks, onSaveFailed]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {
     setValues(v => ({ ...v, [rowId]: amount }));
@@ -927,7 +940,7 @@ const BlockContent = ({
       const style: ExpenseChartStyle = block.chart.type;
       return (
         <div className="cv3-chart-slot"><div className="charts-container"><div className="chart-block">
-          <ExpenseChart data={sumData} totalIncome={0} totalExpenses={totalV}
+          <ExpenseChart data={sumData} totalExpenses={totalV}
             style={style} height={style === 'bars' ? sumData.length * 44 + 20 : chartHeightPx(block.chart.size)}
             money={money} currency={currency} totalLabel={t.summaryBlock} />
         </div></div></div>
@@ -979,7 +992,7 @@ const BlockContent = ({
     const totalV = data.reduce((s, d) => s + d.value, 0);
     return (
       <div className="charts-container"><div className="chart-block">
-        <ExpenseChart data={data} totalIncome={0} totalExpenses={totalV}
+        <ExpenseChart data={data} totalExpenses={totalV}
           style={block.chart.type} height={block.chart.type === 'bars' ? data.length * 44 + 20 : height}
           money={money} currency={currency} totalLabel={t.blockTotal} />
       </div></div>

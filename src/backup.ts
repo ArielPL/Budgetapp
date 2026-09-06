@@ -20,7 +20,7 @@
 // Authentication is explicitly out of scope: its keys are never exported, never
 // deleted, never overwritten. See isBackupOwnedKey.
 
-import type { Lang } from './i18n';
+import { isLang, isCurrency, type Lang } from './i18n';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
@@ -111,7 +111,10 @@ const isRow = (v: unknown): boolean =>
 const isCategory = (v: unknown): boolean =>
   isPlainObject(v) && typeof v.id === 'string' && Array.isArray(v.rows) && v.rows.every(isRow);
 
-const isMonthData = (v: unknown): boolean =>
+/** Exported so cross-tab adoption uses the SAME shape check as import: a write
+ *  arriving from another tab is no more trustworthy than a file, and the two
+ *  must never disagree about what a month looks like. */
+export const isMonthData = (v: unknown): boolean =>
   isPlainObject(v) &&
   Array.isArray(v.income) && v.income.every(isRow) &&
   Array.isArray(v.expenses) && v.expenses.every(isCategory) &&
@@ -203,6 +206,11 @@ function isValidValue(key: string, raw: string): boolean {
     if (Number(monthKey[1]) > 11) return false;
     return parseThen(isMonthData);
   }
+  // Settings whose value must be one of a known set. These are plain strings,
+  // not JSON. Accepting "xx" here let an import replace a working budget and
+  // then blank the app on the next start (review 2026-09-05, F3).
+  if (key === 'budget_lang') return isLang(raw);
+  if (key === 'budget_currency') return isCurrency(raw);
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);

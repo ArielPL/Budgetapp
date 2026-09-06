@@ -1,4 +1,5 @@
 import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
+import { safeSetItem } from './storageWrite';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
 import { calculateSavingsMetrics, isRowPeriod } from './metrics';
@@ -383,7 +384,9 @@ const normalizeRow = (r: BudgetRow): BudgetRow => {
 const normalizeCategory = (c: BudgetCategory): BudgetCategory =>
   Array.isArray(c?.rows) ? { ...c, rows: c.rows.map(normalizeRow) } : { ...c, rows: [] };
 
-export function saveMonthData(year: number, month: number, data: MonthData): void {
+/** Returns whether the month was written. False means the edit is still only
+ *  on screen — the caller must say so rather than imply it was saved (F4). */
+export function saveMonthData(year: number, month: number, data: MonthData): boolean {
   const key = storageKey(year, month);
   // Don't CREATE a key for a brand-new, completely empty month — that just
   // litters localStorage with blank entries while navigating (e.g. in Custom
@@ -393,8 +396,9 @@ export function saveMonthData(year: number, month: number, data: MonthData): voi
   // the label was the month's ONLY content, and this guard dropped it.
   const empty = data.income.length === 0 && data.expenses.length === 0
     && data.savings.length === 0 && !data.periodLabel;
-  if (empty && localStorage.getItem(key) === null) return;
-  localStorage.setItem(key, JSON.stringify(data));
+  // Nothing to write is not a failure: the month legitimately stays absent.
+  if (empty && localStorage.getItem(key) === null) return true;
+  return safeSetItem(localStorage, key, JSON.stringify(data));
 }
 
 /**
@@ -513,8 +517,9 @@ export function loadPlanData(lang: Lang = 'sv'): PlanData {
   }
 }
 
-export function savePlanData(data: PlanData): void {
-  localStorage.setItem('budget_plan', JSON.stringify(data));
+/** Returns whether the plan was written — see saveMonthData. */
+export function savePlanData(data: PlanData): boolean {
+  return safeSetItem(localStorage, 'budget_plan', JSON.stringify(data));
 }
 
 export function generateId(): string {

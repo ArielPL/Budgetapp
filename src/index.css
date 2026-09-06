@@ -2438,6 +2438,47 @@ a:focus-visible,
 
 /* ─── Backup reminder banner ──────────────────────────────────────── */
 
+/* A save that did not land. Sits above the backup reminder because it is about
+   data the user has ALREADY typed, not data they might lose later, and it
+   carries no dismiss button — the edit really is unsaved (review 2026-09-05,
+   F4). Borrows the backup banner's shape so it reads as the same kind of
+   message, with the theme's own negative colour as the left edge. */
+.save-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--negative);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.save-error-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.save-error-text strong { color: var(--negative); font-size: 0.9rem; }
+.save-error-text span { color: var(--text-muted); font-size: 0.8rem; }
+.save-error-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.save-error-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  min-height: 40px;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .save-error-btn:hover { border-color: var(--border-strong); }
+}
+
 .backup-banner {
   display: flex;
   align-items: center;
@@ -3950,10 +3991,20 @@ a:focus-visible,
   /* Phones: INPUT-FIRST everywhere — people open the app to enter amounts.
      Compact summary cards (label + amount only, 3 across) keep the first input
      row within easy reach; the secondary percentages live in Plan (§9). */
+  /* TWO across, not three. At 320px a third of the row leaves 71px for the
+     amount, and an ordinary "30 000,50 kr" needs 98 — so a normal salary with
+     öre was cut to "30 000,5…". The amount cannot wrap out of trouble either:
+     sv-SE formats it with NO-BREAK spaces (U+00A0) both as the group separator
+     and before "kr", so the whole string is one unbreakable word. Shrinking the
+     text or hiding the rest behind a tooltip both fail a touch screen, so the
+     column count is what gives (review 2026-09-05, F6). */
   .summary-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
+  /* "Kvar" is the figure the app exists to show; it takes the full width, which
+     also leaves the most room for the longest of the three numbers. */
+  .summary-cards .remaining-card { grid-column: 1 / -1; }
   .summary-card { padding: 12px 10px; }
   .summary-card .card-label {
     font-size: 0.62rem;
@@ -4166,4 +4217,14 @@ a:focus-visible,
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* Below ~356px the longest possible amount ("+999 999 999,50 kr", 140px) no
+   longer fits the 122px a summary card gives it, and it was cut off. One step
+   down absorbs it: 0.8rem renders that same string in 118px. Deliberately
+   narrow in scope — at 390px the card gives 157px, so a normal phone never
+   shrinks anything, and no ordinary amount is ever long enough to qualify
+   (see LONG_AMOUNT_CHARS in SummaryCards.tsx). */
+@media (max-width: 360px) {
+  .summary-card .card-amount-long { font-size: 0.8rem; }
 }

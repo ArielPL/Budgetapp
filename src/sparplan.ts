@@ -22,6 +22,8 @@
 // A plan whose start month is in the future has no recorded month to compare
 // against yet, so no ahead/behind badge is shown until it begins.
 
+import { safeSetItem } from './storageWrite';
+
 export interface SavingsPlan {
   monthlyAmount: number;   // planned deposit per month
   annualReturnPct: number; // expected growth per year, e.g. 7 (= 7%)
@@ -181,8 +183,9 @@ export function loadSavingsPlan(): SavingsPlan | null {
  *  the loader would throw away. Returns whether it saved. */
 export function saveSavingsPlan(plan: SavingsPlan): boolean {
   if (validateSavingsPlan(plan).length > 0) return false;
-  localStorage.setItem(SPARPLAN_KEY, JSON.stringify(plan));
-  return true;
+  // False now covers both "invalid" and "storage refused it". Both mean the
+  // plan is not saved, which is what the caller has to act on either way (F4).
+  return safeSetItem(localStorage, SPARPLAN_KEY, JSON.stringify(plan));
 }
 
 /** Remove the plan. Month data and savings goals live under other keys and are

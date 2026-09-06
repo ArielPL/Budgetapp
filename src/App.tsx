@@ -22,9 +22,10 @@ const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
+import { adoptExternalMonth } from './crossTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
+import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
   resolveVars,
@@ -119,9 +120,12 @@ function shouldShowBackupReminder(): boolean {
 
 function App() {
   const now = new Date();
-  const [lang, setLang]       = useState<Lang>(() =>
-    (localStorage.getItem('budget_lang') as Lang) || 'sv'
-  );
+  // Validate, never cast: a damaged value must not be able to lock the user out
+  // of the app that would let them fix it (review 2026-09-05, F3).
+  const [lang, setLang]       = useState<Lang>(() => {
+    const stored = localStorage.getItem('budget_lang');
+    return isLang(stored) ? stored : 'sv';
+  });
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
@@ -135,9 +139,10 @@ function App() {
   const [themeMode, setThemeMode] = useState<Mode>(initialTheme.mode);
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
-  const [currency, setCurrency] = useState<Currency>(() =>
-    (localStorage.getItem('budget_currency') as Currency) || 'sek'
-  );
+  const [currency, setCurrency] = useState<Currency>(() => {
+    const stored = localStorage.getItem('budget_currency');
+    return isCurrency(stored) ? stored : 'sek';
+  });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).
   const [layout, setLayout] = useState<'classic' | 'combined' | 'custom'>(() => {
@@ -173,6 +178,10 @@ function App() {
 
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
+  // A write that did not land. Not dismissable: the edit really is unsaved, and
+  // a banner the user can wave away would be the same lie as saying nothing
+  // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
@@ -389,9 +398,36 @@ function App() {
     // Nothing user-driven has happened yet — this is still the freshly loaded
     // (possibly backfilled) month. Don't create or rewrite the month's record.
     if (JSON.stringify(data) === loadedSnapshot.current) return;
-    saveMonthData(year, month, data);
+    // Storage can refuse: a full quota, or a browser with site data blocked.
+    // The edit stays in React state either way, so it is still on screen and
+    // still recoverable — but the user has to be told it is not stored.
+    setSaveFailed(!saveMonthData(year, month, data));
   }, [data, year, month]);
-  useEffect(() => { savePlanData(planData); },             [planData]);
+  // ── Another tab edited the month we're showing ───────────────────
+  // Without this, each tab held a private copy and wrote the whole month back
+  // on every edit, so the second tab to save silently reverted the first tab's
+  // work (review 2026-09-05, F1). Adopting the incoming month means the next
+  // edit is made ON TOP of the other tab's change instead of over it.
+  //
+  // Recording the adopted JSON as the baseline is what keeps this quiet: the
+  // save effect above skips when `data` matches `loadedSnapshot`, so adopting
+  // writes nothing and cannot bounce back and forth between tabs.
+  //
+  // A `storage` event only ever fires in OTHER tabs, never the one that wrote —
+  // so this cannot react to itself.
+  useEffect(() => {
+    const key = storageKey(year, month);
+    const onStorage = (e: StorageEvent) => {
+      const adopted = adoptExternalMonth(e, key, loadedSnapshot.current);
+      if (!adopted) return;
+      loadedSnapshot.current = adopted.raw;
+      setData(adopted.data);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [year, month]);
+
+  useEffect(() => { if (!savePlanData(planData)) setSaveFailed(true); }, [planData]);
 
   // ── Close utilities menu on outside click ────────────────────────
   useEffect(() => {
@@ -594,6 +630,19 @@ function App() {
     setData(fresh);
     setMenuOpen(false);
     showMsg(t.resetMonthDone);
+  };
+
+  // Stable identity: this sits in CustomV3's save-effect dependencies, and a
+  // new function each render would re-run that effect on every render.
+  const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
+
+  // Try the whole current state again — after the user has freed space or
+  // exported. Both writes are attempted so one succeeding cannot hide the other
+  // still failing.
+  const retrySave = () => {
+    const monthOk = saveMonthData(year, month, data);
+    const planOk = savePlanData(planData);
+    setSaveFailed(!(monthOk && planOk));
   };
 
   // ── Month navigation ──────────────────────────────────────────────
@@ -957,7 +1006,7 @@ function App() {
         </div>
         <div className="budget-right">
           <Suspense fallback={lazyFallback}>
-            <Charts categories={data.expenses} totalIncome={totalIncome} />
+            <Charts categories={data.expenses} />
           </Suspense>
         </div>
       </div>
@@ -1180,20 +1229,29 @@ function App() {
                   </div>
                   <div className="utils-hint">{t.periodStartHint}</div>
 
-                  <div className="utils-divider" />
+                  {/* Copy budget — CLASSIC/COMBINED ONLY. These read and write
+                      budget_<year>_<month>, which the Custom layout does not
+                      use. Offered in Custom mode they copied a budget the user
+                      could not see, into a month they were not looking at, and
+                      reported success (review 2026-09-05, F2). Custom has its
+                      own "pull from last month" inside its own UI. */}
+                  {layout !== 'custom' && (
+                    <>
+                      <div className="utils-divider" />
 
-                  {/* Copy budget */}
-                  <div className="utils-group-label">{t.copyBudget}</div>
-                  <button className="utils-action" onClick={copyFromPrevMonth}>
-                    ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
-                  </button>
-                  <button className="utils-action" onClick={copyToNextMonth}>
-                    → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
-                  </button>
-                  {month < 11 && (
-                    <button className="utils-action" onClick={copyToAllRemaining}>
-                      → {t.copyAllRemaining(11 - month)}
-                    </button>
+                      <div className="utils-group-label">{t.copyBudget}</div>
+                      <button className="utils-action" onClick={copyFromPrevMonth}>
+                        ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
+                      </button>
+                      <button className="utils-action" onClick={copyToNextMonth}>
+                        → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                      </button>
+                      {month < 11 && (
+                        <button className="utils-action" onClick={copyToAllRemaining}>
+                          → {t.copyAllRemaining(11 - month)}
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <div className="utils-divider" />
@@ -1205,13 +1263,21 @@ function App() {
                     {t.importData}
                   </button>
 
-                  <div className="utils-divider" />
+                  {/* Danger zone — destructive actions, visually separated.
+                      Also classic-only: resetCurrentMonth blanks the classic
+                      month whatever layout is on screen, so in Custom mode it
+                      would wipe invisible data and say it was done. Custom
+                      clears its own amounts from its own toolbar. */}
+                  {layout !== 'custom' && (
+                    <>
+                      <div className="utils-divider" />
 
-                  {/* Danger zone — destructive actions, visually separated */}
-                  <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
-                  <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
-                    {t.resetMonth}
-                  </button>
+                      <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
+                      <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
+                        {t.resetMonth}
+                      </button>
+                    </>
+                  )}
                   </div>
                 </div>
               </>
@@ -1289,6 +1355,18 @@ function App() {
       )}
 
       <main className="app-main">
+        {saveFailed && (
+          <div className="save-error-banner" role="alert">
+            <div className="save-error-text">
+              <strong>{t.saveFailedTitle}</strong>
+              <span>{t.saveFailedBody}</span>
+            </div>
+            <div className="save-error-actions">
+              <button className="save-error-btn" onClick={retrySave}>{t.saveRetry}</button>
+              <button className="save-error-btn" onClick={exportData}>{t.exportData}</button>
+            </div>
+          </div>
+        )}
         {showBackupReminder && (
           <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
         )}
@@ -1367,7 +1445,7 @@ function App() {
                Tab bar hidden; the global month selector drives its per-month
                amounts. */
           <Suspense fallback={lazyFallback}>
-            <CustomV3 year={year} month={month} />
+            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} />
           </Suspense>
         )}
       </main>

@@ -33,6 +33,18 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
     Math.abs(n) >= 1e9
       ? <span title={money(n)} aria-label={money(n)}>{formatMoneyCompact(n, currency, lang)}</span>
       : money(n);
+  // An amount this long overflows its card on the narrowest screens. Measured
+  // at 320px, where a card gives the amount 122px: 14 characters still fit at
+  // the normal 0.95rem ("999 999 999 kr" needs 105px), 17 needs 130px and the
+  // longest possible ("+999 999 999,50 kr") needs 140px. So the step-down is
+  // for hundreds of millions WITH öre and nothing else — ordinary amounts,
+  // including a salary with öre, keep the full size.
+  const LONG_AMOUNT_CHARS = 15;
+  // Only the plain form can get long: a compacted billion is "1,0 md kr".
+  const longAmount = (n: number, prefix = '') =>
+    Math.abs(n) < 1e9 && (prefix + money(n)).length >= LONG_AMOUNT_CHARS
+      ? ' card-amount-long'
+      : '';
   const remaining = totalIncome - totalExpenses;
   // Exactly 0 is NOT a deficit — you're on budget, which is a fine place to be.
   const isDeficit = remaining < 0;
@@ -54,12 +66,12 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
     <div className="summary-cards">
       <div className="summary-card income-card">
         <div className="card-label">{t.income}</div>
-        <div className="card-amount income-amount">{cardMoney(totalIncome)}</div>
+        <div className={`card-amount income-amount${longAmount(totalIncome)}`}>{cardMoney(totalIncome)}</div>
         <Diff current={totalIncome} prev={prevIncome} t={t} money={money} />
       </div>
       <div className="summary-card expense-card">
         <div className="card-label">{t.expenses}</div>
-        <div className="card-amount expense-amount">{cardMoney(totalExpenses)}</div>
+        <div className={`card-amount expense-amount${longAmount(totalExpenses)}`}>{cardMoney(totalExpenses)}</div>
         <Diff current={totalExpenses} prev={prevExpenses} t={t} money={money} lowerIsBetter />
       </div>
       {/* Overspending gets its own semantic state. The card used to keep the
@@ -70,7 +82,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
           palette, so every palette stays legible in both modes. */}
       <div className={`summary-card remaining-card ${isDeficit ? 'is-deficit' : 'is-positive'}`}>
         <div className="card-label">{t.remaining}</div>
-        <div className={`card-amount ${isDeficit ? 'negative-amount' : 'positive-amount'}`}>
+        <div className={`card-amount ${isDeficit ? 'negative-amount' : 'positive-amount'}${longAmount(remaining, isDeficit ? '' : '+')}`}>
           {isDeficit ? '' : '+'}{cardMoney(remaining)}
         </div>
         {totalIncome > 0 && (

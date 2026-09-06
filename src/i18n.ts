@@ -2,6 +2,16 @@ import { createContext, useContext } from 'react';
 
 export type Lang = 'sv' | 'en' | 'es';
 
+/** Runtime check for a stored/imported language. A TypeScript `as Lang` cast
+ *  proves nothing at runtime: "xx" sailed through it, `translations["xx"]` came
+ *  back undefined and the whole app rendered nothing — with no way to reach the
+ *  menu and change it back. Derived from MONTHS, which is Record<Lang, …>, so
+ *  adding a language cannot leave this guard behind. Shared with the backup
+ *  validator, so the app can never store a value an import would reject. */
+export function isLang(v: unknown): v is Lang {
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(MONTHS, v);
+}
+
 export const MONTHS: Record<Lang, string[]> = {
   sv: [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -40,6 +50,13 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   usd: { code: 'USD', locale: 'en-US', symbol: '$' },
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
 };
+
+/** Runtime check for a stored/imported currency — same story as isLang: an
+ *  unchecked `as Currency` left CURRENCIES[...] undefined and blanked the app.
+ *  Derived from CURRENCIES so a new currency cannot be forgotten here. */
+export function isCurrency(v: unknown): v is Currency {
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(CURRENCIES, v);
+}
 
 // Two cached formatters per currency: whole amounts show NO decimals
 // ("1 200 kr"), amounts with öre/cents show EXACTLY two ("1 200,50 kr") —
@@ -303,6 +320,9 @@ export interface Translations {
     sunset: string;
     custom: string;
   };
+  saveFailedTitle: string;
+  saveFailedBody: string;
+  saveRetry: string;
   copyBudget: string;
   copyNextMonth: string;
   copyAllRemaining: (n: number) => string;
@@ -667,6 +687,9 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Solnedgång',
       custom: 'Egen',
     },
+    saveFailedTitle: 'Kunde inte spara',
+    saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
+    saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
     copyNextMonth: 'Nästa månad',
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
@@ -991,6 +1014,9 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Sunset',
       custom: 'Custom',
     },
+    saveFailedTitle: 'Could not save',
+    saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
+    saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
     copyNextMonth: 'Next month',
     copyAllRemaining: (n) => `All remaining (${n} months)`,
@@ -1315,6 +1341,9 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Atardecer',
       custom: 'Personalizado',
     },
+    saveFailedTitle: 'No se pudo guardar',
+    saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
+    saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
     copyNextMonth: 'Mes siguiente',
     copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
