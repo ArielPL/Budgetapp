@@ -1,8 +1,9 @@
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from 'recharts';
 import { loadMonthData } from '../defaults';
+import { hasBudgetContent } from '../monthContent';
 import { calculateBudgetMetrics, calculateSavingsMetrics, yearSavingsGrowth, type SavingsSnapshot } from '../metrics';
 import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
@@ -17,6 +18,8 @@ interface MonthRow {
   expenses: number;
   savings: number;
   hasSavings: boolean; // false = never recorded, so the cell shows "–" not 0 kr
+  hasBudget: boolean;  // false = the month was never filled in — same rule, applied
+                       // to income and expenses, which used to print a flat 0 kr
   remaining: number;
 }
 
@@ -58,6 +61,10 @@ export const YearTab = ({ year }: Props) => {
     return {
       index: m, income, expenses,
       savings: snap.balance, hasSavings: snap.hasSnapshot,
+      // Structure, not amounts: a month the user built and left at 0 kr is a
+      // real 0, while a month never opened is unknown. Same helper the copy
+      // buttons use, so "filled in" means one thing across the app.
+      hasBudget: hasBudgetContent(data),
       remaining: income - expenses,
     };
   });
@@ -79,14 +86,15 @@ export const YearTab = ({ year }: Props) => {
   const carryIn = calculateSavingsMetrics(loadMonthData(year - 1, 11, lang));
   const savingsGrowth = yearSavingsGrowth(snapshots, carryIn);
 
-  const hasData = totals.income > 0 || totals.expenses > 0 || rows.some(r => r.hasSavings);
+  const hasData = rows.some(r => r.hasBudget || r.hasSavings);
 
   // An unrecorded month contributes `null`, so the bar is simply absent rather
-  // than a 0 kr bar claiming the account was emptied.
+  // than a 0 kr bar claiming the account was emptied — or, for income and
+  // expenses, claiming a month with no earnings and no spending.
   const chartData = rows.map(r => ({
     month: MONTHS_SHORT[lang][r.index],
-    income: r.income,
-    expenses: r.expenses,
+    income: r.hasBudget ? r.income : null,
+    expenses: r.hasBudget ? r.expenses : null,
     savings: r.hasSavings ? r.savings : null,
   }));
 
@@ -100,6 +108,11 @@ export const YearTab = ({ year }: Props) => {
       ? <span className="amount-unknown" title={hint}>–</span>
       : money(v);
   const yearCell = savingsCell(savingsGrowth, true, missingBaseline ? t.yearBaselineHint(year) : t.notRecordedHint);
+  /** An income/expense/remaining figure, or "–" for a month never filled in. */
+  const budgetCell = (v: number, filled: boolean, sign = false) =>
+    filled
+      ? <>{sign && v > 0 ? '+' : ''}{money(v)}</>
+      : <span className="amount-unknown" title={t.monthNotFilledHint}>–</span>;
 
   return (
     <div className="year-tab">
@@ -117,7 +130,15 @@ export const YearTab = ({ year }: Props) => {
             <div className="chart-block">
               <h3 className="chart-title">{t.yearChartTitle}</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                {/* Income and expenses are FLOWS — what moved this month. The
+                    savings figure is a BALANCE — what the pot holds. Drawn as
+                    three equal bars they read as one comparable quantity, and a
+                    48 000 kr pot became the tallest bar every month, flattening
+                    the numbers the chart is named after. The balance now has its
+                    own axis on the right and its own shape: a line, which is
+                    what a level looks like. Same distinction metrics.ts is built
+                    on. */}
+                <ComposedChart data={chartData} margin={{ top: 10, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -126,7 +147,17 @@ export const YearTab = ({ year }: Props) => {
                     tickLine={false}
                   />
                   <YAxis
+                    yAxisId="flow"
                     tick={{ fill: tickColor, fontSize: 11 }}
+                    tickFormatter={v => formatAxisTick(v, lang)}
+                    axisLine={false}
+                    tickLine={false}
+                    width={38}
+                  />
+                  <YAxis
+                    yAxisId="balance"
+                    orientation="right"
+                    tick={{ fill: SAVINGS_COLOR, fontSize: 11 }}
                     tickFormatter={v => formatAxisTick(v, lang)}
                     axisLine={false}
                     tickLine={false}
@@ -138,10 +169,22 @@ export const YearTab = ({ year }: Props) => {
                     iconSize={8}
                     wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }}
                   />
-                  <Bar dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
-                  <Bar dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
-                  <Bar dataKey="savings" name={t.colSavingsBalance} fill={SAVINGS_COLOR} radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
-                </BarChart>
+                  <Bar yAxisId="flow" dataKey="income" name={t.colIncome} fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+                  <Bar yAxisId="flow" dataKey="expenses" name={t.colExpenses} fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+                  {/* connectNulls stays off: a month with nothing recorded is a
+                      GAP in the line, not a straight leg drawn across it. */}
+                  <Line
+                    yAxisId="balance"
+                    type="monotone"
+                    dataKey="savings"
+                    name={t.colSavingsBalance}
+                    stroke={SAVINGS_COLOR}
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: SAVINGS_COLOR }}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -152,12 +195,12 @@ export const YearTab = ({ year }: Props) => {
             {rows.map(r => (
               <div className="year-card" key={r.index}>
                 <div className="year-card-month">{MONTHS[lang][r.index]}</div>
-                <div className="year-card-row"><span>{t.colIncome}</span><span>{money(r.income)}</span></div>
-                <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(r.expenses)}</span></div>
+                <div className="year-card-row"><span>{t.colIncome}</span><span>{budgetCell(r.income, r.hasBudget)}</span></div>
+                <div className="year-card-row"><span>{t.colExpenses}</span><span>{budgetCell(r.expenses, r.hasBudget)}</span></div>
                 <div className="year-card-row"><span>{t.colSavingsBalance}</span><span style={{ color: SAVINGS_COLOR }}>{savingsCell(r.savings, r.hasSavings)}</span></div>
                 <div className="year-card-row year-card-remaining">
                   <span>{t.colRemaining}</span>
-                  <span style={{ color: remColor(r.remaining) }}>{r.remaining > 0 ? '+' : ''}{money(r.remaining)}</span>
+                  <span style={{ color: r.hasBudget ? remColor(r.remaining) : undefined }}>{budgetCell(r.remaining, r.hasBudget, true)}</span>
                 </div>
               </div>
             ))}
@@ -189,11 +232,11 @@ export const YearTab = ({ year }: Props) => {
                 {rows.map(r => (
                   <tr key={r.index}>
                     <td>{MONTHS[lang][r.index]}</td>
-                    <td className="num">{money(r.income)}</td>
-                    <td className="num">{money(r.expenses)}</td>
+                    <td className="num">{budgetCell(r.income, r.hasBudget)}</td>
+                    <td className="num">{budgetCell(r.expenses, r.hasBudget)}</td>
                     <td className="num" style={{ color: SAVINGS_COLOR }}>{savingsCell(r.savings, r.hasSavings)}</td>
-                    <td className="num" style={{ color: remColor(r.remaining) }}>
-                      {r.remaining > 0 ? '+' : ''}{money(r.remaining)}
+                    <td className="num" style={{ color: r.hasBudget ? remColor(r.remaining) : undefined }}>
+                      {budgetCell(r.remaining, r.hasBudget, true)}
                     </td>
                   </tr>
                 ))}

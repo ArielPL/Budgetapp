@@ -450,6 +450,7 @@ export interface Translations {
   // Year overview
   yearOverview: (year: number) => string;
   yearChartTitle: string;
+  monthNotFilledHint: string;
   colMonth: string;
   colIncome: string;
   colExpenses: string;
@@ -793,7 +794,8 @@ export const translations: Record<Lang, Translations> = {
     notes: 'Anteckningar & Strategi',
     notesPlaceholder: 'Skriv din plan, strategi, tankar om investeringar...',
     yearOverview: (year) => `Årsöversikt ${year}`,
-    yearChartTitle: 'Inkomst vs Utgifter',
+    yearChartTitle: 'Inkomst, utgifter och sparsaldo',
+    monthNotFilledHint: 'Månaden är inte ifylld ännu',
     colMonth: 'Månad',
     colIncome: 'Inkomst',
     colExpenses: 'Utgifter',
@@ -1120,7 +1122,8 @@ export const translations: Record<Lang, Translations> = {
     notes: 'Notes & Strategy',
     notesPlaceholder: 'Write your plan, strategy, thoughts on investments...',
     yearOverview: (year) => `Year overview ${year}`,
-    yearChartTitle: 'Income vs Expenses',
+    yearChartTitle: 'Income, expenses and savings balance',
+    monthNotFilledHint: 'This month has not been filled in yet',
     colMonth: 'Month',
     colIncome: 'Income',
     colExpenses: 'Expenses',
@@ -1447,7 +1450,8 @@ export const translations: Record<Lang, Translations> = {
     notes: 'Notas y Estrategia',
     notesPlaceholder: 'Escribe tu plan, estrategia, ideas sobre inversiones...',
     yearOverview: (year) => `Resumen anual ${year}`,
-    yearChartTitle: 'Ingresos vs Gastos',
+    yearChartTitle: 'Ingresos, gastos y saldo de ahorro',
+    monthNotFilledHint: 'Este mes aún no se ha rellenado',
     colMonth: 'Mes',
     colIncome: 'Ingresos',
     colExpenses: 'Gastos',

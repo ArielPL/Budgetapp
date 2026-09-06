@@ -1876,8 +1876,12 @@ a:focus-visible,
     position: static;
   }
 
+  /* Deliberately NOT one per row. This band used to stack all three cards
+     full-width, so a 800px window spent more height on three numbers than a
+     320px phone does — the phone shows two across. The budget grid has already
+     collapsed to one column here, so the cards have the full width to share. */
   .summary-cards {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .month-title {

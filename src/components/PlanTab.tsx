@@ -283,9 +283,12 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
     : null;
   const totalTarget = data.goals.reduce((s, g) => s + g.targetAmount, 0);
   const totalCurrent = data.goals.reduce((s, g) => s + g.currentAmount, 0);
+  // Null, not 0. With no goals there is nothing to be 0 % of, and the card sat
+  // next to two others that already say "–" for exactly this — one showing a
+  // hard zero read as "no progress" rather than "nothing set up yet".
   const goalProgress = totalTarget > 0
     ? Math.round((totalCurrent / totalTarget) * 100)
-    : 0;
+    : null;
   const monthLabel = `${MONTHS[lang][month]} ${year}`;
 
   return (
@@ -320,7 +323,11 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
           </div>
           <div className="overview-stat overview-stat-goal">
             <div className="overview-stat-label">{t.overviewGoalProgress}</div>
-            <div className="overview-stat-value">{goalProgress}%</div>
+            <div className="overview-stat-value">
+              {goalProgress === null
+                ? <span className="amount-unknown" title={t.noGoalsSummary}>–</span>
+                : `${goalProgress}%`}
+            </div>
           </div>
         </div>
 
