@@ -102,6 +102,7 @@ export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDel
           onChange={onChange}
           onDelete={onDeleteCategory}
           protectedNote={t.protectedSavingsCategory}
+          amountKind="balance"
         />
       ))}
       <button className="add-category-btn" onClick={onAddCategory}>

@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
-import { useLang } from '../i18n';
-import { ExpenseChart, type ExpenseChartStyle } from './Charts';
+import { safeSetItem } from '../storageWrite';
+import { useLang, MONTHS } from '../i18n';
+import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney } from '../money';
+import {
+  EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
+  type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
+} from '../blockChart';
+import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
+import { CustomYear } from './CustomYear';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -12,25 +19,31 @@ import { parseMoneyOrZero, coerceStoredMoney } from '../money';
 
 export type BlockTag = 'in' | 'out' | 'save';
 export type BlockWidth = 'full' | 'half' | 'third';
-export type ChartPosition = 'top' | 'bottom' | 'left' | 'right' | 'between';
-export type ChartSize = 'S' | 'M' | 'L';
 export type BlockKind = 'block' | 'summary' | 'note';
 
-export interface BlockChart {
-  show: boolean;
-  type: ExpenseChartStyle;
-  size: ChartSize;
-  position: ChartPosition;
-}
+// Chart shape + allowed values now live in blockChart.ts so the loader and the
+// backup validator can share them. Re-exported for existing importers.
+export type { BlockChart, ChartSize, ChartPosition };
 
 // ── Language-safe default names (stress test §9) ──
 // Quick-start used to bake the CURRENT language's strings ("Inkomster", "Ny
 // rad") into the stored structure, so switching language left Swedish block
 // names inside a Spanish app. Built-in names are now stored as a KEY and
 // resolved through t at render time; only names the user typed are literal.
-export type CustomDefaultNameKey =
-  | 'summaryIncome' | 'summaryExpenses' | 'summarySaved' | 'summaryBlock'
-  | 'newBlockName' | 'newRowName' | 'newNoteName';
+// One list, from which BOTH the type and the runtime guard are derived. They
+// used to be written out twice; adding a name in one place and forgetting the
+// other would have compiled fine and then silently refused to migrate.
+const DEFAULT_NAME_KEYS = [
+  'summaryIncome', 'summaryExpenses', 'summarySaved', 'summaryBlock',
+  'newBlockName', 'newRowName', 'newNoteName',
+  // Ready-made blocks offered in the add-picker.
+  'tplHousing', 'tplRent', 'tplUtilities',
+  'tplFood', 'tplGroceries',
+  'tplTransport', 'tplCommute',
+  'tplSavings', 'tplBuffer',
+] as const;
+
+export type CustomDefaultNameKey = typeof DEFAULT_NAME_KEYS[number];
 
 /** Every language's spelling of every default name → its key. Used to migrate
  *  structures saved before nameKey existed. Only EXACT matches migrate —
@@ -46,10 +59,23 @@ const DEFAULT_NAME_TO_KEY = new Map<string, CustomDefaultNameKey>([
 ]);
 
 function isDefaultNameKey(v: unknown): v is CustomDefaultNameKey {
-  return typeof v === 'string' &&
-    ['summaryIncome', 'summaryExpenses', 'summarySaved', 'summaryBlock',
-      'newBlockName', 'newRowName', 'newNoteName'].includes(v);
+  return typeof v === 'string' && (DEFAULT_NAME_KEYS as readonly string[]).includes(v);
 }
+
+/** A ready-made block offered in the add-picker. */
+export interface BlockTemplate {
+  key: CustomDefaultNameKey;
+  tag: BlockTag;
+  emoji: string;
+  rows: CustomDefaultNameKey[];
+}
+
+export const BLOCK_TEMPLATES: BlockTemplate[] = [
+  { key: 'tplHousing', tag: 'out', emoji: '🏠', rows: ['tplRent', 'tplUtilities'] },
+  { key: 'tplFood', tag: 'out', emoji: '🛒', rows: ['tplGroceries'] },
+  { key: 'tplTransport', tag: 'out', emoji: '🚌', rows: ['tplCommute'] },
+  { key: 'tplSavings', tag: 'save', emoji: '🏦', rows: ['tplBuffer'] },
+];
 
 /** Exact-match migration for pre-nameKey data; undefined = user's own name. */
 export function inferDefaultNameKey(name: string): CustomDefaultNameKey | undefined {
@@ -96,19 +122,17 @@ export interface CustomBlock {
 }
 
 // Common emoji palette for the per-block icon picker.
-export const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
+const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
 
 const LS_STRUCT = 'budget_custom_v3';
-const valuesKey = (y: number, m: number) => `budget_custom_v3_values_${y}_${m}`;
+// Key formula lives in customYear.ts so the year aggregation and this component
+// can never drift apart on where a month's amounts are stored.
+const valuesKey = customValuesKey;
 
 function uid(): string {
   try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); }
   catch { /* ignore */ }
   return `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function defaultChart(): BlockChart {
-  return { show: false, type: 'donut', size: 'M', position: 'bottom' };
 }
 
 export function newBlock(name: string, tag: BlockTag): CustomBlock {
@@ -205,7 +229,10 @@ export function loadStructure(): CustomBlock[] | null {
         tag: b.tag === 'out' || b.tag === 'save' ? b.tag : 'in',
         width: b.width === 'half' || b.width === 'third' ? b.width : 'full',
         bg: typeof b.bg === 'string' ? b.bg : null,
-        chart: { ...defaultChart(), ...(b.chart ?? {}) },
+        // Spreading the stored chart over the defaults PRESERVED junk instead of
+        // normalizing it: a stored type of "felaktig" survived into the config
+        // panel, leaving no option selected while the block drew something else.
+        chart: normalizeBlockChart(b.chart),
         rows: Array.isArray(b.rows)
           ? b.rows.map((r, i) => {
               const rowName = typeof r?.name === 'string' ? r.name : '';
@@ -260,16 +287,27 @@ function useIsPhone(): boolean {
   return phone;
 }
 
-interface Props { year: number; month: number; }
+interface Props {
+  year: number;
+  month: number;
+  /** Called when a write to localStorage was refused, so the app can tell the
+   *  user the edit is still only on screen (review 2026-09-05, F4). Must be
+   *  stable — it sits in the save effect's dependencies. */
+  onSaveFailed: () => void;
+}
 
-export const CustomV3 = ({ year, month }: Props) => {
-  const { t, money, currency } = useLang();
+export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
+  const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
   const [blocks, setBlocks] = useState<CustomBlock[]>(() => loadStructure() ?? []);
   const [started, setStarted] = useState<boolean>(() => loadStructure() !== null);
   const [values, setValues] = useState<Record<string, number>>(() => loadValues(year, month));
 
+  // Budget canvas or the year overview. Deliberately NOT persisted: the month
+  // selector still drives the app, and coming back to a saved "year" view would
+  // hide the blocks the user came to edit.
+  const [view, setView] = useState<'budget' | 'year'>('budget');
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const [configFor, setConfigFor] = useState<string | null>(null);
@@ -280,9 +318,33 @@ export const CustomV3 = ({ year, month }: Props) => {
   useModalFocus(expandRef, expandedFor !== null, () => setExpandedFor(null));
 
   // Persist structure whenever it changes (after the user has started).
+  //
+  // The first run is skipped on purpose. `blocks` starts out as the NORMALIZED
+  // read of storage, so saving on mount would rewrite the stored structure just
+  // because the page was opened — quietly turning a legacy `trend` into `bars`
+  // and flattening junk fields on a device the user hadn't touched. That went
+  // unnoticed while the loader preserved unknown values (the blob it wrote back
+  // was identical); normalizing made it a real write. Normalization stays in
+  // memory until the user actually changes something, matching the app's
+  // existing "only persist real edits" pattern.
+  // Identity, not a "skip the first run" flag: StrictMode double-invokes effects
+  // in dev, so a one-shot flag is spent on the first invocation and the second
+  // writes anyway. Every real edit goes through setBlocks and produces a NEW
+  // array, so "same array we started with" is exactly "the user changed nothing".
+  const loadedBlocks = useRef(blocks);
   useEffect(() => {
-    if (started) localStorage.setItem(LS_STRUCT, JSON.stringify(blocks));
-  }, [blocks, started]);
+    if (blocks === loadedBlocks.current) return;
+    if (started && !safeSetItem(localStorage, LS_STRUCT, JSON.stringify(blocks))) onSaveFailed();
+  }, [blocks, started, onSaveFailed]);
+
+  // Give months recorded before snapshots existed the structure record they
+  // never got, BEFORE the user can delete or retag anything — from this mount
+  // on, editing today's layout cannot change what an older month says. Runs on
+  // mount only, reading the structure as it was loaded; it is idempotent, so
+  // StrictMode's second invocation is a no-op rather than a second write.
+  useEffect(() => {
+    migrateLegacySnapshots(localStorage, loadedBlocks.current);
+  }, []);
 
   // Guard so the save effect doesn't immediately rewrite freshly loaded values
   // into the NEW month's key on a month switch (data-bleed). Declared before the
@@ -304,8 +366,21 @@ export const CustomV3 = ({ year, month }: Props) => {
     if (skipSave.current) { skipSave.current = false; return; }
     const key = valuesKey(year, month);
     if (Object.keys(values).length === 0 && localStorage.getItem(key) === null) return;
-    localStorage.setItem(key, JSON.stringify(values));
-  }, [values, year, month]);
+    // Two writes, one meaning. If the amounts land but the snapshot does not,
+    // the month's money is recorded with no record of how it was filed — so the
+    // failure is reported even when the first half succeeded (F4).
+    let ok = safeSetItem(localStorage, key, JSON.stringify(values));
+    // Record WHICH block each row belonged to when these amounts were written.
+    // Without it the year view had to classify every month with today's layout,
+    // so deleting a block rewrote history. Written next to the amounts, never
+    // on its own — a month with no amounts has no history to protect.
+    ok = safeSetItem(
+      localStorage,
+      customSnapshotKey(year, month),
+      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(localStorage, year, month))),
+    ) && ok;
+    if (!ok) onSaveFailed();
+  }, [values, year, month, blocks, onSaveFailed]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {
     setValues(v => ({ ...v, [rowId]: amount }));
@@ -326,6 +401,14 @@ export const CustomV3 = ({ year, month }: Props) => {
   const copyLastMonth = () => {
     const py = month === 0 ? year - 1 : year;
     const pm = month === 0 ? 11 : month - 1;
+    // This month's amounts are about to be replaced wholesale. Ask first when
+    // there is something there — an explicitly recorded 0 included, since the
+    // user typed that too.
+    const hasOwn = localStorage.getItem(valuesKey(year, month)) !== null
+      && Object.keys(values).length > 0;
+    if (hasOwn && !window.confirm(
+      t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, MONTHS[lang][pm]),
+    )) return;
     setValues(loadValues(py, pm)); // the save effect persists it to this month's key
     setToast(t.copiedLastMonth);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -335,8 +418,13 @@ export const CustomV3 = ({ year, month }: Props) => {
   // data left over from the old month-bleed bug. Confirmed before running.
   const clearAllAmounts = () => {
     if (!window.confirm(t.clearAmountsConfirm)) return;
+    // Snapshots go with the amounts they describe. A snapshot exists to say how
+    // a month's MONEY was filed, so once every amount is gone it documents
+    // nothing — and leaving it behind would let a stale filing outlive the
+    // figures it belonged to. Both keys are removed together, under the one
+    // confirmation the user already gave for the amounts themselves.
     Object.keys(localStorage)
-      .filter(k => k.startsWith('budget_custom_v3_values'))
+      .filter(k => k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))
       .forEach(k => localStorage.removeItem(k));
     setValues({});
     setToast(t.clearedAmounts);
@@ -371,6 +459,23 @@ export const CustomV3 = ({ year, month }: Props) => {
   const defaultRow = (i: number): BlockRow => ({
     id: uid(), name: t.newRowName, nameKey: 'newRowName', userNamed: false, color: paletteColor(i),
   });
+  // A ready-made block: correct name, tag and emoji, plus a starter row — instead
+  // of a "New block" the user has to rename and re-tag every time. Names are
+  // stored as KEYS, so a template added in Swedish reads correctly in Spanish.
+  const addTemplate = (tpl: BlockTemplate) => {
+    const b: CustomBlock = {
+      ...newBlock(t[tpl.key], tpl.tag),
+      nameKey: tpl.key,
+      userNamed: false,
+      icon: tpl.emoji,
+      rows: tpl.rows.map((rowKey, i) => ({
+        id: uid(), name: t[rowKey], nameKey: rowKey, userNamed: false, color: paletteColor(i),
+      })),
+    };
+    setBlocks(prev => [...prev, b]);
+    setStarted(true);
+    setPicking(false);
+  };
   const quickStart = () => {
     setBlocks([
       { ...newBlock(t.summaryIncome, 'in'), nameKey: 'summaryIncome', userNamed: false, rows: [defaultRow(0)] },
@@ -380,7 +485,43 @@ export const CustomV3 = ({ year, month }: Props) => {
     ]);
     setStarted(true);
   };
-  const removeBlock = (id: string) => setBlocks(prev => prev.filter(b => b.id !== id));
+  /** Months (other than the one on screen) that hold an amount for these rows. */
+  // Lives in customYear.ts so the rule is unit-testable without a DOM — the
+  // active month and the recorded-0 decisions are documented there.
+  const monthsHolding = (rowIds: string[]): number =>
+    monthsHoldingRows(localStorage, rowIds);
+
+  const removeBlock = (id: string) => {
+    // Deleting a block is instant and has no undo. Amounts recorded against its
+    // rows in OTHER months stay on disk but stop being reachable, which reads to
+    // the user as history quietly changing. Say so before it happens.
+    const block = blocks.find(b => b.id === id);
+    const affected = monthsHolding(block?.rows.map(r => r.id) ?? []);
+    if (affected > 0 && !window.confirm(t.deleteBlockHistoryConfirm(affected))) return;
+    setBlocks(prev => prev.filter(b => b.id !== id));
+  };
+
+  // Copy a block's STRUCTURE — rows, colors, chart config, width, background —
+  // and drop it right after the original. Every row gets a fresh id, so the copy
+  // starts with no amounts: values are keyed by row id, and duplicating "Housing"
+  // to build a second one should not drag this month's rent along with it.
+  const duplicateBlock = (id: string) => setBlocks(prev => {
+    const i = prev.findIndex(b => b.id === id);
+    if (i === -1) return prev;
+    const src = prev[i];
+    const copy: CustomBlock = {
+      ...src,
+      id: uid(),
+      // The copy is named, so it must never be reverse-translated back to the
+      // original's built-in name on a language switch — hence userNamed + no key.
+      name: t.copyOfName(resolveDisplayName(src, t)),
+      nameKey: undefined,
+      userNamed: true,
+      chart: { ...src.chart },
+      rows: src.rows.map(r => ({ ...r, id: uid() })),
+    };
+    return [...prev.slice(0, i + 1), copy, ...prev.slice(i + 1)];
+  });
   const patchBlock = (id: string, patch: Partial<CustomBlock>) =>
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
 
@@ -395,9 +536,14 @@ export const CustomV3 = ({ year, month }: Props) => {
   const recolorRow = (id: string, rowId: string, color: string) =>
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.map(r => r.id === rowId ? { ...r, color } : r) } : b));
-  const deleteRow = (id: string, rowId: string) =>
+  // Same protection as removeBlock, one row wide. A single row carried a whole
+  // month's rent as easily as a block did, and deleting it asked nothing.
+  const deleteRow = (id: string, rowId: string) => {
+    const affected = monthsHolding([rowId]);
+    if (affected > 0 && !window.confirm(t.deleteRowHistoryConfirm(affected))) return;
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.filter(r => r.id !== rowId) } : b));
+  };
 
   const move = (id: string, dir: -1 | 1) => setBlocks(prev => {
     const i = prev.findIndex(b => b.id === id);
@@ -471,7 +617,8 @@ export const CustomV3 = ({ year, month }: Props) => {
             ❔ {t.howItWorks}
           </button>
         </div>
-        {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock} onClose={() => setPicking(false)} />}
+        {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock}
+          onAddTemplate={addTemplate} onClose={() => setPicking(false)} />}
         {helpOpen && <CustomHelp t={t} onClose={() => setHelpOpen(false)} />}
       </div>
     );
@@ -487,25 +634,41 @@ export const CustomV3 = ({ year, month }: Props) => {
         <h2 className="sr-only">{t.layoutCustom}</h2>
         <div className="custom-toolbar">
           {toast && <span className="custom-toast">{toast}</span>}
-          <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
-            ❔ {t.howItWorks}
-          </button>
-          <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
-            📋 {t.copyLastMonth}
-          </button>
-          <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
-            onClick={() => setEditing(e => !e)}>
-            {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
-          </button>
-          {editing && (
-            <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
-              title={t.clearAmounts}>
-              🧹 {t.clearAmounts}
+          {/* Custom hides the app's tab bar, so this is the only route to a view
+              spanning more than the selected month. */}
+          <div className="utils-seg custom-view-seg" role="group" aria-label={t.layoutCustom}>
+            <button className={`seg-btn${view === 'budget' ? ' seg-active' : ''}`}
+              onClick={() => setView('budget')} aria-pressed={view === 'budget'}>
+              📋 {t.tabBudget}
             </button>
-          )}
+            <button className={`seg-btn${view === 'year' ? ' seg-active' : ''}`}
+              onClick={() => setView('year')} aria-pressed={view === 'year'}>
+              📅 {t.tabYear}
+            </button>
+          </div>
+          {view === 'budget' && <>
+            <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
+              ❔ {t.howItWorks}
+            </button>
+            <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
+              📋 {t.copyLastMonth}
+            </button>
+            <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
+              onClick={() => setEditing(e => !e)}>
+              {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
+            </button>
+            {editing && (
+              <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
+                title={t.clearAmounts}>
+                🧹 {t.clearAmounts}
+              </button>
+            )}
+          </>}
         </div>
 
-        {viewBlocks.map((b, index) => {
+        {view === 'year' && <CustomYear blocks={blocks} year={year} />}
+
+        {view === 'budget' && viewBlocks.map((b, index) => {
           const isSummary = b.kind === 'summary';
           const total = blockTotal(b);
           // Phone: every block is a compact tile (tap → modal). Desktop: full inline.
@@ -557,6 +720,9 @@ export const CustomV3 = ({ year, month }: Props) => {
                     <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
                       title={t.moveDown} aria-label={t.moveDown}>↓</button>
                   </>}
+                  <button className="custom-icon-btn" onClick={() => duplicateBlock(b.id)}
+                    title={t.duplicateBlock}
+                    aria-label={`${t.duplicateBlock}: ${resolveDisplayName(b, t)}`}>⧉</button>
                   <button className="custom-icon-btn" onClick={() => setConfigFor(b.id)}
                     title={t.sectionSettings} aria-label={t.sectionSettings}>⚙</button>
                   <button className="custom-icon-btn custom-remove-btn" onClick={() => removeBlock(b.id)}
@@ -602,7 +768,7 @@ export const CustomV3 = ({ year, month }: Props) => {
           );
         })}
 
-        {editing && (
+        {view === 'budget' && editing && (
           <button className="custom-add-card" onClick={() => setPicking(true)}>
             <span className="custom-add-plus">＋</span>
             <span>{t.addBlock}</span>
@@ -610,7 +776,8 @@ export const CustomV3 = ({ year, month }: Props) => {
         )}
       </div>
 
-      {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock} onClose={() => setPicking(false)} />}
+      {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock}
+          onAddTemplate={addTemplate} onClose={() => setPicking(false)} />}
 
       {cfgBlock && (
         <ConfigPanel block={cfgBlock}
@@ -770,10 +937,10 @@ const BlockContent = ({
     ].filter(d => d.value > 0);
     const sumChart = block.chart.show && sumData.length > 0 ? (() => {
       const totalV = sumData.reduce((s, d) => s + d.value, 0);
-      const style: ExpenseChartStyle = block.chart.type === 'trend' ? 'bars' : block.chart.type;
+      const style: ExpenseChartStyle = block.chart.type;
       return (
         <div className="cv3-chart-slot"><div className="charts-container"><div className="chart-block">
-          <ExpenseChart data={sumData} totalIncome={0} totalExpenses={totalV}
+          <ExpenseChart data={sumData} totalExpenses={totalV}
             style={style} height={style === 'bars' ? sumData.length * 44 + 20 : chartHeightPx(block.chart.size)}
             money={money} currency={currency} totalLabel={t.summaryBlock} />
         </div></div></div>
@@ -815,30 +982,17 @@ const BlockContent = ({
     );
   }
 
-  // The chart (if enabled) — composition of this block's rows, or a trend.
+  // The chart (if enabled) — composition of this block's own rows.
   const chartNode = block.chart.show ? (() => {
     const data = block.rows
       .map(r => ({ name: r.name || '—', value: values[r.id] || 0, color: r.color, icon: '' }))
       .filter(d => d.value > 0);
     const height = chartHeightPx(block.chart.size);
-    if (block.chart.type === 'trend') {
-      // A single-block trend isn't meaningful per-row; show the year income/expense
-      // trend of the SHARED structure isn't right either — use a bar fallback.
-      if (data.length === 0) return null;
-      const totalV = data.reduce((s, d) => s + d.value, 0);
-      return (
-        <div className="charts-container"><div className="chart-block">
-          <ExpenseChart data={data} totalIncome={0} totalExpenses={totalV}
-            style="bars" height={data.length * 44 + 20}
-            money={money} currency={currency} totalLabel={t.blockTotal} />
-        </div></div>
-      );
-    }
     if (data.length === 0) return null;
     const totalV = data.reduce((s, d) => s + d.value, 0);
     return (
       <div className="charts-container"><div className="chart-block">
-        <ExpenseChart data={data} totalIncome={0} totalExpenses={totalV}
+        <ExpenseChart data={data} totalExpenses={totalV}
           style={block.chart.type} height={block.chart.type === 'bars' ? data.length * 44 + 20 : height}
           money={money} currency={currency} totalLabel={t.blockTotal} />
       </div></div>
@@ -1065,10 +1219,11 @@ const TargetInput = ({ value, onChange }: { value?: number; onChange: (v: number
 };
 
 // ── Add-block picker ──
-const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
+const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose }: {
   onAddBlock: (tag: BlockTag) => void;
   onAddSummary: () => void;
   onAddNote: () => void;
+  onAddTemplate: (tpl: BlockTemplate) => void;
   onClose: () => void;
 }) => {
   const { t } = useLang();
@@ -1096,6 +1251,16 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
             <span className="custom-picker-emoji">📝</span><span>{t.addNote}</span>
           </button>
         </div>
+
+        <div className="custom-picker-sep" role="separator" />
+        <div className="custom-picker-grid">
+          {BLOCK_TEMPLATES.map(tpl => (
+            <button className="custom-picker-btn" key={tpl.key} onClick={() => onAddTemplate(tpl)}>
+              <span className="custom-picker-emoji">{tpl.emoji}</span><span>{t[tpl.key]}</span>
+            </button>
+          ))}
+        </div>
+
         <button className="custom-modal-close" onClick={onClose}>{t.cfgDone}</button>
       </div>
     </div>
@@ -1103,7 +1268,9 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onClose }: {
 };
 
 // ── Per-block settings panel ──
-const CHART_TYPES: ExpenseChartStyle[] = ['donut', 'pie', 'bars', 'list', 'stacked', 'treemap', 'radial', 'trend'];
+// The picker renders the shared list itself — no second copy to drift — so it
+// can never offer a style the renderer, loader or backup validator rejects.
+const CHART_TYPES: readonly ExpenseChartStyle[] = EXPENSE_CHART_STYLES;
 
 const ConfigPanel = ({ block, onChange, onClose, t }: {
   block: CustomBlock;
@@ -1119,7 +1286,7 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
   const chartTypeLabel: Record<ExpenseChartStyle, string> = {
     donut: t.chartStyleDonut, pie: t.chartStylePie, bars: t.chartStyleBars,
     list: t.chartStyleList, stacked: t.chartStyleStacked, treemap: t.chartStyleTreemap,
-    radial: t.chartStyleRadial, trend: t.chartStyleTrend,
+    radial: t.chartStyleRadial,
   };
   const setChart = (patch: Partial<BlockChart>) => onChange({ chart: { ...block.chart, ...patch } });
   // On a phone, blocks are full-width so left/right/between all collapse to a

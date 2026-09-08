@@ -2,23 +2,22 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Treemap, RadialBarChart, RadialBar, Legend,
-  AreaChart, Area, Line,
 } from 'recharts';
 import type { BudgetCategory } from '../types';
-import { shownName, loadMonthData } from '../defaults';
-import { useLang, CURRENCIES, MONTHS_SHORT, formatAxisTick } from '../i18n';
+import { shownName } from '../defaults';
+import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { categoryTotal } from '../metrics';
+import type { ExpenseChartStyle } from '../blockChart';
 
 interface Props {
   categories: BudgetCategory[];
-  totalIncome: number;
 }
 
-// Expense-composition chart styles (single category snapshot) + the
-// month-spanning 'trend'. Chosen per-block in Custom mode's config panel.
-export type ExpenseChartStyle =
-  | 'donut' | 'bars' | 'pie' | 'list'
-  | 'stacked' | 'treemap' | 'radial' | 'trend';
+// Chart styles live in blockChart.ts — the shared source UI, the localStorage
+// loader and the backup validator all agree on. Re-exported so existing
+// importers of this module keep working.
+export type { ExpenseChartStyle };
 
 interface CatDatum { name: string; value: number; color: string; icon: string; }
 
@@ -57,7 +56,6 @@ const TreemapCell = ({ x = 0, y = 0, width = 0, height = 0, name = '', color }: 
 
 interface ExpenseChartProps {
   data: CatDatum[];
-  totalIncome: number;
   totalExpenses: number;
   style: ExpenseChartStyle;
   height: number;
@@ -68,16 +66,20 @@ interface ExpenseChartProps {
 
 // The reusable expense-composition engine — used by the inline expense chart
 // AND by Custom-mode sections (which pass their own style + height).
-export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
+export const ExpenseChart = ({ data, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
   const { lang } = useLang();
   const isLight = document.documentElement.dataset.theme === 'light';
   const { text: tickColor, grid: gridColor } = chartColors();
   const tickColorStrong = isLight ? '#5d5972' : '#94a3b8';
   const cursorFill = 'rgba(139, 92, 246, 0.10)';
 
-  const pct = (value: number) => totalIncome > 0
-    ? Math.round((value / totalIncome) * 100)
-    : Math.round((value / totalExpenses) * 100);
+  // Share of TOTAL EXPENSES — the same quantity the donut arc is drawn from,
+  // so the label and the picture can never disagree. It used to divide by
+  // income whenever income was non-zero: a lone expense category filled the
+  // whole circle and was labelled "45 %" (review 2026-09-05, F5). Custom mode
+  // already opted out by passing an income of 0; now there is only one rule.
+  const pct = (value: number) =>
+    totalExpenses > 0 ? Math.round((value / totalExpenses) * 100) : 0;
 
   const legend = (
     <div className="donut-legend">
@@ -255,69 +257,13 @@ export const ExpenseChart = ({ data, totalIncome, totalExpenses, style, height, 
   );
 };
 
-// ── Budget trend: income vs expenses across the 12 months of the year ──
-interface TrendTooltipProps {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
-  label?: string;
-  money?: (n: number) => string;
-}
-const TrendTooltip = ({ active, payload, label, money }: TrendTooltipProps) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tooltip">
-      <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-dim)' }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontSize: '0.8rem' }}>
-          {p.name}: {money ? money(p.value) : p.value}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export const BudgetTrendChart = ({ year, height }: { year: number; height: number }) => {
-  const { lang, t, money } = useLang();
-  const { text: tickColor, grid: gridColor } = chartColors();
-
-  const data = MONTHS_SHORT[lang].map((label, m) => {
-    const md = loadMonthData(year, m, lang);
-    const income = md.income.reduce((s, r) => s + r.amount, 0);
-    const expenses = md.expenses.reduce((s, c) => s + c.rows.reduce((cs, r) => cs + r.amount, 0), 0);
-    return { month: label, income, expenses };
-  });
-
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="grad-budget-exp" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#f87171" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: tickColor, fontSize: 11 }}
-          tickFormatter={v => formatAxisTick(v, lang)} axisLine={false} tickLine={false} width={38} />
-        <Tooltip content={<TrendTooltip money={money} />} />
-        <Legend iconType="circle" iconSize={8}
-          wrapperStyle={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }} />
-        <Area type="monotone" dataKey="expenses" name={t.expenses} stroke="#f87171" strokeWidth={2}
-          fill="url(#grad-budget-exp)" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="income" name={t.income} stroke="#22c55e" strokeWidth={2}
-          dot={false} isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-};
-
-// Build the {name,value,color,icon} list from categories (shared).
-export function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
+// Build the {name,value,color,icon} list a chart renders, dropping empty
+// categories. Shared by the Classic/Combined donut and per-category bars.
+function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
   return categories
     .map(cat => ({
       name: shownName(cat, lang),
-      value: cat.rows.reduce((s, r) => s + r.amount, 0),
+      value: categoryTotal(cat),
       color: cat.color,
       icon: cat.icon,
     }))
@@ -327,7 +273,7 @@ export function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | '
 // Plain expense chart for Classic & Combined: always the default donut +
 // per-category bars (no inline style switcher — chart type is chosen only
 // per-block in Custom mode's config panel).
-export const Charts = ({ categories, totalIncome }: Props) => {
+export const Charts = ({ categories }: Props) => {
   const { t, lang, currency, money } = useLang();
   const data = buildCatData(categories, lang);
 
@@ -349,7 +295,6 @@ export const Charts = ({ categories, totalIncome }: Props) => {
         <h3 className="chart-title">{t.chartExpenseDistribution}</h3>
         <ExpenseChart
           data={data}
-          totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           style="donut"
           height={240}
@@ -363,7 +308,6 @@ export const Charts = ({ categories, totalIncome }: Props) => {
         <h3 className="chart-title">{t.chartPerCategory}</h3>
         <ExpenseChart
           data={data}
-          totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           style="bars"
           height={data.length * 44 + 20}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -22,9 +22,10 @@ const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
+import { adoptExternalMonth } from './crossTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, type Lang, type Currency } from './i18n';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
   resolveVars,
@@ -37,7 +38,11 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
-import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth } from './metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal, recursNextMonth } from './metrics';
+import { InsightLine } from './components/InsightLine';
+import { savingsStreakFrom } from './insight';
+import { hasBudgetContent } from './monthContent';
+import { loadStartDay, isValidStartDay, PERIOD_START_KEY } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
@@ -115,9 +120,12 @@ function shouldShowBackupReminder(): boolean {
 
 function App() {
   const now = new Date();
-  const [lang, setLang]       = useState<Lang>(() =>
-    (localStorage.getItem('budget_lang') as Lang) || 'sv'
-  );
+  // Validate, never cast: a damaged value must not be able to lock the user out
+  // of the app that would let them fix it (review 2026-09-05, F3).
+  const [lang, setLang]       = useState<Lang>(() => {
+    const stored = localStorage.getItem('budget_lang');
+    return isLang(stored) ? stored : 'sv';
+  });
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
@@ -131,9 +139,10 @@ function App() {
   const [themeMode, setThemeMode] = useState<Mode>(initialTheme.mode);
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
-  const [currency, setCurrency] = useState<Currency>(() =>
-    (localStorage.getItem('budget_currency') as Currency) || 'sek'
-  );
+  const [currency, setCurrency] = useState<Currency>(() => {
+    const stored = localStorage.getItem('budget_currency');
+    return isCurrency(stored) ? stored : 'sek';
+  });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).
   const [layout, setLayout] = useState<'classic' | 'combined' | 'custom'>(() => {
@@ -155,11 +164,24 @@ function App() {
   // focus returns to the ⚙ button.
   useModalFocus(menuPanelRef, menuOpen, () => setMenuOpen(false));
 
+  // Pay-period start day. Null = off, which is the default and how the app
+  // behaved before this existed.
+  const [periodStartDay, setPeriodStartDay] = useState<number | null>(() => loadStartDay(localStorage));
+  const changeStartDay = (day: number | null) => {
+    setPeriodStartDay(day);
+    if (day === null) localStorage.removeItem(PERIOD_START_KEY);
+    else localStorage.setItem(PERIOD_START_KEY, String(day));
+  };
+
   // Tap-to-open month picker (the 12-month strip)
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
+  // A write that did not land. Not dismissable: the edit really is unsaved, and
+  // a banner the user can wave away would be the same lie as saying nothing
+  // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
@@ -376,9 +398,36 @@ function App() {
     // Nothing user-driven has happened yet — this is still the freshly loaded
     // (possibly backfilled) month. Don't create or rewrite the month's record.
     if (JSON.stringify(data) === loadedSnapshot.current) return;
-    saveMonthData(year, month, data);
+    // Storage can refuse: a full quota, or a browser with site data blocked.
+    // The edit stays in React state either way, so it is still on screen and
+    // still recoverable — but the user has to be told it is not stored.
+    setSaveFailed(!saveMonthData(year, month, data));
   }, [data, year, month]);
-  useEffect(() => { savePlanData(planData); },             [planData]);
+  // ── Another tab edited the month we're showing ───────────────────
+  // Without this, each tab held a private copy and wrote the whole month back
+  // on every edit, so the second tab to save silently reverted the first tab's
+  // work (review 2026-09-05, F1). Adopting the incoming month means the next
+  // edit is made ON TOP of the other tab's change instead of over it.
+  //
+  // Recording the adopted JSON as the baseline is what keeps this quiet: the
+  // save effect above skips when `data` matches `loadedSnapshot`, so adopting
+  // writes nothing and cannot bounce back and forth between tabs.
+  //
+  // A `storage` event only ever fires in OTHER tabs, never the one that wrote —
+  // so this cannot react to itself.
+  useEffect(() => {
+    const key = storageKey(year, month);
+    const onStorage = (e: StorageEvent) => {
+      const adopted = adoptExternalMonth(e, key, loadedSnapshot.current);
+      if (!adopted) return;
+      loadedSnapshot.current = adopted.raw;
+      setData(adopted.data);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [year, month]);
+
+  useEffect(() => { if (!savePlanData(planData)) setSaveFailed(true); }, [planData]);
 
   // ── Close utilities menu on outside click ────────────────────────
   useEffect(() => {
@@ -465,18 +514,107 @@ function App() {
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
 
+  // Pull the PREVIOUS month's budget into this one — the mirror of "copy to next
+  // month", and the Classic/Combined counterpart of Custom's "copy last month".
+  //
+  // Income + expenses ONLY. The Savings tab records a running BALANCE plus an
+  // explicit `savingsSnapshotRecorded` flag, so copying last month's savings
+  // would claim a snapshot the user never took: savedThisMonth would compute
+  // balance − balance = 0, and the Year table would print a recorded "0 kr"
+  // where it should print "not recorded". Savings are left exactly as they are.
+  const copyFromPrevMonth = () => {
+    const py = month === 0 ? year - 1 : year;
+    const pm = month === 0 ? 11 : month - 1;
+    const prevName = MONTHS[lang][pm];
+
+    // Load the source BEFORE this month can change. A stored key is not the same
+    // thing as a budget: a month holding only savings, only a period label, or
+    // only a recorded snapshot has a key, and pulling from one of those replaced
+    // this month's real budget with nothing at all.
+    //
+    // hasBudgetContent is the same rule the forward copies apply to their TARGET,
+    // so "is there a budget here" has one answer in both directions. It counts
+    // structure rather than amounts, so a deliberate zero budget with the user's
+    // own rows still copies. A month that was never saved loads as empty arrays
+    // (defaultMonthData), so this subsumes the old raw-key check rather than
+    // weakening it.
+    const prev = loadMonthData(py, pm, lang);
+    if (!hasBudgetContent(prev)) {
+      setMenuOpen(false);
+      showMsg(t.copyPrevMonthEmpty(prevName));
+      return;
+    }
+    // Structure counts, not just amounts. A month worth 0 kr can still hold row
+    // names, categories, an order and a per-year marking — all of it the user's,
+    // and all of it about to be replaced.
+    if (hasBudgetContent(data) && !window.confirm(
+      t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
+    )) return;
+
+    // Re-link goal rows afterwards: the incoming expenses come from a month that
+    // may predate a goal, and the Plan tab's goal↔budget link must survive.
+    setData(cur => ensureGoalLinkedBudgetRows(
+      {
+        ...cur,
+        // Same rule pulling backwards: last month's yearly charge is not this
+        // month's cost.
+        income: prev.income.filter(recursNextMonth),
+        expenses: prev.expenses.map(c => ({ ...c, rows: c.rows.filter(recursNextMonth) })),
+      },
+      planData.goals,
+      lang,
+    ));
+    setMenuOpen(false);
+    showMsg(t.copiedLastMonth);
+  };
+
+  // Write this month's BUDGET into a target month, keeping whatever savings that
+  // month already holds. The menu group is "Copy budget", and budget means income
+  // + expenses: savings is a recorded BALANCE guarded by savingsSnapshotRecorded,
+  // so carrying it forward made the target claim a snapshot the user never took —
+  // savedThisMonth then read balance − balance = 0 and the Year tab printed a
+  // recorded "0 kr" where it should print "not recorded". A month that was never
+  // saved keeps the blank savings a fresh month gets, so nothing is invented.
+  /** The part of this month's budget that genuinely repeats next month.
+   *  A yearly subscription, a quarterly charge or a one-off purchase is money
+   *  that left the account once — carrying it forward would invent a cost that
+   *  never happens. The user re-adds it when it is actually due; the app has no
+   *  calendar and must not guess. */
+  const recurringBudget = () => ({
+    income: data.income.filter(recursNextMonth),
+    expenses: data.expenses.map(c => ({ ...c, rows: c.rows.filter(recursNextMonth) })),
+  });
+
+  const copyBudgetInto = (targetYear: number, targetMonth: number) => {
+    const target = loadMonthData(targetYear, targetMonth, lang);
+    saveMonthData(targetYear, targetMonth, { ...target, ...recurringBudget() });
+  };
+
+  /** The months this copy would land on that already hold a budget. */
+  const occupiedTargets = (targets: { y: number; m: number }[]) =>
+    targets.filter(({ y, m }) => hasBudgetContent(loadMonthData(y, m, lang)));
+
   const copyToNextMonth = () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
-    saveMonthData(nextYear, nextMth, data);
+    // Ask before replacing a month the user has already built.
+    if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
+      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
+    )) return;
+    copyBudgetInto(nextYear, nextMth);
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
   const copyToAllRemaining = () => {
-    for (let m = month + 1; m <= 11; m++) saveMonthData(year, m, data);
+    const targets = Array.from({ length: 11 - month }, (_, i) => ({ y: year, m: month + 1 + i }));
+    // Count BEFORE writing anything: a half-finished mass copy that the user
+    // then declines would be the worst of both outcomes.
+    const occupied = occupiedTargets(targets);
+    if (occupied.length > 0 && !window.confirm(t.copyOverwriteMany(occupied.length))) return;
+    targets.forEach(({ y, m }) => copyBudgetInto(y, m));
     setMenuOpen(false);
-    showMsg(t.copiedToMonths(11 - month));
+    showMsg(t.copiedToMonths(targets.length));
   };
 
   // Reset ONLY the currently-selected month back to fresh defaults, then re-add
@@ -492,6 +630,19 @@ function App() {
     setData(fresh);
     setMenuOpen(false);
     showMsg(t.resetMonthDone);
+  };
+
+  // Stable identity: this sits in CustomV3's save-effect dependencies, and a
+  // new function each render would re-run that effect on every render.
+  const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
+
+  // Try the whole current state again — after the user has freed space or
+  // exported. Both writes are attempted so one succeeding cannot hide the other
+  // still failing.
+  const retrySave = () => {
+    const monthOk = saveMonthData(year, month, data);
+    const planOk = savePlanData(planData);
+    setSaveFailed(!(monthOk && planOk));
   };
 
   // ── Month navigation ──────────────────────────────────────────────
@@ -754,6 +905,21 @@ function App() {
   );
   const savedThisMonthAmount = savedThisMonth(savingsSnapshot, prevSavingsSnapshot);
 
+  // Savings balances for the months leading up to this one, oldest first, so the
+  // insight line can tell a real growth streak from a lucky month. Bounded at
+  // four look-backs (a claim of "3 months running" is the most it can make) and
+  // memoised — this is four localStorage reads plus parses.
+  const savingsStreakMonths = useMemo(() => {
+    const balances: (number | null)[] = [];
+    for (let back = 3; back >= 0; back--) {
+      let y = year, m = month - back;
+      while (m < 0) { m += 12; y -= 1; }
+      const snap = calculateSavingsMetrics(back === 0 ? data : loadMonthData(y, m, lang));
+      balances.push(snap.hasSnapshot ? snap.balance : null);
+    }
+    return savingsStreakFrom(balances);
+  }, [year, month, data, lang]);
+
   // ── Onboarding heroes & starter buttons ──────────────────────────
   // A brand-new empty month gets a guided "get started" hero with a primary
   // template CTA. Once the user has chosen "start from empty" (persisted),
@@ -801,6 +967,23 @@ function App() {
     <>
       {budgetHero}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
+      {/* Says something about the numbers instead of only showing them. Names
+          are resolved here so the insight text follows the current language. */}
+      <InsightLine
+        income={totalIncome}
+        expenses={totalExpenses}
+        categories={data.expenses.map(c => ({
+          name: shownName(c, lang),
+          total: categoryTotal(c),
+        }))}
+        saved={savedThisMonthAmount}
+        goals={planData.goals.map(g => ({
+          name: shownName(g, lang),
+          current: g.currentAmount,
+          target: g.targetAmount,
+        }))}
+        savingsStreak={savingsStreakMonths}
+      />
       {/* Daily/weekly pace for the remaining money — current real month only. */}
       {totalIncome > 0 && (
         <DailyBudget remaining={totalIncome - totalExpenses} year={year} month={month} />
@@ -823,7 +1006,7 @@ function App() {
         </div>
         <div className="budget-right">
           <Suspense fallback={lazyFallback}>
-            <Charts categories={data.expenses} totalIncome={totalIncome} />
+            <Charts categories={data.expenses} />
           </Suspense>
         </div>
       </div>
@@ -879,6 +1062,9 @@ function App() {
             onNext={nextMonth}
             pickerOpen={pickerOpen}
             onTogglePicker={() => setPickerOpen(o => !o)}
+            periodLabel={data.periodLabel}
+            periodStartDay={periodStartDay}
+            onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
           />
 
           {/* Single utilities menu: language, theme, copy budget, data */}
@@ -1021,15 +1207,51 @@ function App() {
 
                   <div className="utils-divider" />
 
-                  {/* Copy budget */}
-                  <div className="utils-group-label">{t.copyBudget}</div>
-                  <button className="utils-action" onClick={copyToNextMonth}>
-                    → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
-                  </button>
-                  {month < 11 && (
-                    <button className="utils-action" onClick={copyToAllRemaining}>
-                      → {t.copyAllRemaining(11 - month)}
-                    </button>
+                  {/* Pay period — a LABEL under the month heading. It changes
+                      no amounts, which the hint says out loud so nobody expects
+                      their totals to move. */}
+                  <div className="utils-group-label">{t.periodSection}</div>
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.periodStartDay}</span>
+                    <select
+                      className="utils-select"
+                      value={periodStartDay ?? ''}
+                      onChange={e => {
+                        const v = e.target.value === '' ? null : Number(e.target.value);
+                        changeStartDay(v !== null && isValidStartDay(v) ? v : null);
+                      }}
+                    >
+                      <option value="">{t.periodStartOff}</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="utils-hint">{t.periodStartHint}</div>
+
+                  {/* Copy budget — CLASSIC/COMBINED ONLY. These read and write
+                      budget_<year>_<month>, which the Custom layout does not
+                      use. Offered in Custom mode they copied a budget the user
+                      could not see, into a month they were not looking at, and
+                      reported success (review 2026-09-05, F2). Custom has its
+                      own "pull from last month" inside its own UI. */}
+                  {layout !== 'custom' && (
+                    <>
+                      <div className="utils-divider" />
+
+                      <div className="utils-group-label">{t.copyBudget}</div>
+                      <button className="utils-action" onClick={copyFromPrevMonth}>
+                        ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
+                      </button>
+                      <button className="utils-action" onClick={copyToNextMonth}>
+                        → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                      </button>
+                      {month < 11 && (
+                        <button className="utils-action" onClick={copyToAllRemaining}>
+                          → {t.copyAllRemaining(11 - month)}
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <div className="utils-divider" />
@@ -1041,13 +1263,21 @@ function App() {
                     {t.importData}
                   </button>
 
-                  <div className="utils-divider" />
+                  {/* Danger zone — destructive actions, visually separated.
+                      Also classic-only: resetCurrentMonth blanks the classic
+                      month whatever layout is on screen, so in Custom mode it
+                      would wipe invisible data and say it was done. Custom
+                      clears its own amounts from its own toolbar. */}
+                  {layout !== 'custom' && (
+                    <>
+                      <div className="utils-divider" />
 
-                  {/* Danger zone — destructive actions, visually separated */}
-                  <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
-                  <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
-                    {t.resetMonth}
-                  </button>
+                      <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
+                      <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
+                        {t.resetMonth}
+                      </button>
+                    </>
+                  )}
                   </div>
                 </div>
               </>
@@ -1125,6 +1355,18 @@ function App() {
       )}
 
       <main className="app-main">
+        {saveFailed && (
+          <div className="save-error-banner" role="alert">
+            <div className="save-error-text">
+              <strong>{t.saveFailedTitle}</strong>
+              <span>{t.saveFailedBody}</span>
+            </div>
+            <div className="save-error-actions">
+              <button className="save-error-btn" onClick={retrySave}>{t.saveRetry}</button>
+              <button className="save-error-btn" onClick={exportData}>{t.exportData}</button>
+            </div>
+          </div>
+        )}
         {showBackupReminder && (
           <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
         )}
@@ -1203,7 +1445,7 @@ function App() {
                Tab bar hidden; the global month selector drives its per-month
                amounts. */
           <Suspense fallback={lazyFallback}>
-            <CustomV3 year={year} month={month} />
+            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} />
           </Suspense>
         )}
       </main>

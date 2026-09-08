@@ -33,12 +33,30 @@
 //     previous December (see yearSavingsGrowth) — unknown without that baseline.
 //   • Leftover rate = remaining ÷ income = the share of income not yet budgeted.
 
-import type { MonthData, BudgetCategory, BudgetRow } from './types';
+import type { MonthData, BudgetCategory, BudgetRow, RowPeriod } from './types';
 
 /** The savings category treated as a separate long-term bucket. Excluded from
  *  every "saved" total so Savings, Plan and Year never disagree. */
 export const PENSION_CATEGORY_ID = 'pension';
 
+export const ROW_PERIODS = ['month', 'quarter', 'year', 'once'] as const;
+
+/** Shared by the picker and the backup validator, so the UI can never offer a
+ *  period an import would reject, or vice versa. */
+export function isRowPeriod(v: unknown): v is RowPeriod {
+  return typeof v === 'string' && (ROW_PERIODS as readonly string[]).includes(v);
+}
+
+/** Rows that do NOT recur next month, so copying a budget forward must leave
+ *  them behind. Carrying a yearly subscription into February would add a charge
+ *  that never happens; the cost of skipping is that the user re-adds it when it
+ *  is genuinely due, which the app cannot know — it has no calendar. */
+export function recursNextMonth(row: BudgetRow): boolean {
+  return !isRowPeriod(row.period) || row.period === 'month';
+}
+
+/** A row contributes exactly what it says. `period` is a timing label, never
+ *  a multiplier — see RowPeriod in types.ts for why the division was removed. */
 export function sumRows(rows: BudgetRow[]): number {
   return rows.reduce((s, r) => s + (r.amount || 0), 0);
 }
@@ -126,6 +144,11 @@ export interface SavingsSnapshot {
  *  recorded keeps it (a false "unknown" would erase real balances from charts). */
 export function calculateSavingsMetrics(month: MonthData): SavingsSnapshot {
   const savings = month.savings ?? [];
+  // Balances, NOT flows — so they go through the raw sum. Routing them through
+  // sumRows would let a stray `period` on a savings row divide a recorded
+  // balance by twelve, turning 60 000 kr into 5 000 kr on every chart that
+  // reads it. The UI never offers a period here, but a hand-edited or imported
+  // file could carry one, and "the UI wouldn't do that" is not a safeguard.
   const balance = sumCategories(savings, PENSION_CATEGORY_ID);
   const pension = savings
     .filter(c => c.id === PENSION_CATEGORY_ID)

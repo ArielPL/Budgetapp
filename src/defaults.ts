@@ -1,7 +1,8 @@
 import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from './types';
+import { safeSetItem } from './storageWrite';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
-import { calculateSavingsMetrics } from './metrics';
+import { calculateSavingsMetrics, isRowPeriod } from './metrics';
 import type { StorageLike } from './backup';
 import { coerceStoredMoney, isValidMoney } from './money';
 
@@ -39,11 +40,11 @@ export const CATEGORY_ICONS = [
 
 // The four default savings categories — power the growth-chart lines and per-id
 // structure, so they must always exist and never be deletable.
-export const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
+const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
 
 // Categories that must never be deletable: the one wired to the Plan tab
 // (sparande) plus the four fixed savings defaults.
-export const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
+const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
 
 export function isProtectedCategory(id: string): boolean {
   return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
@@ -129,7 +130,7 @@ for (const entry of Object.values(L)) {
 }
 
 /** Translate a built-in default label to the current language; pass through custom labels. */
-export function displayLabel(label: string, lang: Lang): string {
+function displayLabel(label: string, lang: Lang): string {
   return REVERSE_LABELS[label]?.[lang] ?? label;
 }
 
@@ -146,7 +147,7 @@ export function shownName(
   return item.userNamed ? raw : displayLabel(raw, lang);
 }
 
-export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
+function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   return [
     { id: makeId(), label: tr(L.salary, lang), amount: 0 },
     { id: makeId(), label: tr(L.sideIncome, lang), amount: 0 },
@@ -154,7 +155,7 @@ export function defaultIncome(lang: Lang = 'sv'): BudgetRow[] {
   ];
 }
 
-export function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
+function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
   return [
     {
       id: 'boende', name: tr(L.boende, lang), icon: '🏠', color: CATEGORY_COLORS.boende,
@@ -215,7 +216,7 @@ export function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
   ];
 }
 
-export function defaultSavings(lang: Lang = 'sv'): BudgetCategory[] {
+function defaultSavings(lang: Lang = 'sv'): BudgetCategory[] {
   return [
     {
       id: 'sparkonto', name: tr(L.sparkonto, lang), icon: '🏦', color: SAVINGS_COLORS.sparkonto,
@@ -368,20 +369,36 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
   }
 }
 
-const normalizeRow = (r: BudgetRow): BudgetRow =>
-  isValidMoney(r?.amount) ? r : { ...r, amount: coerceStoredMoney(r?.amount) };
+const normalizeRow = (r: BudgetRow): BudgetRow => {
+  const amount = isValidMoney(r?.amount) ? r.amount : coerceStoredMoney(r?.amount);
+  // Backup import is strict about `period`, but data read straight out of
+  // localStorage never passes through it — an older build, a hand edit or a
+  // half-written record could carry `period: "week"`. Anything unrecognised is
+  // dropped here so it can never reach the arithmetic. Storage itself is left
+  // alone; this is a defensive READ, not a migration.
+  const period = isRowPeriod(r?.period) ? r.period : undefined;
+  if (amount === r?.amount && period === r?.period) return r;
+  return { ...r, amount, period };
+};
 
 const normalizeCategory = (c: BudgetCategory): BudgetCategory =>
   Array.isArray(c?.rows) ? { ...c, rows: c.rows.map(normalizeRow) } : { ...c, rows: [] };
 
-export function saveMonthData(year: number, month: number, data: MonthData): void {
+/** Returns whether the month was written. False means the edit is still only
+ *  on screen — the caller must say so rather than imply it was saved (F4). */
+export function saveMonthData(year: number, month: number, data: MonthData): boolean {
   const key = storageKey(year, month);
   // Don't CREATE a key for a brand-new, completely empty month — that just
   // litters localStorage with blank entries while navigating (e.g. in Custom
   // mode). An already-saved month is still updated (so clearing it persists).
-  const empty = data.income.length === 0 && data.expenses.length === 0 && data.savings.length === 0;
-  if (empty && localStorage.getItem(key) === null) return;
-  localStorage.setItem(key, JSON.stringify(data));
+  // A hand-written period label is content too. Without this, typing one on an
+  // otherwise-untouched month looked like it worked and was gone on reload —
+  // the label was the month's ONLY content, and this guard dropped it.
+  const empty = data.income.length === 0 && data.expenses.length === 0
+    && data.savings.length === 0 && !data.periodLabel;
+  // Nothing to write is not a failure: the month legitimately stays absent.
+  if (empty && localStorage.getItem(key) === null) return true;
+  return safeSetItem(localStorage, key, JSON.stringify(data));
 }
 
 /**
@@ -500,8 +517,9 @@ export function loadPlanData(lang: Lang = 'sv'): PlanData {
   }
 }
 
-export function savePlanData(data: PlanData): void {
-  localStorage.setItem('budget_plan', JSON.stringify(data));
+/** Returns whether the plan was written — see saveMonthData. */
+export function savePlanData(data: PlanData): boolean {
+  return safeSetItem(localStorage, 'budget_plan', JSON.stringify(data));
 }
 
 export function generateId(): string {

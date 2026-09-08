@@ -4,6 +4,9 @@ import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
 import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
 import { useLang, formatMoneyCompact } from '../i18n';
+import { categoryTotal } from '../metrics';
+import { RowPeriodPicker } from './RowPeriod';
+import type { RowPeriod } from '../types';
 
 interface Props {
   category: BudgetCategory;
@@ -15,9 +18,22 @@ interface Props {
   onDelete?: (id: string) => void;
   /** Note shown for protected categories; defaults to the Plan-linked message. */
   protectedNote?: string;
+  /**
+   * What the amounts on these rows MEAN.
+   *
+   * `flow` (budget income and expenses) — money moving this month, so a row can
+   * say how often it falls due. The total still counts every row in full; the
+   * period is a label, not a divisor.
+   *
+   * `balance` (the Savings tab) — what is in the account right now. "Charged
+   * yearly" says nothing about a balance, so no period control is offered.
+   * Without this the savings tab inherited the picker and showed 12 000 kr and
+   * 1 000 kr for the same account at the same time.
+   */
+  amountKind?: 'flow' | 'balance';
 }
 
-export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }: Props) => {
+export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow' }: Props) => {
   const { t, lang, money, currency } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -26,6 +42,10 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
 
   const updateAmount = (id: string, amount: number) => {
     onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, amount } : r) }, true);
+  };
+
+  const updatePeriod = (id: string, period: RowPeriod | undefined) => {
+    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, period } : r) });
   };
 
   const updateLabel = (id: string, label: string) => {
@@ -47,7 +67,11 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
     }
   };
 
-  const total = category.rows.reduce((s, r) => s + r.amount, 0);
+  // Every row now counts exactly what it says, so both kinds sum identically.
+  // The distinction survives for the PICKER: a savings row holds a balance, and
+  // "charged yearly" is meaningless for what is sitting in an account today.
+  const isBalance = amountKind === 'balance';
+  const total = categoryTotal(category);
 
   return (
     <section className="budget-section expense-section" style={{ '--accent': category.color } as CSSProperties}>
@@ -169,6 +193,12 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote }:
                     the category ends at the same right edge — otherwise rows
                     with a delete button sat 34px to the left of the ones
                     without, and the column looked ragged. */}
+                {!isBalance && (
+                  <span className="row-period-group">
+                    <RowPeriodPicker row={row} label={shownName(row, lang)}
+                      onChange={p => updatePeriod(row.id, p)} />
+                  </span>
+                )}
                 <span className="row-action">
                   {row.isCustom && (
                     <button className="delete-btn" onClick={() => deleteRow(row.id)}

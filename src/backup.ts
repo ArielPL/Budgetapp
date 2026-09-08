@@ -20,9 +20,13 @@
 // Authentication is explicitly out of scope: its keys are never exported, never
 // deleted, never overwritten. See isBackupOwnedKey.
 
-import type { Lang } from './i18n';
+import { isLang, isCurrency, type Lang } from './i18n';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
+import { isRowPeriod } from './metrics';
+import { isValidBlockChart } from './blockChart';
+import { isMonthSnapshot } from './customYear';
+import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -97,17 +101,29 @@ const isRow = (v: unknown): boolean =>
   // able to introduce an amount the app would have refused on the keyboard.
   isValidMoney(v.amount) &&
   (v.label === undefined || typeof v.label === 'string') &&
-  (v.name === undefined || typeof v.name === 'string');
+  (v.name === undefined || typeof v.name === 'string') &&
+  // A period the app cannot represent would silently fall back to monthly on
+  // read, so the imported file and what the app shows would disagree about what
+  // a row costs. Absent is fine — that IS monthly, and every row predating the
+  // field is absent.
+  (v.period === undefined || isRowPeriod(v.period));
 
 const isCategory = (v: unknown): boolean =>
   isPlainObject(v) && typeof v.id === 'string' && Array.isArray(v.rows) && v.rows.every(isRow);
 
-const isMonthData = (v: unknown): boolean =>
+/** Exported so cross-tab adoption uses the SAME shape check as import: a write
+ *  arriving from another tab is no more trustworthy than a file, and the two
+ *  must never disagree about what a month looks like. */
+export const isMonthData = (v: unknown): boolean =>
   isPlainObject(v) &&
   Array.isArray(v.income) && v.income.every(isRow) &&
   Array.isArray(v.expenses) && v.expenses.every(isCategory) &&
   Array.isArray(v.savings) && v.savings.every(isCategory) &&
-  (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean');
+  (v.savingsSnapshotRecorded === undefined || typeof v.savingsSnapshotRecorded === 'boolean') &&
+  // A label, so anything readable goes — but capped, because this renders in the
+  // page header and a novel pasted in would push the month navigation off screen.
+  (v.periodLabel === undefined ||
+    (typeof v.periodLabel === 'string' && v.periodLabel.length <= PERIOD_LABEL_MAX));
 
 /** A savings goal, checked in full. The old version looked at id + the two
  *  amounts only, so a goal missing its name, or carrying a numeric name or a
@@ -159,11 +175,22 @@ const isCustomValues = (v: unknown): boolean =>
   // now share one limit.
   isPlainObject(v) && Object.values(v).every(isValidMoney);
 
-/** Custom structure: an array of block-shaped objects. Lenient on purpose —
- *  loadStructure normalizes unknown fields — but "it's an array" alone let
- *  arbitrary junk through. */
+/** Custom structure: an array of block-shaped objects.
+ *
+ *  This used to stop at "is an object with an optional string name", justified
+ *  by a claim that loadStructure normalized the rest. It didn't — it spread the
+ *  stored chart over the defaults, which PRESERVES unknown values. So a backup
+ *  carrying {"show":"ja","type":"felaktig","size":"XXL"} imported as a success
+ *  and left the config panel with nothing selected while the block drew a
+ *  fallback. Import is the strict gate (new data, about to overwrite what the
+ *  user has); the loader stays defensive. Both now read the allowed values from
+ *  blockChart.ts. Legacy 'trend' is the one explicit exception — it is accepted
+ *  and migrated to the bars it always actually drew. */
 const isCustomStructure = (v: unknown): boolean =>
-  Array.isArray(v) && v.every(b => isPlainObject(b) && (b.name === undefined || typeof b.name === 'string'));
+  Array.isArray(v) && v.every(b =>
+    isPlainObject(b)
+    && (b.name === undefined || typeof b.name === 'string')
+    && isValidBlockChart(b.chart));
 
 /** Parse a JSON-valued key and check it against its own shape. Keys we don't
  *  recognise are accepted as opaque strings: they're inside a versioned backup
@@ -179,10 +206,18 @@ function isValidValue(key: string, raw: string): boolean {
     if (Number(monthKey[1]) > 11) return false;
     return parseThen(isMonthData);
   }
+  // Settings whose value must be one of a known set. These are plain strings,
+  // not JSON. Accepting "xx" here let an import replace a working budget and
+  // then blank the app on the next start (review 2026-09-05, F3).
+  if (key === 'budget_lang') return isLang(raw);
+  if (key === 'budget_currency') return isCurrency(raw);
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);
   if (/^budget_custom_v3_values_/.test(key)) return parseThen(isCustomValues);
+  // The per-month structure snapshot the year view reads. Rejecting a bad one
+  // matters: a wrong tag would refile a month's money into the wrong column.
+  if (/^budget_custom_v3_meta_/.test(key)) return parseThen(isMonthSnapshot);
   return true; // settings & unknown future keys: any string is fine
 }
 

@@ -119,6 +119,30 @@ describe('import validation — nothing is written unless the whole file is good
     const withString = '{"income":[{"id":"i1","amount":"1e309"}],"expenses":[],"savings":[]}';
     expect(checkBackup(backupFile({ budget_2026_6: withString }))).toMatchObject({ ok: false, reason: 'corrupt' });
   });
+  // Review 2026-09-05, F3. "xx" passed validation, replaced a working budget,
+  // and then blanked the app on the next start — with no menu left to fix it.
+  it('rejects a settings value outside its known set', () => {
+    expect(checkBackup(backupFile({ budget_lang: 'xx' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_lang: '' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_currency: 'xx' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    // Inherited object properties are not values: "constructor" is not a language.
+    expect(checkBackup(backupFile({ budget_lang: 'constructor' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_lang: '__proto__' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
+  it('still accepts every language and currency the app itself offers', () => {
+    for (const l of ['sv', 'en', 'es']) {
+      expect(checkBackup(backupFile({ budget_lang: l })).ok).toBe(true);
+    }
+    for (const c of ['sek', 'eur', 'usd', 'gbp']) {
+      expect(checkBackup(backupFile({ budget_currency: c })).ok).toBe(true);
+    }
+  });
+  it('leaves unknown future settings keys alone', () => {
+    // The rule is "known key, known value" — not "reject anything unfamiliar".
+    // A key a later version writes is not the user's fault.
+    expect(checkBackup(backupFile({ budget_something_new: 'whatever' })).ok).toBe(true);
+  });
+
   it('rejects a savings plan with an impossible month', () => {
     const plan = (ym: string) => JSON.stringify({ monthlyAmount: 2000, annualReturnPct: 7, startAmount: 0, startYM: ym });
     expect(checkBackup(backupFile({ budget_savings_plan: plan('2026-13') }))).toMatchObject({ ok: false, reason: 'corrupt' });
@@ -272,6 +296,90 @@ describe('import validation — nothing is written unless the whole file is good
     expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify([1, 2, 3]) }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify(['a']) }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_custom_v3: JSON.stringify([{ id: 'b1', name: 'Block' }]) })).ok).toBe(true);
+  });
+
+  describe('Custom block chart settings share the UI rules', () => {
+    const struct = (chart: unknown) =>
+      JSON.stringify([{ id: 'b1', name: 'Block', ...(chart === undefined ? {} : { chart }) }]);
+
+    it('accepts a fully valid chart config', () => {
+      expect(checkBackup(backupFile({
+        budget_custom_v3: struct({ show: true, type: 'radial', size: 'L', position: 'between' }),
+      })).ok).toBe(true);
+    });
+
+    it('accepts a block with no chart config as an older format', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct(undefined) })).ok).toBe(true);
+    });
+
+    it('accepts legacy trend — it migrates to bars on read', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ type: 'trend' }) })).ok).toBe(true);
+    });
+
+    it('rejects an unknown chart type', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ type: 'felaktig' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects an unknown size or position', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ size: 'XXL' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ position: 'mitt-i' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects a stringified show', () => {
+      expect(checkBackup(backupFile({ budget_custom_v3: struct({ show: 'ja' }) })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('rejects the WHOLE file when one block among several is bad', () => {
+      const mixed = JSON.stringify([
+        { id: 'b1', name: 'Bra', chart: { show: true, type: 'donut', size: 'M', position: 'top' } },
+        { id: 'b2', name: 'Trasig', chart: { type: 'felaktig' } },
+      ]);
+      expect(checkBackup(backupFile({ budget_custom_v3: mixed })))
+        .toMatchObject({ ok: false, reason: 'corrupt' });
+    });
+
+    it('writes NOTHING when a bad chart config is rejected', () => {
+      const store = new FakeStorage({ budget_2026_6: 'MINE', budget_custom_v3: 'MINE TOO' });
+      const check = checkBackup(backupFile({ budget_custom_v3: struct({ type: 'felaktig' }) }));
+      expect(check.ok).toBe(false);
+      // A rejected file never reaches applyBackup — the user's data stands.
+      expect(store.getItem('budget_2026_6')).toBe('MINE');
+      expect(store.getItem('budget_custom_v3')).toBe('MINE TOO');
+    });
+  });
+
+  describe('row period obeys the same rules as the picker', () => {
+    const monthWithPeriod = (period: unknown) => JSON.stringify({
+      income: [{ id: 'i1', label: 'Lön', amount: 30000 }],
+      expenses: [{
+        id: 'boende', name: 'Boende', icon: '', color: '',
+        rows: [{ id: 'r1', label: 'Försäkring', amount: 4800, ...(period === undefined ? {} : { period }) }],
+      }],
+      savings: [],
+    });
+
+    it('accepts the four periods the UI offers', () => {
+      for (const p of ['month', 'quarter', 'year', 'once']) {
+        expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(p) })).ok).toBe(true);
+      }
+    });
+
+    it('accepts a row with no period — that is every row predating the field', () => {
+      expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(undefined) })).ok).toBe(true);
+    });
+
+    it('rejects a period the app cannot represent', () => {
+      // Accepting it would mean the file says "weekly" while the app silently
+      // shows a monthly figure — storage and display disagreeing again.
+      for (const bad of ['week', 'yearly', 'Year', '', 12, null]) {
+        expect(checkBackup(backupFile({ budget_2026_6: monthWithPeriod(bad) })))
+          .toMatchObject({ ok: false, reason: 'corrupt' });
+      }
+    });
   });
 
   it('rejects a month key with an impossible month index', () => {

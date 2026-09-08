@@ -492,6 +492,18 @@ a:focus-visible,
   flex-wrap: wrap;
 }
 
+/* Budget/Year switch sits at the START of the toolbar; everything else stays
+   right-aligned. It is the only route to a multi-month view in Custom, so it
+   reads first rather than being lost among the edit actions. */
+.custom-view-seg { margin-right: auto; }
+
+/* Divides the "what kind of block" choices from the ready-made ones. */
+.custom-picker-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 12px;
+}
+
 /* Brief confirmation toast (e.g. "Copied from last month"). */
 .custom-toast {
   font-size: 0.85rem;
@@ -1864,8 +1876,12 @@ a:focus-visible,
     position: static;
   }
 
+  /* Deliberately NOT one per row. This band used to stack all three cards
+     full-width, so a 800px window spent more height on three numbers than a
+     320px phone does — the phone shows two across. The budget grid has already
+     collapsed to one column here, so the cards have the full width to share. */
   .summary-cards {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .month-title {
@@ -1961,15 +1977,27 @@ a:focus-visible,
   flex-direction: column;
   gap: 8px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  /* Never run past the bottom of the window. The app header is `position:
+     sticky`, so an overflowing dropdown could NOT be reached by scrolling the
+     page — the menu stayed pinned to the header and its lower items were simply
+     unreachable (Import and the whole danger zone, on a 1280x800 screen).
+     Capped here; .utils-menu-scroll below does the scrolling, the same split the
+     mobile sheet already uses. */
+  max-height: calc(100dvh - 96px);
+  overflow: hidden;
 }
 
-/* Scrollable body wrapper. On desktop it's a transparent passthrough (same flex
-   column + gap as the menu). On mobile it becomes the ONLY scrolling region so
-   the drag handle + header stay pinned (see the mobile block below). */
+/* Scrollable body wrapper — the ONLY scrolling region in the menu, on every
+   size, so the header row with the close button stays put while the list moves
+   under it. Deliberately NOT `flex: 1` on desktop: flex-basis auto keeps a short
+   menu hugging its content instead of stretching to the cap. The mobile block
+   overrides that, because the bottom sheet does want to fill its height. */
 .utils-menu-scroll {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  min-height: 0; /* let the flex child shrink below content size, so it scrolls */
 }
 
 /* Drag handle — hidden on desktop, visible on mobile */
@@ -2413,6 +2441,47 @@ a:focus-visible,
 .onboard-hint { margin: 14px 0 0; font-size: 0.75rem; color: var(--text-muted); }
 
 /* ─── Backup reminder banner ──────────────────────────────────────── */
+
+/* A save that did not land. Sits above the backup reminder because it is about
+   data the user has ALREADY typed, not data they might lose later, and it
+   carries no dismiss button — the edit really is unsaved (review 2026-09-05,
+   F4). Borrows the backup banner's shape so it reads as the same kind of
+   message, with the theme's own negative colour as the left edge. */
+.save-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--negative);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.save-error-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.save-error-text strong { color: var(--negative); font-size: 0.9rem; }
+.save-error-text span { color: var(--text-muted); font-size: 0.8rem; }
+.save-error-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.save-error-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  min-height: 40px;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .save-error-btn:hover { border-color: var(--border-strong); }
+}
 
 .backup-banner {
   display: flex;
@@ -3086,6 +3155,132 @@ a:focus-visible,
 .sparplan-badge-ahead { background: var(--tint-income-bg); color: var(--tint-income-text); }
 .sparplan-badge-behind { background: var(--tint-expense-bg); color: var(--tint-expense-text); }
 .sparplan-badge-ontrack { background: var(--surface2); color: var(--text-dim); }
+/* ─── Custom year view ───────────────────────────────────────────────
+   .custom-page is a six-column grid whose children must declare their
+   span. Without this the year view took ONE column — about 426 px on a
+   1140 px canvas, and roughly 80 px of chart on a phone. */
+.custom-year-view {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+/* The chart and table must be able to shrink inside it rather than push
+   the page wider. */
+.custom-year-view .charts-container,
+.custom-year-view .chart-block,
+.custom-year-view .year-table-wrap { min-width: 0; max-width: 100%; }
+
+/* ─── Pay-period label under the month heading ───────────────────────
+   Descriptive only — it never changes an amount. Quiet enough that the
+   month itself stays the headline. */
+.month-nav-wrap { display: flex; flex-direction: column; align-items: center; }
+.period-label {
+  margin-top: 2px;
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.period-label:hover,
+.period-label:focus-visible { border-color: var(--border); color: var(--text); }
+/* The user's own text reads as theirs, not as something the app generated. */
+.period-label-own { color: var(--text); font-style: italic; }
+.period-label-input {
+  margin-top: 2px;
+  width: min(240px, 80vw);
+  text-align: center;
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+}
+
+/* Menu row holding a label and a select side by side. */
+.utils-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.utils-row-label { font-size: 0.82rem; color: var(--text-muted); }
+.utils-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.82rem;
+  padding: 4px 8px;
+}
+
+/* ─── Row period (monthly / quarterly / yearly) ──────────────────────
+   Quiet by default: most rows are monthly and the control should read as
+   part of the amount column, not as another thing to deal with. It gains
+   a visible tint only once a row is actually periodised. */
+.row-period {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding: 2px 4px;
+  /* Wide enough for the longest option in every language — Swedish
+     "Engångskostnad" is the one that used to be clipped to "Engångskostna". */
+  max-width: 132px;
+  cursor: pointer;
+}
+.row-period:hover,
+.row-period:focus-visible { border-color: var(--border); color: var(--text); }
+.row-period-set {
+  color: var(--accent-brand);
+  border-color: color-mix(in srgb, var(--accent-brand) 40%, transparent);
+}
+/* Picker and hint travel together, so the timing and the words explaining it
+   never wrap apart onto separate lines. (This once described "the monthly
+   share" — there is no share; a period is a label, not a divisor.) */
+.row-period-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+
+/* ─── Insight line ───────────────────────────────────────────────────
+   One sentence under the summary cards. Neutral by default: colouring
+   every observation red is what trains people to stop opening a budget
+   app, so only a real deficit gets a warning tone. */
+.insight-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 11px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+  min-width: 0;
+}
+.insight-line-icon { flex-shrink: 0; }
+.insight-line-warn {
+  border-color: var(--negative);
+  color: var(--tint-deficit-text, var(--negative));
+}
+/* Only the two EARNED observations get this — a goal within reach or a real
+   savings streak. Never applied to a figure the user merely typed in. */
+.insight-line-good {
+  border-color: color-mix(in srgb, var(--positive) 45%, var(--border));
+  color: var(--positive);
+}
+
+
 @media (max-width: 640px) {
   .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -3613,11 +3808,30 @@ a:focus-visible,
     gap: 8px;
   }
 
-  .month-nav {
+  /* The wrapper is now the direct flex child of .header-top, so IT must be the
+     shrinkable one. While only the inner .month-nav had flex:1 the wrapper took
+     its content width and pushed the menu button off a 320 px screen. */
+  .month-nav-wrap {
     flex: 1;
+    min-width: 0;
+  }
+  .month-nav {
+    width: 100%;
     min-width: 0;
     justify-content: center;
     gap: 8px;
+  }
+  .period-label { max-width: 100%; }
+
+  /* A periodised row has five things on it — name, amount, period, monthly
+     share and the delete slot — which does not fit a phone. The period controls
+     drop to a second line instead of pushing the row wider than the screen. */
+  .budget-row { flex-wrap: wrap; row-gap: 2px; }
+  .row-action { order: 3; }
+  .row-period-group {
+    order: 4;
+    flex: 1 0 100%;
+    justify-content: flex-end;
   }
 
   /* Let the centered month title shrink before the arrows do, so the row
@@ -3781,10 +3995,20 @@ a:focus-visible,
   /* Phones: INPUT-FIRST everywhere — people open the app to enter amounts.
      Compact summary cards (label + amount only, 3 across) keep the first input
      row within easy reach; the secondary percentages live in Plan (§9). */
+  /* TWO across, not three. At 320px a third of the row leaves 71px for the
+     amount, and an ordinary "30 000,50 kr" needs 98 — so a normal salary with
+     öre was cut to "30 000,5…". The amount cannot wrap out of trouble either:
+     sv-SE formats it with NO-BREAK spaces (U+00A0) both as the group separator
+     and before "kr", so the whole string is one unbreakable word. Shrinking the
+     text or hiding the rest behind a tooltip both fail a touch screen, so the
+     column count is what gives (review 2026-09-05, F6). */
   .summary-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
+  /* "Kvar" is the figure the app exists to show; it takes the full width, which
+     also leaves the most room for the longest of the three numbers. */
+  .summary-cards .remaining-card { grid-column: 1 / -1; }
   .summary-card { padding: 12px 10px; }
   .summary-card .card-label {
     font-size: 0.62rem;
@@ -3997,4 +4221,14 @@ a:focus-visible,
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* Below ~356px the longest possible amount ("+999 999 999,50 kr", 140px) no
+   longer fits the 122px a summary card gives it, and it was cut off. One step
+   down absorbs it: 0.8rem renders that same string in 118px. Deliberately
+   narrow in scope — at 390px the card gives 157px, so a normal phone never
+   shrinks anything, and no ordinary amount is ever long enough to qualify
+   (see LONG_AMOUNT_CHARS in SummaryCards.tsx). */
+@media (max-width: 360px) {
+  .summary-card .card-amount-long { font-size: 0.8rem; }
 }

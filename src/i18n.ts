@@ -2,6 +2,16 @@ import { createContext, useContext } from 'react';
 
 export type Lang = 'sv' | 'en' | 'es';
 
+/** Runtime check for a stored/imported language. A TypeScript `as Lang` cast
+ *  proves nothing at runtime: "xx" sailed through it, `translations["xx"]` came
+ *  back undefined and the whole app rendered nothing — with no way to reach the
+ *  menu and change it back. Derived from MONTHS, which is Record<Lang, …>, so
+ *  adding a language cannot leave this guard behind. Shared with the backup
+ *  validator, so the app can never store a value an import would reject. */
+export function isLang(v: unknown): v is Lang {
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(MONTHS, v);
+}
+
 export const MONTHS: Record<Lang, string[]> = {
   sv: [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -40,6 +50,13 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   usd: { code: 'USD', locale: 'en-US', symbol: '$' },
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
 };
+
+/** Runtime check for a stored/imported currency — same story as isLang: an
+ *  unchecked `as Currency` left CURRENCIES[...] undefined and blanked the app.
+ *  Derived from CURRENCIES so a new currency cannot be forgotten here. */
+export function isCurrency(v: unknown): v is Currency {
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(CURRENCIES, v);
+}
 
 // Two cached formatters per currency: whole amounts show NO decimals
 // ("1 200 kr"), amounts with öre/cents show EXACTLY two ("1 200,50 kr") —
@@ -143,23 +160,43 @@ export interface Translations {
   layoutCustom: string;
   // Custom layout: edit mode + block headings
   editLayout: string;
-  hiddenBlock: string;
+  duplicateBlock: string;
+  deleteBlockHistoryConfirm: (months: number) => string;
+  deleteRowHistoryConfirm: (months: number) => string;
+  yearArchivedNote: (amount: string) => string;
+  // Copy confirmations — every copy path names its target before overwriting.
+  copyOverwriteOne: (target: string, source: string) => string;
+  copyOverwriteMany: (n: number) => string;
+  copyNothingToDo: string;
+  // Pay-period label under the month heading. Purely descriptive.
+  periodSection: string;
+  periodStartDay: string;
+  periodStartHint: string;
+  periodStartOff: string;
+  periodLabelAria: (month: string) => string;
+  periodLabelPlaceholder: string;
+  // Per-row period: how often the typed amount actually falls due.
+  periodMonth: string; periodQuarter: string; periodYear: string;
+  periodAria: (row: string) => string;
+  periodOnce: string;
+  // The one-line insight under the summary cards. Amounts arrive pre-formatted.
+  insightDeficit: (over: string) => string;
+  insightSavingsDown: (amount: string) => string;
+  insightGoalClose: (name: string, remaining: string) => string;
+  insightSavingsStreak: (months: number) => string;
+  insightSavedRate: (pct: number) => string;
+  insightTopCategory: (name: string, pct: number) => string;
+  // Ready-made blocks in the Custom add-picker. Stored as KEYS on the block, so
+  // they follow a language switch instead of freezing in the creation language.
+  tplHousing: string; tplRent: string; tplUtilities: string;
+  tplFood: string; tplGroceries: string;
+  tplTransport: string; tplCommute: string;
+  tplSavings: string; tplBuffer: string;
+  copyOfName: (name: string) => string;
   moveUp: string;
   moveDown: string;
   dragToReorder: string;
-  showBlock: string;
-  hideBlock: string;
-  blockSummary: string;
-  blockBudgetInputs: string;
-  blockExpenseChart: string;
-  blockSavingsInputs: string;
-  blockSavingsDonuts: string;
-  blockGrowthChart: string;
-  blockGoals: string;
-  blockYear: string;
-  blockNotes: string;
   // Expense chart style switch
-  chartStyle: string;
   chartStyleDonut: string;
   chartStyleBars: string;
   chartStylePie: string;
@@ -167,25 +204,13 @@ export interface Translations {
   chartStyleStacked: string;
   chartStyleTreemap: string;
   chartStyleRadial: string;
-  chartStyleTrend: string;
   // Custom section builder
   customEmptyTitle: string;
   customEmptyBody: string;
-  addSection: string;
-  quickStartAll: string;
   removeSection: string;
   sectionSettings: string;
-  sectionBudget: string;
-  sectionSavings: string;
-  sectionGoals: string;
-  sectionYear: string;
-  sectionNotes: string;
-  cfgLabels: string;
-  cfgLabelIcon: string;
-  cfgLabelIconText: string;
   cfgBackground: string;
   cfgBgNone: string;
-  cfgChart: string;
   cfgShowChart: string;
   cfgChartType: string;
   cfgChartSize: string;
@@ -265,8 +290,6 @@ export interface Translations {
   badgeNew: string;
   themeLight: string;
   themeDark: string;
-  themeToLight: string;
-  themeToDark: string;
   // Theme Builder panel
   themeTitle: string;
   themeClose: string;
@@ -297,17 +320,19 @@ export interface Translations {
     sunset: string;
     custom: string;
   };
-  switchToSwedish: string;
-  switchToEnglish: string;
+  saveFailedTitle: string;
+  saveFailedBody: string;
+  saveRetry: string;
   copyBudget: string;
-  copyBudgetTitle: string;
   copyNextMonth: string;
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
+  copyPrevMonth: (month: string) => string;
+  copyPrevMonthConfirm: (from: string, to: string) => string;
+  copyPrevMonthEmpty: (month: string) => string;
   // Backup (export / import)
   backup: string;
-  backupTitle: string;
   exportData: string;
   importData: string;
   importConfirm: string;
@@ -317,7 +342,6 @@ export interface Translations {
   importTooNew: string;
   importCorrupt: string;
   importWriteFailed: string;
-  importSuccess: string;
   // Reset month
   resetMonth: string;
   resetMonthConfirm: (monthName: string) => string;
@@ -351,8 +375,6 @@ export interface Translations {
   placeholderExpenses: string;
   placeholderSavings: string;
   // Custom stat tiles
-  goalCount: (n: number) => string;
-  avgPerMonth: string;
   // Savings tab
   totalSaved: string;
   savedThisMonth: string;
@@ -386,7 +408,6 @@ export interface Translations {
   dailyBudgetTitle: string;
   /** Reserved for the planned "rest of the month" burn-down mode. The card
    *  itself now always spreads across the whole month — see DailyBudget. */
-  dailyBudgetDaysLeft: (n: number, month: string) => string;
   dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
   dailyBudgetPerWeek: string;
@@ -424,13 +445,12 @@ export interface Translations {
   goal: string;
   of: string;
   deadline: string;
-  addPost: string;
-  newPost: string;
   notes: string;
   notesPlaceholder: string;
   // Year overview
   yearOverview: (year: number) => string;
   yearChartTitle: string;
+  monthNotFilledHint: string;
   colMonth: string;
   colIncome: string;
   colExpenses: string;
@@ -486,7 +506,6 @@ export interface Translations {
   lineSparkonto: string;
   lineIsk: string;
   lineFonder: string;
-  linePension: string;
   // Growth chart type toggle
   chartTypeArea: string;
   chartTypeLine: string;
@@ -510,22 +529,35 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Kombinerad',
     layoutCustom: 'Anpassad',
     editLayout: 'Redigera layout',
-    hiddenBlock: 'Dolt block',
+    duplicateBlock: 'Duplicera block',
+    deleteBlockHistoryConfirm: (months) => `Blocket har belopp i ${months} ${months === 1 ? 'månad' : 'månader'}. Tar du bort det försvinner raderna ur månadsbudgeten, men beloppen räknas kvar i årsöversikten — de två vyerna kommer alltså visa olika siffror. Fortsätta?`,
+    deleteRowHistoryConfirm: (months) => `Raden har belopp i ${months} ${months === 1 ? 'månad' : 'månader'}. Tar du bort den försvinner den ur månadsbudgeten, men beloppen räknas kvar i årsöversikten. Fortsätta?`,
+    yearArchivedNote: (amount) => `${amount} kunde inte kopplas till något block — rader som togs bort innan appen började spara historik.`,
+    copyOverwriteOne: (target, source) => `${target} har redan en budget. Ersätta inkomster och utgifter med ${source}?`,
+    copyOverwriteMany: (n) => `${n} av de återstående månaderna har redan en budget. Ersätta dem?`,
+    copyNothingToDo: 'Ingenting att hämta — månaden är tom.',
+    periodSection: 'Löneperiod',
+    periodStartDay: 'Perioden börjar den',
+    periodStartHint: 'Visas bara som text under månaden — påverkar inga belopp.',
+    periodStartOff: 'Av',
+    periodLabelAria: (month) => `Egen periodtext för ${month}`,
+    periodLabelPlaceholder: 'Egen text',
+    periodMonth: 'Varje månad', periodQuarter: 'Per kvartal', periodYear: 'Per år', periodOnce: 'Engångskostnad',
+    periodAria: (row) => `När ${row} dras`,
+    insightDeficit: (over) => `Utgifterna överstiger inkomsten med ${over}.`,
+    insightSavingsDown: (amount) => `Ditt sparande minskade med ${amount} den här månaden.`,
+    insightGoalClose: (name, remaining) => `Bara ${remaining} kvar till ${name}.`,
+    insightSavingsStreak: (months) => `Ditt sparande har vuxit ${months} månader i rad.`,
+    insightSavedRate: (pct) => `Du la undan ${pct} % av inkomsten den här månaden.`,
+    insightTopCategory: (name, pct) => `${name} är din största utgiftspost — ${pct} % av inkomsten.`,
+    tplHousing: 'Boende', tplRent: 'Hyra', tplUtilities: 'El & Internet',
+    tplFood: 'Mat', tplGroceries: 'Matvaror',
+    tplTransport: 'Transport', tplCommute: 'Resor',
+    tplSavings: 'Sparande', tplBuffer: 'Buffert',
+    copyOfName: (name) => `${name} (kopia)`,
     moveUp: 'Flytta upp',
     moveDown: 'Flytta ner',
     dragToReorder: 'Dra för att ändra ordning',
-    showBlock: 'Visa block',
-    hideBlock: 'Dölj block',
-    blockSummary: 'Budgetöversikt',
-    blockBudgetInputs: 'Inkomster & utgifter',
-    blockExpenseChart: 'Utgiftsfördelning',
-    blockSavingsInputs: 'Sparposter',
-    blockSavingsDonuts: 'Spardiagram',
-    blockGrowthChart: 'Spartillväxt',
-    blockGoals: 'Sparmål',
-    blockYear: 'Årsöversikt',
-    blockNotes: 'Anteckningar',
-    chartStyle: 'Diagramtyp',
     chartStyleDonut: 'Munk',
     chartStyleBars: 'Staplar',
     chartStylePie: 'Paj',
@@ -533,24 +565,12 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Staplad',
     chartStyleTreemap: 'Trädkarta',
     chartStyleRadial: 'Radiell',
-    chartStyleTrend: 'Trend',
     customEmptyTitle: 'Din panel är tom',
     customEmptyBody: 'Lägg till de sektioner du vill ha.',
-    addSection: 'Lägg till sektion',
-    quickStartAll: 'Snabbstart: lägg till allt',
     removeSection: 'Ta bort sektion',
     sectionSettings: 'Sektionsinställningar',
-    sectionBudget: 'Budget',
-    sectionSavings: 'Sparande',
-    sectionGoals: 'Sparmål',
-    sectionYear: 'Årsöversikt',
-    sectionNotes: 'Anteckningar',
-    cfgLabels: 'Etiketter',
-    cfgLabelIcon: 'Endast ikon',
-    cfgLabelIconText: 'Ikon + text',
     cfgBackground: 'Bakgrund',
     cfgBgNone: 'Ingen',
-    cfgChart: 'Diagram',
     cfgShowChart: 'Visa diagram',
     cfgChartType: 'Diagramtyp',
     cfgChartSize: 'Storlek',
@@ -640,8 +660,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NYTT',
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
-    themeToLight: 'Byt till ljust tema',
-    themeToDark: 'Byt till mörkt tema',
     themeTitle: 'Tema',
     themeClose: 'Stäng',
     presets: 'Förinställningar',
@@ -670,16 +688,19 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Solnedgång',
       custom: 'Egen',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
+    saveFailedTitle: 'Kunde inte spara',
+    saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
+    saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
-    copyBudgetTitle: 'Kopiera denna månads budget',
     copyNextMonth: 'Nästa månad',
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
     copiedTo: (month) => `✓ Kopierat till ${month}`,
     copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    copyPrevMonth: (month) => `Hämta från ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `Detta ersätter inkomster och utgifter i ${to} med de från ${from}. Sparande rörs inte. Vill du fortsätta?`,
+    copyPrevMonthEmpty: (month) => `${month} är tom — inget att hämta`,
     backup: 'Data',
-    backupTitle: 'Säkerhetskopiera eller återställ data',
     exportData: '⬇ Exportera data',
     importData: '⬆ Importera data',
     importConfirm: 'Detta ERSÄTTER all nuvarande data med innehållet i filen. Vill du fortsätta?',
@@ -687,7 +708,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'Filen kommer från en nyare version av appen. Uppdatera appen och försök igen. Din data är oförändrad.',
     importCorrupt: 'Filen är skadad och kunde inte läsas. Ingenting har ändrats — din nuvarande data är kvar.',
     importWriteFailed: 'Importen misslyckades och avbröts. Din tidigare data är återställd och oförändrad.',
-    importSuccess: '✓ Data importerad',
     resetMonth: '↺ Återställ månad',
     resetMonthConfirm: (monthName) => `Detta nollställer ${monthName} och kan inte ångras. Vill du fortsätta?`,
     resetMonthDone: '✓ Månad återställd',
@@ -713,8 +733,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Tillväxt ${year}`,
     placeholderExpenses: 'Fyll i några utgifter så visas diagrammet här',
     placeholderSavings: 'Fyll i sparande & investeringar för att se tillväxten',
-    goalCount: (n) => `${n} mål`,
-    avgPerMonth: 'Snitt/månad',
     totalSaved: 'Totalt sparat',
     savedThisMonth: 'Sparat denna månad',
     savedPrevMonth: 'Sparat förra månaden',
@@ -738,7 +756,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Ange ett målbelopp',
     goalErrorTargetInvalid: 'Skriv ett giltigt belopp mellan 0 och 999 999 999 999',
     dailyBudgetTitle: 'Kvar att leva på',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'dag' : 'dagar'} kvar i ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
@@ -774,12 +791,11 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Mål',
     of: 'av',
     deadline: 'Deadline',
-    addPost: '+ Lägg till post',
-    newPost: 'Ny post',
     notes: 'Anteckningar & Strategi',
     notesPlaceholder: 'Skriv din plan, strategi, tankar om investeringar...',
     yearOverview: (year) => `Årsöversikt ${year}`,
-    yearChartTitle: 'Inkomst vs Utgifter',
+    yearChartTitle: 'Inkomst, utgifter och sparsaldo',
+    monthNotFilledHint: 'Månaden är inte ifylld ännu',
     colMonth: 'Månad',
     colIncome: 'Inkomst',
     colExpenses: 'Utgifter',
@@ -821,7 +837,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Sparkonto',
     lineIsk: 'ISK / Aktiedepå',
     lineFonder: 'Fonder',
-    linePension: 'Pension',
     chartTypeArea: 'Yta',
     chartTypeLine: 'Linje',
     chartTypeStacked: 'Staplar',
@@ -842,22 +857,35 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combined',
     layoutCustom: 'Custom',
     editLayout: 'Edit layout',
-    hiddenBlock: 'Hidden block',
+    duplicateBlock: 'Duplicate block',
+    deleteBlockHistoryConfirm: (months) => `This block has amounts in ${months} ${months === 1 ? 'month' : 'months'}. Deleting it takes the rows out of the monthly budget, but the amounts stay counted in the year overview — so the two views will show different figures. Continue?`,
+    deleteRowHistoryConfirm: (months) => `This row has amounts in ${months} ${months === 1 ? 'month' : 'months'}. Deleting it takes it out of the monthly budget, but the amounts stay counted in the year overview. Continue?`,
+    yearArchivedNote: (amount) => `${amount} could not be matched to a block — rows deleted before the app started recording history.`,
+    copyOverwriteOne: (target, source) => `${target} already has a budget. Replace its income and expenses with ${source}?`,
+    copyOverwriteMany: (n) => `${n} of the remaining months already have a budget. Replace them?`,
+    copyNothingToDo: 'Nothing to pull — that month is empty.',
+    periodSection: 'Pay period',
+    periodStartDay: 'The period starts on the',
+    periodStartHint: 'Shown as text under the month only — it changes no amounts.',
+    periodStartOff: 'Off',
+    periodLabelAria: (month) => `Custom period text for ${month}`,
+    periodLabelPlaceholder: 'Custom text',
+    periodMonth: 'Every month', periodQuarter: 'Quarterly', periodYear: 'Yearly', periodOnce: 'One-off',
+    periodAria: (row) => `When ${row} is charged`,
+    insightDeficit: (over) => `Expenses exceed income by ${over}.`,
+    insightSavingsDown: (amount) => `Your savings fell by ${amount} this month.`,
+    insightGoalClose: (name, remaining) => `Only ${remaining} to go for ${name}.`,
+    insightSavingsStreak: (months) => `Your savings have grown ${months} months running.`,
+    insightSavedRate: (pct) => `You set aside ${pct}% of your income this month.`,
+    insightTopCategory: (name, pct) => `${name} is your largest expense — ${pct}% of income.`,
+    tplHousing: 'Housing', tplRent: 'Rent', tplUtilities: 'Power & Internet',
+    tplFood: 'Food', tplGroceries: 'Groceries',
+    tplTransport: 'Transport', tplCommute: 'Travel',
+    tplSavings: 'Savings', tplBuffer: 'Buffer',
+    copyOfName: (name) => `${name} (copy)`,
     moveUp: 'Move up',
     moveDown: 'Move down',
     dragToReorder: 'Drag to reorder',
-    showBlock: 'Show block',
-    hideBlock: 'Hide block',
-    blockSummary: 'Budget summary',
-    blockBudgetInputs: 'Income & expenses',
-    blockExpenseChart: 'Expense breakdown',
-    blockSavingsInputs: 'Savings entries',
-    blockSavingsDonuts: 'Savings donuts',
-    blockGrowthChart: 'Savings growth',
-    blockGoals: 'Savings goals',
-    blockYear: 'Year overview',
-    blockNotes: 'Notes',
-    chartStyle: 'Chart style',
     chartStyleDonut: 'Donut',
     chartStyleBars: 'Bars',
     chartStylePie: 'Pie',
@@ -865,24 +893,12 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Stacked',
     chartStyleTreemap: 'Treemap',
     chartStyleRadial: 'Radial',
-    chartStyleTrend: 'Trend',
     customEmptyTitle: 'Your dashboard is empty',
     customEmptyBody: 'Add the sections you want.',
-    addSection: 'Add section',
-    quickStartAll: 'Quick start: add everything',
     removeSection: 'Remove section',
     sectionSettings: 'Section settings',
-    sectionBudget: 'Budget',
-    sectionSavings: 'Savings',
-    sectionGoals: 'Goals',
-    sectionYear: 'Year overview',
-    sectionNotes: 'Notes',
-    cfgLabels: 'Labels',
-    cfgLabelIcon: 'Icon only',
-    cfgLabelIconText: 'Icon + text',
     cfgBackground: 'Background',
     cfgBgNone: 'None',
-    cfgChart: 'Chart',
     cfgShowChart: 'Show chart',
     cfgChartType: 'Chart type',
     cfgChartSize: 'Size',
@@ -972,8 +988,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NEW',
     themeLight: 'Light',
     themeDark: 'Dark',
-    themeToLight: 'Switch to light theme',
-    themeToDark: 'Switch to dark theme',
     themeTitle: 'Theme',
     themeClose: 'Close',
     presets: 'Presets',
@@ -1002,16 +1016,19 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Sunset',
       custom: 'Custom',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
+    saveFailedTitle: 'Could not save',
+    saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
+    saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
-    copyBudgetTitle: "Copy this month's budget",
     copyNextMonth: 'Next month',
     copyAllRemaining: (n) => `All remaining (${n} months)`,
     copiedTo: (month) => `✓ Copied to ${month}`,
     copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    copyPrevMonth: (month) => `Pull from ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `This replaces income and expenses in ${to} with those from ${from}. Savings are left alone. Continue?`,
+    copyPrevMonthEmpty: (month) => `${month} is empty — nothing to pull`,
     backup: 'Data',
-    backupTitle: 'Back up or restore data',
     exportData: '⬇ Export data',
     importData: '⬆ Import data',
     importConfirm: 'This will REPLACE all current data with the contents of the file. Continue?',
@@ -1019,7 +1036,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'This file comes from a newer version of the app. Update the app and try again. Your data is unchanged.',
     importCorrupt: 'This file is damaged and could not be read. Nothing was changed — your current data is still here.',
     importWriteFailed: 'The import failed and was cancelled. Your previous data has been restored and is unchanged.',
-    importSuccess: '✓ Data imported',
     resetMonth: '↺ Reset month',
     resetMonthConfirm: (monthName) => `This clears ${monthName} and can't be undone. Continue?`,
     dangerZone: 'Danger zone',
@@ -1045,8 +1061,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Growth ${year}`,
     placeholderExpenses: 'Fill in a few expenses and the chart appears here',
     placeholderSavings: 'Fill in savings & investments to see the growth',
-    goalCount: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}`,
-    avgPerMonth: 'Avg/month',
     totalSaved: 'Total saved',
     savedThisMonth: 'Saved this month',
     savedPrevMonth: 'Saved last month',
@@ -1070,7 +1084,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Enter a goal amount',
     goalErrorTargetInvalid: 'Enter a valid amount between 0 and 999,999,999,999',
     dailyBudgetTitle: 'Left to live on',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'day' : 'days'} left in ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
@@ -1106,12 +1119,11 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Goal',
     of: 'of',
     deadline: 'Deadline',
-    addPost: '+ Add item',
-    newPost: 'New item',
     notes: 'Notes & Strategy',
     notesPlaceholder: 'Write your plan, strategy, thoughts on investments...',
     yearOverview: (year) => `Year overview ${year}`,
-    yearChartTitle: 'Income vs Expenses',
+    yearChartTitle: 'Income, expenses and savings balance',
+    monthNotFilledHint: 'This month has not been filled in yet',
     colMonth: 'Month',
     colIncome: 'Income',
     colExpenses: 'Expenses',
@@ -1153,7 +1165,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Savings account',
     lineIsk: 'Investment account',
     lineFonder: 'Funds',
-    linePension: 'Pension',
     chartTypeArea: 'Area',
     chartTypeLine: 'Line',
     chartTypeStacked: 'Stacked',
@@ -1174,22 +1185,35 @@ export const translations: Record<Lang, Translations> = {
     layoutCombined: 'Combinado',
     layoutCustom: 'Personalizado',
     editLayout: 'Editar diseño',
-    hiddenBlock: 'Bloque oculto',
+    duplicateBlock: 'Duplicar bloque',
+    deleteBlockHistoryConfirm: (months) => `Este bloque tiene importes en ${months} ${months === 1 ? 'mes' : 'meses'}. Si lo eliminas, las filas salen del presupuesto mensual, pero los importes siguen contando en la vista anual — las dos vistas mostrarán cifras distintas. ¿Continuar?`,
+    deleteRowHistoryConfirm: (months) => `Esta fila tiene importes en ${months} ${months === 1 ? 'mes' : 'meses'}. Si la eliminas, sale del presupuesto mensual, pero los importes siguen contando en la vista anual. ¿Continuar?`,
+    yearArchivedNote: (amount) => `${amount} no se pudo asociar a ningún bloque — filas eliminadas antes de que la app empezara a guardar el historial.`,
+    copyOverwriteOne: (target, source) => `${target} ya tiene un presupuesto. ¿Reemplazar sus ingresos y gastos con ${source}?`,
+    copyOverwriteMany: (n) => `${n} de los meses restantes ya tienen presupuesto. ¿Reemplazarlos?`,
+    copyNothingToDo: 'Nada que traer — ese mes está vacío.',
+    periodSection: 'Periodo de pago',
+    periodStartDay: 'El periodo empieza el día',
+    periodStartHint: 'Solo se muestra como texto bajo el mes — no cambia ningún importe.',
+    periodStartOff: 'Desactivado',
+    periodLabelAria: (month) => `Texto propio del periodo para ${month}`,
+    periodLabelPlaceholder: 'Texto propio',
+    periodMonth: 'Cada mes', periodQuarter: 'Trimestral', periodYear: 'Anual', periodOnce: 'Pago único',
+    periodAria: (row) => `Cuándo se cobra ${row}`,
+    insightDeficit: (over) => `Los gastos superan los ingresos en ${over}.`,
+    insightSavingsDown: (amount) => `Tu ahorro bajó ${amount} este mes.`,
+    insightGoalClose: (name, remaining) => `Solo faltan ${remaining} para ${name}.`,
+    insightSavingsStreak: (months) => `Tu ahorro ha crecido ${months} meses seguidos.`,
+    insightSavedRate: (pct) => `Apartaste el ${pct} % de tus ingresos este mes.`,
+    insightTopCategory: (name, pct) => `${name} es tu mayor gasto: el ${pct} % de los ingresos.`,
+    tplHousing: 'Vivienda', tplRent: 'Alquiler', tplUtilities: 'Luz e Internet',
+    tplFood: 'Comida', tplGroceries: 'Comestibles',
+    tplTransport: 'Transporte', tplCommute: 'Viajes',
+    tplSavings: 'Ahorro', tplBuffer: 'Reserva',
+    copyOfName: (name) => `${name} (copia)`,
     moveUp: 'Subir',
     moveDown: 'Bajar',
     dragToReorder: 'Arrastra para reordenar',
-    showBlock: 'Mostrar bloque',
-    hideBlock: 'Ocultar bloque',
-    blockSummary: 'Resumen del presupuesto',
-    blockBudgetInputs: 'Ingresos y gastos',
-    blockExpenseChart: 'Desglose de gastos',
-    blockSavingsInputs: 'Entradas de ahorro',
-    blockSavingsDonuts: 'Gráficos de ahorro',
-    blockGrowthChart: 'Crecimiento del ahorro',
-    blockGoals: 'Metas de ahorro',
-    blockYear: 'Resumen anual',
-    blockNotes: 'Notas',
-    chartStyle: 'Tipo de gráfico',
     chartStyleDonut: 'Dona',
     chartStyleBars: 'Barras',
     chartStylePie: 'Circular',
@@ -1197,24 +1221,12 @@ export const translations: Record<Lang, Translations> = {
     chartStyleStacked: 'Apilado',
     chartStyleTreemap: 'Mapa de árbol',
     chartStyleRadial: 'Radial',
-    chartStyleTrend: 'Tendencia',
     customEmptyTitle: 'Tu panel está vacío',
     customEmptyBody: 'Añade las secciones que quieras.',
-    addSection: 'Añadir sección',
-    quickStartAll: 'Inicio rápido: añadir todo',
     removeSection: 'Quitar sección',
     sectionSettings: 'Ajustes de sección',
-    sectionBudget: 'Presupuesto',
-    sectionSavings: 'Ahorro',
-    sectionGoals: 'Metas',
-    sectionYear: 'Resumen anual',
-    sectionNotes: 'Notas',
-    cfgLabels: 'Etiquetas',
-    cfgLabelIcon: 'Solo icono',
-    cfgLabelIconText: 'Icono + texto',
     cfgBackground: 'Fondo',
     cfgBgNone: 'Ninguno',
-    cfgChart: 'Gráfico',
     cfgShowChart: 'Mostrar gráfico',
     cfgChartType: 'Tipo de gráfico',
     cfgChartSize: 'Tamaño',
@@ -1304,8 +1316,6 @@ export const translations: Record<Lang, Translations> = {
     badgeNew: 'NUEVO',
     themeLight: 'Claro',
     themeDark: 'Oscuro',
-    themeToLight: 'Cambiar a tema claro',
-    themeToDark: 'Cambiar a tema oscuro',
     themeTitle: 'Tema',
     themeClose: 'Cerrar',
     presets: 'Preajustes',
@@ -1334,16 +1344,19 @@ export const translations: Record<Lang, Translations> = {
       sunset: 'Atardecer',
       custom: 'Personalizado',
     },
-    switchToSwedish: 'Byt till svenska',
-    switchToEnglish: 'Switch to English',
+    saveFailedTitle: 'No se pudo guardar',
+    saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
+    saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
-    copyBudgetTitle: 'Copiar el presupuesto de este mes',
     copyNextMonth: 'Mes siguiente',
     copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
     copiedTo: (month) => `✓ Copiado a ${month}`,
     copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
+    copyPrevMonth: (month) => `Traer de ${month}`,
+    copyPrevMonthConfirm: (from, to) =>
+      `Esto reemplaza los ingresos y gastos de ${to} con los de ${from}. El ahorro no se toca. ¿Continuar?`,
+    copyPrevMonthEmpty: (month) => `${month} está vacío — no hay nada que traer`,
     backup: 'Datos',
-    backupTitle: 'Hacer copia de seguridad o restaurar datos',
     exportData: '⬇ Exportar datos',
     importData: '⬆ Importar datos',
     importConfirm: 'Esto REEMPLAZARÁ todos los datos actuales con el contenido del archivo. ¿Continuar?',
@@ -1351,7 +1364,6 @@ export const translations: Record<Lang, Translations> = {
     importTooNew: 'El archivo procede de una versión más reciente de la app. Actualízala e inténtalo de nuevo. Tus datos no han cambiado.',
     importCorrupt: 'El archivo está dañado y no se pudo leer. No se ha cambiado nada: tus datos siguen intactos.',
     importWriteFailed: 'La importación falló y se canceló. Tus datos anteriores se han restaurado y están intactos.',
-    importSuccess: '✓ Datos importados',
     resetMonth: '↺ Restablecer mes',
     resetMonthConfirm: (monthName) => `Esto borra ${monthName} y no se puede deshacer. ¿Continuar?`,
     dangerZone: 'Zona de peligro',
@@ -1377,8 +1389,6 @@ export const translations: Record<Lang, Translations> = {
     chartGrowth: (year) => `Crecimiento ${year}`,
     placeholderExpenses: 'Rellena algunos gastos y el gráfico aparecerá aquí',
     placeholderSavings: 'Rellena el ahorro e inversiones para ver el crecimiento',
-    goalCount: (n) => `${n} ${n === 1 ? 'meta' : 'metas'}`,
-    avgPerMonth: 'Media/mes',
     totalSaved: 'Ahorro total',
     savedThisMonth: 'Ahorrado este mes',
     savedPrevMonth: 'Ahorrado el mes anterior',
@@ -1402,7 +1412,6 @@ export const translations: Record<Lang, Translations> = {
     goalErrorTargetRequired: 'Introduce un importe para la meta',
     goalErrorTargetInvalid: 'Introduce un importe válido entre 0 y 999.999.999.999',
     dailyBudgetTitle: 'Para vivir este mes',
-    dailyBudgetDaysLeft: (n, month) => `${n} ${n === 1 ? 'día restante' : 'días restantes'} de ${month}`,
     dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',
@@ -1438,12 +1447,11 @@ export const translations: Record<Lang, Translations> = {
     goal: 'Meta',
     of: 'de',
     deadline: 'Fecha límite',
-    addPost: '+ Añadir elemento',
-    newPost: 'Nuevo elemento',
     notes: 'Notas y Estrategia',
     notesPlaceholder: 'Escribe tu plan, estrategia, ideas sobre inversiones...',
     yearOverview: (year) => `Resumen anual ${year}`,
-    yearChartTitle: 'Ingresos vs Gastos',
+    yearChartTitle: 'Ingresos, gastos y saldo de ahorro',
+    monthNotFilledHint: 'Este mes aún no se ha rellenado',
     colMonth: 'Mes',
     colIncome: 'Ingresos',
     colExpenses: 'Gastos',
@@ -1485,7 +1493,6 @@ export const translations: Record<Lang, Translations> = {
     lineSparkonto: 'Cuenta de ahorro',
     lineIsk: 'Cuenta de inversión',
     lineFonder: 'Fondos',
-    linePension: 'Pensión',
     chartTypeArea: 'Área',
     chartTypeLine: 'Línea',
     chartTypeStacked: 'Apiladas',
