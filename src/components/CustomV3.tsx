@@ -10,6 +10,7 @@ import {
 } from '../blockChart';
 import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
+import { appStorage } from '../storage';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -210,7 +211,7 @@ function chartHeightPx(size: ChartSize): number {
 // ── Persistence ─────────────────────────────────────────────────────
 export function loadStructure(): CustomBlock[] | null {
   try {
-    const raw = localStorage.getItem(LS_STRUCT);
+    const raw = appStorage.getItem(LS_STRUCT);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -257,7 +258,7 @@ export function loadStructure(): CustomBlock[] | null {
 
 function loadValues(y: number, m: number): Record<string, number> {
   try {
-    const raw = localStorage.getItem(valuesKey(y, m));
+    const raw = appStorage.getItem(valuesKey(y, m));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -334,7 +335,7 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   const loadedBlocks = useRef(blocks);
   useEffect(() => {
     if (blocks === loadedBlocks.current) return;
-    if (started && !safeSetItem(localStorage, LS_STRUCT, JSON.stringify(blocks))) onSaveFailed();
+    if (started && !safeSetItem(appStorage, LS_STRUCT, JSON.stringify(blocks))) onSaveFailed();
   }, [blocks, started, onSaveFailed]);
 
   // Give months recorded before snapshots existed the structure record they
@@ -343,7 +344,7 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   // mount only, reading the structure as it was loaded; it is idempotent, so
   // StrictMode's second invocation is a no-op rather than a second write.
   useEffect(() => {
-    migrateLegacySnapshots(localStorage, loadedBlocks.current);
+    migrateLegacySnapshots(appStorage, loadedBlocks.current);
   }, []);
 
   // Guard so the save effect doesn't immediately rewrite freshly loaded values
@@ -365,19 +366,19 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   useEffect(() => {
     if (skipSave.current) { skipSave.current = false; return; }
     const key = valuesKey(year, month);
-    if (Object.keys(values).length === 0 && localStorage.getItem(key) === null) return;
+    if (Object.keys(values).length === 0 && appStorage.getItem(key) === null) return;
     // Two writes, one meaning. If the amounts land but the snapshot does not,
     // the month's money is recorded with no record of how it was filed — so the
     // failure is reported even when the first half succeeded (F4).
-    let ok = safeSetItem(localStorage, key, JSON.stringify(values));
+    let ok = safeSetItem(appStorage, key, JSON.stringify(values));
     // Record WHICH block each row belonged to when these amounts were written.
     // Without it the year view had to classify every month with today's layout,
     // so deleting a block rewrote history. Written next to the amounts, never
     // on its own — a month with no amounts has no history to protect.
     ok = safeSetItem(
-      localStorage,
+      appStorage,
       customSnapshotKey(year, month),
-      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(localStorage, year, month))),
+      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month))),
     ) && ok;
     if (!ok) onSaveFailed();
   }, [values, year, month, blocks, onSaveFailed]);
@@ -389,9 +390,9 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   // ── How-it-works intro — auto-opens once, re-openable from the ❔ button ──
   const [helpOpen, setHelpOpen] = useState(false);
   useEffect(() => {
-    if (!localStorage.getItem('budget_custom_help_seen')) {
+    if (!appStorage.getItem('budget_custom_help_seen')) {
       setHelpOpen(true);
-      localStorage.setItem('budget_custom_help_seen', '1');
+      appStorage.setItem('budget_custom_help_seen', '1');
     }
   }, []);
 
@@ -404,7 +405,7 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
     // This month's amounts are about to be replaced wholesale. Ask first when
     // there is something there — an explicitly recorded 0 included, since the
     // user typed that too.
-    const hasOwn = localStorage.getItem(valuesKey(year, month)) !== null
+    const hasOwn = appStorage.getItem(valuesKey(year, month)) !== null
       && Object.keys(values).length > 0;
     if (hasOwn && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, MONTHS[lang][pm]),
@@ -423,9 +424,14 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
     // nothing — and leaving it behind would let a stale filing outlive the
     // figures it belonged to. Both keys are removed together, under the one
     // confirmation the user already gave for the amounts themselves.
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))
-      .forEach(k => localStorage.removeItem(k));
+    // Collected by index BEFORE removing: Object.keys() only works on the
+    // browser's own Storage object, and walking while deleting skips entries.
+    const doomed: string[] = [];
+    for (let i = 0; i < appStorage.length; i++) {
+      const k = appStorage.key(i);
+      if (k && (k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))) doomed.push(k);
+    }
+    doomed.forEach(k => appStorage.removeItem(k));
     setValues({});
     setToast(t.clearedAmounts);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -489,7 +495,7 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   // Lives in customYear.ts so the rule is unit-testable without a DOM — the
   // active month and the recorded-0 decisions are documented there.
   const monthsHolding = (rowIds: string[]): number =>
-    monthsHoldingRows(localStorage, rowIds);
+    monthsHoldingRows(appStorage, rowIds);
 
   const removeBlock = (id: string) => {
     // Deleting a block is instant and has no undo. Amounts recorded against its

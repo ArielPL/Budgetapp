@@ -46,6 +46,7 @@ import { loadStartDay, isValidStartDay, PERIOD_START_KEY } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
+import { appStorage } from './storage';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BACKUP_STALE_DAYS = 30;
@@ -72,15 +73,15 @@ function monthTotal(raw: string): number {
 // True only if there are real, non-zero amounts worth backing up.
 function hasMeaningfulData(): boolean {
   // Any month with a positive total counts as data.
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (let i = 0; i < appStorage.length; i++) {
+    const key = appStorage.key(i);
     if (!key || !/^budget_\d{4}_\d+$/.test(key)) continue;
-    const raw = localStorage.getItem(key);
+    const raw = appStorage.getItem(key);
     if (raw && monthTotal(raw) > 0) return true;
   }
 
   // Plan goals or giving amounts also count as data.
-  const planRaw = localStorage.getItem('budget_plan');
+  const planRaw = appStorage.getItem('budget_plan');
   if (planRaw) {
     try {
       const plan = JSON.parse(planRaw) as PlanData;
@@ -104,14 +105,14 @@ function shouldShowBackupReminder(): boolean {
   const now = Date.now();
 
   // Snoozed recently → stay hidden.
-  const dismissed = localStorage.getItem('budget_backup_dismissed');
+  const dismissed = appStorage.getItem('budget_backup_dismissed');
   if (dismissed) {
     const dismissedAt = Date.parse(dismissed);
     if (!isNaN(dismissedAt) && now - dismissedAt < BACKUP_SNOOZE_DAYS * DAY_MS) return false;
   }
 
   // Never backed up, or last backup older than the stale threshold → show.
-  const lastBackup = localStorage.getItem('budget_last_backup');
+  const lastBackup = appStorage.getItem('budget_last_backup');
   if (!lastBackup) return true;
   const lastAt = Date.parse(lastBackup);
   if (isNaN(lastAt)) return true;
@@ -123,7 +124,7 @@ function App() {
   // Validate, never cast: a damaged value must not be able to lock the user out
   // of the app that would let them fix it (review 2026-09-05, F3).
   const [lang, setLang]       = useState<Lang>(() => {
-    const stored = localStorage.getItem('budget_lang');
+    const stored = appStorage.getItem('budget_lang');
     return isLang(stored) ? stored : 'sv';
   });
   const [year, setYear]       = useState(now.getFullYear());
@@ -140,13 +141,13 @@ function App() {
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() => {
-    const stored = localStorage.getItem('budget_currency');
+    const stored = appStorage.getItem('budget_currency');
     return isCurrency(stored) ? stored : 'sek';
   });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).
   const [layout, setLayout] = useState<'classic' | 'combined' | 'custom'>(() => {
-    const v = localStorage.getItem('budget_layout');
+    const v = appStorage.getItem('budget_layout');
     return v === 'combined' || v === 'custom' ? v : 'classic';
   });
 
@@ -166,11 +167,11 @@ function App() {
 
   // Pay-period start day. Null = off, which is the default and how the app
   // behaved before this existed.
-  const [periodStartDay, setPeriodStartDay] = useState<number | null>(() => loadStartDay(localStorage));
+  const [periodStartDay, setPeriodStartDay] = useState<number | null>(() => loadStartDay(appStorage));
   const changeStartDay = (day: number | null) => {
     setPeriodStartDay(day);
-    if (day === null) localStorage.removeItem(PERIOD_START_KEY);
-    else localStorage.setItem(PERIOD_START_KEY, String(day));
+    if (day === null) appStorage.removeItem(PERIOD_START_KEY);
+    else appStorage.setItem(PERIOD_START_KEY, String(day));
   };
 
   // Tap-to-open month picker (the 12-month strip)
@@ -185,10 +186,10 @@ function App() {
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
-  const [onboardBudgetDone, setOnboardBudgetDone] = useState(() => !!localStorage.getItem('budget_onboard_budget'));
-  const [onboardSavingsDone, setOnboardSavingsDone] = useState(() => !!localStorage.getItem('budget_onboard_savings'));
-  const dismissBudgetHero = () => { localStorage.setItem('budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
-  const dismissSavingsHero = () => { localStorage.setItem('budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
+  const [onboardBudgetDone, setOnboardBudgetDone] = useState(() => !!appStorage.getItem('budget_onboard_budget'));
+  const [onboardSavingsDone, setOnboardSavingsDone] = useState(() => !!appStorage.getItem('budget_onboard_savings'));
+  const dismissBudgetHero = () => { appStorage.setItem('budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
+  const dismissSavingsHero = () => { appStorage.setItem('budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
 
   // First-run welcome/introduction — shown once, before anything else, until the
   // user taps "Get started" (persisted so it never appears again on this device).
@@ -196,15 +197,15 @@ function App() {
   // this release — greeting them with "Welcome!" would be wrong, so mark the
   // welcome as seen instead (they get the What's-new badge, the right message).
   const [welcomeOpen, setWelcomeOpen] = useState(() => {
-    if (localStorage.getItem('budget_welcome_seen')) return false;
+    if (appStorage.getItem('budget_welcome_seen')) return false;
     if (hasMeaningfulData()) {
-      localStorage.setItem('budget_welcome_seen', '1');
+      appStorage.setItem('budget_welcome_seen', '1');
       return false;
     }
     return true;
   });
   const welcomeRef = useRef<HTMLDivElement>(null);
-  const dismissWelcome = () => { localStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
+  const dismissWelcome = () => { appStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
 
   // "What's new" changelog panel. A subtle badge shows on the menu until the
@@ -214,10 +215,10 @@ function App() {
   // Devices with existing data get no seeding — they see the badge for this release.
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [changelogSeen, setChangelogSeen] = useState(() => {
-    const seen = localStorage.getItem('budget_changelog_seen');
+    const seen = appStorage.getItem('budget_changelog_seen');
     if (seen) return seen;
     if (!hasMeaningfulData()) {
-      localStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+      appStorage.setItem('budget_changelog_seen', LATEST_VERSION);
       return LATEST_VERSION;
     }
     return null;
@@ -226,7 +227,7 @@ function App() {
   const openWhatsNew = () => {
     setMenuOpen(false);
     setWhatsNewOpen(true);
-    localStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+    appStorage.setItem('budget_changelog_seen', LATEST_VERSION);
     setChangelogSeen(LATEST_VERSION);
   };
 
@@ -247,12 +248,12 @@ function App() {
   useEffect(() => {
     const state = { palette: themePalette, mode: themeMode, custom: themeCustom };
     applyVars(resolveVars(state), themeMode);
-    localStorage.setItem(LS_PALETTE, themePalette);
-    localStorage.setItem(LS_MODE, themeMode);
+    appStorage.setItem(LS_PALETTE, themePalette);
+    appStorage.setItem(LS_MODE, themeMode);
     if (themePalette === 'custom') {
-      localStorage.setItem(LS_CUSTOM, JSON.stringify(themeCustom));
+      appStorage.setItem(LS_CUSTOM, JSON.stringify(themeCustom));
     } else {
-      localStorage.removeItem(LS_CUSTOM);
+      appStorage.removeItem(LS_CUSTOM);
     }
   }, [themePalette, themeMode, themeCustom]);
 
@@ -301,17 +302,17 @@ function App() {
 
   // ── Language ──────────────────────────────────────────────────────
   useEffect(() => {
-    localStorage.setItem('budget_lang', lang);
+    appStorage.setItem('budget_lang', lang);
   }, [lang]);
 
   // ── Currency (symbol/format only — never converts amounts) ─────────
   useEffect(() => {
-    localStorage.setItem('budget_currency', currency);
+    appStorage.setItem('budget_currency', currency);
   }, [currency]);
 
   // ── Budget tab layout (classic / combined) ─────────────────────────
   useEffect(() => {
-    localStorage.setItem('budget_layout', layout);
+    appStorage.setItem('budget_layout', layout);
   }, [layout]);
 
   // ── Sticky-header height → CSS var ────────────────────────────────
@@ -451,7 +452,7 @@ function App() {
   // so they can be unit-tested without a real localStorage; this is just the
   // browser plumbing (file download, confirm dialog, reload).
   const exportData = () => {
-    const payload = buildBackup(localStorage);
+    const payload = buildBackup(appStorage);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -463,12 +464,12 @@ function App() {
     URL.revokeObjectURL(url);
     setMenuOpen(false);
     // Record the backup so the reminder banner stays hidden.
-    localStorage.setItem('budget_last_backup', new Date().toISOString());
+    appStorage.setItem('budget_last_backup', new Date().toISOString());
     setShowBackupReminder(false);
   };
 
   const dismissBackupReminder = () => {
-    localStorage.setItem('budget_backup_dismissed', new Date().toISOString());
+    appStorage.setItem('budget_backup_dismissed', new Date().toISOString());
     setShowBackupReminder(false);
   };
 
@@ -488,7 +489,7 @@ function App() {
         return;
       }
       if (!window.confirm(t.importConfirm)) return;
-      const result = applyBackup(localStorage, check.payload);
+      const result = applyBackup(appStorage, check.payload);
       if (!result.ok) {
         alert(importErrorText(result.reason, t));
         return;
@@ -866,11 +867,11 @@ function App() {
     // save effect doesn't race this write.)
     if (deletedRowIds.size > 0) {
       const currentKey = storageKey(year, month);
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
+      for (let i = appStorage.length - 1; i >= 0; i--) {
+        const key = appStorage.key(i);
         if (!key || !/^budget_\d{4}_\d+$/.test(key) || key === currentKey) continue;
         try {
-          const m = JSON.parse(localStorage.getItem(key)!) as MonthData;
+          const m = JSON.parse(appStorage.getItem(key)!) as MonthData;
           const sp = m.expenses?.find(c => c.id === 'sparande');
           if (!sp) continue;
           const kept = sp.rows.filter(r => !(deletedRowIds.has(r.id) && (r.amount || 0) === 0));
@@ -878,7 +879,7 @@ function App() {
           const expenses = kept.length > 0
             ? m.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
             : m.expenses.filter(c => c.id !== 'sparande');
-          localStorage.setItem(key, JSON.stringify({ ...m, expenses }));
+          appStorage.setItem(key, JSON.stringify({ ...m, expenses }));
         } catch {
           // Malformed month blob — leave it untouched rather than risk data.
         }

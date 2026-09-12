@@ -5,6 +5,7 @@ import { MONTHS_SHORT } from './i18n';
 import { calculateSavingsMetrics, isRowPeriod } from './metrics';
 import type { StorageLike } from './backup';
 import { coerceStoredMoney, isValidMoney } from './money';
+import { appStorage } from './storage';
 
 export const CATEGORY_COLORS: Record<string, string> = {
   boende: '#6366f1',
@@ -343,7 +344,7 @@ export function isHistoricMonth(year: number, monthIndex: number, now = new Date
 
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
   const key = storageKey(year, month);
-  const raw = localStorage.getItem(key);
+  const raw = appStorage.getItem(key);
   if (!raw) return defaultMonthData(lang); // new/empty month → blank
   try {
     const parsed = JSON.parse(raw) as MonthData;
@@ -397,8 +398,8 @@ export function saveMonthData(year: number, month: number, data: MonthData): boo
   const empty = data.income.length === 0 && data.expenses.length === 0
     && data.savings.length === 0 && !data.periodLabel;
   // Nothing to write is not a failure: the month legitimately stays absent.
-  if (empty && localStorage.getItem(key) === null) return true;
-  return safeSetItem(localStorage, key, JSON.stringify(data));
+  if (empty && appStorage.getItem(key) === null) return true;
+  return safeSetItem(appStorage, key, JSON.stringify(data));
 }
 
 /**
@@ -424,7 +425,7 @@ export function cleanupHistoricGoalRows(
   now = new Date(),
   // Injected so the repair is unit-testable without a browser, same port style
   // as backup.ts. Defaults to the real thing in the app.
-  storage: StorageLike = localStorage,
+  storage: StorageLike = appStorage,
 ): number {
   const linkedIds = new Set(goals.map(g => g.budgetRowId).filter((id): id is string => !!id));
   if (linkedIds.size === 0) return 0;
@@ -482,7 +483,7 @@ export const HISTORIC_GOAL_ROWS_MIGRATION = 'budget_migration_historic_goal_rows
 export function runHistoricGoalRowMigration(
   goals: SavingsGoal[],
   now = new Date(),
-  storage: StorageLike = localStorage,
+  storage: StorageLike = appStorage,
 ): number {
   if (storage.getItem(HISTORIC_GOAL_ROWS_MIGRATION)) return 0;
   const cleaned = cleanupHistoricGoalRows(goals, now, storage);
@@ -491,7 +492,7 @@ export function runHistoricGoalRowMigration(
 }
 
 export function loadPlanData(lang: Lang = 'sv'): PlanData {
-  const raw = localStorage.getItem('budget_plan');
+  const raw = appStorage.getItem('budget_plan');
   if (!raw) return defaultPlanData(lang);
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -519,7 +520,7 @@ export function loadPlanData(lang: Lang = 'sv'): PlanData {
 
 /** Returns whether the plan was written — see saveMonthData. */
 export function savePlanData(data: PlanData): boolean {
-  return safeSetItem(localStorage, 'budget_plan', JSON.stringify(data));
+  return safeSetItem(appStorage, 'budget_plan', JSON.stringify(data));
 }
 
 export function generateId(): string {

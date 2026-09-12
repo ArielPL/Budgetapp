@@ -23,6 +23,7 @@
 // against yet, so no ahead/behind badge is shown until it begins.
 
 import { safeSetItem } from './storageWrite';
+import { appStorage } from './storage';
 
 export interface SavingsPlan {
   monthlyAmount: number;   // planned deposit per month
@@ -170,7 +171,7 @@ function isValidPlan(p: unknown): p is SavingsPlan {
 
 export function loadSavingsPlan(): SavingsPlan | null {
   try {
-    const raw = localStorage.getItem(SPARPLAN_KEY);
+    const raw = appStorage.getItem(SPARPLAN_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     return isValidPlan(parsed) ? parsed : null;
@@ -185,11 +186,11 @@ export function saveSavingsPlan(plan: SavingsPlan): boolean {
   if (validateSavingsPlan(plan).length > 0) return false;
   // False now covers both "invalid" and "storage refused it". Both mean the
   // plan is not saved, which is what the caller has to act on either way (F4).
-  return safeSetItem(localStorage, SPARPLAN_KEY, JSON.stringify(plan));
+  return safeSetItem(appStorage, SPARPLAN_KEY, JSON.stringify(plan));
 }
 
 /** Remove the plan. Month data and savings goals live under other keys and are
  *  untouched — deleting the plan only clears the projection settings. */
 export function deleteSavingsPlan(): void {
-  localStorage.removeItem(SPARPLAN_KEY);
+  appStorage.removeItem(SPARPLAN_KEY);
 }

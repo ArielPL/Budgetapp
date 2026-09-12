@@ -21,6 +21,7 @@
 // deleted, never overwritten. See isBackupOwnedKey.
 
 import { isLang, isCurrency, type Lang } from './i18n';
+import type { StorageLike } from './storage';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
@@ -56,14 +57,9 @@ export function isBackupOwnedKey(key: string): boolean {
   return key.startsWith(BACKUP_PREFIX) && !isAuthenticationKey(key);
 }
 
-/** The bits of localStorage we use, so tests can pass a plain fake. */
-export interface StorageLike {
-  readonly length: number;
-  key(i: number): string | null;
-  getItem(k: string): string | null;
-  setItem(k: string, v: string): void;
-  removeItem(k: string): void;
-}
+/** Re-exported so the five modules that already import it from here keep
+ *  working. It is DEFINED in ./storage, next to the port it describes. */
+export type { StorageLike };
 
 export interface BackupPayload {
   app: 'budget';

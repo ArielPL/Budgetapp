@@ -1,4 +1,5 @@
 import { useLang } from '../i18n';
+import { appStorage } from '../storage';
 
 interface Props {
   onExport: () => void;
@@ -11,8 +12,8 @@ export const BackupBanner = ({ onExport, onDismiss }: Props) => {
   const { t } = useLang();
   // Full banner the very first time; a slim one-liner on every later reminder
   // so it stops competing with what the user is actually doing.
-  const compact = !!localStorage.getItem(SEEN_KEY);
-  if (!compact) localStorage.setItem(SEEN_KEY, '1');
+  const compact = !!appStorage.getItem(SEEN_KEY);
+  if (!compact) appStorage.setItem(SEEN_KEY, '1');
 
   return (
     <div className={`backup-banner${compact ? ' backup-banner-compact' : ''}`} role="status">

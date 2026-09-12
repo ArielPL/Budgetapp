@@ -15,6 +15,7 @@ import {
 
 type VsRow = { label: string } & PlanVsActualPoint;
 import { parseAmount } from '../goalForm';
+import { appStorage } from '../storage';
 
 const TEAL = '#14b8a6';
 const GRAY = '#888780';
@@ -83,8 +84,8 @@ export const SparPlanSection = () => {
   // no saving history yet. The user can still override it via the field below.
   const autoStartYM = useMemo(() => {
     const months: Array<{ ym: string; hasSnapshot: boolean }> = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < appStorage.length; i++) {
+      const key = appStorage.key(i);
       const match = key && /^budget_(\d{4})_(\d+)$/.exec(key);
       if (!match) continue;
       const y = Number(match[1]);

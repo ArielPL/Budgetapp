@@ -6,6 +6,7 @@ import {
 import { customYearRows, customYearTotals, type YearBlockLike } from '../customYear';
 import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { appStorage } from '../storage';
 
 // The Custom layout hides the tab bar, so this is its only way to see more than
 // one month. Reuses the Year tab's .year-* styling (table on desktop, cards on
@@ -44,7 +45,7 @@ export const CustomYear = ({ blocks, year }: Props) => {
   const { text: tickColor, grid: gridColor } = chartColors();
 
   // Twelve localStorage reads + parses — not something to redo on every render.
-  const rows = useMemo(() => customYearRows(localStorage, blocks, year), [blocks, year]);
+  const rows = useMemo(() => customYearRows(appStorage, blocks, year), [blocks, year]);
   const totals = useMemo(() => customYearTotals(rows), [rows]);
 
   const hasData = rows.some(r => r.hasData);
