@@ -143,6 +143,28 @@ describe('import validation — nothing is written unless the whole file is good
     expect(checkBackup(backupFile({ budget_something_new: 'whatever' })).ok).toBe(true);
   });
 
+  // Entries behind every "actual" figure. A bad row would sit inside a category
+  // total the user cannot open and correct — the opposite of that view's point.
+  it('rejects an actuals file carrying an unusable entry', () => {
+    const entry = (over: Record<string, unknown> = {}) => JSON.stringify([{
+      id: 'a1', date: '2026-09-02', text: 'ICA', amount: 842, categoryId: 'mat', ...over,
+    }]);
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: entry({ amount: null }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: entry({ date: '24/09/2026' }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: entry({ categoryId: '' }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: '{"not":"an array"}' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: 'not json' }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
+
+  it('accepts a sound actuals file, and an empty month', () => {
+    const good = JSON.stringify([
+      { id: 'a1', date: '2026-09-02', text: 'ICA Maxi', amount: 842, categoryId: 'mat' },
+      { id: 'a2', date: '2026-09-21', text: 'Lunch', amount: 150, categoryId: 'mat', manual: true },
+    ]);
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: good })).ok).toBe(true);
+    expect(checkBackup(backupFile({ budget_actuals_2026_8: '[]' })).ok).toBe(true);
+  });
+
   it('rejects a savings plan with an impossible month', () => {
     const plan = (ym: string) => JSON.stringify({ monthlyAmount: 2000, annualReturnPct: 7, startAmount: 0, startYM: ym });
     expect(checkBackup(backupFile({ budget_savings_plan: plan('2026-13') }))).toMatchObject({ ok: false, reason: 'corrupt' });

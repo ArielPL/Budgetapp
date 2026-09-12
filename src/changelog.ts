@@ -21,14 +21,20 @@ export const CHANGELOG: Release[] = [
     title: { sv: 'Tanken bakom appen', en: 'The thinking behind the app', es: 'La idea detrás de la app' },
     items: {
       sv: [
+        'Nytt: en flik för uppföljning. Din plan står bredvid vad som faktiskt hände, kategori för kategori. Lägg till det du betalat för hand — varje siffra går att fälla ut och läsa rad för rad, och en post du skrivit själv är märkt som sådan',
+        'Fyller du inte i en kategori står den som – och inte som 0 kr. Att inte ha registrerat något är inte samma sak som att inte ha spenderat något',
         'Nytt: appen berättar varför den ser ut som den gör. Ett brev från mig om varför budgeten ligger lokalt på din enhet, och vart den är på väg',
         'Det visas första gången du öppnar appen, och finns kvar under ⚙ → Om appen. Har du använt appen förut hittar du det där — förstagångshälsningen visas aldrig för någon som redan har en budget',
       ],
       en: [
+        'New: a follow-up tab. Your plan sits beside what actually happened, category by category. Add what you paid by hand — every figure can be unfolded and read line by line, and an entry you typed yourself is marked as such',
+        'A category you have not filled in shows – rather than 0 kr. Not having recorded something is not the same as not having spent anything',
         'New: the app explains why it works the way it does. A letter from me about why your budget lives locally on your device, and where it is heading',
         'It appears the first time you open the app, and stays available under ⚙ → About the app. If you have used the app before you will find it there — the first-run greeting never shows to someone who already has a budget',
       ],
       es: [
+        'Nuevo: una pestaña de seguimiento. Tu plan aparece junto a lo que pasó de verdad, categoría por categoría. Añade a mano lo que pagaste — cada cifra se puede desplegar y leer línea por línea, y un movimiento escrito por ti va marcado como tal',
+        'Una categoría que no has rellenado muestra – en vez de 0 kr. No haber registrado algo no es lo mismo que no haber gastado nada',
         'Nuevo: la app explica por qué funciona como funciona. Una carta mía sobre por qué tu presupuesto vive localmente en tu dispositivo, y hacia dónde va',
         'Aparece la primera vez que abres la app y queda disponible en ⚙ → Sobre la app. Si ya has usado la app lo encontrarás ahí — el saludo de bienvenida nunca se muestra a quien ya tiene un presupuesto',
       ],

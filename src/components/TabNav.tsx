@@ -10,6 +10,7 @@ export const TabNav = ({ active, onChange }: Props) => {
   const { t } = useLang();
   const tabs: { id: ActiveTab; label: string; short: string; icon: string }[] = [
     { id: 'budget',  label: t.tabBudget,  short: t.tabBudget,        icon: '📋' },
+    { id: 'followup', label: t.tabFollowUp, short: t.tabFollowUpShort, icon: '🧾' },
     { id: 'savings', label: t.tabSavings, short: t.tabSavingsShort,  icon: '📈' },
     { id: 'plan',    label: t.tabPlan,    short: t.tabPlanShort,     icon: '🎯' },
     { id: 'year',    label: t.tabYear,    short: t.tabYearShort,     icon: '📅' },

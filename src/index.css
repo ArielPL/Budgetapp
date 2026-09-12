@@ -3281,7 +3281,193 @@ a:focus-visible,
 }
 
 
+/* ── Follow-up: the plan next to what happened ─────────────────────────────
+   A four-column grid rather than a table so the same markup works as buttons
+   (each row opens) and keeps the numbers right-aligned in one another's column.
+   Every figure here can be unfolded, which is where the tab's whole point sits:
+   a total nobody can open is just a claim. */
+.followup-heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.followup-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.followup-empty p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); }
+.followup-empty-soon { margin-top: 8px !important; color: var(--accent-brand) !important; }
+
+.followup-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.followup-head,
+.followup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  width: 100%;
+  text-align: left;
+}
+.followup-head {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.followup-head .num, .followup-row .num { text-align: right; }
+.followup-row {
+  font-size: 0.88rem;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  min-height: 46px;
+}
+.followup-row-wrap:first-child .followup-row { border-top: none; }
+@media (hover: hover) {
+  .followup-row-wrap:not(.is-open) .followup-row:hover { background: var(--surface2); }
+}
+.followup-row-wrap.is-open { background: var(--surface2); }
+.followup-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.followup-caret { color: var(--text-muted); font-size: 0.7rem; }
+/* The plan is context; the actual is the news. Muting one makes the pair read
+   left to right without needing a legend. */
+.followup-planned { color: var(--text-muted); }
+.followup-diff-over { color: var(--negative); }
+.followup-diff-under, .followup-diff-ok { color: var(--positive); }
+.followup-total {
+  border-top: 1px solid var(--border-strong);
+  font-weight: 700;
+  cursor: default;
+}
+
+.followup-entries { padding: 2px 14px 12px; }
+.followup-none { font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 8px; }
+.followup-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.followup-entry-date { font-variant-numeric: tabular-nums; }
+.followup-entry-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.followup-manual {
+  margin-left: 7px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: 0.66rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 6px);
+}
+.followup-entry-amount {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm, 6px);
+  min-height: 32px;
+}
+@media (hover: hover) { .followup-entry-amount:hover { background: var(--surface); } }
+.followup-entry-input {
+  width: 92px;
+  text-align: right;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.followup-entry-input.has-error { border-color: var(--negative); }
+.followup-delete {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+@media (hover: hover) { .followup-delete:hover { color: var(--negative); background: var(--surface); } }
+.followup-add {
+  color: var(--accent-brand);
+  font-size: 0.82rem;
+  padding: 8px 0 2px;
+  min-height: 40px;
+}
+
+.followup-form {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0 2px;
+}
+.followup-form input {
+  padding: 7px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-amount { width: 92px; text-align: right; }
+.followup-form-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.followup-form-save {
+  background: var(--accent-brand);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-cancel {
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-error {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--negative);
+}
+
 @media (max-width: 640px) {
+  /* Four columns do not fit a phone. The category keeps its own line and the
+     three figures share the next one, so nothing is truncated and the plan
+     still sits beside the actual where the comparison is made. */
+  .followup-head { display: none; }
+  .followup-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: 'name name name' 'plan actual diff';
+    row-gap: 4px;
+  }
+  .followup-name { grid-area: name; }
+  .followup-planned { grid-area: plan; text-align: left !important; }
+  /* Named classes, not :nth-of-type — that counts ELEMENTS, and every cell here
+     is a span, so positional selectors silently addressed the wrong ones and
+     dealt the three figures out in the wrong order. */
+  .followup-actual { grid-area: actual; }
+  .followup-diffcell { grid-area: diff; }
+  .followup-form { grid-template-columns: minmax(0, 1fr); }
+  .followup-form-amount { width: 100%; }
+
   .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
 

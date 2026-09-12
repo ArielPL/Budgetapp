@@ -27,6 +27,7 @@ import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
 import { isMonthSnapshot } from './customYear';
+import { isActualEntry } from './actuals';
 import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
@@ -207,6 +208,12 @@ function isValidValue(key: string, raw: string): boolean {
   // then blank the app on the next start (review 2026-09-05, F3).
   if (key === 'budget_lang') return isLang(raw);
   if (key === 'budget_currency') return isCurrency(raw);
+  // Entries behind every "actual" figure. Validated rather than waved through:
+  // a bad row here would sit inside a category total the user cannot open and
+  // correct, which is the opposite of what that view is for.
+  if (/^budget_actuals_/.test(key)) {
+    return parseThen(v => Array.isArray(v) && v.every(isActualEntry));
+  }
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);

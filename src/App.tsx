@@ -16,6 +16,7 @@ import { BackupBanner } from './components/BackupBanner';
 const Charts = lazy(() => import('./components/Charts').then(m => ({ default: m.Charts })));
 const SavingsTab = lazy(() => import('./components/SavingsTab').then(m => ({ default: m.SavingsTab })));
 const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: m.PlanTab })));
+const FollowUpTab = lazy(() => import('./components/FollowUpTab').then(m => ({ default: m.FollowUpTab })));
 const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
 const CustomV3 = lazy(() => import('./components/CustomV3').then(m => ({ default: m.CustomV3 })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
@@ -1045,6 +1046,18 @@ function App() {
     </Suspense>
   );
 
+  const followUpView = (
+    <Suspense fallback={lazyFallback}>
+      <FollowUpTab
+        year={year}
+        month={month}
+        categories={data.expenses}
+        totalIncome={totalIncome}
+        onSaveFailed={reportSaveFailed}
+      />
+    </Suspense>
+  );
+
   const yearView = (
     <Suspense fallback={lazyFallback}>
       <YearTab year={year} />
@@ -1386,6 +1399,7 @@ function App() {
                lightweight CSS entrance animation (.tab-enter) replays each time. */
           <div className="tab-enter" key={activeTab}>
             {activeTab === 'budget' && budgetView}
+            {activeTab === 'followup' && followUpView}
             {activeTab === 'savings' && savingsView}
             {activeTab === 'plan' && planView}
             {activeTab === 'year' && yearView}
@@ -1406,6 +1420,7 @@ function App() {
                   language without inventing abbreviations (main review §9). */}
               {([
                 ['combined-budget', '📋', t.tabBudget, t.tabBudget],
+                ['combined-followup', '🧾', t.tabFollowUpShort, t.tabFollowUp],
                 ['combined-savings', '📈', t.tabSavingsShort, t.tabSavings],
                 ['combined-year', '🗓️', t.tabYearShort, t.tabYear],
                 ['combined-plan', '🎯', t.tabPlanShort, t.tabPlan],
@@ -1434,6 +1449,10 @@ function App() {
             <section className="combined-section">
               <h2 className="combined-section-title" id="combined-budget" tabIndex={-1}>{t.tabBudget}</h2>
               {budgetView}
+            </section>
+            <section className="combined-section">
+              <h2 className="combined-section-title" id="combined-followup" tabIndex={-1}>{t.tabFollowUp}</h2>
+              {followUpView}
             </section>
             <section className="combined-section">
               <h2 className="combined-section-title" id="combined-savings" tabIndex={-1}>{t.tabSavings}</h2>

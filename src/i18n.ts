@@ -150,6 +150,30 @@ export interface Translations {
   tabPlanShort: string;
   tabYear: string;
   tabYearShort: string;
+  tabFollowUp: string;
+  tabFollowUpShort: string;
+  followUpHeading: string;
+  followUpIncome: string;
+  followUpColCategory: string;
+  followUpColPlan: string;
+  followUpColActual: string;
+  followUpColDiff: string;
+  followUpTotalOut: string;
+  followUpNotRecorded: string;
+  followUpNoEntries: string;
+  followUpAddEntry: string;
+  followUpManual: string;
+  followUpDelete: (text: string) => string;
+  followUpDeleteConfirm: (text: string) => string;
+  followUpDate: string;
+  followUpText: string;
+  followUpAmount: string;
+  followUpSave: string;
+  followUpCancel: string;
+  followUpBadAmount: string;
+  followUpBadText: string;
+  followUpEmptyBody: string;
+  followUpEmptySoon: string;
   // Header buttons
   menu: string;
   menuTitle: string;
@@ -524,6 +548,30 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'År',
     tabYearShort: 'År',
+    tabFollowUp: 'Uppföljning',
+    tabFollowUpShort: 'Utfall',
+    followUpHeading: 'Plan och utfall',
+    followUpIncome: 'Inkomst',
+    followUpColCategory: 'Kategori',
+    followUpColPlan: 'Plan',
+    followUpColActual: 'Utfall',
+    followUpColDiff: 'Skillnad',
+    followUpTotalOut: 'Totalt ut',
+    followUpNotRecorded: 'Inget registrerat här ännu',
+    followUpNoEntries: 'Inga poster ännu.',
+    followUpAddEntry: 'Lägg till post',
+    followUpManual: 'för hand',
+    followUpDelete: (text) => `Ta bort ${text}`,
+    followUpDeleteConfirm: (text) => `Ta bort "${text}"? Posten försvinner ur utfallet.`,
+    followUpDate: 'Datum',
+    followUpText: 'Vad gällde det?',
+    followUpAmount: 'Belopp',
+    followUpSave: 'Lägg till',
+    followUpCancel: 'Avbryt',
+    followUpBadAmount: 'Skriv ett belopp större än noll.',
+    followUpBadText: 'Skriv vad posten gällde.',
+    followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
+    followUpEmptySoon: 'Snart kan du hämta ditt kontoutdrag som fil från banken i stället för att skriva in posterna själv.',
     menu: 'Meny',
     menuTitle: 'Inställningar och verktyg',
     language: 'Språk',
@@ -858,6 +906,30 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Year',
     tabYearShort: 'Year',
+    tabFollowUp: 'Follow-up',
+    tabFollowUpShort: 'Actual',
+    followUpHeading: 'Plan and actual',
+    followUpIncome: 'Income',
+    followUpColCategory: 'Category',
+    followUpColPlan: 'Plan',
+    followUpColActual: 'Actual',
+    followUpColDiff: 'Difference',
+    followUpTotalOut: 'Total out',
+    followUpNotRecorded: 'Nothing recorded here yet',
+    followUpNoEntries: 'No entries yet.',
+    followUpAddEntry: 'Add entry',
+    followUpManual: 'by hand',
+    followUpDelete: (text) => `Delete ${text}`,
+    followUpDeleteConfirm: (text) => `Delete "${text}"? The entry leaves your actuals.`,
+    followUpDate: 'Date',
+    followUpText: 'What was it for?',
+    followUpAmount: 'Amount',
+    followUpSave: 'Add',
+    followUpCancel: 'Cancel',
+    followUpBadAmount: 'Enter an amount greater than zero.',
+    followUpBadText: 'Say what the entry was for.',
+    followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
+    followUpEmptySoon: 'Soon you will be able to bring your bank statement in as a file instead of typing the entries yourself.',
     menu: 'Menu',
     menuTitle: 'Settings & tools',
     language: 'Language',
@@ -1192,6 +1264,30 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Año',
     tabYearShort: 'Año',
+    tabFollowUp: 'Seguimiento',
+    tabFollowUpShort: 'Real',
+    followUpHeading: 'Plan y realidad',
+    followUpIncome: 'Ingresos',
+    followUpColCategory: 'Categoría',
+    followUpColPlan: 'Plan',
+    followUpColActual: 'Real',
+    followUpColDiff: 'Diferencia',
+    followUpTotalOut: 'Total salidas',
+    followUpNotRecorded: 'Aquí no hay nada registrado todavía',
+    followUpNoEntries: 'Aún no hay movimientos.',
+    followUpAddEntry: 'Añadir movimiento',
+    followUpManual: 'a mano',
+    followUpDelete: (text) => `Eliminar ${text}`,
+    followUpDeleteConfirm: (text) => `¿Eliminar "${text}"? El movimiento sale de tus cifras reales.`,
+    followUpDate: 'Fecha',
+    followUpText: '¿De qué se trataba?',
+    followUpAmount: 'Importe',
+    followUpSave: 'Añadir',
+    followUpCancel: 'Cancelar',
+    followUpBadAmount: 'Escribe un importe mayor que cero.',
+    followUpBadText: 'Indica de qué se trataba.',
+    followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
+    followUpEmptySoon: 'Pronto podrás traer el extracto de tu banco como archivo en lugar de escribir los movimientos tú mismo.',
     menu: 'Menú',
     menuTitle: 'Ajustes y herramientas',
     language: 'Idioma',
