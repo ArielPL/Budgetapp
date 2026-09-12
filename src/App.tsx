@@ -1201,6 +1201,12 @@ function App() {
                   </button>
 
                   {/* What's new — opens the changelog panel */}
+                  <button
+                    className="utils-action"
+                    onClick={() => { setWelcomeOpen(true); setMenuOpen(false); }}
+                  >
+                    💬 {t.aboutApp}
+                  </button>
                   <button className="utils-action" onClick={openWhatsNew}>
                     <span>🎉 {t.whatsNew}</span>
                     {hasNewUpdate && <span className="utils-new-pill">{t.badgeNew}</span>}
@@ -1319,17 +1325,21 @@ function App() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="welcome-title"
+            // Focus lands on the dialog, not on the button at the end of the
+            // letter — otherwise the panel opens scrolled past its own opening.
+            tabIndex={-1}
             ref={welcomeRef}
           >
             <div className="welcome-body-wrap">
               <div className="welcome-emoji" aria-hidden="true">👋💰</div>
               <h2 className="welcome-title" id="welcome-title">{t.welcomeTitle}</h2>
-              <p className="welcome-lead">{t.welcomeBody}</p>
-              <ul className="welcome-features">
-                <li><span aria-hidden="true">📊</span> {t.welcomeFeatBudget}</li>
-                <li><span aria-hidden="true">🔒</span> {t.welcomeFeatOffline}</li>
-                <li><span aria-hidden="true">🎨</span> {t.welcomeFeatThemes}</li>
-              </ul>
+              {/* A letter, not feature bullets: left-aligned and in paragraphs,
+                  because that is how a letter is read. The title already says
+                  hello, so the text starts at the story. */}
+              <div className="welcome-letter">
+                {t.welcomeLetter.map((para, i) => <p key={i}>{para}</p>)}
+                <p className="welcome-signature">{t.welcomeSignature}</p>
+              </div>
               <button className="welcome-start-btn" onClick={dismissWelcome}>
                 {t.welcomeStart}
               </button>

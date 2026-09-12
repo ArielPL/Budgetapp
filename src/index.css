@@ -3543,27 +3543,27 @@ a:focus-visible,
   margin: 0;
   max-width: 30ch;
 }
-.welcome-features {
-  list-style: none;
-  margin: 6px 0 4px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* The letter. Left-aligned on purpose: the modal centres its heading and
+   button, but centred prose is hard to read once it runs past a line or two,
+   and this is several paragraphs of someone talking to you. */
+.welcome-letter {
   width: 100%;
   text-align: left;
-}
-.welcome-features li {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.92rem;
-  color: var(--text);
-  background: var(--surface2);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 12px;
+  margin: 2px 0 4px;
 }
-.welcome-features li span { font-size: 1.15rem; flex-shrink: 0; }
+.welcome-letter p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+.welcome-signature {
+  color: var(--text-muted);
+  font-style: italic;
+}
 .welcome-start-btn {
   margin-top: 8px;
   width: 100%;

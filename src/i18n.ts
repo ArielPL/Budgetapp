@@ -225,11 +225,14 @@ export interface Translations {
   addStarterCategories: string;
   // First-run welcome / introduction
   welcomeTitle: string;
-  welcomeBody: string;
-  welcomeFeatBudget: string;
-  welcomeFeatOffline: string;
-  welcomeFeatThemes: string;
+  /** The letter shown on first run and from the menu, one string per paragraph.
+   *  Ariel's own words — edit them as prose, not as UI copy. */
+  welcomeLetter: string[];
+  welcomeSignature: string;
   welcomeStart: string;
+  /** Menu entry that reopens the letter. Without it the text would only ever be
+   *  seen by someone installing for the first time. */
+  aboutApp: string;
   onboardBudgetTitle: string;
   onboardBudgetBody: string;
   useBudgetTemplate: string;
@@ -584,11 +587,17 @@ export const translations: Record<Lang, Translations> = {
     cfgDone: 'Klar',
     addStarterCategories: 'Lägg till startkategorier',
     welcomeTitle: 'Välkommen till Budgetapp!',
-    welcomeBody: 'Ett enkelt och privat sätt att planera din månadsbudget och ditt sparande.',
-    welcomeFeatBudget: 'Håll koll på inkomster, utgifter och sparmål',
-    welcomeFeatOffline: 'Fungerar offline — dina data stannar på den här enheten',
-    welcomeFeatThemes: 'Gör den till din med teman och språk',
+    welcomeLetter: [
+      'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
+      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy, men jag upptäckte att den fungerar lika bra som en liten plånbok för en resa.',
+      'Ekonomi är det som får vardagen att rulla — mat, fritid, nöje, ansvar. Just därför tycker jag att den ska vara din att styra, utan distraktioner.',
+      'Därför är appen lokal. Allt lagras på din enhet. Du exporterar och importerar när du vill, utan att någon ser eller lägger sig i. Inga molntjänster, ingen bankkoppling, ingen utomstående.',
+      'Nästa steg är att lokalt inte ska betyda tjatigt: du ska kunna hämta ditt kontoutdrag som fil från banken och låta appen sortera posterna åt dig, på din egen enhet. Det bygger jag på nu.',
+      'Du och din ekonomi. Jag hoppas att den hjälper dig framåt.',
+    ],
+    welcomeSignature: '/Ariel',
     welcomeStart: 'Kom igång',
+    aboutApp: 'Om appen',
     onboardBudgetTitle: 'Kom igång med din månadsbudget',
     onboardBudgetBody: 'Välj en färdig mall eller bygg budgeten själv.',
     useBudgetTemplate: 'Använd budgetmall',
@@ -912,11 +921,17 @@ export const translations: Record<Lang, Translations> = {
     cfgDone: 'Done',
     addStarterCategories: 'Add starter categories',
     welcomeTitle: 'Welcome to Budgetapp!',
-    welcomeBody: 'A simple, private way to plan your monthly budget and savings.',
-    welcomeFeatBudget: 'Track income, expenses and savings goals',
-    welcomeFeatOffline: 'Works offline — your data stays on this device',
-    welcomeFeatThemes: 'Make it yours with themes and languages',
+    welcomeLetter: [
+      'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
+      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view, but I found it works just as well as a little wallet for a trip.',
+      'Money is what keeps everyday life moving — food, free time, small pleasures, responsibilities. That is exactly why I think it should be yours to steer, without distractions.',
+      'So the app is local. Everything is stored on your device. You export and import whenever you like, without anyone watching or interfering. No cloud services, no bank connection, no third party.',
+      'The next step is for local not to mean tedious: you will be able to take your bank statement as a file and let the app sort the entries for you, on your own device. I am building that now.',
+      'You and your money. I hope it helps you forward.',
+    ],
+    welcomeSignature: '/Ariel',
     welcomeStart: 'Get started',
+    aboutApp: 'About the app',
     onboardBudgetTitle: 'Get started with your monthly budget',
     onboardBudgetBody: 'Pick a ready-made template or build the budget yourself.',
     useBudgetTemplate: 'Use budget template',
@@ -1240,11 +1255,17 @@ export const translations: Record<Lang, Translations> = {
     cfgDone: 'Listo',
     addStarterCategories: 'Añadir categorías iniciales',
     welcomeTitle: '¡Bienvenido a Budgetapp!',
-    welcomeBody: 'Una forma sencilla y privada de planificar tu presupuesto mensual y tus ahorros.',
-    welcomeFeatBudget: 'Controla ingresos, gastos y metas de ahorro',
-    welcomeFeatOffline: 'Funciona sin conexión: tus datos se quedan en este dispositivo',
-    welcomeFeatThemes: 'Hazla tuya con temas e idiomas',
+    welcomeLetter: [
+      'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
+      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista, pero descubrí que funciona igual de bien como una pequeña cartera para un viaje.',
+      'El dinero es lo que hace que la vida diaria funcione — comida, tiempo libre, gustos, responsabilidades. Justo por eso creo que debe ser tuyo de manejar, sin distracciones.',
+      'Por eso la app es local. Todo se guarda en tu dispositivo. Exportas e importas cuando quieras, sin que nadie lo vea ni se meta. Sin servicios en la nube, sin conexión bancaria, sin terceros.',
+      'El siguiente paso es que local no signifique pesado: podrás traer el extracto de tu banco como archivo y dejar que la app ordene los movimientos por ti, en tu propio dispositivo. Lo estoy construyendo ahora.',
+      'Tú y tu economía. Espero que te ayude a avanzar.',
+    ],
+    welcomeSignature: '/Ariel',
     welcomeStart: 'Empezar',
+    aboutApp: 'Sobre la app',
     onboardBudgetTitle: 'Empieza con tu presupuesto mensual',
     onboardBudgetBody: 'Elige una plantilla lista o construye el presupuesto tú mismo.',
     useBudgetTemplate: 'Usar plantilla de presupuesto',

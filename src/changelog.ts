@@ -16,6 +16,25 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.0',
+    date: '2026-09-12',
+    title: { sv: 'Tanken bakom appen', en: 'The thinking behind the app', es: 'La idea detrás de la app' },
+    items: {
+      sv: [
+        'Nytt: appen berättar varför den ser ut som den gör. Ett brev från mig om varför budgeten ligger lokalt på din enhet, och vart den är på väg',
+        'Det visas första gången du öppnar appen, och finns kvar under ⚙ → Om appen. Har du använt appen förut hittar du det där — förstagångshälsningen visas aldrig för någon som redan har en budget',
+      ],
+      en: [
+        'New: the app explains why it works the way it does. A letter from me about why your budget lives locally on your device, and where it is heading',
+        'It appears the first time you open the app, and stays available under ⚙ → About the app. If you have used the app before you will find it there — the first-run greeting never shows to someone who already has a budget',
+      ],
+      es: [
+        'Nuevo: la app explica por qué funciona como funciona. Una carta mía sobre por qué tu presupuesto vive localmente en tu dispositivo, y hacia dónde va',
+        'Aparece la primera vez que abres la app y queda disponible en ⚙ → Sobre la app. Si ya has usado la app lo encontrarás ahí — el saludo de bienvenida nunca se muestra a quien ya tiene un presupuesto',
+      ],
+    },
+  },
+  {
     version: '1.11.0',
     date: '2026-08-06',
     title: { sv: 'Ett år i Anpassad — och siffror som stämmer', en: 'A year in Custom — and figures that match', es: 'Un año en Personalizado — y cifras que coinciden' },
