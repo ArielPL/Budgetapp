@@ -174,6 +174,38 @@ export interface Translations {
   followUpBadText: string;
   followUpEmptyBody: string;
   followUpEmptySoon: string;
+  followUpImport: string;
+  csvTitle: string;
+  csvDropLead: string;
+  csvDropSub: string;
+  csvPick: string;
+  csvUnreadable: string;
+  csvNoRows: string;
+  csvNoText: string;
+  csvColumnsLead: string;
+  csvRoleDate: string;
+  csvRoleText: string;
+  csvRoleAmount: string;
+  csvRoleIn: string;
+  csvRoleOut: string;
+  csvRoleSkip: string;
+  csvRemember: string;
+  csvContinue: string;
+  csvNeedBoth: string;
+  csvReviewLead: (rows: number, groups: number) => string;
+  csvSkipped: (n: number) => string;
+  csvRows: (n: number) => string;
+  csvChoose: string;
+  csvImportN: (n: number) => string;
+  csvUnassigned: (n: number) => string;
+  csvDoneAdded: (n: number) => string;
+  csvDoneDuplicates: (n: number) => string;
+  csvDoneUnassigned: (n: number) => string;
+  /** Takes you to a month the import wrote to that is not the one on screen. */
+  csvGoToMonth: (monthName: string) => string;
+  /** Collects entries whose category this month's budget does not have. */
+  followUpOutsideBudget: string;
+  followUpOutsideBudgetHint: string;
   // Header buttons
   menu: string;
   menuTitle: string;
@@ -572,6 +604,36 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Skriv vad posten gällde.',
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
     followUpEmptySoon: 'Snart kan du hämta ditt kontoutdrag som fil från banken i stället för att skriva in posterna själv.',
+    followUpImport: 'Importera kontoutdrag',
+    csvTitle: 'Importera kontoutdrag',
+    csvDropLead: 'Släpp din fil här',
+    csvDropSub: 'CSV från din bank. Filen lämnar aldrig den här enheten.',
+    csvPick: 'Välj fil',
+    csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
+    csvNoRows: 'Hittade inga transaktioner i filen.',
+    csvNoText: '(utan text)',
+    csvColumnsLead: 'Stämmer det här? Välj vad varje kolumn innehåller.',
+    csvRoleDate: 'Datum',
+    csvRoleText: 'Text',
+    csvRoleAmount: 'Belopp',
+    csvRoleIn: 'Insättning',
+    csvRoleOut: 'Uttag',
+    csvRoleSkip: 'Hoppa över',
+    csvRemember: 'Appen kommer ihåg uppställningen och frågar inte nästa gång du hämtar från samma bank.',
+    csvContinue: 'Fortsätt',
+    csvNeedBoth: 'Välj minst en datumkolumn och en beloppskolumn.',
+    csvReviewLead: (rows, groups) => `${rows} transaktioner, ${groups} olika ställen. Välj kategori per ställe.`,
+    csvSkipped: (n) => `${n} rader kunde inte läsas och hoppas över.`,
+    csvRows: (n) => (n === 1 ? '1 post' : `${n} poster`),
+    csvChoose: 'Välj kategori',
+    csvImportN: (n) => `Importera ${n} poster`,
+    csvUnassigned: (n) => `${n} utan kategori importeras inte.`,
+    csvDoneAdded: (n) => (n === 1 ? '1 post importerad' : `${n} poster importerade`),
+    csvDoneDuplicates: (n) => `${n} fanns redan`,
+    csvDoneUnassigned: (n) => `${n} utan kategori`,
+    csvGoToMonth: (monthName) => `Visa ${monthName}`,
+    followUpOutsideBudget: 'Utanför budgeten',
+    followUpOutsideBudgetHint: 'Poster i kategorier som den här månadens budget inte har.',
     menu: 'Meny',
     menuTitle: 'Inställningar och verktyg',
     language: 'Språk',
@@ -930,6 +992,36 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Say what the entry was for.',
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
     followUpEmptySoon: 'Soon you will be able to bring your bank statement in as a file instead of typing the entries yourself.',
+    followUpImport: 'Import statement',
+    csvTitle: 'Import bank statement',
+    csvDropLead: 'Drop your file here',
+    csvDropSub: 'A CSV from your bank. The file never leaves this device.',
+    csvPick: 'Choose file',
+    csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
+    csvNoRows: 'No transactions found in the file.',
+    csvNoText: '(no text)',
+    csvColumnsLead: 'Is this right? Choose what each column holds.',
+    csvRoleDate: 'Date',
+    csvRoleText: 'Text',
+    csvRoleAmount: 'Amount',
+    csvRoleIn: 'Money in',
+    csvRoleOut: 'Money out',
+    csvRoleSkip: 'Skip',
+    csvRemember: 'The app remembers this layout and will not ask again for the same bank.',
+    csvContinue: 'Continue',
+    csvNeedBoth: 'Pick at least one date column and one amount column.',
+    csvReviewLead: (rows, groups) => `${rows} transactions, ${groups} different places. Choose a category for each.`,
+    csvSkipped: (n) => `${n} rows could not be read and are skipped.`,
+    csvRows: (n) => (n === 1 ? '1 entry' : `${n} entries`),
+    csvChoose: 'Choose category',
+    csvImportN: (n) => `Import ${n} entries`,
+    csvUnassigned: (n) => `${n} without a category are not imported.`,
+    csvDoneAdded: (n) => (n === 1 ? '1 entry imported' : `${n} entries imported`),
+    csvDoneDuplicates: (n) => (n === 1 ? '1 was already there' : `${n} were already there`),
+    csvDoneUnassigned: (n) => `${n} without a category`,
+    csvGoToMonth: (monthName) => `Show ${monthName}`,
+    followUpOutsideBudget: 'Outside the budget',
+    followUpOutsideBudgetHint: "Entries in categories this month's budget does not have.",
     menu: 'Menu',
     menuTitle: 'Settings & tools',
     language: 'Language',
@@ -1288,6 +1380,36 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Indica de qué se trataba.',
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
     followUpEmptySoon: 'Pronto podrás traer el extracto de tu banco como archivo en lugar de escribir los movimientos tú mismo.',
+    followUpImport: 'Importar extracto',
+    csvTitle: 'Importar extracto bancario',
+    csvDropLead: 'Suelta tu archivo aquí',
+    csvDropSub: 'Un CSV de tu banco. El archivo nunca sale de este dispositivo.',
+    csvPick: 'Elegir archivo',
+    csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
+    csvNoRows: 'No se encontraron movimientos en el archivo.',
+    csvNoText: '(sin texto)',
+    csvColumnsLead: '¿Es correcto? Elige qué contiene cada columna.',
+    csvRoleDate: 'Fecha',
+    csvRoleText: 'Texto',
+    csvRoleAmount: 'Importe',
+    csvRoleIn: 'Entrada',
+    csvRoleOut: 'Salida',
+    csvRoleSkip: 'Omitir',
+    csvRemember: 'La app recuerda esta disposición y no volverá a preguntar para el mismo banco.',
+    csvContinue: 'Continuar',
+    csvNeedBoth: 'Elige al menos una columna de fecha y una de importe.',
+    csvReviewLead: (rows, groups) => `${rows} movimientos, ${groups} sitios distintos. Elige categoría para cada uno.`,
+    csvSkipped: (n) => `${n} filas no se pudieron leer y se omiten.`,
+    csvRows: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
+    csvChoose: 'Elegir categoría',
+    csvImportN: (n) => `Importar ${n} movimientos`,
+    csvUnassigned: (n) => `${n} sin categoría no se importan.`,
+    csvDoneAdded: (n) => (n === 1 ? '1 movimiento importado' : `${n} movimientos importados`),
+    csvDoneDuplicates: (n) => (n === 1 ? '1 ya estaba' : `${n} ya estaban`),
+    csvDoneUnassigned: (n) => `${n} sin categoría`,
+    csvGoToMonth: (monthName) => `Ver ${monthName}`,
+    followUpOutsideBudget: 'Fuera del presupuesto',
+    followUpOutsideBudgetHint: 'Movimientos en categorías que el presupuesto de este mes no tiene.',
     menu: 'Menú',
     menuTitle: 'Ajustes y herramientas',
     language: 'Idioma',

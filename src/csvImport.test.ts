@@ -1,0 +1,418 @@
+import { describe, it, expect } from 'vitest';
+import {
+  decodeCsv, detectDelimiter, parseCsv, findHeaderRow,
+  parseAmount, parseDate, guessColumns, rowsToParsed, headerFingerprint, groupByText,
+} from './csvImport';
+
+const bytes = (...b: number[]) => new Uint8Array(b).buffer;
+
+describe('decodeCsv — the quietly destructive one', () => {
+  it('reads UTF-8', () => {
+    const buf = new TextEncoder().encode('Datum;Café;Belopp').buffer;
+    expect(decodeCsv(buf)).toBe('Datum;Café;Belopp');
+  });
+
+  it('falls back to Windows-1252, which Swedish exports often are', () => {
+    // "Café" as cp1252: é is a single byte 0xE9, which is not valid UTF-8.
+    // A non-strict UTF-8 decoder would not throw — it would hand back "Caf�"
+    // and every å, ä and ö in the statement would be ruined without a single
+    // error anywhere. That is why the first decode is strict.
+    expect(decodeCsv(bytes(0x43, 0x61, 0x66, 0xE9))).toBe('Café');
+  });
+
+  it('reads Swedish letters out of Windows-1252', () => {
+    // å ä ö = 0xE5 0xE4 0xF6
+    expect(decodeCsv(bytes(0xE5, 0xE4, 0xF6))).toBe('åäö');
+  });
+});
+
+describe('detectDelimiter', () => {
+  it('finds the semicolon Swedish Excel writes', () => {
+    expect(detectDelimiter('Datum;Text;Belopp\n2026-09-02;ICA;-842,00')).toBe(';');
+  });
+
+  it('finds a comma', () => {
+    expect(detectDelimiter('Date,Description,Amount\n2026-09-02,ICA,-842.00')).toBe(',');
+  });
+
+  it('finds a tab', () => {
+    expect(detectDelimiter('Datum\tText\tBelopp\n2026-09-02\tICA\t-842,00')).toBe('\t');
+  });
+
+  it('is not fooled by a comma inside one description', () => {
+    // A single stray comma must not outvote the real column separator, or the
+    // whole file parses as one field per row and nothing imports.
+    const text = 'Datum;Text;Belopp\n2026-09-02;"ICA Maxi, Södertälje";-842,00\n2026-09-03;SL;-390,00';
+    expect(detectDelimiter(text)).toBe(';');
+  });
+});
+
+describe('parseCsv', () => {
+  it('splits rows and fields', () => {
+    expect(parseCsv('a;b\n1;2', ';')).toEqual([['a', 'b'], ['1', '2']]);
+  });
+
+  it('keeps a delimiter that sits inside quotes', () => {
+    expect(parseCsv('a;b\n"ICA Maxi; Södertälje";-842', ';'))
+      .toEqual([['a', 'b'], ['ICA Maxi; Södertälje', '-842']]);
+  });
+
+  it('unescapes a doubled quote', () => {
+    expect(parseCsv('a\n"He said ""hi"""', ';')).toEqual([['a'], ['He said "hi"']]);
+  });
+
+  it('handles CRLF and drops blank lines', () => {
+    expect(parseCsv('a;b\r\n1;2\r\n\r\n3;4\r\n', ';')).toEqual([['a', 'b'], ['1', '2'], ['3', '4']]);
+  });
+});
+
+describe('findHeaderRow — banks put things above the table', () => {
+  it('skips a preamble of account details', () => {
+    // Assuming row 0 would map every column wrongly and import nonsense.
+    const rows = [
+      ['Kontoutdrag'],
+      ['Konto', '1234 56 78901'],
+      ['Period', '2026-09-01 - 2026-09-30'],
+      ['Datum', 'Text', 'Belopp', 'Saldo'],
+      ['2026-09-02', 'ICA', '-842,00', '12 940,50'],
+      ['2026-09-03', 'SL', '-390,00', '12 550,50'],
+    ];
+    expect(findHeaderRow(rows)).toBe(3);
+  });
+
+  it('is row 0 when the file starts with its table', () => {
+    expect(findHeaderRow([
+      ['Datum', 'Text', 'Belopp'],
+      ['2026-09-02', 'ICA', '-842,00'],
+    ])).toBe(0);
+  });
+});
+
+describe('parseAmount — every shape a bank writes a number', () => {
+  it('reads the ordinary Swedish form', () => {
+    expect(parseAmount('-842,00')).toBe(-842);
+    expect(parseAmount('1 234,56')).toBe(1234.56);
+    expect(parseAmount('842')).toBe(842);
+  });
+
+  it('reads a non-breaking space as a thousands separator', () => {
+    expect(parseAmount('1 234,56')).toBe(1234.56);
+    expect(parseAmount('1 234,56')).toBe(1234.56);
+  });
+
+  it('reads a dot as the decimal point when it is one', () => {
+    expect(parseAmount('-842.00')).toBe(-842);
+    expect(parseAmount('1234.5')).toBe(1234.5);
+  });
+
+  it('reads a dot as a thousands separator when it is one', () => {
+    expect(parseAmount('1.234')).toBe(1234);
+    expect(parseAmount('1.234.567')).toBe(1234567);
+  });
+
+  it('reads a trailing minus, which some exports still use', () => {
+    expect(parseAmount('842,00-')).toBe(-842);
+  });
+
+  it('reads a leading plus', () => {
+    expect(parseAmount('+32 596,00')).toBe(32596);
+  });
+
+  it('returns null for anything unreadable rather than zero', () => {
+    // A row whose amount could not be read must be REPORTED. Importing it as
+    // free would put a purchase in the budget at no cost and nobody would spot
+    // it among sixty other rows.
+    for (const bad of ['', '   ', 'saldo', '12,3,4', '1-2', 'kr', '-', '--5']) {
+      expect(parseAmount(bad)).toBeNull();
+    }
+  });
+});
+
+describe('parseDate — day first, because Sweden', () => {
+  it('reads ISO', () => {
+    expect(parseDate('2026-09-24')).toBe('2026-09-24');
+    expect(parseDate('2026/09/24')).toBe('2026-09-24');
+    expect(parseDate('20260924')).toBe('2026-09-24');
+  });
+
+  it('reads day-first slash and dot forms', () => {
+    expect(parseDate('24/09/2026')).toBe('2026-09-24');
+    expect(parseDate('24.09.2026')).toBe('2026-09-24');
+    expect(parseDate('2/9/2026')).toBe('2026-09-02');
+  });
+
+  it('takes 02/09 as the 2nd of September, not the 9th of February', () => {
+    // Guessing month-first would move a purchase to another month for every day
+    // below the 13th — an error that looks exactly like correct data.
+    expect(parseDate('02/09/2026')).toBe('2026-09-02');
+  });
+
+  it('refuses what it cannot read', () => {
+    for (const bad of ['', 'igår', '2026-13-01', '2026-09-32', '24 sep 2026', '26-09-24']) {
+      expect(parseDate(bad)).toBeNull();
+    }
+  });
+});
+
+describe('guessColumns', () => {
+  const sample = [
+    ['2026-09-02', 'ICA MAXI', '-842,00', '12 940,50'],
+    ['2026-09-03', 'SL ACCESS', '-390,00', '12 550,50'],
+  ];
+
+  it('reads the header wording', () => {
+    const { roles } = guessColumns(['Datum', 'Text', 'Belopp', 'Saldo'], sample);
+    expect(roles).toEqual(['date', 'text', 'amount', 'skip']);
+  });
+
+  it('never mistakes a balance column for an amount', () => {
+    // Saldo looks exactly like Belopp. Importing a running balance as purchases
+    // would be spectacular nonsense, so it is excluded by name before anything
+    // else is considered.
+    const { roles } = guessColumns(['Datum', 'Text', 'Saldo'], [
+      ['2026-09-02', 'ICA', '12 940,50'],
+    ]);
+    expect(roles[2]).toBe('skip');
+  });
+
+  it('recognises English headers too', () => {
+    const { roles } = guessColumns(['Date', 'Description', 'Amount'], [
+      ['2026-09-02', 'ICA', '-842.00'],
+    ]);
+    expect(roles).toEqual(['date', 'text', 'amount']);
+  });
+
+  it('recognises two columns for money in and out', () => {
+    const { roles } = guessColumns(['Datum', 'Specifikation', 'Insättning', 'Uttag'], [
+      ['2026-09-25', 'LÖN', '32 596,00', ''],
+      ['2026-09-02', 'ICA', '', '842,00'],
+    ]);
+    expect(roles).toEqual(['date', 'text', 'in', 'out']);
+  });
+
+  it('falls back to what the values look like when the header says nothing', () => {
+    const { roles } = guessColumns(['A', 'B', 'C'], [
+      ['2026-09-02', 'ICA MAXI SÖDERTÄLJE', '-842,00'],
+      ['2026-09-03', 'SL ACCESS', '-390,00'],
+    ]);
+    expect(roles[0]).toBe('date');
+    expect(roles[2]).toBe('amount');
+    expect(roles[1]).toBe('text');
+  });
+});
+
+describe('rowsToParsed', () => {
+  it('reads a single signed amount column', () => {
+    const { rows, skipped } = rowsToParsed(
+      [['2026-09-02', 'ICA', '-842,00'], ['2026-09-25', 'Lön', '32 596,00']],
+      { roles: ['date', 'text', 'amount'] },
+    );
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([
+      { date: '2026-09-02', text: 'ICA', amount: -842 },
+      { date: '2026-09-25', text: 'Lön', amount: 32596 },
+    ]);
+  });
+
+  it('takes the direction from WHICH column held the figure', () => {
+    // In a two-column export the number itself is unsigned; only the column it
+    // sits in says whether money came or went.
+    const { rows } = rowsToParsed(
+      [['2026-09-25', 'LÖN', '32 596,00', ''], ['2026-09-02', 'ICA', '', '842,00']],
+      { roles: ['date', 'text', 'in', 'out'] },
+    );
+    expect(rows.map(r => r.amount)).toEqual([32596, -842]);
+  });
+
+  it('reports a row it could not read instead of dropping it', () => {
+    // A file that silently imports 2 of its 3 lines is worse than one that
+    // refuses: the user would never learn a purchase went missing.
+    const { rows, skipped } = rowsToParsed(
+      [
+        ['2026-09-02', 'ICA', '-842,00'],
+        ['inte ett datum', 'SL', '-390,00'],
+        ['2026-09-04', 'Okänd', 'saldo'],
+      ],
+      { roles: ['date', 'text', 'amount'] },
+    );
+    expect(rows).toHaveLength(1);
+    expect(skipped).toEqual([
+      { line: 2, reason: 'date' },
+      { line: 3, reason: 'amount' },
+    ]);
+  });
+
+  it('trims the description', () => {
+    const { rows } = rowsToParsed([['2026-09-02', '  ICA MAXI  ', '-842,00']], { roles: ['date', 'text', 'amount'] });
+    expect(rows[0].text).toBe('ICA MAXI');
+  });
+});
+
+describe('headerFingerprint', () => {
+  it('is the same for the same bank next month', () => {
+    expect(headerFingerprint(['Datum', 'Text', 'Belopp']))
+      .toBe(headerFingerprint([' datum ', 'TEXT', 'Belopp']));
+  });
+
+  it('differs between banks', () => {
+    expect(headerFingerprint(['Datum', 'Text', 'Belopp']))
+      .not.toBe(headerFingerprint(['Date', 'Description', 'Amount']));
+  });
+});
+
+// ── End to end, on files shaped like the real thing ────────────────────────
+//
+// Each of these is a whole import from bytes to dated rows. They exist because
+// the individual pieces can all be right while the seams between them are not.
+
+describe('whole files', () => {
+  const runFile = (buf: ArrayBuffer) => {
+    const text = decodeCsv(buf);
+    const rows = parseCsv(text, detectDelimiter(text));
+    const h = findHeaderRow(rows);
+    const map = guessColumns(rows[h], rows.slice(h + 1, h + 4));
+    return { map, ...rowsToParsed(rows.slice(h + 1), map) };
+  };
+  const utf8 = (s: string) => new TextEncoder().encode(s).buffer;
+
+  it('reads a semicolon file with a preamble and a balance column', () => {
+    const { rows, skipped } = runFile(utf8(
+      'Kontoutdrag\n' +
+      'Konto;1234 56 78901\n' +
+      '\n' +
+      'Datum;Text;Belopp;Saldo\n' +
+      '2026-09-02;ICA MAXI SÖDERTÄLJE;-842,00;12 940,50\n' +
+      '2026-09-25;LÖN;32 596,00;45 536,50\n',
+    ));
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([
+      { date: '2026-09-02', text: 'ICA MAXI SÖDERTÄLJE', amount: -842 },
+      { date: '2026-09-25', text: 'LÖN', amount: 32596 },
+    ]);
+  });
+
+  it('reads a two-column in/out file with day-first dates', () => {
+    const { rows } = runFile(utf8(
+      'Bokf.dag;Specifikation;Insättning;Uttag\n' +
+      '02/09/2026;ICA;;842,00\n' +
+      '25/09/2026;LÖN;32596,00;\n',
+    ));
+    expect(rows).toEqual([
+      { date: '2026-09-02', text: 'ICA', amount: -842 },
+      { date: '2026-09-25', text: 'LÖN', amount: 32596 },
+    ]);
+  });
+
+  it('reads a comma file in English with dotted decimals', () => {
+    const { rows } = runFile(utf8(
+      'Date,Description,Amount\n' +
+      '2026-09-02,"ICA Maxi, Södertälje",-842.00\n',
+    ));
+    expect(rows).toEqual([{ date: '2026-09-02', text: 'ICA Maxi, Södertälje', amount: -842 }]);
+  });
+
+  it('reads a Windows-1252 file without ruining a single letter', () => {
+    // The whole reason decodeCsv tries strictly first. Bytes below are
+    // "Datum;Text;Belopp" then a row containing å, ä, ö and é in cp1252.
+    const cp1252 = new Uint8Array([
+      ...new TextEncoder().encode('Datum;Text;Belopp\n2026-09-02;'),
+      0x41, 0xE5, 0xE4, 0xF6, 0x20, 0x43, 0x61, 0x66, 0xE9, // "Aåäö Café"
+      ...new TextEncoder().encode(';-842,00\n'),
+    ]).buffer;
+    const { rows } = runFile(cp1252);
+    expect(rows[0].text).toBe('Aåäö Café');
+    expect(rows[0].text).not.toContain('�');
+  });
+});
+
+// ── The shape a real Swedbank export turned out to have ────────────────────
+//
+// Found by running an actual statement through this module, which is the only
+// way these get found. Twelve columns, three of them dates and two of them
+// descriptions, a one-line preamble above the header, CRLF, comma-separated
+// with dot decimals, and Windows-1252 encoding.
+
+describe('a twelve-column export with two description columns', () => {
+  const header = [
+    'Radnummer', 'Clearingnummer', 'Kontonummer', 'Produkt', 'Valuta',
+    'Bokföringsdag', 'Transaktionsdag', 'Valutadag',
+    'Referens', 'Beskrivning', 'Belopp', 'Bokfört saldo',
+  ];
+  const sample = [
+    ['1', '83279', '9033929762', 'Privatkonto', 'SEK', '2026-08-31', '2026-08-31', '2026-08-30', 'TEMPO', 'TEMPO', '-23.66', '8475.17'],
+    ['2', '83279', '9033929762', 'Privatkonto', 'SEK', '2026-08-24', '2026-08-25', '2026-08-25', '', 'Lön', '32596.00', '33652.45'],
+  ];
+
+  it('prefers the description over the reference', () => {
+    // They agree on most rows — but the salary row has an EMPTY Referens and
+    // "Lön" in Beskrivning. Taking the first matching column imported the most
+    // important transaction of the month with no text at all.
+    const { roles } = guessColumns(header, sample);
+    expect(roles[8]).not.toBe('text');
+    expect(roles[9]).toBe('text');
+  });
+
+  it('takes the booking date, not the other two date columns', () => {
+    // Three columns qualify. Bokföringsdag is when the money actually left the
+    // account, which is the question this app answers everywhere else.
+    const { roles } = guessColumns(header, sample);
+    expect(roles[5]).toBe('date');
+    expect(roles[6]).toBe('skip');
+    expect(roles[7]).toBe('skip');
+  });
+
+  it('ignores the row number, account numbers and the running balance', () => {
+    // Radnummer counts 1, 2, 3… and parses perfectly well as an amount.
+    const { roles } = guessColumns(header, sample);
+    expect(roles[0]).toBe('skip');
+    expect(roles[1]).toBe('skip');
+    expect(roles[2]).toBe('skip');
+    expect(roles[11]).toBe('skip');
+    expect(roles[10]).toBe('amount');
+  });
+
+  it('reads the whole thing end to end, preamble and CRLF included', () => {
+    const text =
+      '* Transaktioner Period 2026-08-01-2026-08-31\r\n' +
+      header.join(',') + '\r\n' +
+      sample.map(r => r.map(c => (c === 'Privatkonto' ? `"${c}"` : c)).join(',')).join('\r\n') + '\r\n';
+    const rows = parseCsv(text, detectDelimiter(text));
+    const h = findHeaderRow(rows);
+    expect(h).toBe(1);
+    const { rows: parsed, skipped } = rowsToParsed(rows.slice(h + 1), guessColumns(rows[h], rows.slice(h + 1)));
+    expect(skipped).toEqual([]);
+    expect(parsed).toEqual([
+      { date: '2026-08-31', text: 'TEMPO', amount: -23.66 },
+      { date: '2026-08-24', text: 'Lön', amount: 32596 },
+    ]);
+  });
+});
+
+describe('groupByText — a hundred rows, thirty decisions', () => {
+  const row = (text: string, amount: number) => ({ date: '2026-08-01', text, amount });
+
+  it('collapses repeats onto one place', () => {
+    const gs = groupByText([row('ICA', -100), row('SL', -40), row('ICA', -250)], '(utan text)');
+    const ica = gs.find(g => g.text === 'ICA')!;
+    expect(ica.rows).toHaveLength(2);
+    expect(ica.total).toBe(-350);
+  });
+
+  it('puts the biggest first, because that is what deserves attention', () => {
+    const gs = groupByText([row('Kaffe', -39), row('Hyra', -8801), row('Lunch', -145)], '(utan text)');
+    expect(gs.map(g => g.text)).toEqual(['Hyra', 'Lunch', 'Kaffe']);
+  });
+
+  it('marks a group as incoming when the money came in', () => {
+    const gs = groupByText([row('Lön', 32596), row('ICA', -100)], '(utan text)');
+    expect(gs.find(g => g.text === 'Lön')!.incoming).toBe(true);
+    expect(gs.find(g => g.text === 'ICA')!.incoming).toBe(false);
+  });
+
+  it('gives rows with no description somewhere to go', () => {
+    // A statement can carry them, and dropping them would lose real money.
+    const gs = groupByText([row('', -60)], '(utan text)');
+    expect(gs[0].text).toBe('(utan text)');
+    expect(gs[0].rows).toHaveLength(1);
+  });
+});

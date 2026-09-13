@@ -1054,6 +1054,7 @@ function App() {
         categories={data.expenses}
         totalIncome={totalIncome}
         onSaveFailed={reportSaveFailed}
+        onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
       />
     </Suspense>
   );

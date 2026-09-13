@@ -6,7 +6,8 @@ import { parseMoneyOrZero } from '../money';
 import {
   loadActuals, saveActuals, sumByCategory, entriesFor, INCOME_ACTUAL_ID,
 } from '../actuals';
-import { useLang } from '../i18n';
+import { useLang, MONTHS } from '../i18n';
+import { CsvImport, type TouchedMonth } from './CsvImport';
 import type { ActualEntry, BudgetCategory } from '../types';
 
 // ── Follow-up — what the plan said, next to what happened ──────────────────
@@ -28,6 +29,9 @@ interface Props {
   totalIncome: number;
   /** A write that storage refused, so the app can say the edit is not stored. */
   onSaveFailed: () => void;
+  /** Move the whole app to another month. An imported statement is usually last
+   *  month's, so the months it writes to are routinely not this one. */
+  onGoToMonth: (year: number, month: number) => void;
 }
 
 interface RowSpec {
@@ -37,18 +41,25 @@ interface RowSpec {
   planned: number;
 }
 
-export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed }: Props) => {
+export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed, onGoToMonth }: Props) => {
   const { t, lang, money } = useLang();
   const [entries, setEntries] = useState<ActualEntry[]>(() => loadActuals(appStorage, year, month));
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [toast, setToast] = useState<{ text: string; months: TouchedMonth[] } | null>(null);
 
   // Reload when the month changes. Writes happen explicitly on each edit below,
   // never from an effect watching state — which is what makes the month-switch
   // data bleed the rest of the app has to guard against impossible here: there
   // is no save effect that could fire with the previous month's entries still
   // in scope.
-  useEffect(() => { setEntries(loadActuals(appStorage, year, month)); }, [year, month]);
+  useEffect(() => {
+    setEntries(loadActuals(appStorage, year, month));
+    // The summary belongs to the month it was made in. Once you have moved —
+    // not least by following its own "show August" button — it has been read.
+    setToast(null);
+  }, [year, month]);
 
   const persist = useCallback((next: ActualEntry[]) => {
     setEntries(next);
@@ -82,9 +93,28 @@ export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed
     persist(entries.map(e => (e.id === id ? { ...e, amount } : e)));
   };
 
+  // Entries whose category this month's budget does not have. It happens more
+  // often than it sounds: importing a statement into a month you have not
+  // budgeted yet files everything under categories that exist elsewhere, and a
+  // deleted category leaves its past entries behind too. Without a home they
+  // were simply not drawn — the import said it had written five entries and the
+  // month showed one. A row is derived from having a PLAN or an ACTUAL, never
+  // from the plan alone.
+  const orphanIds = useMemo(() => {
+    const known = new Set([INCOME_ACTUAL_ID, ...categories.map(c => c.id)]);
+    return Object.keys(sums).filter(id => !known.has(id));
+  }, [sums, categories]);
+  const orphanEntries = useMemo(
+    () => entries.filter(e => orphanIds.includes(e.categoryId)),
+    [entries, orphanIds],
+  );
+  const orphanTotal = orphanIds.reduce((s, id) => s + (sums[id] ?? 0), 0);
+
   const plannedOut = categories.reduce((s, c) => s + categoryTotal(c), 0);
-  const actualOut = categories.reduce((s, c) => s + (sums[c.id] ?? 0), 0);
-  const anyOut = categories.some(c => sums[c.id] !== undefined);
+  // Orphans count here too. A total that leaves out rows printed above it is
+  // the same disagreement rowSumGuard.test.ts exists to prevent.
+  const actualOut = categories.reduce((s, c) => s + (sums[c.id] ?? 0), 0) + orphanTotal;
+  const anyOut = categories.some(c => sums[c.id] !== undefined) || orphanIds.length > 0;
 
   /** An actual, or "–" when this row has no entries. Absence is not zero: not
    *  having recorded food yet and having spent nothing on food are different
@@ -110,7 +140,47 @@ export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed
 
   return (
     <div className="tab-content followup-tab">
-      <h2 className="followup-heading">{t.followUpHeading}</h2>
+      <div className="followup-top">
+        <h2 className="followup-heading">{t.followUpHeading}</h2>
+        <button className="followup-import" onClick={() => setImporting(true)}>
+          ⬆ {t.followUpImport}
+        </button>
+      </div>
+
+      {toast && (
+        <p className="followup-toast" role="status">
+          {toast.text}
+          {/* Only months other than this one: an offer to go where you already
+              are reads as a bug, and says nothing about why the table did not
+              change. */}
+          {toast.months
+            .filter(m => !(m.year === year && m.month === month))
+            .map(m => (
+              <button
+                key={`${m.year}-${m.month}`}
+                className="followup-toast-go"
+                onClick={() => onGoToMonth(m.year, m.month)}
+              >
+                {t.csvGoToMonth(`${MONTHS[lang][m.month]} ${m.year}`)}
+              </button>
+            ))}
+        </p>
+      )}
+
+      {importing && (
+        <CsvImport
+          categories={categories}
+          onClose={() => setImporting(false)}
+          onSaveFailed={onSaveFailed}
+          onImported={(summary, months) => {
+            setImporting(false);
+            setToast({ text: summary, months });
+            // Re-read rather than merge in memory: the import may have written
+            // to months this view is not showing, and storage is the truth.
+            setEntries(loadActuals(appStorage, year, month));
+          }}
+        />
+      )}
 
       {entries.length === 0 && (
         <div className="followup-empty">
@@ -184,6 +254,46 @@ export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed
             </div>
           );
         })}
+
+        {orphanIds.length > 0 && (
+          <div className={`followup-row-wrap${openRow === '__orphans__' ? ' is-open' : ''}`}>
+            <button
+              className="followup-row"
+              aria-expanded={openRow === '__orphans__'}
+              onClick={() => setOpenRow(openRow === '__orphans__' ? null : '__orphans__')}
+            >
+              <span className="followup-name">
+                <span aria-hidden="true">❓</span> {t.followUpOutsideBudget}
+                <span className="followup-caret" aria-hidden="true">
+                  {openRow === '__orphans__' ? '⌃' : '⌄'}
+                </span>
+              </span>
+              <span className="num followup-planned">
+                <span className="amount-unknown" title={t.followUpOutsideBudgetHint}>–</span>
+              </span>
+              <span className="num followup-actual">{money(orphanTotal)}</span>
+              <span className="num followup-diffcell" />
+            </button>
+
+            {openRow === '__orphans__' && (
+              <div className="followup-entries">
+                <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
+                {orphanEntries.map(e => (
+                  <div className="followup-entry" key={e.id}>
+                    <span className="followup-entry-date">{e.date.slice(5)}</span>
+                    <span className="followup-entry-text">{e.text}</span>
+                    <EntryAmount value={e.amount} onChange={v => setAmount(e.id, v)} label={e.text} />
+                    <button
+                      className="followup-delete"
+                      onClick={() => deleteEntry(e.id)}
+                      aria-label={t.followUpDelete(e.text)}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="followup-row followup-total">
           <span className="followup-name">{t.followUpTotalOut}</span>

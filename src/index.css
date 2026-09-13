@@ -2671,7 +2671,14 @@ a:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 24px;
-  animation: tab-enter 0.2s ease both;
+  /* `backwards`, not `both`. `both` keeps the final keyframe applied for good,
+     and that frame sets a transform — identity, invisible, and enough to make
+     this element the containing block for every `position: fixed` descendant
+     inside the tab. A dialog opened from a tab then anchors to the tab rather
+     than to the screen. The final frame here is the element's resting state
+     anyway, so holding it buys nothing. CsvImport also portals out, so neither
+     fix depends on the other. */
+  animation: tab-enter 0.2s ease backwards;
 }
 
 @keyframes tab-enter {
@@ -3448,7 +3455,204 @@ a:focus-visible,
   color: var(--negative);
 }
 
+/* ── CSV import ────────────────────────────────────────────────────────────
+   A panel, not a page: the import is something you pass through once a month,
+   not somewhere you live. Sized to show the column preview without the numbers
+   wrapping, and scrolls inside itself on anything shorter. */
+.followup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.followup-top .followup-heading { margin: 0; }
+.followup-import {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border-radius: var(--radius-pill);
+  padding: 9px 16px;
+  font-size: 0.84rem;
+  min-height: 40px;
+}
+@media (hover: hover) { .followup-import:hover { background: var(--accent-brand); color: #fff; } }
+.followup-toast {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--surface2);
+  border-left: 3px solid var(--accent-brand);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+/* The summary names the months it wrote to; this gets you to one. A statement
+   is usually last month's, so the table in front of you is routinely not the
+   one that changed — without this the import looks like it did nothing. */
+.followup-toast-go {
+  padding: 5px 12px;
+  border: 1px solid var(--accent-brand);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--accent-brand);
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-height: 32px;
+}
+.followup-toast-go:hover { background: var(--accent-brand); color: #fff; }
+
+/* Qualified with .theme-panel on purpose. Both classes are on the same element
+   and .theme-panel is defined further down this file, so on equal specificity it
+   won every one of these declarations — the import dialog was silently rendered
+   at the theme panel's 460px, which is why 44 rows of file looked cramped. */
+.theme-panel.csv-panel {
+  z-index: 301;
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100dvh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+.csv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.csv-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+.csv-body { overflow-y: auto; padding: 14px 18px 18px; min-height: 0; }
+.csv-lead { margin: 0 0 12px; font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; }
+.csv-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  border-left: 3px solid var(--negative);
+  color: var(--negative);
+  font-size: 0.84rem;
+}
+.csv-drop {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 34px 18px;
+  text-align: center;
+}
+.csv-drop-lead { margin: 0 0 4px; font-size: 0.95rem; color: var(--text); }
+.csv-drop-sub { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
+.csv-pick {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  min-height: 42px;
+}
+
+.csv-cols { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+.csv-col { min-width: 128px; flex: 0 0 auto; }
+.csv-role {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.76rem;
+  min-height: 34px;
+}
+.csv-col-head {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 6px 2px 4px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csv-col-cell {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  padding: 4px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csv-remember { margin: 12px 0 0; font-size: 0.78rem; color: var(--text-muted); }
+
+.csv-groups { display: flex; flex-direction: column; }
+.csv-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto auto minmax(120px, 0.9fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.csv-group-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.csv-group-count { color: var(--text-muted); font-size: 0.76rem; }
+.csv-group-sum { color: var(--text); font-variant-numeric: tabular-nums; }
+.csv-group-cat {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.78rem;
+  min-height: 36px;
+}
+/* Not red: an unset row is work still to do, not a mistake. */
+.csv-group.is-unset .csv-group-cat { border-color: var(--accent-brand); }
+.csv-skipped { color: var(--negative); }
+
+/* Sticky, because the list above it has no ceiling: a month's statement can
+   hold forty distinct places, and the button was then a thousand pixels below
+   the fold with nothing to say it existed. Kept in view, it also keeps the
+   count and the "N without a category are not imported" note in view — which
+   is where the answer to "must I fill in all of them?" belongs. */
+.csv-actions {
+  position: sticky;
+  /* -18px, not 0: a sticky element is held inside the scroller's CONTENT box,
+     which stops 18px short of the panel edge — exactly where .csv-body's own
+     bottom padding is — and rows scrolled through the strip left over. */
+  bottom: -18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* Negative margins pull the bar out into the body's own padding and the
+     padding puts the space back inside it, so the strip it sits on reaches the
+     panel edges. Without that, rows scrolled past it through an 18px gap. */
+  margin: 10px -18px -18px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.csv-primary {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  min-height: 42px;
+}
+.csv-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.csv-hint { font-size: 0.78rem; color: var(--text-muted); }
+
 @media (max-width: 640px) {
+  /* The group row cannot hold four columns on a phone: the place and its
+     category get a line each, with the count and sum between them. */
+  .csv-group {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .csv-group-cat { grid-column: 1 / -1; }
+  .theme-panel.csv-panel { width: 100%; max-height: 88dvh; }
+
   /* Four columns do not fit a phone. The category keeps its own line and the
      three figures share the next one, so nothing is truncated and the plan
      still sits beside the actual where the comparison is made. */

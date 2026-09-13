@@ -28,6 +28,7 @@ import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
 import { isMonthSnapshot } from './customYear';
 import { isActualEntry } from './actuals';
+import { CSV_MAPS_KEY } from './csvMaps';
 import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
@@ -213,6 +214,11 @@ function isValidValue(key: string, raw: string): boolean {
   // correct, which is the opposite of what that view is for.
   if (/^budget_actuals_/.test(key)) {
     return parseThen(v => Array.isArray(v) && v.every(isActualEntry));
+  }
+  // Remembered column layouts. Junk here is harmless — the loader drops what it
+  // cannot use — but a backup should not carry it either.
+  if (key === CSV_MAPS_KEY) {
+    return parseThen(v => typeof v === 'object' && v !== null && !Array.isArray(v));
   }
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
