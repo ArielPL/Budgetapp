@@ -265,6 +265,38 @@ export function defaultMonthData(_lang: Lang = 'sv'): MonthData {
   return { income: [], expenses: [], savings: [] };
 }
 
+/**
+ * One of the seven standard expense categories, built fresh, WITH ITS STABLE ID.
+ *
+ * The id is the point. `createCategory` mints a random one, which is right for
+ * a category the user invents and wrong for restoring a standard one: entries
+ * filed under `mat` in August have to meet the same `mat` in September, and a
+ * fresh random id would leave them orphaned in every other month. Used by the
+ * import when it offers to create a category the month is missing.
+ */
+export function standardExpenseCategory(id: string, lang: Lang = 'sv'): BudgetCategory | undefined {
+  return defaultExpenses(lang).find(c => c.id === id);
+}
+
+/**
+ * A month's data with the named standard categories appended, skipping any it
+ * already has. Pure, and returns the SAME object when nothing was missing, so a
+ * caller can use identity to decide whether a write is needed at all.
+ *
+ * Idempotent by construction: accepting the same offer twice — two imports of
+ * overlapping statements — cannot produce a duplicate category.
+ */
+export function withStandardCategories(
+  data: MonthData, ids: readonly string[], lang: Lang = 'sv',
+): MonthData {
+  const have = new Set(data.expenses.map(c => c.id));
+  const fresh = [...new Set(ids)]
+    .filter(id => !have.has(id))
+    .map(id => standardExpenseCategory(id, lang))
+    .filter((c): c is BudgetCategory => c !== undefined);
+  return fresh.length === 0 ? data : { ...data, expenses: [...data.expenses, ...fresh] };
+}
+
 // The old default category set, offered as a one-tap "starter pack" so a blank
 // app isn't a dead end. Not auto-applied — only when the user asks for it.
 export function starterMonthData(lang: Lang = 'sv'): MonthData {

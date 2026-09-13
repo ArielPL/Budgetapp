@@ -25,7 +25,7 @@ import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import { adoptExternalMonth } from './crossTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -732,6 +732,30 @@ function App() {
     setData(d => ({ ...d, expenses: [...d.expenses, newCat] }));
   };
 
+  // Categories the import offered to create, added with their STANDARD ids so an
+  // entry filed under `mat` in August meets the same `mat` in September.
+  //
+  // Added to the months that RECEIVED THE ENTRIES, which are routinely not the
+  // month on screen — a statement is usually last month's. Creating them here
+  // instead would leave the entries where they landed with no row to appear on,
+  // which is the "outside the budget" hole in another disguise.
+  const addStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
+    for (const target of months.length > 0 ? months : [{ year, month }]) {
+      if (target.year === year && target.month === month) {
+        setData(d => withStandardCategories(d, ids, lang));
+        continue;
+      }
+      // Another month: read, merge, write. Safe to touch storage directly
+      // precisely BECAUSE it is not the current month — the save effect only
+      // ever writes the month on screen, so the two cannot race.
+      const stored = loadMonthData(target.year, target.month, lang);
+      const merged = withStandardCategories(stored, ids, lang);
+      if (merged !== stored && !saveMonthData(target.year, target.month, merged)) {
+        reportSaveFailed();
+      }
+    }
+  };
+
   const deleteExpenseCategory = (id: string) => {
     // sparande is protected (the component already hides delete for it).
     if (id === 'sparande') return;
@@ -1055,6 +1079,7 @@ function App() {
         totalIncome={totalIncome}
         onSaveFailed={reportSaveFailed}
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
+        onCreateCategories={addStandardCategories}
       />
     </Suspense>
   );

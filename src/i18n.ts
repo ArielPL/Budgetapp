@@ -201,6 +201,12 @@ export interface Translations {
   csvDoneAdded: (n: number) => string;
   csvDoneDuplicates: (n: number) => string;
   csvDoneUnassigned: (n: number) => string;
+  csvDoneCreated: (n: number) => string;
+  /** How many places the sorter placed without being asked. */
+  csvSorted: (n: number, total: number) => string;
+  csvExistingGroup: string;
+  csvCreateGroup: string;
+  csvWillCreate: (n: number) => string;
   /** Takes you to a month the import wrote to that is not the one on screen. */
   csvGoToMonth: (monthName: string) => string;
   /** Collects entries whose category this month's budget does not have. */
@@ -632,6 +638,11 @@ export const translations: Record<Lang, Translations> = {
     csvDoneDuplicates: (n) => `${n} fanns redan`,
     csvDoneUnassigned: (n) => `${n} utan kategori`,
     csvGoToMonth: (monthName) => `Visa ${monthName}`,
+    csvDoneCreated: (n) => (n === 1 ? '1 ny kategori' : `${n} nya kategorier`),
+    csvSorted: (n, total) => `${n} av ${total} sorterades åt dig.`,
+    csvExistingGroup: 'I din budget',
+    csvCreateGroup: 'Skapa ny kategori',
+    csvWillCreate: (n) => (n === 1 ? '1 ny kategori skapas.' : `${n} nya kategorier skapas.`),
     followUpOutsideBudget: 'Utanför budgeten',
     followUpOutsideBudgetHint: 'Poster i kategorier som den här månadens budget inte har.',
     menu: 'Meny',
@@ -1020,6 +1031,11 @@ export const translations: Record<Lang, Translations> = {
     csvDoneDuplicates: (n) => (n === 1 ? '1 was already there' : `${n} were already there`),
     csvDoneUnassigned: (n) => `${n} without a category`,
     csvGoToMonth: (monthName) => `Show ${monthName}`,
+    csvDoneCreated: (n) => (n === 1 ? '1 new category' : `${n} new categories`),
+    csvSorted: (n, total) => `${n} of ${total} were sorted for you.`,
+    csvExistingGroup: 'In your budget',
+    csvCreateGroup: 'Create a new category',
+    csvWillCreate: (n) => (n === 1 ? '1 new category will be created.' : `${n} new categories will be created.`),
     followUpOutsideBudget: 'Outside the budget',
     followUpOutsideBudgetHint: "Entries in categories this month's budget does not have.",
     menu: 'Menu',
@@ -1408,6 +1424,11 @@ export const translations: Record<Lang, Translations> = {
     csvDoneDuplicates: (n) => (n === 1 ? '1 ya estaba' : `${n} ya estaban`),
     csvDoneUnassigned: (n) => `${n} sin categoría`,
     csvGoToMonth: (monthName) => `Ver ${monthName}`,
+    csvDoneCreated: (n) => (n === 1 ? '1 categoría nueva' : `${n} categorías nuevas`),
+    csvSorted: (n, total) => `${n} de ${total} se ordenaron automáticamente.`,
+    csvExistingGroup: 'En tu presupuesto',
+    csvCreateGroup: 'Crear categoría nueva',
+    csvWillCreate: (n) => (n === 1 ? 'Se creará 1 categoría nueva.' : `Se crearán ${n} categorías nuevas.`),
     followUpOutsideBudget: 'Fuera del presupuesto',
     followUpOutsideBudgetHint: 'Movimientos en categorías que el presupuesto de este mes no tiene.',
     menu: 'Menú',

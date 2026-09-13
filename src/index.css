@@ -3607,7 +3607,18 @@ a:focus-visible,
 }
 /* Not red: an unset row is work still to do, not a mistake. */
 .csv-group.is-unset .csv-group-cat { border-color: var(--accent-brand); }
+/* Dashed, because this category does not exist yet. It is a proposal, and the
+   border says so until pressing Import makes it real. */
+.csv-group-cat.is-new {
+  border-style: dashed;
+  border-color: var(--accent-brand);
+  color: var(--accent-brand);
+}
 .csv-skipped { color: var(--negative); }
+/* The sorter's own score, said plainly. If this number is low the built-in list
+   needs work, and the user should be able to see that for themselves. */
+.csv-sorted { color: var(--positive); }
+.csv-hint-new { color: var(--accent-brand); }
 
 /* Sticky, because the list above it has no ceiling: a month's statement can
    hold forty distinct places, and the button was then a thousand pixels below

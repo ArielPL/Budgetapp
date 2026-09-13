@@ -109,6 +109,10 @@ export function findHeaderRow(rows: string[][]): number {
  *  review and indistinguishable from a typo. */
 const SPACES = /[\u00a0\u202f\s]/g;
 
+/** Currency codes and symbols a statement may print next to the number. An
+ *  explicit list rather than "any letters" — see parseAmount. */
+const CURRENCY = /^(?:kr|skr|sek|nok|dkk|isk|eur|usd|gbp|chf|pln|zl|z\u0142|czk|kc|k\u010d|huf|ft|ron|lei|bgn|\u043b\u0432|rsd|hrk|try|uah|rub|\u20ac|\$|\u00a3|\u00a5|\u20ba|\u20b4|\u20bd)$/i;
+
 /**
  * A Swedish bank amount as a number, or null if it is not one.
  *
@@ -124,6 +128,15 @@ export function parseAmount(raw: string): number | null {
   if (s.endsWith('-')) { negative = true; s = s.slice(0, -1); }
   if (s.startsWith('-')) { negative = true; s = s.slice(1); }
   if (s.startsWith('+')) s = s.slice(1);
+  // A currency printed beside the number — "45,20 PLN", "€45,20", "1234 kr".
+  // Stripped AFTER the sign so "-€45,20" is reached, and only when the token is
+  // actually a currency: taking any letters off either end would turn a
+  // reference like "ICA 4521" into the number 4521 and let a description column
+  // pass for an amount column.
+  const head = /^[^\d.,]+/.exec(s);
+  if (head && CURRENCY.test(head[0])) s = s.slice(head[0].length);
+  const tail = /[^\d.,]+$/.exec(s);
+  if (tail && CURRENCY.test(tail[0])) s = s.slice(0, s.length - tail[0].length);
   // A comma is the decimal separator here; a dot may be either, so it only
   // counts as one when it is followed by exactly two digits at the end.
   if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
@@ -155,6 +168,18 @@ export function parseDate(raw: string): string | null {
   if ((m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s))) return ok(m[1], m[2], m[3]);
   if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s))) return ok(m[3], m[2], m[1]);
   if ((m = /^(\d{4})(\d{2})(\d{2})$/.exec(s))) return ok(m[1], m[2], m[3]);
+  // "31.08.26" — German exports still do this. Day first like the form above,
+  // and the year is read as 20xx: a bank statement is a record of money that
+  // has already moved, so there is no 1926 to confuse it with. EXACTLY two
+  // digits, which is what keeps a version string like "1.2.3" from becoming a
+  // date and a whole column of them from passing for dates.
+  //
+  // Dots and slashes only, NOT hyphens. "26-09-24" could be the 24th of
+  // September 2026 written ISO-style short, or the 26th written day-first, and
+  // nothing in the string says which — so it stays unreadable, as it was before
+  // this branch existed. The dotted form carries no such ambiguity: no one
+  // writes an ISO date with dots.
+  if ((m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{2})$/.exec(s))) return ok(`20${m[3]}`, m[2], m[1]);
   return null;
 }
 
@@ -172,8 +197,18 @@ const DATE_WORDS = /datum|date|bokf|transaktionsdag|valutadag/i;
 // EMPTY Referens and "Lön" in Beskrivning — so taking the first match imported
 // the most important transaction of the month with no text at all. A reference
 // is an identifier; a description is what a person reads.
-const TEXT_STRONG = /beskriv|description|text|specifikation|meddelande|narrative|butik|payee|mottagare/i;
-const TEXT_WEAK = /referens|reference|info/i;
+// Words for "what this was" — the shop, the payee, the message a person reads.
+// Widened past Swedish and English because the same trap exists in every
+// language: a German export offers BOTH "Buchungstext" (the transaction TYPE:
+// KARTENZAHLUNG, LASTSCHRIFT) and "Verwendungszweck" (the actual shop). Taking
+// the first match imported every German row as the word "card payment", which
+// also collapsed a whole statement into one group. Same shape as the Swedish
+// Referens/Beskrivning bug this two-tier split was built for.
+const TEXT_STRONG = /beskriv|descri|specifikation|meddelande|narrative|butik|payee|mottagare|verwendungszweck|beguenstigt|begunstigt|empf|concepto|libell|causale|dettagli|omschrijving|naam|opis|saaja|selite/i;
+// "Text" is here, not above, precisely BECAUSE of Buchungstext: a column called
+// only "text" is a fair description when nothing better exists, and a poor one
+// when something better does. A reference is an identifier, not a description.
+const TEXT_WEAK = /text|referens|reference|info/i;
 const AMOUNT_WORDS = /belopp|amount|summa/i;
 const IN_WORDS = /ins[äa]ttning|credit|inbetal/i;
 const OUT_WORDS = /uttag|debit|utbetal/i;
@@ -232,8 +267,16 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
   header.forEach((_, i) => {
     if (roles[i] !== 'skip' || banned.has(i)) return;
     const vals = col(i);
-    if (!taken.has('date') && allAre(vals, parseDate)) claim(i, 'date');
-    else if (!taken.has('amount') && !taken.has('in') && !taken.has('out') && allAre(vals, parseAmount)) claim(i, 'amount');
+    // A SECOND date column is still a date column. "31.08.2026" also reads as a
+    // number once the dots are taken for thousands separators — 31 082 026 —
+    // so a file offering two dates and an amount header this module does not
+    // know (every German export: Buchungstag, Valutadatum, Betrag) claimed the
+    // spare date as the amount and would have imported three purchases of
+    // thirty-one million. Silent, and exactly the wrong shape of wrong.
+    const looksLikeDate = allAre(vals, parseDate);
+    if (!taken.has('date') && looksLikeDate) claim(i, 'date');
+    else if (!looksLikeDate && !taken.has('amount') && !taken.has('in') && !taken.has('out')
+      && allAre(vals, parseAmount)) claim(i, 'amount');
   });
 
   // Text last: the widest remaining column that is not a number is the
@@ -244,7 +287,9 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
     header.forEach((_, i) => {
       if (roles[i] !== 'skip' || banned.has(i)) return;
       const vals = col(i);
-      if (vals.length === 0 || allAre(vals, parseAmount)) return;
+      // Neither a number nor a date: both are data about the row, not the words
+      // a person reads on it.
+      if (vals.length === 0 || allAre(vals, parseAmount) || allAre(vals, parseDate)) return;
       const len = Math.max(0, ...vals.map(v => v.length));
       if (len > bestLen) { bestLen = len; best = i; }
     });

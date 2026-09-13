@@ -154,6 +154,146 @@ describe('parseDate — day first, because Sweden', () => {
   });
 });
 
+describe('the description column, past Swedish', () => {
+  it('takes the shop over the transaction type in a German export', () => {
+    // "Buchungstext" holds KARTENZAHLUNG / LASTSCHRIFT — the kind of payment.
+    // "Verwendungszweck" holds the shop. Choosing the former made every German
+    // row read "card payment" and collapsed the whole statement into one group.
+    const header = ['Buchungstag', 'Buchungstext', 'Verwendungszweck', 'Betrag'];
+    const sample = [
+      ['31.08.26', 'KARTENZAHLUNG', 'LIDL DIENSTLEISTUNG', '-23,66'],
+      ['28.08.26', 'LASTSCHRIFT', 'NETFLIX.COM', '-12,99'],
+    ];
+    const { roles } = guessColumns(header, sample);
+    expect(roles[2]).toBe('text');
+    expect(roles[1]).not.toBe('text');
+    const { rows } = rowsToParsed(sample, { roles });
+    expect(rows[0].text).toBe('LIDL DIENSTLEISTUNG');
+  });
+
+  it.each([
+    [['Fecha', 'Concepto', 'Importe'], 1],
+    [['Date', 'Libelle', 'Montant'], 1],
+    [['Data', 'Descrizione', 'Importo'], 1],
+    [['Datum', 'Omschrijving', 'Bedrag'], 1],
+    [['Data operacji', 'Opis operacji', 'Kwota'], 1],
+  ])('finds the description in %s', (header, want) => {
+    const sample = [['31.08.2026', 'CARREFOUR MARKET', '-45,20']];
+    expect(guessColumns(header as string[], sample).roles[want]).toBe('text');
+  });
+
+  it('still prefers a Swedish description over a reference', () => {
+    // The original reason the two tiers exist. Must not regress.
+    const header = ['Bokföringsdag', 'Referens', 'Beskrivning', 'Belopp'];
+    const sample = [['2026-08-24', '', 'Lön', '32596,00']];
+    const { roles } = guessColumns(header, sample);
+    expect(roles[2]).toBe('text');
+    expect(roles[1]).not.toBe('text');
+  });
+
+  it('still uses a column called only "Text" when nothing better is offered', () => {
+    const header = ['Datum', 'Text', 'Belopp'];
+    const sample = [['2026-08-24', 'ICA SUPERMARKET', '-293,95']];
+    expect(guessColumns(header, sample).roles[1]).toBe('text');
+  });
+});
+
+describe('amounts that carry their currency', () => {
+  it.each([
+    ['-45,20 PLN', -45.2],
+    ['45,20 PLN', 45.2],
+    ['\u20ac45,20', 45.2],
+    ['-\u20ac45,20', -45.2],
+    ['1 234,56 kr', 1234.56],
+    ['1.234,56 CZK', 1234.56],
+    ['-99 SEK', -99],
+  ])('reads %s as %s', (raw, want) => {
+    expect(parseAmount(raw)).toBe(want);
+  });
+
+  it('still reads the plain forms', () => {
+    expect(parseAmount('1 234,56')).toBe(1234.56);
+    expect(parseAmount('842,00-')).toBe(-842);
+    expect(parseAmount('-23.66')).toBe(-23.66);
+  });
+
+  it('takes off a currency, never just any letters', () => {
+    // The whole reason the list is explicit: this must stay unreadable, or a
+    // description column of shop names and till numbers passes for amounts.
+    expect(parseAmount('ICA 4521')).toBeNull();
+    expect(parseAmount('TEMPO 4521')).toBeNull();
+    expect(parseAmount('REF 1234')).toBeNull();
+    expect(parseAmount('4521 SUPERMARKET')).toBeNull();
+  });
+});
+
+describe('two-digit years', () => {
+  it('reads the German short form, day first', () => {
+    expect(parseDate('31.08.26')).toBe('2026-08-31');
+    expect(parseDate('01.02.26')).toBe('2026-02-01');
+  });
+
+  it('reads it as this century, not the last one', () => {
+    expect(parseDate('15.06.99')).toBe('2099-06-15');
+  });
+
+  it('wants exactly two digits, so a version string stays unreadable', () => {
+    expect(parseDate('1.2.3')).toBeNull();
+    expect(parseDate('1.2.345')).toBeNull();
+  });
+
+  it('will not touch a hyphenated short date, which is genuinely ambiguous', () => {
+    // "26-09-24" is either the 24th of September 2026 written ISO-style short,
+    // or the 26th written day-first. Nothing in the string decides it, so it
+    // stays unreadable — a skipped row the user is told about beats a silent
+    // guess that moves a purchase to another month.
+    expect(parseDate('26-09-24')).toBeNull();
+    expect(parseDate('01-02-03')).toBeNull();
+  });
+
+  it('still rejects an impossible date', () => {
+    expect(parseDate('31.13.26')).toBeNull();
+    expect(parseDate('32.01.26')).toBeNull();
+  });
+});
+
+describe('a spare date column is never mistaken for the amount', () => {
+  // Found by running a German Sparkasse export through the guesser. None of
+  // "Buchungstag", "Valutadatum" or "Betrag" is a word this module knows, so
+  // everything fell to the value-based pass — where a dotted date parses as a
+  // number. The import would have been silent and spectacularly wrong.
+  const header = ['Auftragskonto', 'Buchungstag', 'Valutadatum', 'Buchungstext', 'Betrag'];
+  const sample = [
+    ['DE12', '31.08.2026', '31.08.2026', 'KARTENZAHLUNG', '-23,66'],
+    ['DE12', '30.08.2026', '30.08.2026', 'LASTSCHRIFT', '-12,99'],
+  ];
+
+  it('reads the amount from the amount column', () => {
+    const { roles } = guessColumns(header, sample);
+    expect(roles[4]).toBe('amount');
+  });
+
+  it('never calls a date column the amount', () => {
+    const { roles } = guessColumns(header, sample);
+    expect(roles[1]).not.toBe('amount');
+    expect(roles[2]).not.toBe('amount');
+  });
+
+  it('never calls a date column the description either', () => {
+    const { roles } = guessColumns(header, sample);
+    expect(roles[1]).not.toBe('text');
+    expect(roles[2]).not.toBe('text');
+    expect(roles[3]).toBe('text');
+  });
+
+  it('still reads a real row out of it', () => {
+    const { roles } = guessColumns(header, sample);
+    const { rows, skipped } = rowsToParsed(sample, { roles });
+    expect(skipped).toHaveLength(0);
+    expect(rows[0]).toEqual({ date: '2026-08-31', text: 'KARTENZAHLUNG', amount: -23.66 });
+  });
+});
+
 describe('guessColumns', () => {
   const sample = [
     ['2026-09-02', 'ICA MAXI', '-842,00', '12 940,50'],

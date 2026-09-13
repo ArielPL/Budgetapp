@@ -32,6 +32,9 @@ interface Props {
   /** Move the whole app to another month. An imported statement is usually last
    *  month's, so the months it writes to are routinely not this one. */
   onGoToMonth: (year: number, month: number) => void;
+  /** Add standard categories the import offered to create, to the months that
+   *  received the entries — not necessarily the month on screen. */
+  onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
 }
 
 interface RowSpec {
@@ -41,7 +44,9 @@ interface RowSpec {
   planned: number;
 }
 
-export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed, onGoToMonth }: Props) => {
+export const FollowUpTab = ({
+  year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
+}: Props) => {
   const { t, lang, money } = useLang();
   const [entries, setEntries] = useState<ActualEntry[]>(() => loadActuals(appStorage, year, month));
   const [openRow, setOpenRow] = useState<string | null>(null);
@@ -170,6 +175,7 @@ export const FollowUpTab = ({ year, month, categories, totalIncome, onSaveFailed
       {importing && (
         <CsvImport
           categories={categories}
+          onCreateCategories={onCreateCategories}
           onClose={() => setImporting(false)}
           onSaveFailed={onSaveFailed}
           onImported={(summary, months) => {

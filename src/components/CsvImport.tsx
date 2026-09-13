@@ -1,12 +1,16 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { appStorage } from '../storage';
-import { generateId, shownName } from '../defaults';
+import { generateId, shownName, standardExpenseCategory } from '../defaults';
 import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, type ColumnRole, type TextGroup,
 } from '../csvImport';
 import { loadCsvMaps, rememberCsvMap } from '../csvMaps';
+import {
+  suggest, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
+  type LearnedRules,
+} from '../categorise';
 import { loadActuals, saveActuals, newEntries, groupByMonth, INCOME_ACTUAL_ID } from '../actuals';
 import { useLang, MONTHS } from '../i18n';
 import type { ActualEntry, BudgetCategory } from '../types';
@@ -19,8 +23,15 @@ import type { ActualEntry, BudgetCategory } from '../types';
 //
 // Review groups by DESCRIPTION rather than listing every row. A statement with
 // a hundred transactions holds perhaps thirty distinct places, and "ICA
-// SUPERMARKET, 6 rows, 782,90" is one decision instead of six. Until the
-// sorting learns (that is the next step), this is what keeps the work sane.
+// SUPERMARKET, 6 rows, 782,90" is one decision instead of six.
+//
+// Most of those places arrive already sorted — see categorise.ts. What you
+// correct is remembered and beats the built-in list next time, so the work
+// shrinks with every statement rather than repeating.
+//
+// A place whose category the budget does not have is offered as one to CREATE,
+// with its standard id, never created behind your back. The offer is only taken
+// up when you press Import, so a proposal you scroll past changes nothing.
 
 type Step = 'file' | 'columns' | 'review';
 
@@ -42,14 +53,29 @@ interface Props {
    *  had done nothing. The caller can now offer to go there. */
   onImported: (summary: string, months: TouchedMonth[]) => void;
   onSaveFailed: () => void;
+  /** Add standard categories the user accepted an offer to create, into the
+   *  months the entries are being filed in. */
+  onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
 }
+
+/** Prefix marking a choice that is an offer to create rather than a category
+ *  that exists. Kept out of band so it can never collide with a real id. */
+const CREATE = 'new:';
 
 interface Group extends TextGroup {
-  /** Empty until the user picks one; groups without a category are not imported. */
-  categoryId: string;
+  /** '' until decided, an existing category id, INCOME_ACTUAL_ID, or
+   *  `new:<standard id>` for a category the budget does not have yet. Groups
+   *  left undecided are not imported. */
+  choice: string;
+  /** Whether the sorter chose this rather than the user. Only what the user
+   *  chose is worth learning from; re-learning your own guess teaches nothing
+   *  and would cement a mistake the first time one slips through. */
+  auto: boolean;
 }
 
-export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Props) => {
+export const CsvImport = ({
+  categories, onClose, onImported, onSaveFailed, onCreateCategories,
+}: Props) => {
   const { t, lang, money } = useLang();
   const [step, setStep] = useState<Step>('file');
   const [error, setError] = useState<string | null>(null);
@@ -86,11 +112,16 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
   const toReview = (body: string[][], useRoles: ColumnRole[]) => {
     const { rows, skipped } = rowsToParsed(body, { roles: useRoles });
     if (rows.length === 0) { setError(t.csvNoRows); setStep('columns'); return; }
-    setGroups(groupByText(rows, t.csvNoText).map(g => ({
-      ...g,
-      // Money in defaults to the income bucket; money out waits for a choice.
-      categoryId: g.incoming ? INCOME_ACTUAL_ID : '',
-    })));
+    const rules = loadCategoryRules(appStorage);
+    const existing = new Set(categories.map(c => c.id));
+    setGroups(groupByText(rows, t.csvNoText).map(g => {
+      // Money in goes to the income bucket; money out is put to the sorter.
+      if (g.incoming) return { ...g, choice: INCOME_ACTUAL_ID, auto: true };
+      const s = suggest(g.text, existing, rules);
+      if (s.categoryId) return { ...g, choice: s.categoryId, auto: true };
+      if (s.create) return { ...g, choice: CREATE + s.create, auto: true };
+      return { ...g, choice: '', auto: false };
+    }));
     setSkippedCount(skipped.length);
     setStep('review');
   };
@@ -100,8 +131,29 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
     toReview(dataRows, roles);
   };
 
-  const ready = groups.filter(g => g.categoryId);
+  const ready = groups.filter(g => g.choice);
   const unassigned = groups.length - ready.length;
+  /** How many the sorter placed without being asked — the number that says
+   *  whether it is earning its keep. Counted before any correction, so it does
+   *  not flatter itself by counting the ones you fixed. */
+  const sorted = groups.filter(g => g.auto && g.choice).length;
+
+  /** The standard categories this import would create, each named once. */
+  const toCreate = [...new Set(
+    ready.filter(g => g.choice.startsWith(CREATE)).map(g => g.choice.slice(CREATE.length)),
+  )];
+
+  /** Standard categories the budget does not have, offered as ones to create. */
+  const creatable = STANDARD_CATEGORY_IDS
+    .filter(id => !categories.some(c => c.id === id))
+    .flatMap(id => {
+      const cat = standardExpenseCategory(id, lang);
+      return cat ? [{ id, cat }] : [];
+    });
+
+  /** A choice as a category id: an offer to create becomes the id it creates. */
+  const resolve = (choice: string) =>
+    (choice.startsWith(CREATE) ? choice.slice(CREATE.length) : choice);
 
   const doImport = () => {
     const entries: ActualEntry[] = ready.flatMap(g =>
@@ -111,10 +163,34 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
         text: r.text || t.csvNoText,
         // The sign lives in the category, not in the number — see actuals.ts.
         amount: Math.abs(r.amount),
-        categoryId: g.categoryId,
+        categoryId: resolve(g.choice),
       })));
 
     const { months } = groupByMonth(entries);
+
+    // The offers first, and into the months the entries are ABOUT to land in.
+    // A category that exists with nothing filed under it is harmless; entries
+    // filed under a category their own month does not have are not — they show
+    // up under "outside the budget" and have to be explained. Every month the
+    // file reaches, not only the ones that end up with something new: a month
+    // whose rows all turn out to be duplicates still holds those entries and
+    // still needs somewhere to show them.
+    if (toCreate.length > 0) {
+      onCreateCategories(
+        toCreate,
+        [...months.values()].map(b => ({ year: b.year, month: b.month })),
+      );
+    }
+
+    // Learn from what YOU decided, never from what the sorter guessed. Storing
+    // its own guesses back would cement the first mistake that slips past and
+    // make it look, next month, like something you had confirmed.
+    let rules: LearnedRules | undefined;
+    for (const g of ready) {
+      if (g.auto) continue;
+      rules = rememberCategoryRule(appStorage, g.text, resolve(g.choice), rules);
+    }
+
     const touched: string[] = [];
     const written: TouchedMonth[] = [];
     let added = 0;
@@ -141,6 +217,7 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
     // user cannot see.
     const parts = [t.csvDoneAdded(added)];
     if (touched.length) parts.push(touched.join(', '));
+    if (toCreate.length) parts.push(t.csvDoneCreated(toCreate.length));
     if (duplicates) parts.push(t.csvDoneDuplicates(duplicates));
     if (unassigned) parts.push(t.csvDoneUnassigned(unassigned));
     onImported(parts.join(' · '), written);
@@ -235,24 +312,41 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
             <>
               <p className="csv-lead">
                 {t.csvReviewLead(groups.reduce((s, g) => s + g.rows.length, 0), groups.length)}
+                {sorted > 0 && <span className="csv-sorted"> {t.csvSorted(sorted, groups.length)}</span>}
                 {skippedCount > 0 && <span className="csv-skipped"> {t.csvSkipped(skippedCount)}</span>}
               </p>
               <div className="csv-groups">
                 {groups.map((g, i) => (
-                  <div className={`csv-group${g.categoryId ? '' : ' is-unset'}`} key={i}>
+                  <div className={`csv-group${g.choice ? '' : ' is-unset'}`} key={i}>
                     <span className="csv-group-text">{g.text}</span>
                     <span className="csv-group-count">{t.csvRows(g.rows.length)}</span>
                     <span className="csv-group-sum">{money(Math.abs(g.total))}</span>
                     <select
-                      className="csv-group-cat" value={g.categoryId}
+                      className={`csv-group-cat${g.choice.startsWith(CREATE) ? ' is-new' : ''}`}
+                      value={g.choice}
                       aria-label={g.text}
-                      onChange={e => setGroups(gs => gs.map((x, j) => (j === i ? { ...x, categoryId: e.target.value } : x)))}
+                      onChange={e => setGroups(gs => gs.map((x, j) => (
+                        // Changing it makes the choice yours, and only yours is
+                        // learned from.
+                        j === i ? { ...x, choice: e.target.value, auto: false } : x
+                      )))}
                     >
                       <option value="">{t.csvChoose}</option>
                       <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
-                      {categories.map(c => (
-                        <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
-                      ))}
+                      {categories.length > 0 && (
+                        <optgroup label={t.csvExistingGroup}>
+                          {categories.map(c => (
+                            <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {creatable.length > 0 && (
+                        <optgroup label={t.csvCreateGroup}>
+                          {creatable.map(({ id, cat }) => (
+                            <option value={CREATE + id} key={id}>+ {cat.icon} {cat.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                   </div>
                 ))}
@@ -261,6 +355,7 @@ export const CsvImport = ({ categories, onClose, onImported, onSaveFailed }: Pro
                 <button className="csv-primary" disabled={ready.length === 0} onClick={doImport}>
                   {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
                 </button>
+                {toCreate.length > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(toCreate.length)}</span>}
                 {unassigned > 0 && <span className="csv-hint">{t.csvUnassigned(unassigned)}</span>}
               </div>
             </>
