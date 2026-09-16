@@ -205,6 +205,33 @@ export interface Translations {
   /** How many places the sorter placed without being asked. */
   csvSorted: (n: number, total: number) => string;
   csvExistingGroup: string;
+  csvChangeColumns: string;
+  followUpClear: string;
+  followUpClearConfirm: (n: number, monthName: string) => string;
+  followUpClearDone: (n: number) => string;
+  followUpSpan: (n: number) => string;
+  followUpSpanAria: string;
+  followUpSpanRange: (from: string, to: string) => string;
+  followUpSpanNoBudget: (n: number) => string;
+  followUpGroupedHint: string;
+  followUpAdjustPeriod: string;
+  followUpOnlyActuals: string;
+  followUpUnsorted: string;
+  followUpUnsortedHint: string;
+  followUpTransfer: string;
+  followUpTransferHint: string;
+  followUpMoveTo: (place: string) => string;
+  followUpNewCategory: string;
+  followUpNewCategoryName: string;
+  csvSkipGroup: string;
+  csvToUnsorted: (n: number) => string;
+  csvToTransfer: (n: number) => string;
+  followUpWithPlan: string;
+  followUpByPlace: string;
+  followUpByDate: string;
+  followUpPeriodStarts: string;
+  followUpPeriodReset: string;
+  followUpPeriodHint: string;
   csvCreateGroup: string;
   csvWillCreate: (n: number) => string;
   /** Takes you to a month the import wrote to that is not the one on screen. */
@@ -235,6 +262,8 @@ export interface Translations {
   periodStartDay: string;
   periodStartHint: string;
   periodStartOff: string;
+  periodRefileConfirm: (n: number, day: string) => string;
+  periodRefileDone: (n: number) => string;
   periodLabelAria: (month: string) => string;
   periodLabelPlaceholder: string;
   // Per-row period: how often the typed amount actually falls due.
@@ -410,6 +439,10 @@ export interface Translations {
   // Reset month
   resetMonth: string;
   resetMonthConfirm: (monthName: string) => string;
+  /** Used instead when the month also holds recorded entries, which the reset
+   *  deliberately does NOT touch — so the dialog says so rather than leaving
+   *  the user to discover it. */
+  resetMonthConfirmKept: (monthName: string, n: number) => string;
   resetMonthDone: string;
   dangerZone: string;
   // Month nav
@@ -641,6 +674,33 @@ export const translations: Record<Lang, Translations> = {
     csvDoneCreated: (n) => (n === 1 ? '1 ny kategori' : `${n} nya kategorier`),
     csvSorted: (n, total) => `${n} av ${total} sorterades åt dig.`,
     csvExistingGroup: 'I din budget',
+    csvChangeColumns: '↩ Ändra kolumner',
+    followUpClear: 'Rensa månadens utfall',
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Detta tar bort den enda posten för ${monthName}` : `Detta tar bort alla ${n} poster för ${monthName}`} och kan inte ångras.\n\nBudgeten påverkas inte.\n\nVill du fortsätta?`,
+    followUpClearDone: (n) => (n === 1 ? '1 post borttagen' : `${n} poster borttagna`),
+    followUpSpan: (n) => (n === 1 ? 'Månad' : `${n} mån`),
+    followUpSpanAria: 'Hur många månader som visas',
+    followUpSpanRange: (from, to) => `${from} – ${to}`,
+    followUpSpanNoBudget: (n) => (n === 1 ? '1 månad i spannet har ingen budget och räknas inte i planen.' : `${n} månader i spannet har ingen budget och räknas inte i planen.`),
+    followUpGroupedHint: 'Grupperat per ställe. Välj Månad för att rätta eller ta bort en post.',
+    followUpAdjustPeriod: 'Justera',
+    followUpOnlyActuals: 'Bara utfall',
+    followUpUnsorted: 'Övrigt',
+    followUpUnsortedHint: 'Köp appen inte kunde placera. Flytta dem till en kategori — den minns valet till nästa gång.',
+    followUpTransfer: 'Överföring',
+    followUpTransferHint: 'Pengar mellan dina egna konton, Swish till och från personer, uttag. Räknas inte som utgift — det är samma pengar i en annan ficka.',
+    followUpMoveTo: (place) => `Flytta ${place} till en annan kategori`,
+    followUpNewCategory: '+ Ny kategori…',
+    followUpNewCategoryName: 'Vad ska den heta?',
+    csvSkipGroup: '— hoppa över —',
+    csvToUnsorted: (n) => (n === 1 ? '1 ställe hamnar i Övrigt.' : `${n} ställen hamnar i Övrigt.`),
+    csvToTransfer: (n) => (n === 1 ? '1 ställe hamnar i Överföring.' : `${n} ställen hamnar i Överföring.`),
+    followUpWithPlan: 'Visa plan',
+    followUpByPlace: 'Per ställe',
+    followUpByDate: 'Per datum',
+    followUpPeriodStarts: 'Perioden börjar',
+    followUpPeriodReset: 'Återgå till regeln',
+    followUpPeriodHint: 'Gäller bara den här månaden. Övriga följer startdagen i menyn, med helgjustering.',
     csvCreateGroup: 'Skapa ny kategori',
     csvWillCreate: (n) => (n === 1 ? '1 ny kategori skapas.' : `${n} nya kategorier skapas.`),
     followUpOutsideBudget: 'Utanför budgeten',
@@ -662,7 +722,9 @@ export const translations: Record<Lang, Translations> = {
     copyNothingToDo: 'Ingenting att hämta — månaden är tom.',
     periodSection: 'Löneperiod',
     periodStartDay: 'Perioden börjar den',
-    periodStartHint: 'Visas bara som text under månaden — påverkar inga belopp.',
+    periodStartHint: 'Styr vilka poster som hamnar i månaden under Uppföljning. Budgetens belopp påverkas inte.',
+    periodRefileConfirm: (n, day) => `${n === 1 ? '1 registrerad post' : `${n} registrerade poster`} flyttas till en annan månad under Uppföljning när perioden ändras till ${day}.\n\nIngenting försvinner — varje post har sitt eget datum. Budgetens belopp påverkas inte.\n\nVill du fortsätta?`,
+    periodRefileDone: (n) => (n === 1 ? '✓ 1 post flyttad' : `✓ ${n} poster flyttade`),
     periodStartOff: 'Av',
     periodLabelAria: (month) => `Egen periodtext för ${month}`,
     periodLabelPlaceholder: 'Egen text',
@@ -839,8 +901,9 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'Filen är skadad och kunde inte läsas. Ingenting har ändrats — din nuvarande data är kvar.',
     importWriteFailed: 'Importen misslyckades och avbröts. Din tidigare data är återställd och oförändrad.',
     resetMonth: '↺ Återställ månad',
-    resetMonthConfirm: (monthName) => `Detta nollställer ${monthName} och kan inte ångras. Vill du fortsätta?`,
-    resetMonthDone: '✓ Månad återställd',
+    resetMonthConfirm: (monthName) => `Detta nollställer budgeten för ${monthName} och kan inte ångras. Vill du fortsätta?`,
+    resetMonthConfirmKept: (monthName, n) => `Detta nollställer budgeten för ${monthName} och kan inte ångras.\n\n${n === 1 ? 'Den registrerade posten' : `De ${n} registrerade posterna`} under Uppföljning ligger kvar — ${n === 1 ? 'den' : 'de'} rensas därifrån.\n\nVill du fortsätta?`,
+    resetMonthDone: '✓ Budgeten återställd',
     dangerZone: 'Farozon',
     prevMonth: 'Föregående månad',
     nextMonth: 'Nästa månad',
@@ -1034,6 +1097,33 @@ export const translations: Record<Lang, Translations> = {
     csvDoneCreated: (n) => (n === 1 ? '1 new category' : `${n} new categories`),
     csvSorted: (n, total) => `${n} of ${total} were sorted for you.`,
     csvExistingGroup: 'In your budget',
+    csvChangeColumns: '↩ Change columns',
+    followUpClear: "Clear this month's actuals",
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `This removes the only entry for ${monthName}` : `This removes all ${n} entries for ${monthName}`} and cannot be undone.\n\nThe budget is not affected.\n\nContinue?`,
+    followUpClearDone: (n) => (n === 1 ? '1 entry removed' : `${n} entries removed`),
+    followUpSpan: (n) => (n === 1 ? 'Month' : `${n} mo`),
+    followUpSpanAria: 'How many months are shown',
+    followUpSpanRange: (from, to) => `${from} – ${to}`,
+    followUpSpanNoBudget: (n) => (n === 1 ? '1 month in this span has no budget and is not counted in the plan.' : `${n} months in this span have no budget and are not counted in the plan.`),
+    followUpGroupedHint: 'Grouped by place. Choose Month to correct or remove an entry.',
+    followUpAdjustPeriod: 'Adjust',
+    followUpOnlyActuals: 'Actuals only',
+    followUpUnsorted: 'Other',
+    followUpUnsortedHint: 'Purchases the app could not place. Move them to a category — it remembers the choice for next time.',
+    followUpTransfer: 'Transfers',
+    followUpTransferHint: 'Money between your own accounts, Swish to and from people, withdrawals. Not counted as spending — it is the same money in another pocket.',
+    followUpMoveTo: (place) => `Move ${place} to another category`,
+    followUpNewCategory: '+ New category…',
+    followUpNewCategoryName: 'What should it be called?',
+    csvSkipGroup: '— skip —',
+    csvToUnsorted: (n) => (n === 1 ? '1 place goes to Other.' : `${n} places go to Other.`),
+    csvToTransfer: (n) => (n === 1 ? '1 place goes to Transfers.' : `${n} places go to Transfers.`),
+    followUpWithPlan: 'Show plan',
+    followUpByPlace: 'By place',
+    followUpByDate: 'By date',
+    followUpPeriodStarts: 'The period starts',
+    followUpPeriodReset: 'Back to the rule',
+    followUpPeriodHint: 'This month only. The rest follow the start day in the menu, weekends adjusted.',
     csvCreateGroup: 'Create a new category',
     csvWillCreate: (n) => (n === 1 ? '1 new category will be created.' : `${n} new categories will be created.`),
     followUpOutsideBudget: 'Outside the budget',
@@ -1055,7 +1145,9 @@ export const translations: Record<Lang, Translations> = {
     copyNothingToDo: 'Nothing to pull — that month is empty.',
     periodSection: 'Pay period',
     periodStartDay: 'The period starts on the',
-    periodStartHint: 'Shown as text under the month only — it changes no amounts.',
+    periodStartHint: 'Decides which entries land in the month under Follow-up. The budget’s amounts are untouched.',
+    periodRefileConfirm: (n, day) => `${n === 1 ? '1 recorded entry' : `${n} recorded entries`} will move to a different month under Follow-up when the period changes to ${day}.\n\nNothing is lost — every entry carries its own date. The budget’s amounts are untouched.\n\nContinue?`,
+    periodRefileDone: (n) => (n === 1 ? '✓ 1 entry moved' : `✓ ${n} entries moved`),
     periodStartOff: 'Off',
     periodLabelAria: (month) => `Custom period text for ${month}`,
     periodLabelPlaceholder: 'Custom text',
@@ -1232,9 +1324,10 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'This file is damaged and could not be read. Nothing was changed — your current data is still here.',
     importWriteFailed: 'The import failed and was cancelled. Your previous data has been restored and is unchanged.',
     resetMonth: '↺ Reset month',
-    resetMonthConfirm: (monthName) => `This clears ${monthName} and can't be undone. Continue?`,
+    resetMonthConfirm: (monthName) => `This resets the budget for ${monthName} and cannot be undone. Continue?`,
     dangerZone: 'Danger zone',
-    resetMonthDone: '✓ Month reset',
+    resetMonthConfirmKept: (monthName, n) => `This resets the budget for ${monthName} and cannot be undone.\n\n${n === 1 ? 'The recorded entry under Follow-up is kept — clear it from there.' : `The ${n} recorded entries under Follow-up are kept — clear those from there.`}\n\nContinue?`,
+    resetMonthDone: '✓ Budget reset',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     income: 'Income',
@@ -1427,6 +1520,33 @@ export const translations: Record<Lang, Translations> = {
     csvDoneCreated: (n) => (n === 1 ? '1 categoría nueva' : `${n} categorías nuevas`),
     csvSorted: (n, total) => `${n} de ${total} se ordenaron automáticamente.`,
     csvExistingGroup: 'En tu presupuesto',
+    csvChangeColumns: '↩ Cambiar columnas',
+    followUpClear: 'Borrar los movimientos del mes',
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Esto elimina el único movimiento de ${monthName}` : `Esto elimina los ${n} movimientos de ${monthName}`} y no se puede deshacer.\n\nEl presupuesto no se ve afectado.\n\n¿Continuar?`,
+    followUpClearDone: (n) => (n === 1 ? '1 movimiento eliminado' : `${n} movimientos eliminados`),
+    followUpSpan: (n) => (n === 1 ? 'Mes' : `${n} meses`),
+    followUpSpanAria: 'Cuántos meses se muestran',
+    followUpSpanRange: (from, to) => `${from} – ${to}`,
+    followUpSpanNoBudget: (n) => (n === 1 ? '1 mes del periodo no tiene presupuesto y no cuenta en el plan.' : `${n} meses del periodo no tienen presupuesto y no cuentan en el plan.`),
+    followUpGroupedHint: 'Agrupado por sitio. Elige Mes para corregir o eliminar un movimiento.',
+    followUpAdjustPeriod: 'Ajustar',
+    followUpOnlyActuals: 'Solo movimientos',
+    followUpUnsorted: 'Otros',
+    followUpUnsortedHint: 'Compras que la app no pudo colocar. Muévelas a una categoría — recordará la elección para la próxima vez.',
+    followUpTransfer: 'Transferencias',
+    followUpTransferHint: 'Dinero entre tus propias cuentas, Swish a y desde personas, retiradas. No cuenta como gasto — es el mismo dinero en otro bolsillo.',
+    followUpMoveTo: (place) => `Mover ${place} a otra categoría`,
+    followUpNewCategory: '+ Categoría nueva…',
+    followUpNewCategoryName: '¿Cómo se va a llamar?',
+    csvSkipGroup: '— omitir —',
+    csvToUnsorted: (n) => (n === 1 ? '1 sitio va a Otros.' : `${n} sitios van a Otros.`),
+    csvToTransfer: (n) => (n === 1 ? '1 sitio va a Transferencias.' : `${n} sitios van a Transferencias.`),
+    followUpWithPlan: 'Ver plan',
+    followUpByPlace: 'Por sitio',
+    followUpByDate: 'Por fecha',
+    followUpPeriodStarts: 'El periodo empieza',
+    followUpPeriodReset: 'Volver a la regla',
+    followUpPeriodHint: 'Solo este mes. Los demás siguen el día de inicio del menú, con ajuste de fin de semana.',
     csvCreateGroup: 'Crear categoría nueva',
     csvWillCreate: (n) => (n === 1 ? 'Se creará 1 categoría nueva.' : `Se crearán ${n} categorías nuevas.`),
     followUpOutsideBudget: 'Fuera del presupuesto',
@@ -1448,7 +1568,9 @@ export const translations: Record<Lang, Translations> = {
     copyNothingToDo: 'Nada que traer — ese mes está vacío.',
     periodSection: 'Periodo de pago',
     periodStartDay: 'El periodo empieza el día',
-    periodStartHint: 'Solo se muestra como texto bajo el mes — no cambia ningún importe.',
+    periodStartHint: 'Decide qué movimientos caen en el mes en Seguimiento. Los importes del presupuesto no se tocan.',
+    periodRefileConfirm: (n, day) => `${n === 1 ? '1 movimiento registrado pasará' : `${n} movimientos registrados pasarán`} a otro mes en Seguimiento al cambiar el periodo a ${day}.\n\nNo se pierde nada — cada movimiento lleva su propia fecha. Los importes del presupuesto no se tocan.\n\n¿Continuar?`,
+    periodRefileDone: (n) => (n === 1 ? '✓ 1 movimiento movido' : `✓ ${n} movimientos movidos`),
     periodStartOff: 'Desactivado',
     periodLabelAria: (month) => `Texto propio del periodo para ${month}`,
     periodLabelPlaceholder: 'Texto propio',
@@ -1625,9 +1747,10 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'El archivo está dañado y no se pudo leer. No se ha cambiado nada: tus datos siguen intactos.',
     importWriteFailed: 'La importación falló y se canceló. Tus datos anteriores se han restaurado y están intactos.',
     resetMonth: '↺ Restablecer mes',
-    resetMonthConfirm: (monthName) => `Esto borra ${monthName} y no se puede deshacer. ¿Continuar?`,
+    resetMonthConfirm: (monthName) => `Esto reinicia el presupuesto de ${monthName} y no se puede deshacer. ¿Continuar?`,
     dangerZone: 'Zona de peligro',
-    resetMonthDone: '✓ Mes restablecido',
+    resetMonthConfirmKept: (monthName, n) => `Esto reinicia el presupuesto de ${monthName} y no se puede deshacer.\n\n${n === 1 ? 'El movimiento registrado en Seguimiento se conserva — bórralo desde allí.' : `Los ${n} movimientos registrados en Seguimiento se conservan — bórralos desde allí.`}\n\n¿Continuar?`,
+    resetMonthDone: '✓ Presupuesto restablecido',
     prevMonth: 'Mes anterior',
     nextMonth: 'Mes siguiente',
     income: 'Ingresos',

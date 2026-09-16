@@ -3477,6 +3477,207 @@ a:focus-visible,
   min-height: 40px;
 }
 @media (hover: hover) { .followup-import:hover { background: var(--accent-brand); color: #fff; } }
+.followup-top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* How many months are in view. Chips rather than a select: there are four, they
+   are one word each, and the current one should be readable without opening
+   anything. */
+.followup-spans {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.followup-span {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  min-height: 34px;
+}
+.followup-span.is-on {
+  background: var(--accent-brand);
+  border-color: var(--accent-brand);
+  color: #fff;
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .followup-span:not(.is-on):hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
+.followup-span-range { font-size: 0.8rem; color: var(--text-muted); margin-left: 4px; }
+
+/* The two view switches: whether the plan is beside the record at all, and
+   whether an opened category lists places or dates. Quieter than the span
+   chips — they change how you read the table, not what is in it. */
+.followup-toggles { display: flex; gap: 6px; margin-left: auto; }
+.followup-toggle {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+.followup-toggle.is-on { border-color: var(--accent-brand); color: var(--accent-brand); }
+@media (hover: hover) { .followup-toggle:hover { border-color: var(--accent-brand); color: var(--accent-brand); } }
+
+/* Without the plan there are two columns, not four, and the one that matters
+   gets the room the comparison used to take. */
+.followup-table.is-actuals-only .followup-head,
+.followup-table.is-actuals-only .followup-row {
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr);
+}
+
+/* The pinned-period control. Shown as the range itself, so the thing you are
+   about to change is the thing you are reading. */
+.followup-period { margin: 0 0 12px; }
+.followup-period-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+@media (hover: hover) { .followup-period-btn:hover { border-color: var(--accent-brand); color: var(--accent-brand); } }
+.followup-period-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.followup-period-edit input[type="date"] {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  min-height: 36px;
+}
+.followup-period-reset,
+.followup-period-cancel {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+.followup-period-hint { flex-basis: 100%; margin: 0; font-size: 0.76rem; }
+
+/* A place is a row plus a way to move it. The button still fills the row; the
+   select sits beside it so clicking the name opens, and clicking ⇄ refiles. */
+.followup-place-head { display: flex; align-items: center; gap: 6px; }
+.followup-place-head .followup-place { flex: 1; min-width: 0; }
+.followup-place-move {
+  flex: none;
+  width: 42px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  min-height: 32px;
+  padding: 0 4px;
+}
+@media (hover: hover) {
+  .followup-place-move:hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
+
+/* Naming a category where you realised you needed one. */
+.followup-newcat {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0 8px 16px;
+}
+.followup-newcat-name {
+  flex: 1;
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--accent-brand);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  min-height: 36px;
+}
+.followup-newcat-save {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+.followup-newcat-cancel {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+/* The two holding buckets. Quieter than a real category — they are where
+   things wait, not where they belong. */
+.followup-row.is-bucket .followup-name { color: var(--text-muted); }
+
+/* A place opens onto its own dated entries — folded, never hidden. */
+.followup-place-wrap { border-top: 1px solid var(--border); }
+.followup-place-wrap:first-child { border-top: none; }
+.followup-entry.is-nested { padding-left: 16px; }
+.followup-note {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* One place inside an opened category, over a span. Same three columns as an
+   entry, so the two read alike, but with a count instead of a date. */
+.followup-place {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 0.82rem;
+}
+.followup-place .followup-caret { margin-left: 6px; opacity: 0.55; font-size: 0.7rem; }
+@media (hover: hover) { .followup-place:hover .followup-place-text { color: var(--accent-brand); } }
+.followup-place-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.followup-place-count { color: var(--text-muted); font-size: 0.76rem; }
+.followup-place-sum { color: var(--text); font-variant-numeric: tabular-nums; }
+/* Quiet on purpose: it empties the month's record and cannot be undone, so it
+   should be findable without competing with the thing you came here to do. */
+.followup-clear {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  min-height: 40px;
+}
+@media (hover: hover) {
+  .followup-clear:hover { border-color: var(--negative); color: var(--negative); }
+}
 .followup-toast {
   display: flex;
   align-items: center;
@@ -3652,6 +3853,20 @@ a:focus-visible,
   min-height: 42px;
 }
 .csv-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Pushed to the far end: it is the way back, not a second way forward. */
+.csv-secondary {
+  margin-left: auto;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+@media (hover: hover) {
+  .csv-secondary:hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
 .csv-hint { font-size: 0.78rem; color: var(--text-muted); }
 
 @media (max-width: 640px) {

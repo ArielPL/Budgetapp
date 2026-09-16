@@ -17,6 +17,13 @@
 //      both, never to whichever month happens to be on screen. A purchase made
 //      in September is September's, even if it was imported in November.
 //
+//      "September" means the budget month, which is not always the calendar
+//      month: a user paid on the 25th lives in 25 Aug – 24 Sep, and their rent
+//      and standing charges all land on the turnover day. See budgetMonthOf in
+//      periodLabel.ts. With no pay period set the two are the same thing, which
+//      is why every function here takes the start day as an optional argument
+//      and behaves exactly as before without it.
+//
 // Pure and DOM-free, like metrics.ts — the arithmetic is unit-tested without a
 // browser, and the views can only ever agree because they all call these.
 
@@ -24,6 +31,7 @@ import type { ActualEntry } from './types';
 import type { StorageLike } from './storage';
 import { safeSetItem } from './storageWrite';
 import { isValidMoney } from './money';
+import { budgetMonthOf, type PeriodLocks } from './periodLabel';
 
 /** Money IN has no budget category to belong to: income is a list of rows, not
  *  a category. Entries for it carry this id instead. It cannot collide with a
@@ -31,6 +39,26 @@ import { isValidMoney } from './money';
  *  'transport', 'prenumerationer', 'personligt', 'fritid' and 'sparande', and a
  *  user-made category gets a generated id. */
 export const INCOME_ACTUAL_ID = '__income__';
+
+/**
+ * Two holding buckets, so an import never has to throw a transaction away.
+ *
+ * Dropping what the sorter could not place was the wrong kind of safe: on one
+ * real statement it silently discarded 173 of 471 transactions, and the user
+ * had no way to reach them afterwards because they had never become entries.
+ * Now everything lands somewhere, visibly, and can be moved out.
+ *
+ * Ids, not categories, for the same reason INCOME_ACTUAL_ID is: you do not
+ * BUDGET for "I don't know yet". They exist only in the record.
+ */
+export const UNSORTED_ACTUAL_ID = '__unsorted__';
+export const TRANSFER_ACTUAL_ID = '__transfer__';
+
+/** Buckets are not categories: they never appear in the budget tab, and
+ *  `orphanIds` in the follow-up tab must not collect them as lost categories. */
+export function isBucketId(id: string): boolean {
+  return id === INCOME_ACTUAL_ID || id === UNSORTED_ACTUAL_ID || id === TRANSFER_ACTUAL_ID;
+}
 
 /** Where a month's entries live. Mirrors `budget_<year>_<month>` so the two are
  *  recognisably a pair, and sits inside the backup's `budget_` prefix. */
@@ -98,6 +126,39 @@ export function sumByCategory(entries: ActualEntry[]): Record<string, number> {
   return out;
 }
 
+/** One place, and what it came to. */
+export interface TextTotal {
+  /** The description as the bank wrote it, from the first entry seen. */
+  text: string;
+  count: number;
+  total: number;
+}
+
+/**
+ * A category's entries collapsed onto distinct places, biggest first.
+ *
+ * The view a bank statement cannot give you, because it is sorted by date:
+ * eleven separate Espresso House lines scattered through a month say nothing,
+ * while "Espresso House, 11 entries, 616 kr" is the whole point. Matched on the
+ * description case-insensitively, so the same shop at two tills is one line.
+ *
+ * Summed with a loop rather than a reduce on purpose — see rowSumGuard.test.ts.
+ * That guard exists because five views once each decided for themselves what an
+ * amount meant, and this module is not going to become the sixth.
+ */
+export function groupEntriesByText(entries: ActualEntry[]): TextTotal[] {
+  const byText = new Map<string, TextTotal>();
+  for (const e of entries) {
+    const key = e.text.trim().toLowerCase();
+    const group = byText.get(key) ?? { text: e.text.trim(), count: 0, total: 0 };
+    group.count += 1;
+    group.total += e.amount;
+    byText.set(key, group);
+  }
+  return [...byText.values()]
+    .sort((a, b) => b.total - a.total || a.text.localeCompare(b.text));
+}
+
 /** Every entry filed under one category, oldest first — what a user sees when
  *  they open a figure to check where it came from. */
 export function entriesFor(entries: ActualEntry[], categoryId: string): ActualEntry[] {
@@ -110,14 +171,18 @@ export function entriesFor(entries: ActualEntry[], categoryId: string): ActualEn
  *  one key per month. Entries with an unreadable date are returned separately
  *  rather than dropped — silently losing a row is exactly what this module
  *  exists to prevent. */
-export function groupByMonth(entries: ActualEntry[]): {
+export function groupByMonth(
+  entries: ActualEntry[], startDay: number | null = null, locks: PeriodLocks = {},
+): {
   months: Map<string, { year: number; month: number; entries: ActualEntry[] }>;
   undated: ActualEntry[];
 } {
   const months = new Map<string, { year: number; month: number; entries: ActualEntry[] }>();
   const undated: ActualEntry[] = [];
   for (const e of entries) {
-    const at = monthOfEntry(e.date);
+    // Defaults to null, so every existing caller keeps the calendar-month
+    // behaviour it was written against until it is told about the period.
+    const at = budgetMonthOf(e.date, startDay, locks);
     if (!at) { undated.push(e); continue; }
     const key = `${at.year}_${at.month}`;
     const bucket = months.get(key) ?? { ...at, entries: [] };
@@ -184,4 +249,89 @@ export function saveActuals(
     return true;
   }
   return safeSetItem(storage, key, JSON.stringify(entries));
+}
+
+// ── Re-filing, when the pay period changes ─────────────────────────────────
+//
+// Changing the start day changes which month an entry belongs to, so the files
+// have to be rebuilt. This is lossless and deterministic for exactly the reason
+// the feature is honest in the first place: every entry carries its own date,
+// so nothing is guessed and re-running it changes nothing further.
+//
+// Split in two on purpose. The plan can be shown to the user — "412 entries
+// will move" — and can be tested without touching storage; only `applyRefile`
+// writes. Data this hard to recreate should never move without being counted
+// out loud first.
+
+const ACTUALS_KEY = /^budget_actuals_(\d{4})_(\d{1,2})$/;
+
+/** Every stored actuals key, read out BEFORE anything is written: walking an
+ *  index while mutating the same store is how entries go missing. */
+function actualKeys(storage: StorageLike): { key: string; year: number; month: number }[] {
+  const out: { key: string; year: number; month: number }[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key === null) continue;
+    const m = ACTUALS_KEY.exec(key);
+    if (m) out.push({ key, year: Number(m[1]), month: Number(m[2]) });
+  }
+  return out;
+}
+
+export interface RefilePlan {
+  /** Entries that would land in a different file than they sit in now. */
+  moving: number;
+  /** Every entry there is, bucketed by where it belongs under the new day. */
+  buckets: Map<string, { year: number; month: number; entries: ActualEntry[] }>;
+  /** Files that hold entries today and would be left empty. */
+  emptied: string[];
+  /** Every entry read, whatever happens to it — the count that must not change. */
+  total: number;
+}
+
+/** What re-filing under `startDay` would do. Reads storage; writes nothing. */
+export function planRefile(
+  storage: StorageLike, startDay: number | null, locks: PeriodLocks = {},
+): RefilePlan {
+  const keys = actualKeys(storage);
+  const buckets = new Map<string, { year: number; month: number; entries: ActualEntry[] }>();
+  let moving = 0;
+  let total = 0;
+
+  for (const { key, year, month } of keys) {
+    for (const e of loadActuals(storage, year, month)) {
+      total++;
+      const at = budgetMonthOf(e.date, startDay, locks);
+      // Unreadable dates cannot happen — loadActuals validates every entry —
+      // but leaving one where it is beats dropping it on the floor.
+      const target = at ?? { year, month };
+      const targetKey = actualsKey(target.year, target.month);
+      if (targetKey !== key) moving++;
+      const bucket = buckets.get(targetKey) ?? { ...target, entries: [] };
+      bucket.entries.push(e);
+      buckets.set(targetKey, bucket);
+    }
+  }
+
+  const emptied = keys.map(k => k.key).filter(k => !buckets.has(k));
+  return { moving, buckets, emptied, total };
+}
+
+/**
+ * Carry out a plan. Returns whether every write went through.
+ *
+ * Emptied files are written as `[]` rather than removed, so the whole operation
+ * is one kind of action: a failed write is a failed write, and running it again
+ * finishes the job. Removing a key and failing to write its replacement is the
+ * one way this could lose money, and it is not possible here.
+ */
+export function applyRefile(storage: StorageLike, plan: RefilePlan): boolean {
+  let ok = true;
+  for (const b of plan.buckets.values()) {
+    if (!saveActuals(storage, b.year, b.month, b.entries)) ok = false;
+  }
+  for (const key of plan.emptied) {
+    if (!safeSetItem(storage, key, '[]')) ok = false;
+  }
+  return ok;
 }

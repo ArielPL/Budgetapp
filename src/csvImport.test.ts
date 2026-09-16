@@ -492,13 +492,33 @@ describe('a twelve-column export with two description columns', () => {
     expect(roles[9]).toBe('text');
   });
 
-  it('takes the booking date, not the other two date columns', () => {
-    // Three columns qualify. Bokföringsdag is when the money actually left the
-    // account, which is the question this app answers everywhere else.
+  it('takes the TRANSACTION date, not the booking date', () => {
+    // Reversed on evidence, and this exact sample row is the evidence. Three
+    // columns qualify. The bank BOOKS a salary on the evening of the 24th so
+    // the money is there on payday the 25th — so Bokföringsdag says 24 and
+    // Transaktionsdag says 25.
+    //
+    // On the real statement this row came from, 50 of 107 rows had the two
+    // dates disagree, and exactly ONE of them crossed a pay-period boundary:
+    // this one. The salary. 32 596 kr, the largest figure of the month, filed
+    // one day early and therefore into the previous budget month — which made
+    // every plan-versus-actual comparison wrong with nothing on screen to
+    // explain why.
+    //
+    // The day the money moved for the user beats the day the bank wrote it down.
     const { roles } = guessColumns(header, sample);
-    expect(roles[5]).toBe('date');
-    expect(roles[6]).toBe('skip');
+    expect(roles[6]).toBe('date');
+    expect(roles[5]).toBe('skip');
     expect(roles[7]).toBe('skip');
+  });
+
+  it('still finds a date when the file offers only a booking day', () => {
+    // Most banks outside the Nordics print one date column and call it
+    // whatever they like. The tiers must not make the plain case worse.
+    const only = ['Buchungstag', 'Verwendungszweck', 'Betrag'];
+    const rows = [['31.08.2026', 'LIDL', '-23,66']];
+    expect(guessColumns(only, rows).roles[0]).toBe('date');
+    expect(guessColumns(['Datum', 'Text', 'Belopp'], [['2026-08-31', 'ICA', '-23,66']]).roles[0]).toBe('date');
   });
 
   it('ignores the row number, account numbers and the running balance', () => {
@@ -523,7 +543,9 @@ describe('a twelve-column export with two description columns', () => {
     expect(skipped).toEqual([]);
     expect(parsed).toEqual([
       { date: '2026-08-31', text: 'TEMPO', amount: -23.66 },
-      { date: '2026-08-24', text: 'Lön', amount: 32596 },
+      // The 25th, not the 24th: the transaction day, which is payday. See the
+      // date-tier test above for why this one row matters so much.
+      { date: '2026-08-25', text: 'Lön', amount: 32596 },
     ]);
   });
 });

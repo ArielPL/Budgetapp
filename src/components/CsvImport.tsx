@@ -6,13 +6,17 @@ import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, type ColumnRole, type TextGroup,
 } from '../csvImport';
-import { loadCsvMaps, rememberCsvMap } from '../csvMaps';
+import { loadCsvMaps, rememberCsvMap, forgetCsvMap } from '../csvMaps';
 import {
-  suggest, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
+  suggest, isTransfer, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
   type LearnedRules,
 } from '../categorise';
-import { loadActuals, saveActuals, newEntries, groupByMonth, INCOME_ACTUAL_ID } from '../actuals';
+import {
+  loadActuals, saveActuals, newEntries, groupByMonth,
+  INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
+} from '../actuals';
 import { useLang, MONTHS } from '../i18n';
+import type { PeriodLocks } from '../periodLabel';
 import type { ActualEntry, BudgetCategory } from '../types';
 
 // ── The import, in as few decisions as the file allows ─────────────────────
@@ -45,6 +49,12 @@ interface Props {
   /** Deliberately NOT told which month is on screen: every entry is filed by
    *  its own date, so a statement covering two months writes to both. */
   categories: BudgetCategory[];
+  /** The pay period's start day, or null. An entry belongs to the BUDGET month
+   *  its date falls in, which is not the calendar month for anyone paid on the
+   *  25th — their rent and standing charges land on the turnover day. */
+  periodStartDay: number | null;
+  /** Periods pinned by hand, which override the rule for those months. */
+  periodLocks: PeriodLocks;
   onClose: () => void;
   /** The months come along as data, not only as words inside the summary: a
    *  statement is usually LAST month's, so the tab that ordered the import is
@@ -74,7 +84,8 @@ interface Group extends TextGroup {
 }
 
 export const CsvImport = ({
-  categories, onClose, onImported, onSaveFailed, onCreateCategories,
+  categories, periodStartDay, periodLocks, onClose, onImported, onSaveFailed,
+  onCreateCategories,
 }: Props) => {
   const { t, lang, money } = useLang();
   const [step, setStep] = useState<Step>('file');
@@ -115,15 +126,40 @@ export const CsvImport = ({
     const rules = loadCategoryRules(appStorage);
     const existing = new Set(categories.map(c => c.id));
     setGroups(groupByText(rows, t.csvNoText).map(g => {
-      // Money in goes to the income bucket; money out is put to the sorter.
+      // A RAIL first, whatever its sign. An incoming transfer from your own
+      // account is no more income than an outgoing one is spending, and the
+      // sign test below would have called it salary.
+      if (isTransfer(g.text)) return { ...g, choice: TRANSFER_ACTUAL_ID, auto: true };
       if (g.incoming) return { ...g, choice: INCOME_ACTUAL_ID, auto: true };
       const s = suggest(g.text, existing, rules);
       if (s.categoryId) return { ...g, choice: s.categoryId, auto: true };
       if (s.create) return { ...g, choice: CREATE + s.create, auto: true };
-      return { ...g, choice: '', auto: false };
+      // Nothing is thrown away. What the sorter cannot place goes to Övrigt,
+      // where it is visible, counted, and can be moved out later — the old
+      // behaviour silently discarded 173 of 471 transactions on a real file
+      // and left no way to reach them again.
+      return { ...g, choice: UNSORTED_ACTUAL_ID, auto: true };
     }));
     setSkippedCount(skipped.length);
     setStep('review');
+  };
+
+  /**
+   * Back to the column step, forgetting what was remembered for this header.
+   *
+   * The way out of the trap remembering set. A layout confirmed once was reused
+   * for that header for ever — so a single wrong confirmation (the balance
+   * column taken for the amount, a reference taken for the description) was
+   * permanent, silent, and unreachable from inside the app.
+   *
+   * The mapping is forgotten NOW, before anything is re-confirmed, because that
+   * is the safe direction: close the dialog at this point and the next file
+   * asks again rather than quietly repeating the mistake.
+   */
+  const backToColumns = () => {
+    forgetCsvMap(appStorage, headerFingerprint(header));
+    setError(null);
+    setStep('columns');
   };
 
   const confirmColumns = () => {
@@ -132,7 +168,11 @@ export const CsvImport = ({
   };
 
   const ready = groups.filter(g => g.choice);
+  /** Groups the user has deliberately set to skip. No longer a leftover: every
+   *  group starts with a home, so an empty choice is now an act. */
   const unassigned = groups.length - ready.length;
+  const toUnsorted = groups.filter(g => g.choice === UNSORTED_ACTUAL_ID).length;
+  const toTransfer = groups.filter(g => g.choice === TRANSFER_ACTUAL_ID).length;
   /** How many the sorter placed without being asked — the number that says
    *  whether it is earning its keep. Counted before any correction, so it does
    *  not flatter itself by counting the ones you fixed. */
@@ -166,7 +206,7 @@ export const CsvImport = ({
         categoryId: resolve(g.choice),
       })));
 
-    const { months } = groupByMonth(entries);
+    const { months } = groupByMonth(entries, periodStartDay, periodLocks);
 
     // The offers first, and into the months the entries are ABOUT to land in.
     // A category that exists with nothing filed under it is harmless; entries
@@ -331,8 +371,10 @@ export const CsvImport = ({
                         j === i ? { ...x, choice: e.target.value, auto: false } : x
                       )))}
                     >
-                      <option value="">{t.csvChoose}</option>
+                      <option value="">{t.csvSkipGroup}</option>
                       <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
+                      <option value={UNSORTED_ACTUAL_ID}>{t.followUpUnsorted}</option>
+                      <option value={TRANSFER_ACTUAL_ID}>{t.followUpTransfer}</option>
                       {categories.length > 0 && (
                         <optgroup label={t.csvExistingGroup}>
                           {categories.map(c => (
@@ -356,7 +398,10 @@ export const CsvImport = ({
                   {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
                 </button>
                 {toCreate.length > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(toCreate.length)}</span>}
+                {toUnsorted > 0 && <span className="csv-hint">{t.csvToUnsorted(toUnsorted)}</span>}
+                {toTransfer > 0 && <span className="csv-hint">{t.csvToTransfer(toTransfer)}</span>}
                 {unassigned > 0 && <span className="csv-hint">{t.csvUnassigned(unassigned)}</span>}
+                <button className="csv-secondary" onClick={backToColumns}>{t.csvChangeColumns}</button>
               </div>
             </>
           )}

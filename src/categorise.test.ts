@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  normalise, seedKind, suggest, loadCategoryRules, rememberCategoryRule,
+  normalise, seedKind, suggest, isTransfer, loadCategoryRules, rememberCategoryRule,
   isStandardCategoryId, CATEGORY_RULES_KEY, SEED, INTERNATIONAL, SWEDEN,
   STANDARD_CATEGORY_IDS,
 } from './categorise';
@@ -303,5 +303,103 @@ describe('remembering corrections', () => {
     };
     // A rule that cannot be stored is a convenience lost, never data lost.
     expect(() => rememberCategoryRule(full, 'ICA', 'mat')).not.toThrow();
+  });
+});
+
+describe('descriptions the bank cut short', () => {
+  // Swedish card descriptors stop at sixteen characters. On one real statement
+  // 41 of 123 distinct descriptions sat exactly on that ceiling, so the last
+  // word is routinely a fragment of the word that would have identified it.
+  it.each([
+    ['Do Re Mi Restaur', 'mat'],
+    ['ANTIKA RESTAURAN', 'mat'],
+    ['NYA BLIXTENS PIZ', 'mat'],
+    ['2627705203 Nordn', 'sparande'],
+  ])('reads %s as %s', (text, kind) => {
+    expect(seedKind(text)).toBe(kind);
+  });
+
+  it('never lets a fragment beat a whole word', () => {
+    // Measured regressions from the first attempt, kept as tests. "sverige" is
+    // a prefix of "sverigetaxi" and "fris" of "friskis" — but both texts match
+    // a better rule outright, and an exact match must always win.
+    expect(seedKind('Telenor Sverige')).toBe('prenumerationer');
+    expect(seedKind('FORNHOJDENS FRIS')).toBe('personligt');
+    expect(seedKind('UBER *TRIP HELP.UBER.COM')).toBe('transport');
+  });
+
+  it('will not match a fragment the other way round', () => {
+    // The rule must start with the fragment, never the fragment with the rule.
+    // "sl" inside "Slakthusomradet" is the exact failure whole words fixed.
+    expect(seedKind('SLAKTHUSOMRADET')).toBeUndefined();
+    expect(seedKind('SJUKHUSET I LUND')).toBeUndefined();
+  });
+
+  it('gives short text no licence to match loosely', () => {
+    // 14 characters: not truncated, so no prefix matching. "Nordn" alone is
+    // not enough to call something a savings account.
+    expect(seedKind('Nordn AB')).toBeUndefined();
+  });
+
+  it('needs at least three characters of the fragment', () => {
+    expect(seedKind('EN MYCKET LANG P')).toBeUndefined();
+  });
+});
+
+describe('letters a card terminal could not carry', () => {
+  // Verified in the raw bytes of a real statement: 0x40 and 0x23, written by
+  // the bank itself. Not a decoding fault — the terminal substituted them.
+  it('reads @ as ö and # as ä', () => {
+    expect(normalise('AB GR@NA LUNDS')).toBe('ab grona lunds');
+    expect(normalise('@STERT#LJE KIOS')).toBe('ostertalje kios');
+    expect(normalise('BERLIN D@NER SV')).toBe('berlin doner sv');
+  });
+
+  it('lets a mangled row match the rule an intact one would', () => {
+    expect(seedKind('AB GR@NA LUNDS')).toBe(seedKind('AB GRÖNA LUNDS'));
+    expect(seedKind('AB GR@NA LUNDS')).toBe('fritid');
+  });
+});
+
+describe('isTransfer — moving money is not spending it', () => {
+  it.each([
+    'Överföring via internet',
+    'ÖVERFÖRING',
+    'Swish skickad +46765652291',
+    'Swish mottagen +46764422514',
+    'Uttag',
+    'Insättning',
+    'Autogiro Vattenfall',
+  ])('knows %s is a rail', (text) => {
+    expect(isTransfer(text)).toBe(true);
+  });
+
+  it.each([
+    'Swish WAO Church Söder',
+    'Swish NORDNET BANK AB',
+    'Swish Webhallen AB',
+    'ICA SUPERMARKET',
+    'Zettle_*WE ARE O',
+    'TELGE BOSTÄDER A',
+  ])('knows %s is a place, not a rail', (text) => {
+    expect(isTransfer(text)).toBe(false);
+  });
+
+  it('is the reason a payee survives the Swish prefix', () => {
+    // normalise strips the rail's own prefix, so a generic Swish row keeps
+    // only a verb while a real payee keeps a name. That is what separates
+    // "Swish skickad" from "Swish WAO Church Söder".
+    expect(normalise('Swish skickad +46765652291')).toBe('skickad');
+    expect(normalise('Swish WAO Church Söder')).toBe('wao church soder');
+  });
+
+  it('says nothing about empty text', () => {
+    expect(isTransfer('')).toBe(false);
+    expect(isTransfer('   ')).toBe(false);
+  });
+
+  it('matches whole words, so a place is not swept up by one', () => {
+    // 'egen' is a rail word. "Egenföretagarna AB" is not a transfer.
+    expect(isTransfer('Egenforetagarna AB')).toBe(false);
   });
 });

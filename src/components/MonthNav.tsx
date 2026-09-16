@@ -1,5 +1,6 @@
 import { useLang, MONTHS } from '../i18n';
 import { PeriodLabel } from './PeriodLabel';
+import type { PeriodLocks } from '../periodLabel';
 
 interface Props {
   year: number;
@@ -12,12 +13,14 @@ interface Props {
   periodLabel?: string;
   /** Pay-period start day, or null when the rule is off. */
   periodStartDay: number | null;
+  /** Pinned periods, forwarded so the header and the follow-up tab agree. */
+  periodLocks?: PeriodLocks;
   onPeriodLabelChange: (label: string | undefined) => void;
 }
 
 export const MonthNav = ({
   year, month, onPrev, onNext, pickerOpen, onTogglePicker,
-  periodLabel, periodStartDay, onPeriodLabelChange,
+  periodLabel, periodStartDay, periodLocks, onPeriodLabelChange,
 }: Props) => {
   const { lang, t } = useLang();
   return (
@@ -39,6 +42,7 @@ export const MonthNav = ({
       <PeriodLabel
         value={periodLabel}
         startDay={periodStartDay}
+        locks={periodLocks}
         year={year}
         month={month}
         monthName={`${MONTHS[lang][month]} ${year}`}

@@ -43,11 +43,16 @@ import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, catego
 import { InsightLine } from './components/InsightLine';
 import { savingsStreakFrom } from './insight';
 import { hasBudgetContent } from './monthContent';
-import { loadStartDay, isValidStartDay, PERIOD_START_KEY } from './periodLabel';
+import {
+  loadStartDay, isValidStartDay, PERIOD_START_KEY,
+  loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
+} from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 import { appStorage } from './storage';
+import { safeSetItem } from './storageWrite';
+import { loadActuals, planRefile, applyRefile } from './actuals';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BACKUP_STALE_DAYS = 30;
@@ -169,7 +174,40 @@ function App() {
   // Pay-period start day. Null = off, which is the default and how the app
   // behaved before this existed.
   const [periodStartDay, setPeriodStartDay] = useState<number | null>(() => loadStartDay(appStorage));
+  // Hand-pinned period starts, for the months no rule can predict.
+  const [periodLocks, setPeriodLocks] = useState<PeriodLocks>(() => loadPeriodLocks(appStorage));
+
+  /** Apply a change to how periods are cut, moving the entries that change
+   *  month — counted out loud first, because it is real data moving. */
+  const applyPeriodChange = (
+    nextDay: number | null, nextLocks: PeriodLocks, describe: string,
+  ): boolean => {
+    const plan = planRefile(appStorage, nextDay, nextLocks);
+    if (plan.moving > 0) {
+      if (!window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
+      if (!applyRefile(appStorage, plan)) { setSaveFailed(true); return false; }
+      showMsg(t.periodRefileDone(plan.moving));
+    }
+    return true;
+  };
+
+  /** Pin (or unpin) the day one budget month's period opens. */
+  const lockPeriod = (y: number, m: number, iso: string | null) => {
+    const next = { ...periodLocks };
+    if (iso) next[lockKey(y, m)] = iso;
+    else delete next[lockKey(y, m)];
+    if (!applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`)) return;
+    setPeriodLocks(next);
+    if (Object.keys(next).length === 0) appStorage.removeItem(PERIOD_LOCKS_KEY);
+    else if (!safeSetItem(appStorage, PERIOD_LOCKS_KEY, JSON.stringify(next))) setSaveFailed(true);
+  };
+
   const changeStartDay = (day: number | null) => {
+    // The period is no longer only a label: it decides which budget month a
+    // recorded entry belongs to, so changing it moves entries between files.
+    // Lossless — every entry carries its own date — but it is real data being
+    // moved, so it is counted out loud first and never done silently.
+    if (!applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day))) return;
     setPeriodStartDay(day);
     if (day === null) appStorage.removeItem(PERIOD_START_KEY);
     else appStorage.setItem(PERIOD_START_KEY, String(day));
@@ -624,7 +662,16 @@ function App() {
   // month-load effect). The save effect persists this to the current month's key.
   const resetCurrentMonth = () => {
     // Name the exact month in the confirm so the user knows what's being wiped.
-    if (!window.confirm(t.resetMonthConfirm(`${MONTHS[lang][month]} ${year}`))) return;
+    const name = `${MONTHS[lang][month]} ${year}`;
+    // The month's RECORDED ENTRIES are deliberately not cleared. A plan can be
+    // retyped in a minute; the record of what was actually spent has to be
+    // imported from the bank again. But the dialog has to say so — it used to
+    // promise it "cleared the month" and then leave them behind, where the wipe
+    // of the categories moved them under "outside the budget" without a word.
+    // Clearing those is its own button, on the tab that holds them.
+    const kept = loadActuals(appStorage, year, month).length;
+    const ask = kept > 0 ? t.resetMonthConfirmKept(name, kept) : t.resetMonthConfirm(name);
+    if (!window.confirm(ask)) return;
     // Reset to a blank month, but re-create the goal-linked budget rows so the
     // goal↔budget links the Plan tab promises survive the wipe. (Before this, a
     // reset dropped them because a blank month has no sparande category.)
@@ -754,6 +801,31 @@ function App() {
         reportSaveFailed();
       }
     }
+  };
+
+  /**
+   * Create a category the user named, and return its id so the caller can file
+   * something into it straight away.
+   *
+   * Added to every month given, with ONE id, for the same reason the standard
+   * ones are: a category that exists only in the month you happened to be
+   * looking at leaves the entries in every other month orphaned under an id
+   * nothing can name.
+   */
+  const createNamedCategory = (name: string, months: { year: number; month: number }[]): string => {
+    const color = CATEGORY_PALETTE[data.expenses.length % CATEGORY_PALETTE.length];
+    const icon = CATEGORY_ICONS[data.expenses.length % CATEGORY_ICONS.length];
+    const cat = createCategory(name, icon, color, t.newRow);
+    for (const target of months.length > 0 ? months : [{ year, month }]) {
+      if (target.year === year && target.month === month) {
+        setData(d => ({ ...d, expenses: [...d.expenses, cat] }));
+        continue;
+      }
+      const stored = loadMonthData(target.year, target.month, lang);
+      if (!saveMonthData(target.year, target.month,
+        { ...stored, expenses: [...stored.expenses, cat] })) reportSaveFailed();
+    }
+    return cat.id;
   };
 
   const deleteExpenseCategory = (id: string) => {
@@ -1080,6 +1152,10 @@ function App() {
         onSaveFailed={reportSaveFailed}
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
         onCreateCategories={addStandardCategories}
+        periodStartDay={periodStartDay}
+        periodLocks={periodLocks}
+        onLockPeriod={lockPeriod}
+        onCreateNamedCategory={createNamedCategory}
       />
     </Suspense>
   );
@@ -1104,6 +1180,7 @@ function App() {
             onTogglePicker={() => setPickerOpen(o => !o)}
             periodLabel={data.periodLabel}
             periodStartDay={periodStartDay}
+            periodLocks={periodLocks}
             onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
           />
 

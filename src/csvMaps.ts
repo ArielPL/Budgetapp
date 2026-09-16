@@ -44,3 +44,22 @@ export function rememberCsvMap(
   maps[fingerprint] = roles;
   return safeSetItem(storage, CSV_MAPS_KEY, JSON.stringify(maps));
 }
+
+/**
+ * Forget one layout, so the app asks about the columns again.
+ *
+ * The counterpart `rememberCsvMap` needed from the start and did not have.
+ * Remembering is only safe if it can be undone: a mapping confirmed once is
+ * reused for that header for ever, so a single wrong confirmation — the balance
+ * column taken for the amount, a reference taken for the description — became
+ * permanent, silent, and unreachable from inside the app.
+ *
+ * Returns whether it was written. A fingerprint that was not stored is not an
+ * error: the caller wants it gone, and it is gone.
+ */
+export function forgetCsvMap(storage: StorageLike, fingerprint: string): boolean {
+  const maps = loadCsvMaps(storage);
+  if (!(fingerprint in maps)) return true;
+  delete maps[fingerprint];
+  return safeSetItem(storage, CSV_MAPS_KEY, JSON.stringify(maps));
+}

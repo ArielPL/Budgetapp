@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   fingerprint, newEntries, sumByCategory, entriesFor,
   monthOfEntry, groupByMonth, actualsKey, INCOME_ACTUAL_ID,
-  isActualEntry, loadActuals, saveActuals,
+  UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID, isBucketId,
+  isActualEntry, loadActuals, saveActuals, planRefile, applyRefile, groupEntriesByText,
 } from './actuals';
 import type { ActualEntry } from './types';
+import type { StorageLike } from './storage';
 
 const e = (
   id: string, date: string, text: string, amount: number,
@@ -298,5 +300,166 @@ describe('saveActuals', () => {
     s.failOnKey = actualsKey(2026, 8);
     expect(saveActuals(s, 2026, 8, [e('2', '2026-09-03', 'SL', 390)])).toBe(false);
     expect(loadActuals(s, 2026, 8).map(x => x.id)).toEqual(['1']);
+  });
+});
+
+// ── Re-filing when the pay period changes ──────────────────────────────────
+
+describe('planRefile / applyRefile', () => {
+  const entry = (date: string, text: string, amount: number): ActualEntry =>
+    ({ id: `${date}-${text}`, date, text, amount, categoryId: 'mat' });
+
+  /** August and September as a calendar-filed store would hold them. */
+  const seeded = (): StorageLike => {
+    const s = new FakeStorage();
+    saveActuals(s, 2026, 7, [            // August
+      entry('2026-08-10', 'ICA', 100),
+      entry('2026-08-24', 'Lön', 32596),  // last day of Ariel's August period
+      entry('2026-08-25', 'Hyra', 5877),  // turnover day — belongs to September
+      entry('2026-08-31', 'TEMPO', 24),
+    ]);
+    saveActuals(s, 2026, 8, [            // September
+      entry('2026-09-02', 'TEMPO', 23),
+    ]);
+    return s;
+  };
+
+  it('counts what would move before anything moves', () => {
+    const s = seeded();
+    const plan = planRefile(s, 25);
+    expect(plan.total).toBe(5);
+    // The two August entries on or after the 25th.
+    expect(plan.moving).toBe(2);
+    // Nothing written yet.
+    expect(loadActuals(s, 2026, 7)).toHaveLength(4);
+  });
+
+  it('moves the turnover day into the next budget month', () => {
+    const s = seeded();
+    applyRefile(s, planRefile(s, 25));
+    const aug = loadActuals(s, 2026, 7).map(e => e.text);
+    const sep = loadActuals(s, 2026, 8).map(e => e.text);
+    expect(aug).toEqual(['ICA', 'Lön']);
+    expect(sep).toEqual(expect.arrayContaining(['Hyra', 'TEMPO', 'TEMPO']));
+    expect(sep).toHaveLength(3);
+  });
+
+  it('never loses or duplicates an entry', () => {
+    const s = seeded();
+    const before = planRefile(s, null).total;
+    applyRefile(s, planRefile(s, 25));
+    expect(planRefile(s, 25).total).toBe(before);
+  });
+
+  it('is idempotent — running it again changes nothing', () => {
+    const s = seeded();
+    applyRefile(s, planRefile(s, 25));
+    const second = planRefile(s, 25);
+    expect(second.moving).toBe(0);
+  });
+
+  it('goes back when the period is switched off', () => {
+    const s = seeded();
+    applyRefile(s, planRefile(s, 25));
+    applyRefile(s, planRefile(s, null));
+    expect(loadActuals(s, 2026, 7).map(e => e.text))
+      .toEqual(expect.arrayContaining(['ICA', 'Lön', 'Hyra', 'TEMPO']));
+    expect(loadActuals(s, 2026, 7)).toHaveLength(4);
+    expect(loadActuals(s, 2026, 8)).toHaveLength(1);
+  });
+
+  it('empties a file rather than removing it, so a half-done run is repairable', () => {
+    const s = new FakeStorage();
+    // One month whose every entry moves away.
+    saveActuals(s, 2026, 7, [entry('2026-08-25', 'Hyra', 5877)]);
+    const plan = planRefile(s, 25);
+    expect(plan.emptied).toEqual(['budget_actuals_2026_7']);
+    applyRefile(s, plan);
+    expect(s.getItem('budget_actuals_2026_7')).toBe('[]');
+    expect(loadActuals(s, 2026, 8).map(e => e.text)).toEqual(['Hyra']);
+  });
+
+  it('reports a refused write instead of claiming success', () => {
+    const s = seeded();
+    const plan = planRefile(s, 25);
+    const full: StorageLike = {
+      ...s,
+      setItem: () => { throw new DOMException('quota', 'QuotaExceededError'); },
+    };
+    expect(applyRefile(full, plan)).toBe(false);
+  });
+
+  it('has nothing to do on an empty store', () => {
+    const plan = planRefile(new FakeStorage(), 25);
+    expect(plan.total).toBe(0);
+    expect(plan.moving).toBe(0);
+    expect(applyRefile(new FakeStorage(), plan)).toBe(true);
+  });
+});
+
+describe('groupEntriesByText — where the money actually went', () => {
+  it('collapses the same place onto one line, biggest first', () => {
+    const got = groupEntriesByText([
+      e('1', '2026-09-02', 'Espresso House', 56),
+      e('2', '2026-09-05', 'ICA SUPERMARKET', 294),
+      e('3', '2026-09-09', 'Espresso House', 56),
+      e('4', '2026-09-11', 'Espresso House', 56),
+    ]);
+    expect(got).toEqual([
+      { text: 'ICA SUPERMARKET', count: 1, total: 294 },
+      { text: 'Espresso House', count: 3, total: 168 },
+    ]);
+  });
+
+  it('treats the same shop at two tills as one place', () => {
+    const got = groupEntriesByText([
+      e('1', '2026-09-02', 'Pressbyran', 49),
+      e('2', '2026-09-03', 'PRESSBYRAN', 39),
+      e('3', '2026-09-04', ' pressbyran ', 30),
+    ]);
+    expect(got).toHaveLength(1);
+    expect(got[0]).toEqual({ text: 'Pressbyran', count: 3, total: 118 });
+  });
+
+  it('keeps the spelling the bank used, not the one it matched on', () => {
+    expect(groupEntriesByText([e('1', '2026-09-02', 'ICA Maxi', 10)])[0].text).toBe('ICA Maxi');
+  });
+
+  it('breaks a tie by name so the order never wobbles between renders', () => {
+    const got = groupEntriesByText([
+      e('1', '2026-09-02', 'Zettle', 100),
+      e('2', '2026-09-03', 'Apotek', 100),
+    ]);
+    expect(got.map(g => g.text)).toEqual(['Apotek', 'Zettle']);
+  });
+
+  it('has nothing to say about nothing', () => {
+    expect(groupEntriesByText([])).toEqual([]);
+  });
+});
+
+describe('the holding buckets', () => {
+  it('knows a bucket from a category', () => {
+    expect(isBucketId(INCOME_ACTUAL_ID)).toBe(true);
+    expect(isBucketId(UNSORTED_ACTUAL_ID)).toBe(true);
+    expect(isBucketId(TRANSFER_ACTUAL_ID)).toBe(true);
+    expect(isBucketId('mat')).toBe(false);
+    expect(isBucketId('x7f3k1a')).toBe(false);
+  });
+
+  it('keeps the three apart', () => {
+    const ids = new Set([INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID]);
+    expect(ids.size).toBe(3);
+  });
+
+  it('sums a bucket like any other id, so a total can include or exclude it', () => {
+    const sums = sumByCategory([
+      e('1', '2026-09-02', 'ICA', 100),
+      e('2', '2026-09-03', 'Okänt', 50, UNSORTED_ACTUAL_ID),
+      e('3', '2026-09-04', 'Överföring', 5000, TRANSFER_ACTUAL_ID),
+    ]);
+    expect(sums.mat).toBe(100);
+    expect(sums[UNSORTED_ACTUAL_ID]).toBe(50);
+    expect(sums[TRANSFER_ACTUAL_ID]).toBe(5000);
   });
 });

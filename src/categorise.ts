@@ -51,6 +51,13 @@ const FOLD: Record<string, string> = {
 
 export function normalise(text: string): string {
   let s = text.toLowerCase();
+  // Card terminals that cannot carry Swedish letters substitute these, and the
+  // bank passes the damage straight through: "AB GR@NA LUNDS" is Gröna Lund,
+  // "@STERT#LJE KIOS" is Östertälje. Verified in the raw bytes of a real
+  // statement — 0x40 and 0x23, not a decoding fault of ours. Folded to the same
+  // letters ö and ä fold to, so a mangled row matches the rules an intact one
+  // would. Only ever affects MATCHING; the text shown is the bank's own.
+  s = s.replace(/@/g, 'o').replace(/#/g, 'a');
   s = s.replace(/[åäöéèêüøæñç]/g, c => FOLD[c] ?? c);
   // Strip the rail, possibly more than one ("Swish Zettle_*…" happens).
   for (let i = 0; i < 2 && RAILS.test(s); i++) s = s.replace(RAILS, '');
@@ -204,7 +211,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'clas ohlson', 'jula', 'biltema', 'rusta', 'ohlssons',
     'granngarden', 'plantagen', 'blomsterlandet', 'interflora',
     'nortic', 'tickster', 'billetto',
-    'grona lund', 'liseberg', 'kolmarden', 'skansen', 'furuvik',
+    'grona lund', 'grona lunds', 'liseberg', 'kolmarden', 'skansen', 'furuvik',
     'teater', 'konsert', 'operan', 'dramaten',
     'bokus', 'adlibris', 'akademibokhandeln', 'pocketshop', 'science fiction',
     'lekia', 'br leksaker',
@@ -265,11 +272,30 @@ const RULES: { words: string[]; kind: StandardCategoryId }[] = Object
     patterns.map(p => ({ words: p.split(' '), kind: kind as StandardCategoryId })))
   .sort((a, b) => b.words.length - a.words.length || b.words.join('').length - a.words.join('').length);
 
-/** Whether `needle` appears in `haystack` as a run of whole words. */
-function hasWordRun(haystack: string[], needle: string[]): boolean {
+/**
+ * Whether `needle` appears in `haystack` as a run of whole words.
+ *
+ * With `cut`, the LAST word of the haystack may also be a PREFIX of the rule
+ * word it would have completed. Swedish card descriptors are chopped at
+ * sixteen characters — 41 of 123 distinct descriptions on one real statement
+ * sat exactly on that ceiling — which routinely leaves a fragment: "Do Re Mi
+ * Restaur", "ANTIKA RESTAURAN", "2627705203 Nordn".
+ *
+ * Deliberately one-directional. The RULE word must start with the fragment,
+ * never the other way round, which is what keeps "sl" from matching inside
+ * "Slakthusomradet" — the exact failure whole-word matching was introduced to
+ * stop. Three characters minimum, and only when the text is long enough to
+ * have actually been cut.
+ */
+function hasWordRun(haystack: string[], needle: string[], cut = false): boolean {
   outer: for (let i = 0; i + needle.length <= haystack.length; i++) {
     for (let j = 0; j < needle.length; j++) {
-      if (haystack[i + j] !== needle[j]) continue outer;
+      const have = haystack[i + j];
+      const want = needle[j];
+      if (have === want) continue;
+      const atEndOfBoth = i + j === haystack.length - 1 && j === needle.length - 1;
+      if (cut && atEndOfBoth && have.length >= 3 && want.startsWith(have)) continue;
+      continue outer;
     }
     return true;
   }
@@ -281,17 +307,62 @@ function hasWordRun(haystack: string[], needle: string[]): boolean {
 export function seedKind(text: string): StandardCategoryId | undefined {
   const words = normalise(text).split(' ').filter(Boolean);
   if (words.length === 0) return undefined;
+  // Three passes, weakest last, and each finishes before the next begins.
+  // Order is the whole design: a complete word beats a compound, and a compound
+  // beats a fragment. Letting them compete was measurably wrong — "Telenor
+  // Sverige" became transport because "sverige" is a prefix of "sverigetaxi",
+  // and "FORNHOJDENS FRIS" became a gym because "fris" is a prefix of
+  // "friskis". Both are exact matches on a better rule, and exact must win.
+
+  // 1. Whole words.
   for (const rule of RULES) {
     if (hasWordRun(words, rule.words)) return rule.kind;
   }
-  // Whole words first, always. Only when none of them matched is a compound
-  // worth taking apart, so a real name can never lose to an ending.
+
+  // 2. Swedish compounds, which weld the word to the name.
   for (const rule of SUFFIX_RULES) {
     if (words.some(w => w.length > rule.suffix.length && w.endsWith(rule.suffix))) {
       return rule.kind;
     }
   }
+
+  // 3. A last word the bank cut short. Only for text long enough to have hit
+  // the sixteen-character ceiling: a short description was not truncated and
+  // gets no licence to match loosely.
+  if (text.trim().length >= 15) {
+    for (const rule of RULES) {
+      if (hasWordRun(words, rule.words, true)) return rule.kind;
+    }
+  }
   return undefined;
+}
+
+// ── Rails: moving money, not spending it ───────────────────────────────────
+
+/**
+ * Whether a description is a RAIL rather than a place — a transfer between your
+ * own accounts, a cash withdrawal, a Swish to or from a person.
+ *
+ * Kept apart from the category list on purpose, because the honest answer here
+ * is not a category at all. Moving 5 000 kr to your own savings account is not
+ * spending 5 000 kr, and counting it as an expense inflates a month's outgoings
+ * by whatever you happened to shuffle between pockets — on one real statement,
+ * 20 485 kr across 75 rows.
+ *
+ * Matched AFTER normalise, which strips the payment rail's own prefix: "Swish
+ * skickad +4670…" arrives here as "skickad". That is why the words below look
+ * bare — and it is also what keeps "Swish WAO Church Söder" out, since that
+ * normalises to a payee rather than to a verb.
+ */
+const RAILS_WORDS = [
+  'overforing', 'overforingar', 'skickad', 'mottagen', 'uttag', 'insattning',
+  'autogiro', 'bankgiro', 'plusgiro', 'egen', 'internetoverforing',
+];
+
+export function isTransfer(text: string): boolean {
+  const words = normalise(text).split(' ').filter(Boolean);
+  if (words.length === 0) return false;
+  return RAILS_WORDS.some(w => words.includes(w));
 }
 
 // ── What the user has taught it ────────────────────────────────────────────

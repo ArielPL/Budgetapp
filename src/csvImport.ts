@@ -190,7 +190,20 @@ export function headerFingerprint(header: string[]): string {
   return header.map(h => h.trim().toLowerCase()).join('|');
 }
 
-const DATE_WORDS = /datum|date|bokf|transaktionsdag|valutadag/i;
+// Dates in three tiers, because a Swedish statement offers THREE of them and
+// they are not the same day. A salary paid on the 25th is booked by the bank on
+// the evening of the 24th so the money is there on payday — so Bokföringsdag
+// reads 24, Transaktionsdag reads 25. On a real statement that was the only row
+// of 107 that crossed a pay-period boundary, and it was the salary: the largest
+// figure of the month, on the wrong side of the line, which made every
+// comparison look wrong for no visible reason.
+//
+// The day the money moved for YOU is the transaction day. Preferred wherever
+// the file offers it; a booking day is taken only when nothing better is there,
+// which is the case for most banks outside the Nordics.
+const DATE_STRONG = /transaktionsdag|transaktionsdatum|transaction ?date|purchase ?date|k[oö]pdatum|betalningsdag/i;
+const DATE_MEDIUM = /valutadag|valutadatum|value ?date/i;
+const DATE_PLAIN = /datum|date|fecha|\bdata\b|buchungstag|bokf|operacji/i;
 // Two tiers, because a bank may offer BOTH kinds of column and the weaker one
 // often comes first. A real Swedbank export has "Referens" at column 8 and
 // "Beskrivning" at column 9: they agree on most rows, but the salary row has an
@@ -239,10 +252,19 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
   const banned = new Set<number>();
   header.forEach((h, i) => { if (BALANCE_WORDS.test(h)) banned.add(i); });
 
+  // Dates in tiers, most truthful first, each pass finishing before the next
+  // begins — so a Transaktionsdag at column 6 beats a Bokföringsdag at column 5
+  // whatever order the bank happened to print them in.
+  for (const tier of [DATE_STRONG, DATE_MEDIUM, DATE_PLAIN]) {
+    header.forEach((h, i) => {
+      if (roles[i] !== 'skip' || banned.has(i)) return;
+      if (tier.test(h)) claim(i, 'date');
+    });
+  }
+
   header.forEach((h, i) => {
-    if (banned.has(i)) return;
-    if (DATE_WORDS.test(h)) claim(i, 'date');
-    else if (IN_WORDS.test(h)) claim(i, 'in');
+    if (roles[i] !== 'skip' || banned.has(i)) return;
+    if (IN_WORDS.test(h)) claim(i, 'in');
     else if (OUT_WORDS.test(h)) claim(i, 'out');
     else if (AMOUNT_WORDS.test(h)) claim(i, 'amount');
   });

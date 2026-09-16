@@ -1,11 +1,17 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { appStorage } from '../storage';
-import { generateId, shownName } from '../defaults';
-import { categoryTotal } from '../metrics';
+import { generateId, shownName, loadMonthData } from '../defaults';
+import { categoryTotal, calculateBudgetMetrics } from '../metrics';
 import { parseMoneyOrZero } from '../money';
 import {
-  loadActuals, saveActuals, sumByCategory, entriesFor, INCOME_ACTUAL_ID,
+  loadActuals, saveActuals, sumByCategory, entriesFor, groupByMonth,
+  groupEntriesByText, isBucketId,
+  INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
+import { spanMonths, SPANS, isSpan, type Span } from '../span';
+import { rememberCategoryRule } from '../categorise';
+import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
+import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth } from './CsvImport';
 import type { ActualEntry, BudgetCategory } from '../types';
@@ -35,7 +41,19 @@ interface Props {
   /** Add standard categories the import offered to create, to the months that
    *  received the entries — not necessarily the month on screen. */
   onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
+  /** The pay period's start day, or null for plain calendar months. Decides
+   *  which budget month an imported entry belongs to. */
+  periodStartDay: number | null;
+  /** Periods the user has pinned by hand, for the months no rule can predict. */
+  periodLocks: PeriodLocks;
+  /** Pin (or, with null, unpin) the day this budget month's period opens. */
+  onLockPeriod: (year: number, month: number, iso: string | null) => void;
+  /** Create a category the user named, in the months given, and return its id. */
+  onCreateNamedCategory: (name: string, months: { year: number; month: number }[]) => string;
 }
+
+/** Sentinel in the move dropdown: not a category, an invitation to make one. */
+const NEW_CATEGORY = '__new_category__';
 
 interface RowSpec {
   id: string;
@@ -46,13 +64,38 @@ interface RowSpec {
 
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
+  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory,
 }: Props) => {
   const { t, lang, money } = useLang();
+  // How many budget months are in view, ending at the one on screen. 1 is the
+  // single month this tab began as and stays the default: a span is for asking
+  // "how much do I actually spend on food", which is a different question from
+  // "how did September go" and should not quietly replace it.
+  const [span, setSpan] = useState<Span>(1);
+  const months = useMemo(() => spanMonths(year, month, span), [year, month, span]);
   const [entries, setEntries] = useState<ActualEntry[]>(() => loadActuals(appStorage, year, month));
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<{ text: string; months: TouchedMonth[] } | null>(null);
+  const [adjustingPeriod, setAdjustingPeriod] = useState(false);
+  const [openPlace, setOpenPlace] = useState<string | null>(null);
+  /** The place whose ⇄ is currently asking for a new category's name. */
+  const [namingPlace, setNamingPlace] = useState<string | null>(null);
+  const [newCatName, setNewCatName] = useState('');
+  // How an opened category lists what is in it. "place" answers "where does it
+  // go"; "date" answers "what happened when". Both are real questions, so this
+  // is a choice rather than a rule about how many months are in view.
+  const [grouping, setGrouping] = useState<'place' | 'date'>('place');
+  // Whether the plan is shown beside the record at all. Some sessions are not a
+  // comparison — they are "where is the money going", and two extra columns of
+  // budget only get in the way of the answer.
+  const [showPlan, setShowPlan] = useState(true);
+
+  /** "YYYY-MM-DD" from a LOCAL date — toISOString would hand back the previous
+   *  evening in Stockholm and pin the period a day early. */
+  const isoLocal = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   // Reload when the month changes. Writes happen explicitly on each edit below,
   // never from an effect watching state — which is what makes the month-switch
@@ -60,25 +103,84 @@ export const FollowUpTab = ({
   // is no save effect that could fire with the previous month's entries still
   // in scope.
   useEffect(() => {
-    setEntries(loadActuals(appStorage, year, month));
+    setEntries(months.flatMap(m => loadActuals(appStorage, m.year, m.month)));
     // The summary belongs to the month it was made in. Once you have moved —
     // not least by following its own "show August" button — it has been read.
     setToast(null);
-  }, [year, month]);
+  }, [months]);
 
   const persist = useCallback((next: ActualEntry[]) => {
     setEntries(next);
-    if (!saveActuals(appStorage, year, month, next)) onSaveFailed();
-  }, [year, month, onSaveFailed]);
+    // Written back per BUDGET MONTH, not to "the month on screen": over a span
+    // the entries in hand come from several files and each has to go home to
+    // its own. Every month in view is written, empty ones included, or a
+    // deletion that emptied a month would appear to have been undone on the
+    // next load.
+    const { months: byMonth } = groupByMonth(next, periodStartDay, periodLocks);
+    let ok = true;
+    for (const m of months) {
+      const bucket = byMonth.get(`${m.year}_${m.month}`);
+      if (!saveActuals(appStorage, m.year, m.month, bucket?.entries ?? [])) ok = false;
+    }
+    if (!ok) onSaveFailed();
+  }, [months, periodStartDay, periodLocks, onSaveFailed]);
 
   const sums = useMemo(() => sumByCategory(entries), [entries]);
 
+  /** The entries behind one grouped place, matched the way the grouping matched
+   *  them, so an opened place can never show a different set than it counted. */
+  const entriesOfPlace = (list: ActualEntry[], text: string) =>
+    list.filter(e => e.text.trim().toLowerCase() === text.trim().toLowerCase());
+
+  /**
+   * The plan half, summed over the span.
+   *
+   * The month on screen comes from props because that is live state; the others
+   * are read from storage. A month that was never budgeted is COUNTED AND
+   * SKIPPED rather than treated as a plan of zero — the same rule as everywhere
+   * else in this app. Summing it as 0 would quietly shrink the plan and make an
+   * ordinary span look like overspending.
+   */
+  const planned = useMemo(() => {
+    const perCategory: Record<string, number> = {};
+    let income = 0;
+    let withoutBudget = 0;
+    for (const m of months) {
+      const isCurrent = m.year === year && m.month === month;
+      const data = isCurrent ? null : loadMonthData(m.year, m.month, lang);
+      const cats = isCurrent ? categories : (data?.expenses ?? []);
+      const inc = isCurrent ? totalIncome : (data ? calculateBudgetMetrics(data).income : 0);
+      if (!isCurrent && data && !hasBudgetContent(data)) { withoutBudget++; continue; }
+      if (isCurrent && cats.length === 0 && inc === 0) { withoutBudget++; continue; }
+      income += inc;
+      for (const c of cats) perCategory[c.id] = (perCategory[c.id] ?? 0) + categoryTotal(c);
+    }
+    return { perCategory, income, withoutBudget };
+  }, [months, year, month, categories, totalIncome, lang]);
+
+  // The rows define what the plan is. A category that existed in an earlier
+  // month of the span but not in this one is not shown — and so its plan is not
+  // counted either, or the total would disagree with the rows above it.
   const rows: RowSpec[] = useMemo(() => [
-    { id: INCOME_ACTUAL_ID, label: t.followUpIncome, icon: '💰', planned: totalIncome },
+    { id: INCOME_ACTUAL_ID, label: t.followUpIncome, icon: '💰', planned: planned.income },
     ...categories.map(c => ({
-      id: c.id, label: shownName(c, lang), icon: c.icon, planned: categoryTotal(c),
+      id: c.id, label: shownName(c, lang), icon: c.icon, planned: planned.perCategory[c.id] ?? 0,
     })),
-  ], [categories, totalIncome, lang, t.followUpIncome]);
+    // Shown only once they hold something — an empty bucket is noise.
+    ...(sums[UNSORTED_ACTUAL_ID] !== undefined
+      ? [{ id: UNSORTED_ACTUAL_ID, label: t.followUpUnsorted, icon: '❔', planned: 0 }] : []),
+    ...(sums[TRANSFER_ACTUAL_ID] !== undefined
+      ? [{ id: TRANSFER_ACTUAL_ID, label: t.followUpTransfer, icon: '⇄', planned: 0 }] : []),
+  ], [categories, planned, lang, sums, t.followUpIncome, t.followUpUnsorted, t.followUpTransfer]);
+
+  /** Without the plan beside them, the rows have no reason to keep the
+   *  budget's order — so they take the only order that answers the question
+   *  being asked: most spent first. Income stays on top; it is not spending. */
+  const shownRows = useMemo(() => {
+    if (showPlan) return rows;
+    const [income, ...rest] = rows;
+    return [income, ...rest.sort((a, b) => (sums[b.id] ?? 0) - (sums[a.id] ?? 0))];
+  }, [rows, showPlan, sums]);
 
   const addEntry = (categoryId: string, date: string, text: string, amount: number) => {
     persist([...entries, { id: generateId(), date, text, amount, categoryId, manual: true }]);
@@ -98,6 +200,52 @@ export const FollowUpTab = ({
     persist(entries.map(e => (e.id === id ? { ...e, amount } : e)));
   };
 
+  /**
+   * Move every entry from one place into another category, and remember it.
+   *
+   * The place is the unit, not the entry: you are looking at "Zettle_*WE ARE O
+   * · 21 poster · 581 kr", and moving that one line is the whole point. Doing
+   * it one entry at a time would be twenty-one confirmations for one decision.
+   *
+   * Learned like a correction in the import, because it IS one — the next
+   * statement puts that place straight into the category you chose here.
+   */
+  const movePlace = (place: string, categoryId: string) => {
+    if (!categoryId) return;
+    const key = place.trim().toLowerCase();
+    persist(entries.map(e => (
+      e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
+    )));
+    rememberCategoryRule(appStorage, place, categoryId);
+    setOpenPlace(null);
+  };
+
+  /** Create the category the user is naming and file the place into it. The
+   *  category is added to every month in view, so a span-wide move does not
+   *  orphan the entries it moved in the months that are not on screen. */
+  const createAndMove = (place: string) => {
+    const name = newCatName.trim();
+    if (!name) return;
+    const id = onCreateNamedCategory(name, months);
+    movePlace(place, id);
+    setNamingPlace(null);
+    setNewCatName('');
+  };
+
+  /** Empty the month's record in one go. The way back from an import of the
+   *  wrong file, or the wrong month — removing a hundred entries one ✕ and one
+   *  confirmation at a time was not a way back, it was a punishment. Lives here
+   *  rather than in the import dialog, which is closed by the time you change
+   *  your mind, and names the count and the month because it cannot be undone. */
+  const clearMonth = () => {
+    const n = entries.length;
+    if (n === 0) return;
+    if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
+    persist([]);
+    setOpenRow(null);
+    setToast({ text: t.followUpClearDone(n), months: [] });
+  };
+
   // Entries whose category this month's budget does not have. It happens more
   // often than it sounds: importing a statement into a month you have not
   // budgeted yet files everything under categories that exist elsewhere, and a
@@ -106,8 +254,9 @@ export const FollowUpTab = ({
   // month showed one. A row is derived from having a PLAN or an ACTUAL, never
   // from the plan alone.
   const orphanIds = useMemo(() => {
-    const known = new Set([INCOME_ACTUAL_ID, ...categories.map(c => c.id)]);
-    return Object.keys(sums).filter(id => !known.has(id));
+    const known = new Set(categories.map(c => c.id));
+    // A bucket is not a category that went missing — it has its own row.
+    return Object.keys(sums).filter(id => !known.has(id) && !isBucketId(id));
   }, [sums, categories]);
   const orphanEntries = useMemo(
     () => entries.filter(e => orphanIds.includes(e.categoryId)),
@@ -115,11 +264,20 @@ export const FollowUpTab = ({
   );
   const orphanTotal = orphanIds.reduce((s, id) => s + (sums[id] ?? 0), 0);
 
-  const plannedOut = categories.reduce((s, c) => s + categoryTotal(c), 0);
-  // Orphans count here too. A total that leaves out rows printed above it is
-  // the same disagreement rowSumGuard.test.ts exists to prevent.
-  const actualOut = categories.reduce((s, c) => s + (sums[c.id] ?? 0), 0) + orphanTotal;
-  const anyOut = categories.some(c => sums[c.id] !== undefined) || orphanIds.length > 0;
+  const plannedOut = categories.reduce((s, c) => s + (planned.perCategory[c.id] ?? 0), 0);
+  // Orphans and Övrigt count here: they are money that left, whatever it was
+  // for. A total that leaves out rows printed above it is the same
+  // disagreement rowSumGuard.test.ts exists to prevent.
+  //
+  // TRANSFERS DO NOT. Moving 5 000 kr to your own savings account is not
+  // spending 5 000 kr, and on one real statement counting them would have
+  // inflated a period's outgoings by 20 485 kr of money that never left. That
+  // row sits below the total, outside it, and says why.
+  const unsortedTotal = sums[UNSORTED_ACTUAL_ID] ?? 0;
+  const actualOut = categories.reduce((s, c) => s + (sums[c.id] ?? 0), 0)
+    + orphanTotal + unsortedTotal;
+  const anyOut = categories.some(c => sums[c.id] !== undefined)
+    || orphanIds.length > 0 || sums[UNSORTED_ACTUAL_ID] !== undefined;
 
   /** An actual, or "–" when this row has no entries. Absence is not zero: not
    *  having recorded food yet and having spent nothing on food are different
@@ -143,14 +301,256 @@ export const FollowUpTab = ({
     );
   };
 
+  /** One row of the table, with what is inside it when opened. Used for every
+   *  kind — income, a budget category, and the two buckets — so they cannot
+   *  drift apart in how they list, sum or let you correct what they hold. */
+  const renderRow = (row: RowSpec) => {
+    const open = openRow === row.id;
+    const mine = entriesFor(entries, row.id);
+    const isBucket = row.id === UNSORTED_ACTUAL_ID || row.id === TRANSFER_ACTUAL_ID;
+    return (
+      <div className={`followup-row-wrap${open ? ' is-open' : ''}`} key={row.id}>
+        <button
+          className={`followup-row${isBucket ? ' is-bucket' : ''}`}
+          aria-expanded={open}
+          onClick={() => setOpenRow(open ? null : row.id)}
+        >
+          <span className="followup-name">
+            <span aria-hidden="true">{row.icon}</span> {row.label}
+            <span className="followup-caret" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
+          </span>
+          {showPlan && (
+            <span className="num followup-planned">
+              {isBucket
+                ? <span className="amount-unknown">–</span>
+                : money(row.planned)}
+            </span>
+          )}
+          <span className="num followup-actual">{actualCell(row.id)}</span>
+          {showPlan && (
+            <span className="num followup-diffcell">
+              {isBucket ? null : diffCell(row.id, row.planned)}
+            </span>
+          )}
+        </button>
+
+        {open && (
+          <div className="followup-entries">
+            {row.id === UNSORTED_ACTUAL_ID && (
+              <p className="followup-none">{t.followUpUnsortedHint}</p>
+            )}
+            {row.id === TRANSFER_ACTUAL_ID && (
+              <p className="followup-none">{t.followUpTransferHint}</p>
+            )}
+            {mine.length === 0 && (
+              <p className="followup-none">{t.followUpNoEntries}</p>
+            )}
+
+            {/* Grouped by PLACE. Thirty Espresso House lines spread through a
+                year say nothing; "Espresso House, 33 entries, 1 188 kr" is the
+                answer. Each place opens onto its own dated entries, so nothing
+                is hidden — only folded. */}
+            {grouping === 'place' && groupEntriesByText(mine).map(g => {
+              const key = `${row.id}|${g.text.toLowerCase()}`;
+              const placeOpen = openPlace === key;
+              return (
+                <div className="followup-place-wrap" key={g.text}>
+                  <div className="followup-place-head">
+                    <button
+                      className={`followup-place${placeOpen ? ' is-open' : ''}`}
+                      aria-expanded={placeOpen}
+                      onClick={() => setOpenPlace(placeOpen ? null : key)}
+                    >
+                      <span className="followup-place-text">
+                        {g.text}
+                        <span className="followup-caret" aria-hidden="true">{placeOpen ? '⌃' : '⌄'}</span>
+                      </span>
+                      <span className="followup-place-count">{t.csvRows(g.count)}</span>
+                      <span className="followup-place-sum">{money(g.total)}</span>
+                    </button>
+                    {/* The whole place moves at once, and the choice is
+                        learned. This is the way out of Övrigt — and the reason
+                        an import no longer has to throw anything away. */}
+                    <select
+                      className="followup-place-move"
+                      value=""
+                      aria-label={t.followUpMoveTo(g.text)}
+                      onChange={ev => {
+                        if (ev.target.value === NEW_CATEGORY) {
+                          setNewCatName('');
+                          setNamingPlace(key);
+                          return;
+                        }
+                        movePlace(g.text, ev.target.value);
+                      }}
+                    >
+                      <option value="">⇄</option>
+                      <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
+                      {categories.map(c => (
+                        <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
+                      ))}
+                      <option value={UNSORTED_ACTUAL_ID}>{t.followUpUnsorted}</option>
+                      <option value={TRANSFER_ACTUAL_ID}>{t.followUpTransfer}</option>
+                      <option value={NEW_CATEGORY}>{t.followUpNewCategory}</option>
+                    </select>
+                  </div>
+
+                  {/* Naming one here rather than in the budget tab, because
+                      this is the moment you realise you need it: staring at a
+                      place in Övrigt that belongs to nothing you have. */}
+                  {namingPlace === key && (
+                    <div className="followup-newcat">
+                      <input
+                        className="followup-newcat-name"
+                        value={newCatName}
+                        placeholder={t.followUpNewCategoryName}
+                        aria-label={t.followUpNewCategoryName}
+                        onChange={ev => setNewCatName(ev.target.value)}
+                        onKeyDown={ev => { if (ev.key === 'Enter') createAndMove(g.text); }}
+                      />
+                      <button className="followup-newcat-save" onClick={() => createAndMove(g.text)}>
+                        {t.followUpSave}
+                      </button>
+                      <button className="followup-newcat-cancel" onClick={() => setNamingPlace(null)}>
+                        {t.followUpCancel}
+                      </button>
+                    </div>
+                  )}
+                  {placeOpen && entriesOfPlace(mine, g.text).map(e => (
+                    <EntryRow
+                      key={e.id} entry={e} nested
+                      onAmount={v => setAmount(e.id, v)}
+                      onDelete={() => deleteEntry(e.id)}
+                      manualLabel={t.followUpManual}
+                      deleteLabel={t.followUpDelete(e.text)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+
+            {grouping === 'date' && mine.map(e => (
+              <EntryRow
+                key={e.id} entry={e}
+                onAmount={v => setAmount(e.id, v)}
+                onDelete={() => deleteEntry(e.id)}
+                manualLabel={t.followUpManual}
+                deleteLabel={t.followUpDelete(e.text)}
+              />
+            ))}
+
+            {/* Adding is a single-month act: the form files the entry by a
+                date, and a date needs a month you are actually looking at
+                rather than one of twelve. Not offered for a bucket — you do
+                not type something in as "unknown". */}
+            {span === 1 && !isBucket && (addingTo === row.id ? (
+              <AddEntryForm
+                year={year}
+                month={month}
+                onCancel={() => setAddingTo(null)}
+                onAdd={(date, text, amount) => addEntry(row.id, date, text, amount)}
+              />
+            ) : (
+              <button className="followup-add" onClick={() => setAddingTo(row.id)}>
+                + {t.followUpAddEntry}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="tab-content followup-tab">
       <div className="followup-top">
         <h2 className="followup-heading">{t.followUpHeading}</h2>
-        <button className="followup-import" onClick={() => setImporting(true)}>
-          ⬆ {t.followUpImport}
-        </button>
+        <div className="followup-top-actions">
+          {/* Only for a single month. "Clear the month's actuals" over a span
+              would empty a year on one click, which is not what the words say. */}
+          {span === 1 && entries.length > 0 && (
+            <button className="followup-clear" onClick={clearMonth}>{t.followUpClear}</button>
+          )}
+          <button className="followup-import" onClick={() => setImporting(true)}>
+            ⬆ {t.followUpImport}
+          </button>
+        </div>
       </div>
+
+      <div className="followup-spans" role="group" aria-label={t.followUpSpanAria}>
+        {SPANS.map(n => (
+          <button
+            key={n}
+            className={`followup-span${span === n ? ' is-on' : ''}`}
+            aria-pressed={span === n}
+            onClick={() => { if (isSpan(n)) { setSpan(n); setOpenRow(null); } }}
+          >
+            {t.followUpSpan(n)}
+          </button>
+        ))}
+        <span className="followup-toggles">
+          <button
+            className={`followup-toggle${showPlan ? '' : ' is-on'}`}
+            aria-pressed={!showPlan}
+            onClick={() => setShowPlan(v => !v)}
+          >{showPlan ? t.followUpOnlyActuals : t.followUpWithPlan}</button>
+          <button
+            className="followup-toggle"
+            onClick={() => { setGrouping(g => (g === 'place' ? 'date' : 'place')); setOpenPlace(null); }}
+          >{grouping === 'place' ? t.followUpByDate : t.followUpByPlace}</button>
+        </span>
+
+        {span > 1 && (
+          <span className="followup-span-range">
+            {t.followUpSpanRange(
+              `${MONTHS[lang][months[0].month]} ${months[0].year}`,
+              `${MONTHS[lang][month]} ${year}`,
+            )}
+          </span>
+        )}
+      </div>
+
+      {periodStartDay !== null && span === 1 && (() => {
+        const range = periodRange(year, month, periodStartDay, periodLocks);
+        const pinned = periodLocks[lockKey(year, month)] !== undefined;
+        return (
+          <div className="followup-period">
+            {!adjustingPeriod ? (
+              <button className="followup-period-btn" onClick={() => setAdjustingPeriod(true)}>
+                {pinned ? '⚿ ' : ''}{isoLocal(range.from)} – {isoLocal(range.to)} · {t.followUpAdjustPeriod}
+              </button>
+            ) : (
+              <div className="followup-period-edit">
+                <label htmlFor="followup-period-start">{t.followUpPeriodStarts}</label>
+                <input
+                  id="followup-period-start"
+                  type="date"
+                  value={isoLocal(range.from)}
+                  onChange={ev => {
+                    if (!ev.target.value) return;
+                    onLockPeriod(year, month, ev.target.value);
+                    setAdjustingPeriod(false);
+                  }}
+                />
+                {pinned && (
+                  <button
+                    className="followup-period-reset"
+                    onClick={() => { onLockPeriod(year, month, null); setAdjustingPeriod(false); }}
+                  >{t.followUpPeriodReset}</button>
+                )}
+                <button className="followup-period-cancel" onClick={() => setAdjustingPeriod(false)}>
+                  {t.followUpCancel}
+                </button>
+                <p className="followup-period-hint">{t.followUpPeriodHint}</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {planned.withoutBudget > 0 && (
+        <p className="followup-note">{t.followUpSpanNoBudget(planned.withoutBudget)}</p>
+      )}
 
       {toast && (
         <p className="followup-toast" role="status">
@@ -175,6 +575,8 @@ export const FollowUpTab = ({
       {importing && (
         <CsvImport
           categories={categories}
+          periodStartDay={periodStartDay}
+          periodLocks={periodLocks}
           onCreateCategories={onCreateCategories}
           onClose={() => setImporting(false)}
           onSaveFailed={onSaveFailed}
@@ -195,71 +597,15 @@ export const FollowUpTab = ({
         </div>
       )}
 
-      <div className="followup-table">
+      <div className={`followup-table${showPlan ? '' : ' is-actuals-only'}`}>
         <div className="followup-head">
           <span>{t.followUpColCategory}</span>
-          <span className="num">{t.followUpColPlan}</span>
+          {showPlan && <span className="num">{t.followUpColPlan}</span>}
           <span className="num">{t.followUpColActual}</span>
-          <span className="num">{t.followUpColDiff}</span>
+          {showPlan && <span className="num">{t.followUpColDiff}</span>}
         </div>
 
-        {rows.map(row => {
-          const open = openRow === row.id;
-          const mine = entriesFor(entries, row.id);
-          return (
-            <div className={`followup-row-wrap${open ? ' is-open' : ''}`} key={row.id}>
-              <button
-                className="followup-row"
-                aria-expanded={open}
-                onClick={() => setOpenRow(open ? null : row.id)}
-              >
-                <span className="followup-name">
-                  <span aria-hidden="true">{row.icon}</span> {row.label}
-                  <span className="followup-caret" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
-                </span>
-                <span className="num followup-planned">{money(row.planned)}</span>
-                <span className="num followup-actual">{actualCell(row.id)}</span>
-                <span className="num followup-diffcell">{diffCell(row.id, row.planned)}</span>
-              </button>
-
-              {open && (
-                <div className="followup-entries">
-                  {mine.length === 0 && (
-                    <p className="followup-none">{t.followUpNoEntries}</p>
-                  )}
-                  {mine.map(e => (
-                    <div className="followup-entry" key={e.id}>
-                      <span className="followup-entry-date">{e.date.slice(5)}</span>
-                      <span className="followup-entry-text">
-                        {e.text}
-                        {e.manual && <span className="followup-manual">{t.followUpManual}</span>}
-                      </span>
-                      <EntryAmount value={e.amount} onChange={v => setAmount(e.id, v)} label={e.text} />
-                      <button
-                        className="followup-delete"
-                        onClick={() => deleteEntry(e.id)}
-                        aria-label={t.followUpDelete(e.text)}
-                      >✕</button>
-                    </div>
-                  ))}
-
-                  {addingTo === row.id ? (
-                    <AddEntryForm
-                      year={year}
-                      month={month}
-                      onCancel={() => setAddingTo(null)}
-                      onAdd={(date, text, amount) => addEntry(row.id, date, text, amount)}
-                    />
-                  ) : (
-                    <button className="followup-add" onClick={() => setAddingTo(row.id)}>
-                      + {t.followUpAddEntry}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {shownRows.filter(r => r.id !== TRANSFER_ACTUAL_ID).map(renderRow)}
 
         {orphanIds.length > 0 && (
           <div className={`followup-row-wrap${openRow === '__orphans__' ? ' is-open' : ''}`}>
@@ -274,14 +620,29 @@ export const FollowUpTab = ({
                   {openRow === '__orphans__' ? '⌃' : '⌄'}
                 </span>
               </span>
-              <span className="num followup-planned">
-                <span className="amount-unknown" title={t.followUpOutsideBudgetHint}>–</span>
-              </span>
+              {showPlan && (
+                <span className="num followup-planned">
+                  <span className="amount-unknown" title={t.followUpOutsideBudgetHint}>–</span>
+                </span>
+              )}
               <span className="num followup-actual">{money(orphanTotal)}</span>
-              <span className="num followup-diffcell" />
+              {showPlan && <span className="num followup-diffcell" />}
             </button>
 
-            {openRow === '__orphans__' && (
+            {openRow === '__orphans__' && span > 1 && (
+              <div className="followup-entries">
+                <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
+                {groupEntriesByText(orphanEntries).map(g => (
+                  <div className="followup-place" key={g.text}>
+                    <span className="followup-place-text">{g.text}</span>
+                    <span className="followup-place-count">{t.csvRows(g.count)}</span>
+                    <span className="followup-place-sum">{money(g.total)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {openRow === '__orphans__' && span === 1 && (
               <div className="followup-entries">
                 <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
                 {orphanEntries.map(e => (
@@ -303,16 +664,42 @@ export const FollowUpTab = ({
 
         <div className="followup-row followup-total">
           <span className="followup-name">{t.followUpTotalOut}</span>
-          <span className="num followup-planned">{money(plannedOut)}</span>
+          {showPlan && <span className="num followup-planned">{money(plannedOut)}</span>}
           <span className="num followup-actual">
             {anyOut ? money(actualOut) : <span className="amount-unknown" title={t.followUpNotRecorded}>–</span>}
           </span>
-          <span className="num followup-diffcell">{anyOut ? diffCell('__total__', 0) : null}</span>
+          {showPlan && (
+            <span className="num followup-diffcell">{anyOut ? diffCell('__total__', 0) : null}</span>
+          )}
         </div>
+
+        {/* Below the total, on purpose: a transfer is not part of it. */}
+        {shownRows.filter(r => r.id === TRANSFER_ACTUAL_ID).map(renderRow)}
       </div>
     </div>
   );
 };
+
+/** One dated entry: what it was, what it cost, and the two ways to correct it.
+ *  Shared by both listings so a figure can be fixed wherever you found it. */
+const EntryRow = ({ entry, nested, onAmount, onDelete, manualLabel, deleteLabel }: {
+  entry: ActualEntry;
+  nested?: boolean;
+  onAmount: (v: number) => void;
+  onDelete: () => void;
+  manualLabel: string;
+  deleteLabel: string;
+}) => (
+  <div className={`followup-entry${nested ? ' is-nested' : ''}`}>
+    <span className="followup-entry-date">{entry.date.slice(5)}</span>
+    <span className="followup-entry-text">
+      {entry.text}
+      {entry.manual && <span className="followup-manual">{manualLabel}</span>}
+    </span>
+    <EntryAmount value={entry.amount} onChange={onAmount} label={entry.text} />
+    <button className="followup-delete" onClick={onDelete} aria-label={deleteLabel}>✕</button>
+  </div>
+);
 
 /** An entry's amount, editable in place. Reuses the app's money input so the
  *  same rejection rules apply here as everywhere else — 1e309 and a four-hundred
