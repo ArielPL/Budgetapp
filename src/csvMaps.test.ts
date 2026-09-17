@@ -28,7 +28,7 @@ describe('remembering a bank layout', () => {
 
   it('remembers a layout against the file’s own header', () => {
     rememberCsvMap(store, SWEDBANK, ROLES);
-    expect(loadCsvMaps(store)[SWEDBANK]).toEqual(ROLES);
+    expect(loadCsvMaps(store)[SWEDBANK]).toEqual({ roles: ROLES, dateOrder: 'dmy' });
   });
 });
 
@@ -48,7 +48,8 @@ describe('forgetting one', () => {
 
   it('leaves every other bank alone', () => {
     forgetCsvMap(store, SWEDBANK);
-    expect(loadCsvMaps(store)[SPARKASSE]).toEqual(['date', 'skip', 'text', 'amount']);
+    expect(loadCsvMaps(store)[SPARKASSE])
+      .toEqual({ roles: ['date', 'skip', 'text', 'amount'], dateOrder: 'dmy' });
   });
 
   it('is content when there was nothing to forget', () => {
@@ -60,7 +61,7 @@ describe('forgetting one', () => {
     forgetCsvMap(store, SWEDBANK);
     const corrected: ColumnRole[] = ['skip', 'date', 'skip', 'text', 'skip'];
     rememberCsvMap(store, SWEDBANK, corrected);
-    expect(loadCsvMaps(store)[SWEDBANK]).toEqual(corrected);
+    expect(loadCsvMaps(store)[SWEDBANK]).toEqual({ roles: corrected, dateOrder: 'dmy' });
   });
 
   it('reports a refused write rather than pretending', () => {
@@ -75,5 +76,28 @@ describe('forgetting one', () => {
     store.setItem(CSV_MAPS_KEY, '{not json');
     expect(loadCsvMaps(store)).toEqual({});
     expect(forgetCsvMap(store, SWEDBANK)).toBe(true);
+  });
+});
+
+describe('remembering which way round the dates are', () => {
+  let store: StorageLike;
+  beforeEach(() => { store = memory(); });
+
+  it('keeps the order alongside the columns', () => {
+    rememberCsvMap(store, 'transaction date|description|amount', ROLES, 'mdy');
+    expect(loadCsvMaps(store)['transaction date|description|amount'].dateOrder).toBe('mdy');
+  });
+
+  it('reads an older stored layout as day-first', () => {
+    // What an earlier build wrote: a bare array, no order. Those files WERE
+    // read day-first, so that is what they must keep — deciding differently
+    // now would silently move every entry below the 13th to another month.
+    store.setItem(CSV_MAPS_KEY, JSON.stringify({ [SWEDBANK]: ROLES }));
+    expect(loadCsvMaps(store)[SWEDBANK]).toEqual({ roles: ROLES, dateOrder: 'dmy' });
+  });
+
+  it('refuses a stored order that is not one of the two', () => {
+    store.setItem(CSV_MAPS_KEY, JSON.stringify({ [SWEDBANK]: { roles: ROLES, dateOrder: 'ymd' } }));
+    expect(loadCsvMaps(store)[SWEDBANK]).toBeUndefined();
   });
 });

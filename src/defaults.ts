@@ -15,6 +15,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   personligt: '#ec4899',
   fritid: '#f97316',
   sparande: '#14b8a6',
+  lan: '#f43f5e',
 };
 
 export const SAVINGS_COLORS: Record<string, string> = {
@@ -94,6 +95,12 @@ const L = {
   hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos' },
   giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones' },
   vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones' },
+  // lån — a real budget line for most people and, until now, a missing concept:
+  // a student-loan repayment fitted none of the other seven and landed in Övrigt.
+  lan: { sv: 'Lån & Krediter', en: 'Loans & Credit', es: 'Préstamos y créditos' },
+  studyLoan: { sv: 'Studielån (CSN)', en: 'Student loan', es: 'Préstamo estudiantil' },
+  mortgage: { sv: 'Bolån & amortering', en: 'Mortgage', es: 'Hipoteca' },
+  otherCredit: { sv: 'Övriga lån & krediter', en: 'Other loans & credit', es: 'Otros créditos' },
   // sparande
   sparande: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
   savingsRow: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
@@ -205,6 +212,14 @@ function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
         { id: makeId(), label: tr(L.hobby, lang), amount: 0 },
         { id: makeId(), label: tr(L.giftsCharity, lang), amount: 0 },
         { id: makeId(), label: tr(L.vacation, lang), amount: 0 },
+      ],
+    },
+    {
+      id: 'lan', name: tr(L.lan, lang), icon: '🏦', color: CATEGORY_COLORS.lan,
+      rows: [
+        { id: makeId(), label: tr(L.studyLoan, lang), amount: 0 },
+        { id: makeId(), label: tr(L.mortgage, lang), amount: 0 },
+        { id: makeId(), label: tr(L.otherCredit, lang), amount: 0 },
       ],
     },
     {

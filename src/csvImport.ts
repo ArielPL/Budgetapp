@@ -21,9 +21,52 @@
  *  deliberately ignored a column should see that decision preserved. */
 export type ColumnRole = 'date' | 'text' | 'amount' | 'in' | 'out' | 'skip';
 
+/**
+ * Which number comes first in a slashed or dotted date.
+ *
+ * Not a preference — a FACT ABOUT THE FILE, and one that cannot be guessed from
+ * a single row. "09/05/2026" is the 5th of September in Stockholm and the 9th
+ * of May in Chicago, and both readings produce a real date in a real month.
+ * Reading it the wrong way round is silent: nothing is skipped, nothing looks
+ * odd, every figure just belongs to a different month than it should.
+ */
+export type DateOrder = 'dmy' | 'mdy';
+
 export interface ColumnMap {
   /** One role per column, positionally. */
   roles: ColumnRole[];
+  /** How this file writes its dates, read from the whole column. */
+  dateOrder?: DateOrder;
+  /** True when the column gave no evidence either way and the default stands.
+   *  The import says so rather than letting the user find out in March. */
+  dateOrderGuessed?: boolean;
+}
+
+/**
+ * Work out a file's date order by looking at every date in the column.
+ *
+ * A day above the 12th can only be a day; a month above the 12th cannot exist.
+ * One such row settles the whole file. If no row is decisive the answer is
+ * "ambiguous" and the caller must not pretend otherwise — most American files
+ * covering a single half-month are genuinely undecidable, and the only honest
+ * thing left is to say which way it was read.
+ */
+export function detectDateOrder(values: string[]): DateOrder | 'ambiguous' {
+  let dayFirst = false;
+  let monthFirst = false;
+  for (const raw of values) {
+    const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/.exec(raw.trim());
+    if (!m) continue;
+    const first = Number(m[1]);
+    const second = Number(m[2]);
+    if (first > 12 && second <= 12) dayFirst = true;
+    if (second > 12 && first <= 12) monthFirst = true;
+  }
+  // Both, somehow: the column is not one format and no reading is safe.
+  if (dayFirst && monthFirst) return 'ambiguous';
+  if (dayFirst) return 'dmy';
+  if (monthFirst) return 'mdy';
+  return 'ambiguous';
 }
 
 /**
@@ -103,6 +146,29 @@ export function findHeaderRow(rows: string[][]): number {
   return 0;
 }
 
+/**
+ * Whether the row we took for a header is really a transaction.
+ *
+ * Some banks — Wells Fargo among them — export no column names at all. The
+ * search above then settles on the first DATA row, which costs a transaction
+ * silently: it is never parsed and never reported, because as far as the
+ * importer is concerned it was the heading.
+ *
+ * A heading does not hold a date and a number. If this one does, the file has
+ * no heading and every row is data.
+ */
+export function looksLikeData(row: string[]): boolean {
+  const hasDate = row.some(c => parseDate(c, 'dmy') !== null || parseDate(c, 'mdy') !== null);
+  const hasAmount = row.some(c => parseAmount(c) !== null);
+  return hasDate && hasAmount;
+}
+
+/** Placeholder names for a file that brought none, so the column step has
+ *  something to show and a remembered layout still has a fingerprint. */
+export function placeholderHeader(width: number): string[] {
+  return Array.from({ length: width }, (_, i) => `#${i + 1}`);
+}
+
 /** Every kind of space a bank puts between thousands: ordinary, non-breaking
  *  (U+00A0) and narrow no-break (U+202F). Written as escapes rather than as
  *  the characters themselves — an invisible byte in a regex is unreadable in
@@ -150,12 +216,14 @@ export function parseAmount(raw: string): number | null {
 /**
  * A date as "YYYY-MM-DD", or null.
  *
- * Slash and dot formats are read DAY FIRST, which is the European convention
- * and the only one Swedish banks use. Guessing month-first would silently move
- * a purchase to a different month for any day below the 13th — the kind of
- * error that looks like correct data.
+ * Slash and dot formats are read in the order the FILE uses, which the caller
+ * works out from the whole column — see detectDateOrder. Day-first is the
+ * default because it is the European convention and the only one Swedish banks
+ * use, but an American file is month-first and reading it the European way
+ * moves every purchase below the 13th into a different month. Nothing is
+ * skipped and nothing looks wrong; the figures are simply in the wrong place.
  */
-export function parseDate(raw: string): string | null {
+export function parseDate(raw: string, order: DateOrder = 'dmy'): string | null {
   const s = raw.trim();
   const pad = (n: string) => n.padStart(2, '0');
   const ok = (y: string, m: string, d: string): string | null => {
@@ -166,7 +234,9 @@ export function parseDate(raw: string): string | null {
   };
   let m: RegExpExecArray | null;
   if ((m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s))) return ok(m[1], m[2], m[3]);
-  if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s))) return ok(m[3], m[2], m[1]);
+  if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s))) {
+    return order === 'mdy' ? ok(m[3], m[1], m[2]) : ok(m[3], m[2], m[1]);
+  }
   if ((m = /^(\d{4})(\d{2})(\d{2})$/.exec(s))) return ok(m[1], m[2], m[3]);
   // "31.08.26" — German exports still do this. Day first like the form above,
   // and the year is read as 20xx: a bank statement is a record of money that
@@ -179,7 +249,9 @@ export function parseDate(raw: string): string | null {
   // nothing in the string says which — so it stays unreadable, as it was before
   // this branch existed. The dotted form carries no such ambiguity: no one
   // writes an ISO date with dots.
-  if ((m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{2})$/.exec(s))) return ok(`20${m[3]}`, m[2], m[1]);
+  if ((m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{2})$/.exec(s))) {
+    return order === 'mdy' ? ok(`20${m[3]}`, m[1], m[2]) : ok(`20${m[3]}`, m[2], m[1]);
+  }
   return null;
 }
 
@@ -286,6 +358,12 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
   const allAre = (vals: string[], f: (v: string) => unknown) =>
     vals.length > 0 && vals.every(v => f(v) !== null);
 
+  /** A date under EITHER reading. Asking only the European one threw away a
+   *  whole American column: "08/22/2026" is not a valid day-first date, so a
+   *  headerless Wells Fargo export had no date column at all and every row was
+   *  skipped. Which reading is right is settled afterwards, by the column. */
+  const isDate = (v: string) => (parseDate(v, 'dmy') ?? parseDate(v, 'mdy'));
+
   header.forEach((_, i) => {
     if (roles[i] !== 'skip' || banned.has(i)) return;
     const vals = col(i);
@@ -295,7 +373,7 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
     // know (every German export: Buchungstag, Valutadatum, Betrag) claimed the
     // spare date as the amount and would have imported three purchases of
     // thirty-one million. Silent, and exactly the wrong shape of wrong.
-    const looksLikeDate = allAre(vals, parseDate);
+    const looksLikeDate = allAre(vals, isDate);
     if (!taken.has('date') && looksLikeDate) claim(i, 'date');
     else if (!looksLikeDate && !taken.has('amount') && !taken.has('in') && !taken.has('out')
       && allAre(vals, parseAmount)) claim(i, 'amount');
@@ -311,13 +389,26 @@ export function guessColumns(header: string[], sample: string[][]): ColumnMap {
       const vals = col(i);
       // Neither a number nor a date: both are data about the row, not the words
       // a person reads on it.
-      if (vals.length === 0 || allAre(vals, parseAmount) || allAre(vals, parseDate)) return;
+      if (vals.length === 0 || allAre(vals, parseAmount) || allAre(vals, isDate)) return;
       const len = Math.max(0, ...vals.map(v => v.length));
       if (len > bestLen) { bestLen = len; best = i; }
     });
     if (best >= 0) claim(best, 'text');
   }
-  return { roles };
+
+  // Read the order off the whole date column, now that we know which one it is.
+  const dateCol = roles.indexOf('date');
+  const dateVals = dateCol >= 0 ? col(dateCol) : [];
+  const detected = detectDateOrder(dateVals);
+  // An ISO column has no order to get wrong, so it is not a guess — saying
+  // "the file does not say which" about 2026-08-31 would be noise on every
+  // Swedish import, and noise is how a real warning stops being read.
+  const couldBeEither = dateVals.some(v => /^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}$/.test(v.trim()));
+  return {
+    roles,
+    dateOrder: detected === 'ambiguous' ? 'dmy' : detected,
+    dateOrderGuessed: detected === 'ambiguous' && couldBeEither,
+  };
 }
 
 export interface ParsedRow {
@@ -350,7 +441,7 @@ export function rowsToParsed(dataRows: string[][], map: ColumnMap): ParseResult 
 
   dataRows.forEach((r, n) => {
     const line = n + 1;
-    const date = di >= 0 ? parseDate(r[di] ?? '') : null;
+    const date = di >= 0 ? parseDate(r[di] ?? '', map.dateOrder ?? 'dmy') : null;
     if (!date) { skipped.push({ line, reason: 'date' }); return; }
 
     let amount: number | null = null;

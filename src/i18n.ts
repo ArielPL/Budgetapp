@@ -12,6 +12,67 @@ export function isLang(v: unknown): v is Lang {
   return typeof v === 'string' && Object.prototype.hasOwnProperty.call(MONTHS, v);
 }
 
+/**
+ * Which of the three to open in when nothing has been chosen yet.
+ *
+ * The app used to start in Swedish for everyone, so anyone who did not read
+ * Swedish met a Swedish interface and had to find their way into the menu to
+ * escape it — on the very first screen, before knowing where the menu was.
+ * The device already knows what its owner reads. This asks it.
+ *
+ * English is the last resort rather than Swedish: for a phone set to German,
+ * Polish or Finnish, English is the one of the three most likely to be read.
+ *
+ * Pure and given its tags, so it is testable without a browser.
+ */
+export function pickLang(tags: readonly string[]): Lang {
+  for (const tag of tags) {
+    const base = tag.toLowerCase().split('-')[0];
+    if (isLang(base)) return base;
+  }
+  return 'en';
+}
+
+/** The same question, asked of this device. */
+export function deviceLang(): Lang {
+  const nav: Navigator | undefined = globalThis.navigator;
+  const tags = nav?.languages?.length ? [...nav.languages]
+    : (nav?.language ? [nav.language] : []);
+  return pickLang(tags);
+}
+
+/**
+ * The currency to start with, from the same signal.
+ *
+ * Symbol and formatting only — it never converts an amount, here or anywhere
+ * else. English text next to "kr" was the old default's other half: coherent
+ * for a Swede, puzzling for anyone else.
+ */
+export function pickCurrency(tags: readonly string[]): Currency {
+  for (const tag of tags) {
+    const lower = tag.toLowerCase();
+    const [base, region] = lower.split('-');
+    if (base === 'sv') return 'sek';
+    if (base === 'es') return 'eur';
+    if (base === 'en') return region === 'gb' ? 'gbp' : 'usd';
+    // Somebody else's European locale: the euro is the better guess than kronor.
+    if (['de', 'fr', 'it', 'pt', 'nl', 'fi', 'el', 'ga', 'et', 'lv', 'lt', 'sk', 'sl'].includes(base)) {
+      return 'eur';
+    }
+  }
+  // Nothing to go on. Dollars rather than kronor, to match the language this
+  // same silence gets: English text beside "kr" is the incoherent pair, and a
+  // device that tells us nothing is not more likely to be Swedish than not.
+  return 'usd';
+}
+
+export function deviceCurrency(): Currency {
+  const nav: Navigator | undefined = globalThis.navigator;
+  const tags = nav?.languages?.length ? [...nav.languages]
+    : (nav?.language ? [nav.language] : []);
+  return pickCurrency(tags);
+}
+
 export const MONTHS: Record<Lang, string[]> = {
   sv: [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -224,6 +285,12 @@ export interface Translations {
   followUpNewCategory: string;
   followUpNewCategoryName: string;
   csvSkipGroup: string;
+  csvDateOrder: string;
+  csvDateOrderDmy: string;
+  csvDateOrderMdy: string;
+  csvDateOrderReads: (sample: string, read: string) => string;
+  csvDateOrderUnsure: string;
+  csvNoHeader: string;
   csvToUnsorted: (n: number) => string;
   csvToTransfer: (n: number) => string;
   followUpWithPlan: string;
@@ -693,6 +760,12 @@ export const translations: Record<Lang, Translations> = {
     followUpNewCategory: '+ Ny kategori…',
     followUpNewCategoryName: 'Vad ska den heta?',
     csvSkipGroup: '— hoppa över —',
+    csvDateOrder: 'Datumen läses som',
+    csvDateOrderDmy: 'Dag först — 31/12/2026',
+    csvDateOrderMdy: 'Månad först — 12/31/2026',
+    csvDateOrderReads: (sample, read) => `${sample} blir ${read}`,
+    csvDateOrderUnsure: 'Filen säger inte vilket. Kontrollera exemplet.',
+    csvNoHeader: 'Filen har inga kolumnnamn — kolumnerna heter #1, #2 och så vidare. Alla rader är transaktioner.',
     csvToUnsorted: (n) => (n === 1 ? '1 ställe hamnar i Övrigt.' : `${n} ställen hamnar i Övrigt.`),
     csvToTransfer: (n) => (n === 1 ? '1 ställe hamnar i Överföring.' : `${n} ställen hamnar i Överföring.`),
     followUpWithPlan: 'Visa plan',
@@ -1116,6 +1189,12 @@ export const translations: Record<Lang, Translations> = {
     followUpNewCategory: '+ New category…',
     followUpNewCategoryName: 'What should it be called?',
     csvSkipGroup: '— skip —',
+    csvDateOrder: 'Dates are read as',
+    csvDateOrderDmy: 'Day first — 31/12/2026',
+    csvDateOrderMdy: 'Month first — 12/31/2026',
+    csvDateOrderReads: (sample, read) => `${sample} becomes ${read}`,
+    csvDateOrderUnsure: 'The file does not say which. Check the example.',
+    csvNoHeader: 'This file has no column names — the columns are called #1, #2 and so on. Every row is a transaction.',
     csvToUnsorted: (n) => (n === 1 ? '1 place goes to Other.' : `${n} places go to Other.`),
     csvToTransfer: (n) => (n === 1 ? '1 place goes to Transfers.' : `${n} places go to Transfers.`),
     followUpWithPlan: 'Show plan',
@@ -1539,6 +1618,12 @@ export const translations: Record<Lang, Translations> = {
     followUpNewCategory: '+ Categoría nueva…',
     followUpNewCategoryName: '¿Cómo se va a llamar?',
     csvSkipGroup: '— omitir —',
+    csvDateOrder: 'Las fechas se leen como',
+    csvDateOrderDmy: 'Día primero — 31/12/2026',
+    csvDateOrderMdy: 'Mes primero — 12/31/2026',
+    csvDateOrderReads: (sample, read) => `${sample} se lee ${read}`,
+    csvDateOrderUnsure: 'El archivo no lo dice. Comprueba el ejemplo.',
+    csvNoHeader: 'Este archivo no tiene nombres de columna — se llaman #1, #2, etc. Todas las filas son movimientos.',
     csvToUnsorted: (n) => (n === 1 ? '1 sitio va a Otros.' : `${n} sitios van a Otros.`),
     csvToTransfer: (n) => (n === 1 ? '1 sitio va a Transferencias.' : `${n} sitios van a Transferencias.`),
     followUpWithPlan: 'Ver plan',

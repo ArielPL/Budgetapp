@@ -26,7 +26,7 @@ import { LATEST_VERSION } from './changelog';
 import { adoptExternalMonth } from './crossTab';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, type Lang, type Currency } from './i18n';
+import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
   resolveVars,
@@ -131,7 +131,10 @@ function App() {
   // of the app that would let them fix it (review 2026-09-05, F3).
   const [lang, setLang]       = useState<Lang>(() => {
     const stored = appStorage.getItem('budget_lang');
-    return isLang(stored) ? stored : 'sv';
+    // Only a brand-new install reaches deviceLang: the effect below stores the
+    // language on first mount, so anyone who has opened the app before keeps
+    // exactly what they had.
+    return isLang(stored) ? stored : deviceLang();
   });
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
@@ -148,7 +151,7 @@ function App() {
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
-    return isCurrency(stored) ? stored : 'sek';
+    return isCurrency(stored) ? stored : deviceCurrency();
   });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).

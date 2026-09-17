@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow,
   parseAmount, parseDate, guessColumns, rowsToParsed, headerFingerprint, groupByText,
+  detectDateOrder, looksLikeData, placeholderHeader,
 } from './csvImport';
 
 const bytes = (...b: number[]) => new Uint8Array(b).buffer;
@@ -576,5 +577,126 @@ describe('groupByText — a hundred rows, thirty decisions', () => {
     const gs = groupByText([row('', -60)], '(utan text)');
     expect(gs[0].text).toBe('(utan text)');
     expect(gs[0].rows).toHaveLength(1);
+  });
+});
+
+describe('which way round a file writes its dates', () => {
+  it('settles it from a day above the twelfth', () => {
+    expect(detectDateOrder(['31/12/2026', '05/01/2026'])).toBe('dmy');
+  });
+
+  it('settles it from a month that cannot exist', () => {
+    // Chase writes MM/DD/YYYY. One row above the 12th in second place decides.
+    expect(detectDateOrder(['09/05/2026', '08/31/2026'])).toBe('mdy');
+  });
+
+  it('says ambiguous when nothing in the column decides', () => {
+    // Every American statement covering a single half-month looks like this,
+    // and so does every European one. Guessing is the wrong answer.
+    expect(detectDateOrder(['09/05/2026', '07/03/2026'])).toBe('ambiguous');
+    expect(detectDateOrder([])).toBe('ambiguous');
+  });
+
+  it('says ambiguous rather than pick a side when the column contradicts itself', () => {
+    expect(detectDateOrder(['31/12/2026', '12/31/2026'])).toBe('ambiguous');
+  });
+
+  it('ignores ISO dates, which have no ambiguity to settle', () => {
+    expect(detectDateOrder(['2026-08-31', '2026-09-01'])).toBe('ambiguous');
+  });
+
+  it('reads the same string two different real ways', () => {
+    // The whole reason this exists. Both are real days in real months, and
+    // nothing about the row says which — so nothing about the row can warn you.
+    expect(parseDate('09/05/2026', 'dmy')).toBe('2026-05-09');
+    expect(parseDate('09/05/2026', 'mdy')).toBe('2026-09-05');
+  });
+
+  it('applies the order to the two-digit year form too', () => {
+    expect(parseDate('09/05/26', 'mdy')).toBe('2026-09-05');
+    expect(parseDate('09/05/26', 'dmy')).toBe('2026-05-09');
+  });
+
+  it('leaves ISO alone whatever the order says', () => {
+    expect(parseDate('2026-08-31', 'mdy')).toBe('2026-08-31');
+  });
+
+  it('still refuses an impossible date under either reading', () => {
+    expect(parseDate('31/12/2026', 'mdy')).toBeNull();   // month 31
+    expect(parseDate('12/31/2026', 'dmy')).toBeNull();   // month 31
+  });
+
+  it('hands the order back with the columns, and flags a guess', () => {
+    const header = ['Transaction Date', 'Description', 'Amount'];
+    const american = [['09/05/2026', 'WHOLE FOODS', '-84.21'], ['08/31/2026', 'CHEVRON', '-52.40']];
+    const got = guessColumns(header, american);
+    expect(got.dateOrder).toBe('mdy');
+    expect(got.dateOrderGuessed).toBe(false);
+
+    const undecidable = [['09/05/2026', 'WHOLE FOODS', '-84.21']];
+    const guess = guessColumns(header, undecidable);
+    expect(guess.dateOrder).toBe('dmy');
+    expect(guess.dateOrderGuessed).toBe(true);
+  });
+
+  it('reads an American file correctly end to end', () => {
+    const header = ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'];
+    const body = [
+      ['09/05/2026', '09/06/2026', 'WHOLE FOODS MKT #123', 'Groceries', 'Sale', '-84.21'],
+      ['08/31/2026', '09/01/2026', 'CHEVRON 00201234', 'Gas', 'Sale', '-52.40'],
+    ];
+    const map = guessColumns(header, body);
+    expect(map.roles[0]).toBe('date');      // Transaction Date, not Post Date
+    expect(map.roles[2]).toBe('text');      // Description, not Category
+    const { rows } = rowsToParsed(body, map);
+    expect(rows[0].date).toBe('2026-09-05');
+    expect(rows[1].date).toBe('2026-08-31');
+  });
+});
+
+describe('a file that brought no column names', () => {
+  // Wells Fargo exports none. The header search then settles on the first DATA
+  // row, which costs that transaction silently — never parsed, never reported.
+  const rows = [
+    ['09/05/2026', '-84.21', '*', '', 'WHOLE FOODS MKT 123'],
+    ['09/03/2026', '-52.40', '*', '', 'CHEVRON 00201234'],
+    ['09/01/2026', '3200.00', '*', '', 'PAYROLL'],
+  ];
+
+  it('knows a row of data when it sees one', () => {
+    expect(looksLikeData(rows[0])).toBe(true);
+    expect(looksLikeData(['Bokföringsdag', 'Beskrivning', 'Belopp'])).toBe(false);
+    expect(looksLikeData(['Transaction Date', 'Description', 'Amount'])).toBe(false);
+  });
+
+  it('gives the columns placeholder names to stand in for the missing ones', () => {
+    expect(placeholderHeader(3)).toEqual(['#1', '#2', '#3']);
+  });
+
+  it('keeps every row when there is no header to lose one to', () => {
+    const header = placeholderHeader(rows[0].length);
+    const map = guessColumns(header, rows);
+    const { rows: parsed, skipped } = rowsToParsed(rows, map);
+    expect(skipped).toEqual([]);
+    expect(parsed).toHaveLength(3);
+    expect(parsed.map(r => r.text)).toEqual([
+      'WHOLE FOODS MKT 123', 'CHEVRON 00201234', 'PAYROLL',
+    ]);
+  });
+});
+
+describe('the order is only a question when the file could mean either', () => {
+  it('does not call an ISO column a guess', () => {
+    // 2026-08-31 has no second reading. Warning about it on every Swedish
+    // import is how a real warning stops being read.
+    const got = guessColumns(['Bokföringsdag', 'Beskrivning', 'Belopp'],
+      [['2026-08-31', 'ICA', '-23,66']]);
+    expect(got.dateOrderGuessed).toBe(false);
+  });
+
+  it('does call an undecidable slashed column a guess', () => {
+    const got = guessColumns(['Date', 'Description', 'Amount'],
+      [['09/05/2026', 'WHOLE FOODS', '-84.21']]);
+    expect(got.dateOrderGuessed).toBe(true);
   });
 });

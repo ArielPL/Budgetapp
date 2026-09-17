@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   normalise, seedKind, suggest, isTransfer, loadCategoryRules, rememberCategoryRule,
   isStandardCategoryId, CATEGORY_RULES_KEY, SEED, INTERNATIONAL, SWEDEN,
-  STANDARD_CATEGORY_IDS,
+  UNITED_STATES, SPAIN, STANDARD_CATEGORY_IDS,
 } from './categorise';
 import type { StorageLike } from './backup';
 
@@ -160,24 +160,57 @@ describe('the two halves of the list', () => {
     expect(clashes, clashes.join('\n')).toHaveLength(0);
   });
 
-  it('is exactly the international half plus the local one', () => {
+  it('is exactly the four lists together', () => {
     for (const id of STANDARD_CATEGORY_IDS) {
-      expect(SEED[id]).toEqual([...INTERNATIONAL[id], ...SWEDEN[id]]);
+      expect(SEED[id]).toEqual([
+        ...INTERNATIONAL[id], ...SWEDEN[id], ...UNITED_STATES[id], ...SPAIN[id],
+      ]);
     }
   });
 
-  it('keeps the halves apart — nothing is in both', () => {
+  it('keeps the lists apart — nothing is in two of them', () => {
+    // A duplicate would be harmless arithmetically and a lie about where the
+    // knowledge lives: the point of separate lists is knowing which of them
+    // was checked against a real statement and which was not.
+    const lists = { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN };
+    const names = Object.keys(lists) as (keyof typeof lists)[];
+    const dupes: string[] = [];
     for (const id of STANDARD_CATEGORY_IDS) {
-      const local = new Set(SWEDEN[id]);
-      expect(INTERNATIONAL[id].filter(p => local.has(p))).toEqual([]);
+      for (let a = 0; a < names.length; a++) {
+        for (let b = a + 1; b < names.length; b++) {
+          const other = new Set(lists[names[b]][id]);
+          for (const pattern of lists[names[a]][id]) {
+            if (other.has(pattern)) dupes.push(`${pattern}: ${names[a]} + ${names[b]}`);
+          }
+        }
+      }
+    }
+    expect(dupes, dupes.join('\n')).toEqual([]);
+  });
+
+  it('carries every category in every list, even if empty', () => {
+    for (const list of [INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN]) {
+      for (const id of STANDARD_CATEGORY_IDS) {
+        expect(Array.isArray(list[id])).toBe(true);
+      }
     }
   });
 
-  it('carries every category in both halves, even if empty', () => {
+  it('holds no pattern short enough to fire by accident', () => {
+    // A two-letter rule matched as a whole word is still a menace: it only
+    // takes one bank writing an abbreviation. 'sl', 'sj', 'ul', 'bp' and
+    // 'hm' are the deliberate exceptions, each a real transport or retail
+    // name whose descriptor is exactly those letters.
+    const allowedShort = new Set(['sl', 'sj', 'ul', 'bp', 'hm', 'h m', 'vy', 'mq', 'e on', 'at t']);
+    const tooShort: string[] = [];
     for (const id of STANDARD_CATEGORY_IDS) {
-      expect(Array.isArray(INTERNATIONAL[id])).toBe(true);
-      expect(Array.isArray(SWEDEN[id])).toBe(true);
+      for (const pattern of SEED[id]) {
+        if (pattern.replace(/ /g, '').length < 3 && !allowedShort.has(pattern)) {
+          tooShort.push(`${id}: ${pattern}`);
+        }
+      }
     }
+    expect(tooShort, tooShort.join('\n')).toEqual([]);
   });
 });
 
@@ -401,5 +434,101 @@ describe('isTransfer — moving money is not spending it', () => {
   it('matches whole words, so a place is not swept up by one', () => {
     // 'egen' is a rail word. "Egenföretagarna AB" is not a transfer.
     expect(isTransfer('Egenforetagarna AB')).toBe(false);
+  });
+});
+
+describe('the American list', () => {
+  it.each([
+    ['WAL-MART #1234', 'mat'],
+    ['WALMART.COM', 'mat'],
+    ['KROGER #472', 'mat'],
+    ['TRADER JOE S 118', 'mat'],
+    ['CHICK-FIL-A #0342', 'mat'],
+    ['DOORDASH*BURGER', 'mat'],
+    ['CHEVRON 00201234', 'transport'],
+    ['LYFT *RIDE TUE', 'transport'],
+    ['THE HOME DEPOT 1234', 'boende'],
+    ['GEICO *AUTO', 'boende'],
+    ['AT&T *PAYMENT', 'prenumerationer'],
+    ['PLANET FITNESS', 'prenumerationer'],
+    ['WALGREENS #5678', 'personligt'],
+    ['CVS/PHARMACY #01234', 'personligt'],
+    ['BEST BUY 00012345', 'fritid'],
+    ['SOUTHWEST AIRLINES', 'fritid'],
+    ['VANGUARD BUY', 'sparande'],
+    ['NELNET PAYMENT', 'lan'],
+    ['SALLIE MAE', 'lan'],
+  ])('reads %s as %s', (text, kind) => {
+    expect(seedKind(text)).toBe(kind);
+  });
+
+  it('reads an ampersand as a word break, not a letter', () => {
+    expect(normalise('AT&T *PAYMENT')).toBe('at t payment');
+    expect(normalise('BED BATH & BEYOND')).toBe('bed bath beyond');
+  });
+});
+
+describe('the Spanish list', () => {
+  it.each([
+    ['MERCADONA VALENCIA', 'mat'],
+    ['SUPERCOR EXPRESS', 'mat'],
+    ['RESTAURANTE EL PATIO', 'mat'],
+    ['PANADERIA LA ESPIGA', 'mat'],
+    ['RENFE VIAJEROS', 'transport'],
+    ['REPSOL E S 1234', 'transport'],
+    ['IBERDROLA CLIENTES', 'boende'],
+    ['MAPFRE SEGUROS', 'boende'],
+    ['MOVISTAR FUSION', 'prenumerationer'],
+    ['FARMACIA CENTRAL', 'personligt'],
+    ['EL CORTE INGLES SA', 'personligt'],
+    ['FNAC ESPANA', 'fritid'],
+    ['IBERIA LINEAS AEREAS', 'fritid'],
+    ['COFIDIS ESPANA', 'lan'],
+  ])('reads %s as %s', (text, kind) => {
+    expect(seedKind(text)).toBe(kind);
+  });
+
+  it('leaves out words that are also ordinary Spanish', () => {
+    // 'día' is a supermarket AND the word for "day"; 'orange' is a telecom AND
+    // a fruit. Both are left out rather than risk claiming a whole column.
+    expect(seedKind('COMPRA DIA 12 SEPTIEMBRE')).toBeUndefined();
+    expect(seedKind('ZUMO DE ORANGE')).toBeUndefined();
+  });
+});
+
+describe('loans and credit', () => {
+  it.each([
+    ['CENTRALA STUDIES', 'lan'],
+    ['CSN', 'lan'],
+    ['Kronofogden', 'lan'],
+    ['SBAB BOLAN', 'lan'],
+    ['Qliro AB', 'lan'],
+    ['Bank Norwegian', 'lan'],
+  ])('reads %s as %s', (text, kind) => {
+    expect(seedKind(text)).toBe(kind);
+  });
+
+  it('was the category CENTRALA STUDIES had nowhere to go without', () => {
+    // On a real statement this landed in Övrigt with nothing to move it to,
+    // and a student-loan repayment belongs in none of the other seven.
+    expect(seedKind('CENTRALA STUDIES')).toBe('lan');
+  });
+});
+
+describe('@ and # only stand in for letters where a letter follows', () => {
+  it('still repairs the Swedish mangling', () => {
+    expect(normalise('AB GR@NA LUNDS')).toBe('ab grona lunds');
+    expect(normalise('@STERT#LJE KIOS')).toBe('ostertalje kios');
+  });
+
+  it('treats a number sign as punctuation, the way America writes it', () => {
+    // The store number then falls to the digit rule, as it does for a Swedish
+    // till number — which is the whole point: same shop, one key.
+    expect(normalise('WALGREENS #5678')).toBe('walgreens');
+    expect(normalise('KROGER #472')).toBe('kroger');
+  });
+
+  it('does not turn a stray @ into a letter', () => {
+    expect(normalise('CAFE @ HOME')).toBe('cafe home');
   });
 });

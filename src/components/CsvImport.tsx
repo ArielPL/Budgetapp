@@ -4,7 +4,9 @@ import { appStorage } from '../storage';
 import { generateId, shownName, standardExpenseCategory } from '../defaults';
 import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
-  rowsToParsed, headerFingerprint, groupByText, type ColumnRole, type TextGroup,
+  rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
+  parseDate,
+  type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
 import { loadCsvMaps, rememberCsvMap, forgetCsvMap } from '../csvMaps';
 import {
@@ -95,6 +97,11 @@ export const CsvImport = ({
   const [roles, setRoles] = useState<ColumnRole[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
+  /** How this file writes its dates. Read from the column, changeable by hand —
+   *  "09/05/2026" is two different real days and no single row can say which. */
+  const [dateOrder, setDateOrder] = useState<DateOrder>('dmy');
+  const [dateOrderGuessed, setDateOrderGuessed] = useState(false);
+  const [headerless, setHeaderless] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const readFile = async (file: File) => {
@@ -104,24 +111,33 @@ export const CsvImport = ({
       const rows = parseCsv(text, detectDelimiter(text));
       if (rows.length < 2) { setError(t.csvNoRows); return; }
       const h = findHeaderRow(rows);
-      const head = rows[h];
-      const body = rows.slice(h + 1);
+      // Some banks export no column names at all. Taking the first DATA row for
+      // a heading then loses that transaction without a word — it is neither
+      // parsed nor reported, because the importer thinks it was the heading.
+      const headerless = looksLikeData(rows[h]);
+      const head = headerless ? placeholderHeader(rows[h].length) : rows[h];
+      const body = headerless ? rows.slice(h) : rows.slice(h + 1);
       setHeader(head);
       setDataRows(body);
 
       // A layout confirmed once is reused without asking again.
       const remembered = loadCsvMaps(appStorage)[headerFingerprint(head)];
-      const guess = remembered ?? guessColumns(head, body.slice(0, 5)).roles;
+      const guessed = guessColumns(head, body.slice(0, 20));
+      const guess = remembered?.roles ?? guessed.roles;
+      const order = remembered?.dateOrder ?? guessed.dateOrder ?? 'dmy';
       setRoles(guess);
-      if (remembered) toReview(body, guess);
+      setDateOrder(order);
+      setDateOrderGuessed(remembered ? false : (guessed.dateOrderGuessed ?? false));
+      setHeaderless(headerless);
+      if (remembered) toReview(body, guess, order);
       else setStep('columns');
     } catch {
       setError(t.csvUnreadable);
     }
   };
 
-  const toReview = (body: string[][], useRoles: ColumnRole[]) => {
-    const { rows, skipped } = rowsToParsed(body, { roles: useRoles });
+  const toReview = (body: string[][], useRoles: ColumnRole[], order: DateOrder = dateOrder) => {
+    const { rows, skipped } = rowsToParsed(body, { roles: useRoles, dateOrder: order });
     if (rows.length === 0) { setError(t.csvNoRows); setStep('columns'); return; }
     const rules = loadCategoryRules(appStorage);
     const existing = new Set(categories.map(c => c.id));
@@ -163,7 +179,7 @@ export const CsvImport = ({
   };
 
   const confirmColumns = () => {
-    rememberCsvMap(appStorage, headerFingerprint(header), roles);
+    rememberCsvMap(appStorage, headerFingerprint(header), roles, dateOrder);
     toReview(dataRows, roles);
   };
 
@@ -338,6 +354,36 @@ export const CsvImport = ({
                   </div>
                 ))}
               </div>
+              {/* The date order is a fact about the FILE, not a preference —
+                  and one no single row can settle. "09/05/2026" is the 5th of
+                  September in Stockholm and the 9th of May in Chicago, and both
+                  readings land in a real month. Shown here, with the reading
+                  spelled out, because getting it wrong is completely silent. */}
+              <div className={`csv-dateorder${dateOrderGuessed ? ' is-guess' : ''}`}>
+                <span className="csv-dateorder-label">{t.csvDateOrder}</span>
+                <select
+                  className="csv-dateorder-pick"
+                  value={dateOrder}
+                  aria-label={t.csvDateOrder}
+                  onChange={e => setDateOrder(e.target.value as DateOrder)}
+                >
+                  <option value="dmy">{t.csvDateOrderDmy}</option>
+                  <option value="mdy">{t.csvDateOrderMdy}</option>
+                </select>
+                <span className="csv-dateorder-example">
+                  {(() => {
+                    const di = roles.indexOf('date');
+                    const sample = di >= 0 ? dataRows.find(r => r[di]?.trim())?.[di] : undefined;
+                    const read = sample ? parseDate(sample, dateOrder) : null;
+                    return sample && read ? t.csvDateOrderReads(sample, read) : null;
+                  })()}
+                </span>
+                {dateOrderGuessed && (
+                  <span className="csv-dateorder-note">{t.csvDateOrderUnsure}</span>
+                )}
+              </div>
+
+              {headerless && <p className="csv-note">{t.csvNoHeader}</p>}
               <p className="csv-remember">{t.csvRemember}</p>
               <div className="csv-actions">
                 <button className="csv-primary" disabled={!hasDate || !hasAmount} onClick={confirmColumns}>

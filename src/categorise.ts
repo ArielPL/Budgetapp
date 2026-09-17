@@ -22,10 +22,11 @@ import type { StorageLike } from './backup';
  *  line up with the same category in September. */
 export type StandardCategoryId =
   | 'boende' | 'mat' | 'transport' | 'prenumerationer'
-  | 'personligt' | 'fritid' | 'sparande';
+  | 'personligt' | 'fritid' | 'sparande' | 'lan';
 
 export const STANDARD_CATEGORY_IDS: readonly StandardCategoryId[] = [
   'boende', 'mat', 'transport', 'prenumerationer', 'personligt', 'fritid', 'sparande',
+  'lan',
 ];
 
 export function isStandardCategoryId(id: string): id is StandardCategoryId {
@@ -57,12 +58,17 @@ export function normalise(text: string): string {
   // statement — 0x40 and 0x23, not a decoding fault of ours. Folded to the same
   // letters ö and ä fold to, so a mangled row matches the rules an intact one
   // would. Only ever affects MATCHING; the text shown is the bank's own.
-  s = s.replace(/@/g, 'o').replace(/#/g, 'a');
+  //
+  // ONLY where a letter follows, because both characters have an ordinary
+  // meaning elsewhere: "#" is a number sign on every American descriptor
+  // ("WALGREENS #5678"), and "@" separates an address. Standing before a digit
+  // or a space they are punctuation, and fall to the rule below.
+  s = s.replace(/@(?=[a-zåäöéèêüøæñç])/g, 'o').replace(/#(?=[a-zåäöéèêüøæñç])/g, 'a');
   s = s.replace(/[åäöéèêüøæñç]/g, c => FOLD[c] ?? c);
   // Strip the rail, possibly more than one ("Swish Zettle_*…" happens).
   for (let i = 0; i < 2 && RAILS.test(s); i++) s = s.replace(RAILS, '');
   // Card descriptors use these as glue, not as meaning.
-  s = s.replace(/[*_/\\.,;:|()[\]{}#'"`+]/g, ' ');
+  s = s.replace(/[*_/\\.,;:|()[\]{}#@'"`+&]/g, ' ');
   s = s.replace(/\s-\s/g, ' ').replace(/-/g, ' ');
   // Store and terminal numbers, and phone numbers. Three digits or more, so
   // "7 eleven" and "fitness24seven" keep the digits that are part of the name.
@@ -71,35 +77,38 @@ export function normalise(text: string): string {
   return s;
 }
 
-// ── The built-in list, in two halves ───────────────────────────────────────
+// ── The built-in lists ─────────────────────────────────────────────────────
 //
 // Matched on WHOLE WORDS, never on raw substrings: "ul" must not fire inside
 // "Superultra", and "sj" must not fire inside "sjukhus". Where two rules both
 // match, the longer one wins — which is how "uber eats" beats "uber" without
 // depending on the order they happen to be written in here.
 //
-// Deliberately absent from both halves: "Överföring via internet", "Swish
-// skickad", "Uttag", "Kortköp". Those are rails, not places. Guessing at them
-// would be inventing a fact about your money, and a wrong category costs more
-// than an empty one.
+// Deliberately absent from every list: transfers, withdrawals and person-to-
+// person Swish. Those are not places at all — see isTransfer below, which sends
+// them to their own bucket instead of guessing a category for them.
 //
-// INTERNATIONAL is the half that means the same thing anywhere in Europe.
-// Every line in it can be checked without living in the country, which is
-// exactly why it is separated: it is the half that can grow honestly. A German
-// or Dutch statement is already part-sorted by it today.
+// ── Four lists, and they are NOT equally trustworthy ───────────────────────
 //
-// SWEDEN is the local half — grocers, transport authorities, landlords, energy
-// companies, insurers, pharmacies. It could only be written because a real
-// Swedish statement was there to measure against (28 of 44 places, cold).
+// INTERNATIONAL means the same thing anywhere in Europe and beyond.
 //
-// That is the rule for every country that follows: a list is added when there
-// is a real file from a real person to check it against, never from memory.
-// A wrong entry is worse than a missing one, and the sorter learns your own
-// corrections anyway — by the second statement it is at 44 of 44 whatever
-// country you are in. The built-in list only ever improves the FIRST import.
+// SWEDEN was written against a real Swedish statement and measured: 72 of 123
+// distinct places on a 471-transaction file, cold. Every entry has been seen in
+// a real descriptor, including the mangled ones.
 //
-// Splitting them also makes the next step mechanical: one file per country,
-// loaded on demand. Today both ship together, which costs about 2 kB.
+// UNITED_STATES and SPAIN were built from research into the largest chains in
+// each country, NOT from real statements. The difference matters and is worth
+// stating plainly: that Walmart and Mercadona are enormous is a fact anyone can
+// check, but HOW A BANK WRITES THEM in a descriptor is not — a US card row may
+// read "WAL-MART #1234" or "WM SUPERCENTER", and only a real file would say.
+// So these two are a reasonable first guess for a first import, and no more.
+// The second import is where the sorter is actually good, because by then it
+// has learned from what the user corrected — and that works in any country.
+//
+// The rule for what goes in: a NAME, distinctive enough to be safe as a whole
+// word. No short or ordinary words — 'dia' is a Spanish supermarket and also
+// the Spanish for "day"; 'orange' is a telecom and also a fruit. Those are left
+// out, or written in a longer form that cannot be mistaken.
 
 const INTERNATIONAL: Record<StandardCategoryId, string[]> = {
   mat: [
@@ -151,6 +160,9 @@ const INTERNATIONAL: Record<StandardCategoryId, string[]> = {
   sparande: [
     'coinbase', 'binance', 'kraken', 'trade republic', 'etoro', 'degiro',
     'interactive brokers',
+  ],
+  lan: [
+    'affirm', 'afterpay', 'klarna',
   ],
 };
 
@@ -212,7 +224,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'granngarden', 'plantagen', 'blomsterlandet', 'interflora',
     'nortic', 'tickster', 'billetto',
     'grona lund', 'grona lunds', 'liseberg', 'kolmarden', 'skansen', 'furuvik',
-    'teater', 'konsert', 'operan', 'dramaten',
+    'tom tits', 'teater', 'konsert', 'operan', 'dramaten',
     'bokus', 'adlibris', 'akademibokhandeln', 'pocketshop', 'science fiction',
     'lekia', 'br leksaker',
     'stadium', 'xxl', 'naturkompaniet', 'addnature', 'sportamore',
@@ -231,15 +243,146 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'pensionsmyndigheten', 'amf', 'alecta', 'folksam liv', 'skandia',
     'movestic', 'futur pension', 'spp', 'nordea liv', 'lansforsakringar liv',
   ],
+  lan: [
+    // CSN writes itself several ways, and the bank cuts it at sixteen
+    // characters: "CENTRALA STUDIES" is what a real statement showed.
+    'csn', 'centrala studies', 'centrala studiestodsnamnden', 'studielan',
+    'kronofogden', 'amortering', 'bolan', 'blancolan', 'privatlan',
+    'lendo', 'sambla', 'zmarta', 'advisa', 'nordax', 'bluestep', 'marginalen',
+    'collector', 'wasa kredit', 'svea ekonomi', 'qliro', 'resurs bank',
+    'ikano bank', 'bank norwegian', 'avida', 'thorn',
+    'sbab', 'hypoteket', 'landshypotek', 'stabelo',
+  ],
 };
 
-/** Both halves, as one table. Exported so a test can hold the two to the same
- *  rule: no place may be claimed by two different categories. */
+const UNITED_STATES: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'walmart', 'wal mart', 'kroger', 'safeway', 'albertsons', 'publix',
+    'wegmans', 'h e b', 'meijer', 'winco', 'food lion', 'giant eagle',
+    'harris teeter', 'sprouts', 'trader joe', 'whole foods', 'costco',
+    'sams club', 'piggly wiggly', 'hy vee', 'ralphs', 'vons', 'fred meyer',
+    'king soopers', 'shoprite', 'stop shop', 'wawa', 'sheetz', 'quiktrip',
+    'dollar general', 'family dollar', 'dollar tree',
+    'chipotle', 'panera', 'chick fil a', 'taco bell', 'wendys', 'popeyes',
+    'dunkin', 'sonic drive', 'five guys', 'shake shack', 'olive garden',
+    'applebees', 'dennys', 'ihop', 'cracker barrel', 'buffalo wild',
+    'texas roadhouse', 'in n out', 'whataburger', 'jimmy johns',
+    'panda express', 'raising canes', 'culvers', 'arbys', 'jack in the box',
+    'del taco', 'papa johns', 'little caesars', 'wingstop', 'red lobster',
+    'cheesecake factory', 'outback', 'chilis',
+    'dutch bros', 'peets coffee', 'caribou coffee',
+    'doordash', 'grubhub', 'instacart', 'postmates', 'seamless',
+  ],
+  transport: [
+    'lyft', 'chevron', 'exxon', 'mobil', 'texaco', 'marathon', 'speedway',
+    'sunoco', 'valero', 'citgo', 'arco', 'phillips 66', 'racetrac',
+    'pilot flying', 'loves travel',
+    'autozone', 'oreilly auto', 'advance auto', 'jiffy lube', 'discount tire',
+    'amtrak', 'greyhound', 'caltrain', 'njtransit', 'metrocard',
+    'e zpass', 'ezpass', 'sunpass', 'fastrak', 'parkmobile', 'spothero',
+  ],
+  boende: [
+    'home depot', 'lowes', 'ace hardware', 'menards', 'bed bath', 'wayfair',
+    'pottery barn', 'crate barrel', 'west elm', 'sherwin williams',
+    'comcast', 'xfinity', 'spectrum', 'cox communications',
+    'duke energy', 'con edison', 'national grid', 'dominion energy',
+    'xcel energy', 'georgia power', 'ameren', 'entergy',
+    'geico', 'state farm', 'allstate', 'usaa', 'liberty mutual',
+  ],
+  prenumerationer: [
+    'verizon', 'at t', 't mobile', 'mint mobile', 'cricket wireless',
+    'boost mobile', 'xfinity mobile',
+    'hulu', 'peacock', 'paramount plus', 'espn plus', 'sirius xm', 'siriusxm',
+    'new york times', 'nytimes', 'washington post',
+    'planet fitness', 'la fitness', 'equinox', 'orangetheory',
+    'crunch fitness', 'anytime fitness',
+  ],
+  personligt: [
+    'walgreens', 'cvs', 'rite aid', 'ulta beauty', 'bath body works',
+    'victorias secret', 'macys', 'nordstrom', 'kohls', 'jcpenney',
+    'tj maxx', 'marshalls', 'ross stores', 'old navy', 'banana republic',
+    'american eagle', 'abercrombie', 'lululemon',
+    'quest diagnostics', 'labcorp',
+  ],
+  fritid: [
+    'best buy', 'gamestop', 'barnes noble', 'dicks sporting', 'rei',
+    'bass pro', 'cabelas', 'academy sports', 'michaels', 'hobby lobby',
+    'joann', 'petco', 'petsmart', 'chewy',
+    'amc theatres', 'regal cinemas', 'cinemark', 'stubhub',
+    'six flags', 'cedar point', 'universal studios',
+    'hyatt', 'wyndham', 'holiday inn', 'best western',
+    'delta air', 'american airlines', 'united airlines', 'southwest airlines',
+    'jetblue', 'alaska airlines', 'spirit airlines', 'frontier airlines',
+    'priceline', 'vrbo', 'tripadvisor',
+  ],
+  sparande: [
+    'fidelity', 'vanguard', 'charles schwab', 'robinhood', 'e trade', 'etrade',
+    'td ameritrade', 'wealthfront', 'betterment', 'acorns',
+  ],
+  lan: [
+    'sallie mae', 'navient', 'nelnet', 'mohela', 'great lakes',
+    'lendingclub', 'upstart', 'oportun', 'avant',
+  ],
+};
+
+const SPAIN: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'mercadona', 'eroski', 'consum', 'alcampo', 'ahorramas', 'bonarea',
+    'gadis', 'froiz', 'condis', 'caprabo', 'masymas', 'coviran',
+    'hipercor', 'supercor', 'family cash',
+    'telepizza', '100 montaditos', 'cien montaditos', 'goiko', 'rodilla',
+    'pans company', 'foster hollywood', 'ginos', 'la tagliatella',
+    'restaurante', 'cafeteria', 'panaderia', 'pasteleria', 'churreria',
+    'marisqueria', 'cerveceria',
+  ],
+  transport: [
+    'renfe', 'alsa', 'avanza bus', 'cabify',
+    'metro madrid', 'metro bilbao', 'metro valencia',
+    'repsol', 'cepsa', 'galp', 'petronor', 'ballenoil', 'plenoil',
+    'aena', 'autopista', 'telepeaje', 'parkimeter', 'elparking',
+  ],
+  boende: [
+    'iberdrola', 'endesa', 'naturgy', 'holaluz', 'som energia',
+    'totalenergies', 'aqualia', 'canal isabel', 'emasesa',
+    'bricomart', 'conforama', 'maisons du monde',
+    'mapfre', 'mutua madrilena', 'axa', 'linea directa', 'verti',
+    'generali', 'zurich seguros', 'catalana occidente', 'santalucia',
+  ],
+  prenumerationer: [
+    'movistar', 'vodafone', 'yoigo', 'masmovil', 'pepephone', 'jazztel',
+    'lowi', 'finetwork', 'simyo', 'orange espagne',
+    'filmin', 'movistar plus', 'dazn',
+    'basic fit', 'altafit', 'viva gym', 'synergym', 'gimnasio',
+  ],
+  personligt: [
+    'primor', 'druni', 'perfumeria', 'farmacia', 'clinica dental',
+    'sanitas', 'adeslas', 'dkv seguros', 'asisa', 'peluqueria',
+    'el corte ingles', 'corte ingles', 'massimo dutti', 'oysho',
+    'springfield', 'cortefiel', 'parfois',
+  ],
+  fritid: [
+    'fnac', 'pccomponentes', 'worten', 'cinesa', 'yelmo cines', 'kinepolis',
+    'ocine', 'entradas com', 'parque warner', 'portaventura',
+    'iberia', 'air europa', 'volotea', 'balearia', 'trasmediterranea',
+    'nh hoteles', 'melia', 'barcelo', 'riu hotels',
+  ],
+  sparande: [
+    'myinvestor', 'indexa capital', 'renta 4', 'openbank',
+  ],
+  lan: [
+    'cofidis', 'cetelem', 'wizink', 'younited', 'creditea', 'hipoteca',
+  ],
+};
+
+/** Everything the sorter knows. Exported so a test can hold all four lists to
+ *  the same rule: no place may be claimed by two different categories. */
 export const SEED: Record<StandardCategoryId, string[]> = Object.fromEntries(
-  STANDARD_CATEGORY_IDS.map(id => [id, [...INTERNATIONAL[id], ...SWEDEN[id]]]),
+  STANDARD_CATEGORY_IDS.map(id => [id, [
+    ...INTERNATIONAL[id], ...SWEDEN[id], ...UNITED_STATES[id], ...SPAIN[id],
+  ]]),
 ) as Record<StandardCategoryId, string[]>;
 
-export { INTERNATIONAL, SWEDEN };
+export { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN };
 
 /**
  * Endings, for the one thing whole-word matching cannot do: Swedish builds

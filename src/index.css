@@ -3853,6 +3853,39 @@ a:focus-visible,
   min-height: 42px;
 }
 .csv-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* The date order, shown with the reading spelled out. Getting it wrong is
+   completely silent, so it gets a line of its own rather than a footnote. */
+.csv-dateorder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.csv-dateorder.is-guess { border-left: 3px solid var(--accent-brand); }
+.csv-dateorder-label { color: var(--text); }
+.csv-dateorder-pick {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  min-height: 34px;
+}
+.csv-dateorder-example { font-variant-numeric: tabular-nums; }
+.csv-dateorder-note { flex-basis: 100%; color: var(--accent-brand); font-size: 0.78rem; }
+.csv-note {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
 /* Pushed to the far end: it is the way back, not a second way forward. */
 .csv-secondary {
   margin-left: auto;
