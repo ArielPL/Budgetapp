@@ -29,9 +29,10 @@
 
 import type { ActualEntry } from './types';
 import type { StorageLike } from './storage';
-import { safeSetItem } from './storageWrite';
+import { applyStorageChanges } from './storageWrite';
 import { isValidMoney } from './money';
 import { budgetMonthOf, type PeriodLocks } from './periodLabel';
+import { isValidIsoDate } from './date';
 
 /** Money IN has no budget category to belong to: income is a list of rows, not
  *  a category. Entries for it carry this id instead. It cannot collide with a
@@ -68,6 +69,7 @@ export const actualsKey = (year: number, month: number): string =>
 /** The year/month an entry belongs to, read from its own date. `month` is the
  *  0-based index the rest of the app uses, so January is 0. */
 export function monthOfEntry(dateISO: string): { year: number; month: number } | null {
+  if (!isValidIsoDate(dateISO)) return null;
   const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateISO);
   if (!m) return null;
   const year = Number(m[1]);
@@ -79,12 +81,31 @@ export function monthOfEntry(dateISO: string): { year: number; month: number } |
 /**
  * What makes two entries "the same transaction".
  *
- * Date, text and amount — deliberately NOT the category. The bank decides what
+ * Date, text, amount and bank direction — deliberately NOT the category. The bank decides what
  * a transaction is; which category you filed it under is your opinion about it,
  * and re-filing the same purchase must not turn it into a second purchase.
  */
-export function fingerprint(e: Pick<ActualEntry, 'date' | 'text' | 'amount'>): string {
+export function fingerprint(
+  e: Pick<ActualEntry, 'date' | 'text' | 'amount' | 'direction'>,
+): string {
+  return `${e.date}|${e.text.trim().toLowerCase()}|${e.amount}|${e.direction ?? ''}`;
+}
+
+/** Fingerprint used only to match records written before bank direction was
+ * stored. A legacy row acts as a one-use wildcard for direction so importing
+ * the same old statement after an upgrade does not duplicate every entry. */
+function legacyFingerprint(
+  e: Pick<ActualEntry, 'date' | 'text' | 'amount'>,
+): string {
   return `${e.date}|${e.text.trim().toLowerCase()}|${e.amount}`;
+}
+
+/** The signed contribution to the category the entry currently belongs to. */
+export function actualContribution(entry: ActualEntry): number {
+  if (!entry.direction || entry.categoryId === TRANSFER_ACTUAL_ID) return entry.amount;
+  const categoryIsIncome = entry.categoryId === INCOME_ACTUAL_ID;
+  const bankIsIncoming = entry.direction === 'in';
+  return categoryIsIncome === bankIsIncoming ? entry.amount : -entry.amount;
 }
 
 /**
@@ -100,16 +121,31 @@ export function fingerprint(e: Pick<ActualEntry, 'date' | 'text' | 'amount'>): s
  */
 export function newEntries(incoming: ActualEntry[], existing: ActualEntry[]): ActualEntry[] {
   const have = new Map<string, number>();
+  const legacyHave = new Map<string, number>();
   for (const e of existing) {
-    const k = fingerprint(e);
-    have.set(k, (have.get(k) ?? 0) + 1);
+    if (e.direction) {
+      const k = fingerprint(e);
+      have.set(k, (have.get(k) ?? 0) + 1);
+    } else {
+      const k = legacyFingerprint(e);
+      legacyHave.set(k, (legacyHave.get(k) ?? 0) + 1);
+    }
   }
   const out: ActualEntry[] = [];
   for (const e of incoming) {
     const k = fingerprint(e);
     const left = have.get(k) ?? 0;
-    if (left > 0) have.set(k, left - 1); // already accounted for — skip this one
-    else out.push(e);
+    if (left > 0) {
+      have.set(k, left - 1); // exact direction already accounted for
+      continue;
+    }
+    const legacyKey = legacyFingerprint(e);
+    const legacyLeft = legacyHave.get(legacyKey) ?? 0;
+    if (legacyLeft > 0) {
+      legacyHave.set(legacyKey, legacyLeft - 1); // pre-direction row: consume once
+      continue;
+    }
+    out.push(e);
   }
   return out;
 }
@@ -121,7 +157,7 @@ export function newEntries(incoming: ActualEntry[], existing: ActualEntry[]): Ac
 export function sumByCategory(entries: ActualEntry[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const e of entries) {
-    out[e.categoryId] = (out[e.categoryId] ?? 0) + e.amount;
+    out[e.categoryId] = (out[e.categoryId] ?? 0) + actualContribution(e);
   }
   return out;
 }
@@ -152,19 +188,11 @@ export function groupEntriesByText(entries: ActualEntry[]): TextTotal[] {
     const key = e.text.trim().toLowerCase();
     const group = byText.get(key) ?? { text: e.text.trim(), count: 0, total: 0 };
     group.count += 1;
-    group.total += e.amount;
+    group.total += actualContribution(e);
     byText.set(key, group);
   }
   return [...byText.values()]
     .sort((a, b) => b.total - a.total || a.text.localeCompare(b.text));
-}
-
-/** Every entry filed under one category, oldest first — what a user sees when
- *  they open a figure to check where it came from. */
-export function entriesFor(entries: ActualEntry[], categoryId: string): ActualEntry[] {
-  return entries
-    .filter(e => e.categoryId === categoryId)
-    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /** Split entries by the month their own date falls in, ready to be written to
@@ -212,6 +240,7 @@ export function isActualEntry(v: unknown): v is ActualEntry {
     // A row that fails this would poison every total it is part of.
     && isValidMoney(e.amount)
     && typeof e.categoryId === 'string' && e.categoryId.length > 0
+    && (e.direction === undefined || e.direction === 'in' || e.direction === 'out')
     && (e.manual === undefined || typeof e.manual === 'boolean');
 }
 
@@ -231,24 +260,6 @@ export function loadActuals(storage: StorageLike, year: number, month: number): 
   } catch {
     return [];
   }
-}
-
-/** Returns whether it was written — a refused write must be reported, never
- *  swallowed, so the app can say the edit is not stored yet (review F4). An
- *  empty month REMOVES its key rather than storing "[]", so deleting the last
- *  entry leaves no trace behind. */
-export function saveActuals(
-  storage: StorageLike,
-  year: number,
-  month: number,
-  entries: ActualEntry[],
-): boolean {
-  const key = actualsKey(year, month);
-  if (entries.length === 0) {
-    storage.removeItem(key);
-    return true;
-  }
-  return safeSetItem(storage, key, JSON.stringify(entries));
 }
 
 // ── Re-filing, when the pay period changes ─────────────────────────────────
@@ -320,18 +331,16 @@ export function planRefile(
 /**
  * Carry out a plan. Returns whether every write went through.
  *
- * Emptied files are written as `[]` rather than removed, so the whole operation
- * is one kind of action: a failed write is a failed write, and running it again
- * finishes the job. Removing a key and failing to write its replacement is the
- * one way this could lose money, and it is not possible here.
+ * Emptied files are written as `[]` rather than removed. Every touched key is
+ * snapshotted first; if one write fails, the earlier writes are restored so a
+ * retry cannot read both the old source and a new destination as two entries.
  */
 export function applyRefile(storage: StorageLike, plan: RefilePlan): boolean {
-  let ok = true;
-  for (const b of plan.buckets.values()) {
-    if (!saveActuals(storage, b.year, b.month, b.entries)) ok = false;
-  }
-  for (const key of plan.emptied) {
-    if (!safeSetItem(storage, key, '[]')) ok = false;
-  }
-  return ok;
+  return applyStorageChanges(storage, [
+    ...[...plan.buckets.entries()].map(([key, bucket]) => ({
+      key,
+      value: JSON.stringify(bucket.entries),
+    })),
+    ...plan.emptied.map(key => ({ key, value: '[]' })),
+  ]);
 }

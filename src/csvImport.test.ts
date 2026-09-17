@@ -255,6 +255,9 @@ describe('two-digit years', () => {
   it('still rejects an impossible date', () => {
     expect(parseDate('31.13.26')).toBeNull();
     expect(parseDate('32.01.26')).toBeNull();
+    expect(parseDate('2026-02-31')).toBeNull();
+    expect(parseDate('29.02.2026')).toBeNull();
+    expect(parseDate('29.02.2028')).toBe('2028-02-29');
   });
 });
 
@@ -570,6 +573,13 @@ describe('groupByText — a hundred rows, thirty decisions', () => {
     const gs = groupByText([row('Lön', 32596), row('ICA', -100)], '(utan text)');
     expect(gs.find(g => g.text === 'Lön')!.incoming).toBe(true);
     expect(gs.find(g => g.text === 'ICA')!.incoming).toBe(false);
+  });
+
+  it('keeps a refund separate from purchases at the same place', () => {
+    const gs = groupByText([row('ICA', -100), row('ICA', 20)], '(utan text)');
+    expect(gs).toHaveLength(2);
+    expect(gs.map(g => ({ total: g.total, incoming: g.incoming })))
+      .toEqual([{ total: -100, incoming: false }, { total: 20, incoming: true }]);
   });
 
   it('gives rows with no description somewhere to go', () => {

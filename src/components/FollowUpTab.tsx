@@ -4,10 +4,11 @@ import { generateId, shownName, loadMonthData } from '../defaults';
 import { categoryTotal, calculateBudgetMetrics } from '../metrics';
 import { parseMoneyOrZero } from '../money';
 import {
-  loadActuals, saveActuals, sumByCategory, entriesFor, groupByMonth,
-  groupEntriesByText, isBucketId,
+  actualsKey, loadActuals, sumByCategory, groupByMonth,
+  actualContribution, groupEntriesByText, isBucketId,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
+import { applyStorageChanges } from '../storageWrite';
 import { spanMonths, SPANS, isSpan, type Span } from '../span';
 import { rememberCategoryRule } from '../categorise';
 import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
@@ -15,6 +16,7 @@ import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth } from './CsvImport';
 import type { ActualEntry, BudgetCategory } from '../types';
+import { isValidIsoDate } from '../date';
 
 // ── Follow-up — what the plan said, next to what happened ──────────────────
 //
@@ -62,6 +64,12 @@ interface RowSpec {
   planned: number;
 }
 
+/** "YYYY-MM-DD" from a LOCAL date. toISOString can return the previous day. */
+const isoLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const NO_ENTRIES: ActualEntry[] = [];
+
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
   periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory,
@@ -73,6 +81,10 @@ export const FollowUpTab = ({
   // "how did September go" and should not quietly replace it.
   const [span, setSpan] = useState<Span>(1);
   const months = useMemo(() => spanMonths(year, month, span), [year, month, span]);
+  const activeRange = useMemo(
+    () => periodRange(year, month, periodStartDay ?? 1, periodLocks),
+    [year, month, periodStartDay, periodLocks],
+  );
   const [entries, setEntries] = useState<ActualEntry[]>(() => loadActuals(appStorage, year, month));
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -91,11 +103,22 @@ export const FollowUpTab = ({
   // comparison — they are "where is the money going", and two extra columns of
   // budget only get in the way of the answer.
   const [showPlan, setShowPlan] = useState(true);
+  /** Raw values last loaded for the months in view. A comparison before writing
+   *  catches another tab even if its storage event has not reached us yet. */
+  const storageBaseline = useRef(new Map<string, string | null>());
 
-  /** "YYYY-MM-DD" from a LOCAL date — toISOString would hand back the previous
-   *  evening in Stockholm and pin the period a day early. */
-  const isoLocal = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const reloadEntries = useCallback(() => {
+    const next: ActualEntry[] = [];
+    const baseline = new Map<string, string | null>();
+    for (const m of months) {
+      const key = actualsKey(m.year, m.month);
+      try { baseline.set(key, appStorage.getItem(key)); }
+      catch { baseline.set(key, null); }
+      next.push(...loadActuals(appStorage, m.year, m.month));
+    }
+    storageBaseline.current = baseline;
+    setEntries(next);
+  }, [months]);
 
   // Reload when the month changes. Writes happen explicitly on each edit below,
   // never from an effect watching state — which is what makes the month-switch
@@ -103,29 +126,84 @@ export const FollowUpTab = ({
   // is no save effect that could fire with the previous month's entries still
   // in scope.
   useEffect(() => {
-    setEntries(months.flatMap(m => loadActuals(appStorage, m.year, m.month)));
+    reloadEntries();
     // The summary belongs to the month it was made in. Once you have moved —
     // not least by following its own "show August" button — it has been read.
     setToast(null);
-  }, [months]);
+  }, [reloadEntries]);
 
-  const persist = useCallback((next: ActualEntry[]) => {
-    setEntries(next);
+  // A storage event is sent to OTHER tabs. Reload immediately: every completed
+  // edit is already stored, so there is no local in-memory transaction to lose.
+  useEffect(() => {
+    const keys = new Set(months.map(m => actualsKey(m.year, m.month)));
+    const onStorage = (event: StorageEvent) => {
+      if (!event.key || !keys.has(event.key)) return;
+      reloadEntries();
+      setToast({ text: t.followUpExternalReloaded, months: [] });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [months, reloadEntries, t.followUpExternalReloaded]);
+
+  const persist = useCallback((next: ActualEntry[]): boolean => {
+    // The event above is asynchronous. Compare the raw values as well, so an
+    // edit can never knowingly overwrite a newer version already in storage.
+    let changedElsewhere: boolean;
+    try {
+      changedElsewhere = months.some(m => {
+        const key = actualsKey(m.year, m.month);
+        return appStorage.getItem(key) !== storageBaseline.current.get(key);
+      });
+    } catch {
+      onSaveFailed();
+      return false;
+    }
+    if (changedElsewhere) {
+      reloadEntries();
+      setToast({ text: t.followUpExternalReloaded, months: [] });
+      return false;
+    }
+
     // Written back per BUDGET MONTH, not to "the month on screen": over a span
     // the entries in hand come from several files and each has to go home to
     // its own. Every month in view is written, empty ones included, or a
     // deletion that emptied a month would appear to have been undone on the
     // next load.
-    const { months: byMonth } = groupByMonth(next, periodStartDay, periodLocks);
-    let ok = true;
-    for (const m of months) {
-      const bucket = byMonth.get(`${m.year}_${m.month}`);
-      if (!saveActuals(appStorage, m.year, m.month, bucket?.entries ?? [])) ok = false;
+    const { months: byMonth, undated } = groupByMonth(next, periodStartDay, periodLocks);
+    if (undated.length > 0) {
+      onSaveFailed();
+      return false;
     }
-    if (!ok) onSaveFailed();
-  }, [months, periodStartDay, periodLocks, onSaveFailed]);
+    const changes = months.map(m => {
+      const bucket = byMonth.get(`${m.year}_${m.month}`);
+      return {
+        key: actualsKey(m.year, m.month),
+        value: bucket?.entries.length ? JSON.stringify(bucket.entries) : null,
+      };
+    });
+    if (!applyStorageChanges(appStorage, changes)) {
+      onSaveFailed();
+      return false;
+    }
+    setEntries(next);
+    storageBaseline.current = new Map(changes.map(change => [change.key, change.value]));
+    return true;
+  }, [months, periodStartDay, periodLocks, onSaveFailed, reloadEntries, t.followUpExternalReloaded]);
 
   const sums = useMemo(() => sumByCategory(entries), [entries]);
+
+  // Each entry is indexed once. The old render path scanned the full list once
+  // per category, which became noticeable after large statement imports.
+  const entriesByCategory = useMemo(() => {
+    const indexed = new Map<string, ActualEntry[]>();
+    for (const entry of entries) {
+      const list = indexed.get(entry.categoryId);
+      if (list) list.push(entry);
+      else indexed.set(entry.categoryId, [entry]);
+    }
+    for (const list of indexed.values()) list.sort((a, b) => a.date.localeCompare(b.date));
+    return indexed;
+  }, [entries]);
 
   /** The entries behind one grouped place, matched the way the grouping matched
    *  them, so an opened place can never show a different set than it counted. */
@@ -183,8 +261,9 @@ export const FollowUpTab = ({
   }, [rows, showPlan, sums]);
 
   const addEntry = (categoryId: string, date: string, text: string, amount: number) => {
-    persist([...entries, { id: generateId(), date, text, amount, categoryId, manual: true }]);
-    setAddingTo(null);
+    if (persist([...entries, { id: generateId(), date, text, amount, categoryId, manual: true }])) {
+      setAddingTo(null);
+    }
   };
 
   const deleteEntry = (id: string) => {
@@ -210,14 +289,16 @@ export const FollowUpTab = ({
    * Learned like a correction in the import, because it IS one — the next
    * statement puts that place straight into the category you chose here.
    */
-  const movePlace = (place: string, categoryId: string) => {
-    if (!categoryId) return;
+  const movePlace = (place: string, categoryId: string): boolean => {
+    if (!categoryId) return false;
     const key = place.trim().toLowerCase();
-    persist(entries.map(e => (
+    const saved = persist(entries.map(e => (
       e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
     )));
+    if (!saved) return false;
     rememberCategoryRule(appStorage, place, categoryId);
     setOpenPlace(null);
+    return true;
   };
 
   /** Create the category the user is naming and file the place into it. The
@@ -227,9 +308,10 @@ export const FollowUpTab = ({
     const name = newCatName.trim();
     if (!name) return;
     const id = onCreateNamedCategory(name, months);
-    movePlace(place, id);
-    setNamingPlace(null);
-    setNewCatName('');
+    if (movePlace(place, id)) {
+      setNamingPlace(null);
+      setNewCatName('');
+    }
   };
 
   /** Empty the month's record in one go. The way back from an import of the
@@ -241,9 +323,10 @@ export const FollowUpTab = ({
     const n = entries.length;
     if (n === 0) return;
     if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
-    persist([]);
-    setOpenRow(null);
-    setToast({ text: t.followUpClearDone(n), months: [] });
+    if (persist([])) {
+      setOpenRow(null);
+      setToast({ text: t.followUpClearDone(n), months: [] });
+    }
   };
 
   // Entries whose category this month's budget does not have. It happens more
@@ -258,10 +341,10 @@ export const FollowUpTab = ({
     // A bucket is not a category that went missing — it has its own row.
     return Object.keys(sums).filter(id => !known.has(id) && !isBucketId(id));
   }, [sums, categories]);
-  const orphanEntries = useMemo(
-    () => entries.filter(e => orphanIds.includes(e.categoryId)),
-    [entries, orphanIds],
-  );
+  const orphanEntries = useMemo(() => {
+    const ids = new Set(orphanIds);
+    return entries.filter(e => ids.has(e.categoryId));
+  }, [entries, orphanIds]);
   const orphanTotal = orphanIds.reduce((s, id) => s + (sums[id] ?? 0), 0);
 
   const plannedOut = categories.reduce((s, c) => s + (planned.perCategory[c.id] ?? 0), 0);
@@ -306,7 +389,7 @@ export const FollowUpTab = ({
    *  drift apart in how they list, sum or let you correct what they hold. */
   const renderRow = (row: RowSpec) => {
     const open = openRow === row.id;
-    const mine = entriesFor(entries, row.id);
+    const mine = entriesByCategory.get(row.id) ?? NO_ENTRIES;
     const isBucket = row.id === UNSORTED_ACTUAL_ID || row.id === TRANSFER_ACTUAL_ID;
     return (
       <div className={`followup-row-wrap${open ? ' is-open' : ''}`} key={row.id}>
@@ -447,6 +530,8 @@ export const FollowUpTab = ({
               <AddEntryForm
                 year={year}
                 month={month}
+                minDate={isoLocal(activeRange.from)}
+                maxDate={isoLocal(activeRange.to)}
                 onCancel={() => setAddingTo(null)}
                 onAdd={(date, text, amount) => addEntry(row.id, date, text, amount)}
               />
@@ -585,7 +670,7 @@ export const FollowUpTab = ({
             setToast({ text: summary, months });
             // Re-read rather than merge in memory: the import may have written
             // to months this view is not showing, and storage is the truth.
-            setEntries(loadActuals(appStorage, year, month));
+            reloadEntries();
           }}
         />
       )}
@@ -593,7 +678,6 @@ export const FollowUpTab = ({
       {entries.length === 0 && (
         <div className="followup-empty">
           <p>{t.followUpEmptyBody}</p>
-          <p className="followup-empty-soon">{t.followUpEmptySoon}</p>
         </div>
       )}
 
@@ -649,7 +733,12 @@ export const FollowUpTab = ({
                   <div className="followup-entry" key={e.id}>
                     <span className="followup-entry-date">{e.date.slice(5)}</span>
                     <span className="followup-entry-text">{e.text}</span>
-                    <EntryAmount value={e.amount} onChange={v => setAmount(e.id, v)} label={e.text} />
+                    <EntryAmount
+                      value={e.amount}
+                      displayValue={actualContribution(e)}
+                      onChange={v => setAmount(e.id, v)}
+                      label={e.text}
+                    />
                     <button
                       className="followup-delete"
                       onClick={() => deleteEntry(e.id)}
@@ -696,7 +785,12 @@ const EntryRow = ({ entry, nested, onAmount, onDelete, manualLabel, deleteLabel 
       {entry.text}
       {entry.manual && <span className="followup-manual">{manualLabel}</span>}
     </span>
-    <EntryAmount value={entry.amount} onChange={onAmount} label={entry.text} />
+    <EntryAmount
+      value={entry.amount}
+      displayValue={actualContribution(entry)}
+      onChange={onAmount}
+      label={entry.text}
+    />
     <button className="followup-delete" onClick={onDelete} aria-label={deleteLabel}>✕</button>
   </div>
 );
@@ -704,8 +798,8 @@ const EntryRow = ({ entry, nested, onAmount, onDelete, manualLabel, deleteLabel 
 /** An entry's amount, editable in place. Reuses the app's money input so the
  *  same rejection rules apply here as everywhere else — 1e309 and a four-hundred
  *  digit number are refused rather than quietly rewritten. */
-const EntryAmount = ({ value, onChange, label }: {
-  value: number; onChange: (v: number) => void; label: string;
+const EntryAmount = ({ value, displayValue, onChange, label }: {
+  value: number; displayValue: number; onChange: (v: number) => void; label: string;
 }) => {
   const { money } = useLang();
   const [editing, setEditing] = useState(false);
@@ -720,7 +814,7 @@ const EntryAmount = ({ value, onChange, label }: {
         className="followup-entry-amount"
         onClick={() => { setDraft(String(value)); setError(false); setEditing(true); }}
         aria-label={label}
-      >{money(value)}</button>
+      >{money(displayValue)}</button>
     );
   }
   const commit = () => {
@@ -747,9 +841,11 @@ const EntryAmount = ({ value, onChange, label }: {
 
 /** Date, text and amount. The category is not asked for — the form opens inside
  *  the category it belongs to, so the entry cannot land somewhere unexpected. */
-const AddEntryForm = ({ year, month, onAdd, onCancel }: {
+const AddEntryForm = ({ year, month, minDate, maxDate, onAdd, onCancel }: {
   year: number;
   month: number;
+  minDate: string;
+  maxDate: string;
   onAdd: (date: string, text: string, amount: number) => void;
   onCancel: () => void;
 }) => {
@@ -757,7 +853,11 @@ const AddEntryForm = ({ year, month, onAdd, onCancel }: {
   // Defaults to the FIRST of the month being viewed, not today: an entry filed
   // from the September tab belongs to September even if it is typed in November.
   const pad = (n: number) => String(n).padStart(2, '0');
-  const [date, setDate] = useState(`${year}-${pad(month + 1)}-01`);
+  const firstOfMonth = `${year}-${pad(month + 1)}-01`;
+  const initialDate = firstOfMonth < minDate
+    ? minDate
+    : (firstOfMonth > maxDate ? maxDate : firstOfMonth);
+  const [date, setDate] = useState(initialDate);
   const [text, setText] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -766,14 +866,18 @@ const AddEntryForm = ({ year, month, onAdd, onCancel }: {
     const r = parseMoneyOrZero(amount);
     if (!r.ok || r.value <= 0) { setError(t.followUpBadAmount); return; }
     if (!text.trim()) { setError(t.followUpBadText); return; }
+    if (!isValidIsoDate(date) || date < minDate || date > maxDate) {
+      setError(t.followUpBadDate);
+      return;
+    }
     onAdd(date, text.trim(), r.value);
   };
 
   return (
     <div className="followup-form">
       <input
-        type="date" className="followup-form-date" value={date}
-        onChange={e => setDate(e.target.value)} aria-label={t.followUpDate}
+        type="date" className="followup-form-date" value={date} min={minDate} max={maxDate}
+        onChange={e => { setDate(e.target.value); setError(null); }} aria-label={t.followUpDate}
       />
       <input
         className="followup-form-text" value={text} placeholder={t.followUpText}

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  fingerprint, newEntries, sumByCategory, entriesFor,
+  actualContribution, fingerprint, newEntries, sumByCategory,
   monthOfEntry, groupByMonth, actualsKey, INCOME_ACTUAL_ID,
   UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID, isBucketId,
-  isActualEntry, loadActuals, saveActuals, planRefile, applyRefile, groupEntriesByText,
+  isActualEntry, loadActuals, planRefile, applyRefile, groupEntriesByText,
 } from './actuals';
 import type { ActualEntry } from './types';
 import type { StorageLike } from './storage';
@@ -12,6 +12,10 @@ const e = (
   id: string, date: string, text: string, amount: number,
   categoryId = 'mat', manual = false,
 ): ActualEntry => ({ id, date, text, amount, categoryId, ...(manual ? { manual: true } : {}) });
+
+const storeActuals = (
+  storage: StorageLike, year: number, month: number, entries: ActualEntry[],
+) => storage.setItem(actualsKey(year, month), JSON.stringify(entries));
 
 describe('fingerprint — what makes two rows the same transaction', () => {
   it('is date, text and amount', () => {
@@ -37,6 +41,12 @@ describe('fingerprint — what makes two rows the same transaction', () => {
     expect(fingerprint(e('a', '2026-09-02', 'ICA', 842)))
       .not.toBe(fingerprint(e('b', '2026-09-02', 'ICA', 842.5)));
   });
+
+  it('separates money in from money out at the same place and amount', () => {
+    const base = e('a', '2026-09-02', 'ICA', 100);
+    expect(fingerprint({ ...base, direction: 'in' }))
+      .not.toBe(fingerprint({ ...base, direction: 'out' }));
+  });
 });
 
 describe('newEntries — counts, never merely matches', () => {
@@ -50,6 +60,36 @@ describe('newEntries — counts, never merely matches', () => {
     const file = [e('1', '2026-09-02', 'ICA', 842), e('2', '2026-09-03', 'SL', 390)];
     const stored = [e('x', '2026-09-02', 'ICA', 842), e('y', '2026-09-03', 'SL', 390)];
     expect(newEntries(file, stored)).toEqual([]);
+  });
+
+  it('does not duplicate legacy rows imported before bank direction was stored', () => {
+    const storedBeforeUpgrade = [e('old', '2026-09-02', 'ICA Maxi', 842)];
+    const sameRowAfterUpgrade = [{
+      ...e('new', '2026-09-02', 'ICA Maxi', 842),
+      direction: 'out' as const,
+    }];
+    expect(newEntries(sameRowAfterUpgrade, storedBeforeUpgrade)).toEqual([]);
+  });
+
+  it('uses each legacy row once when the new file contains repeated purchases', () => {
+    const storedBeforeUpgrade = [e('old', '2026-09-02', 'Espresso House', 45)];
+    const fileAfterUpgrade = [
+      { ...e('new-1', '2026-09-02', 'Espresso House', 45), direction: 'out' as const },
+      { ...e('new-2', '2026-09-02', 'Espresso House', 45), direction: 'out' as const },
+    ];
+    expect(newEntries(fileAfterUpgrade, storedBeforeUpgrade)).toHaveLength(1);
+  });
+
+  it('keeps an opposite-direction row once both records know their direction', () => {
+    const storedPurchase = [{
+      ...e('purchase', '2026-09-02', 'ICA Maxi', 100),
+      direction: 'out' as const,
+    }];
+    const incomingRefund = [{
+      ...e('refund', '2026-09-02', 'ICA Maxi', 100),
+      direction: 'in' as const,
+    }];
+    expect(newEntries(incomingRefund, storedPurchase)).toEqual(incomingRefund);
   });
 
   it('keeps a genuine second identical purchase', () => {
@@ -122,23 +162,25 @@ describe('sumByCategory', () => {
     expect(sums.mat).toBe(842);
   });
 
+  it('subtracts an incoming refund from an expense category', () => {
+    const purchase = { ...e('1', '2026-09-02', 'ICA', 100, 'mat'), direction: 'out' as const };
+    const refund = { ...e('2', '2026-09-03', 'ICA', 20, 'mat'), direction: 'in' as const };
+    expect(actualContribution(purchase)).toBe(100);
+    expect(actualContribution(refund)).toBe(-20);
+    expect(sumByCategory([purchase, refund]).mat).toBe(80);
+    expect(groupEntriesByText([purchase, refund])[0].total).toBe(80);
+  });
+
+  it('keeps an incoming bank row positive when filed as income', () => {
+    const salary = {
+      ...e('1', '2026-09-25', 'Lön', 32596, INCOME_ACTUAL_ID),
+      direction: 'in' as const,
+    };
+    expect(actualContribution(salary)).toBe(32596);
+  });
+
   it('is empty for no entries at all', () => {
     expect(sumByCategory([])).toEqual({});
-  });
-});
-
-describe('entriesFor', () => {
-  it('returns one category, oldest first', () => {
-    const all = [
-      e('1', '2026-09-15', 'Willys', 1893, 'mat'),
-      e('2', '2026-09-02', 'ICA', 842, 'mat'),
-      e('3', '2026-09-01', 'Hyra', 8801, 'boende'),
-    ];
-    expect(entriesFor(all, 'mat').map(x => x.id)).toEqual(['2', '1']);
-  });
-
-  it('returns nothing for a category with no entries', () => {
-    expect(entriesFor([e('1', '2026-09-02', 'ICA', 842, 'mat')], 'transport')).toEqual([]);
   });
 });
 
@@ -211,7 +253,6 @@ class FakeStorage {
     this.map.set(k, v);
   }
   removeItem(k: string) { this.map.delete(k); }
-  has(k: string) { return this.map.has(k); }
 }
 
 describe('isActualEntry — storage may hold anything', () => {
@@ -232,11 +273,17 @@ describe('isActualEntry — storage may hold anything', () => {
   it('rejects a date it could never file into a month', () => {
     expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), date: '24/09/2026' })).toBe(false);
     expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), date: '' })).toBe(false);
+    expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), date: '2026-02-31' })).toBe(false);
   });
 
   it('rejects missing identity or category', () => {
     expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), id: '' })).toBe(false);
     expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), categoryId: '' })).toBe(false);
+  });
+
+  it('accepts a known bank direction and rejects unknown values', () => {
+    expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), direction: 'out' })).toBe(true);
+    expect(isActualEntry({ ...e('1', '2026-09-02', 'ICA', 842), direction: 'sideways' })).toBe(false);
   });
 
   it('rejects things that are not entries at all', () => {
@@ -253,7 +300,7 @@ describe('loadActuals', () => {
 
   it('reads back what was written', () => {
     const s = new FakeStorage();
-    saveActuals(s, 2026, 8, [e('1', '2026-09-02', 'ICA', 842)]);
+    storeActuals(s, 2026, 8, [e('1', '2026-09-02', 'ICA', 842)]);
     expect(loadActuals(s, 2026, 8).map(x => x.id)).toEqual(['1']);
   });
 
@@ -277,32 +324,6 @@ describe('loadActuals', () => {
   });
 });
 
-describe('saveActuals', () => {
-  it('reports success, and failure when storage refuses', () => {
-    const s = new FakeStorage();
-    expect(saveActuals(s, 2026, 8, [e('1', '2026-09-02', 'ICA', 842)])).toBe(true);
-    s.failOnKey = actualsKey(2026, 8);
-    expect(saveActuals(s, 2026, 8, [e('2', '2026-09-03', 'SL', 390)])).toBe(false);
-  });
-
-  it('leaves no key behind when the last entry is deleted', () => {
-    // An empty month should look untouched, not like a month recorded as empty.
-    const s = new FakeStorage();
-    saveActuals(s, 2026, 8, [e('1', '2026-09-02', 'ICA', 842)]);
-    expect(s.has(actualsKey(2026, 8))).toBe(true);
-    expect(saveActuals(s, 2026, 8, [])).toBe(true);
-    expect(s.has(actualsKey(2026, 8))).toBe(false);
-  });
-
-  it('does not damage what was stored when a write fails', () => {
-    const s = new FakeStorage();
-    saveActuals(s, 2026, 8, [e('1', '2026-09-02', 'ICA', 842)]);
-    s.failOnKey = actualsKey(2026, 8);
-    expect(saveActuals(s, 2026, 8, [e('2', '2026-09-03', 'SL', 390)])).toBe(false);
-    expect(loadActuals(s, 2026, 8).map(x => x.id)).toEqual(['1']);
-  });
-});
-
 // ── Re-filing when the pay period changes ──────────────────────────────────
 
 describe('planRefile / applyRefile', () => {
@@ -312,13 +333,13 @@ describe('planRefile / applyRefile', () => {
   /** August and September as a calendar-filed store would hold them. */
   const seeded = (): StorageLike => {
     const s = new FakeStorage();
-    saveActuals(s, 2026, 7, [            // August
+    storeActuals(s, 2026, 7, [            // August
       entry('2026-08-10', 'ICA', 100),
       entry('2026-08-24', 'Lön', 32596),  // last day of Ariel's August period
       entry('2026-08-25', 'Hyra', 5877),  // turnover day — belongs to September
       entry('2026-08-31', 'TEMPO', 24),
     ]);
-    saveActuals(s, 2026, 8, [            // September
+    storeActuals(s, 2026, 8, [            // September
       entry('2026-09-02', 'TEMPO', 23),
     ]);
     return s;
@@ -371,7 +392,7 @@ describe('planRefile / applyRefile', () => {
   it('empties a file rather than removing it, so a half-done run is repairable', () => {
     const s = new FakeStorage();
     // One month whose every entry moves away.
-    saveActuals(s, 2026, 7, [entry('2026-08-25', 'Hyra', 5877)]);
+    storeActuals(s, 2026, 7, [entry('2026-08-25', 'Hyra', 5877)]);
     const plan = planRefile(s, 25);
     expect(plan.emptied).toEqual(['budget_actuals_2026_7']);
     applyRefile(s, plan);
@@ -383,10 +404,29 @@ describe('planRefile / applyRefile', () => {
     const s = seeded();
     const plan = planRefile(s, 25);
     const full: StorageLike = {
-      ...s,
+      get length() { return s.length; },
+      key: i => s.key(i),
+      getItem: key => s.getItem(key),
       setItem: () => { throw new DOMException('quota', 'QuotaExceededError'); },
+      removeItem: key => s.removeItem(key),
     };
     expect(applyRefile(full, plan)).toBe(false);
+  });
+
+  it('rolls back every month when a later write fails, so retry cannot duplicate', () => {
+    const s = new FakeStorage();
+    storeActuals(s, 2026, 7, [entry('2026-08-25', 'Hyra', 5877)]);
+    const plan = planRefile(s, 25);
+    s.failOnKey = actualsKey(2026, 7); // destination lands, clearing source fails
+
+    expect(applyRefile(s, plan)).toBe(false);
+    expect(loadActuals(s, 2026, 7)).toHaveLength(1);
+    expect(loadActuals(s, 2026, 8)).toHaveLength(0);
+
+    s.failOnKey = null;
+    expect(applyRefile(s, planRefile(s, 25))).toBe(true);
+    expect(loadActuals(s, 2026, 7)).toHaveLength(0);
+    expect(loadActuals(s, 2026, 8)).toHaveLength(1);
   });
 
   it('has nothing to do on an empty store', () => {

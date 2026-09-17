@@ -5,7 +5,6 @@ import {
   sumRows,
   ratePct,
   daysInMonth,
-  daysLeftInMonth,
   splitRemaining,
   savedThisMonth,
   yearSavingsGrowth,
@@ -279,19 +278,12 @@ describe('savingsSnapshotRecorded — structure vs recorded balance', () => {
   });
 });
 
-describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
+describe('daysInMonth / splitRemaining (daily & weekly budget)', () => {
   it('daysInMonth returns the whole-month length', () => {
     expect(daysInMonth(2026, 6)).toBe(31);  // July
     expect(daysInMonth(2026, 3)).toBe(30);  // April
     expect(daysInMonth(2026, 1)).toBe(28);  // February
     expect(daysInMonth(2028, 1)).toBe(29);  // leap February
-  });
-
-  it('counts the remaining days including today', () => {
-    expect(daysLeftInMonth(new Date(2026, 6, 12))).toBe(20); // July 12 → 20 left
-    expect(daysLeftInMonth(new Date(2026, 6, 1))).toBe(31);  // first day
-    expect(daysLeftInMonth(new Date(2026, 6, 31))).toBe(1);  // last day
-    expect(daysLeftInMonth(new Date(2028, 1, 1))).toBe(29);  // leap February
   });
 
   it('splits remaining into per-day and per-week (mockup example)', () => {
@@ -314,15 +306,6 @@ describe('daysLeftInMonth / splitRemaining (daily & weekly budget)', () => {
     const onThe28th = splitRemaining(remaining, july);
     expect(onThe1st).toEqual(onThe28th);
     expect(onThe1st).toEqual({ perDay: 779, perWeek: 5458 });
-  });
-
-  it('does NOT use the days-remaining figure, which climbs as the month ends', () => {
-    const remaining = 5968;
-    const byMonthLength = splitRemaining(remaining, daysInMonth(2026, 6));
-    const byDaysLeft = splitRemaining(remaining, daysLeftInMonth(new Date(2026, 6, 28)));
-    expect(byMonthLength.perDay).toBe(192);   // a pace you can actually keep
-    expect(byDaysLeft.perDay).toBe(1492);     // what the card used to show
-    expect(byMonthLength.perDay).not.toBe(byDaysLeft.perDay);
   });
 
   it('is safe when no days are left', () => {

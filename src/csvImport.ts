@@ -17,6 +17,8 @@
 // Pure and DOM-free so every format quirk below can be pinned down in a test
 // rather than discovered by a user with a broken statement.
 
+import { isValidIsoDate } from './date';
+
 /** What a column holds. 'skip' is explicit rather than absent: a user who
  *  deliberately ignored a column should see that decision preserved. */
 export type ColumnRole = 'date' | 'text' | 'amount' | 'in' | 'out' | 'skip';
@@ -227,10 +229,8 @@ export function parseDate(raw: string, order: DateOrder = 'dmy'): string | null 
   const s = raw.trim();
   const pad = (n: string) => n.padStart(2, '0');
   const ok = (y: string, m: string, d: string): string | null => {
-    const mi = Number(m);
-    const di = Number(d);
-    if (mi < 1 || mi > 12 || di < 1 || di > 31) return null;
-    return `${y}-${pad(m)}-${pad(d)}`;
+    const iso = `${y}-${pad(m)}-${pad(d)}`;
+    return isValidIsoDate(iso) ? iso : null;
   };
   let m: RegExpExecArray | null;
   if ((m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s))) return ok(m[1], m[2], m[3]);
@@ -487,15 +487,21 @@ export interface TextGroup {
  * amounts to actuals.ts alone — see rowSumGuard.test.ts.
  */
 export function groupByText(rows: ParsedRow[], untitled: string): TextGroup[] {
-  const byText = new Map<string, ParsedRow[]>();
+  const byText = new Map<string, { text: string; incoming: boolean; rows: ParsedRow[] }>();
   for (const r of rows) {
-    const key = r.text || untitled;
-    byText.set(key, [...(byText.get(key) ?? []), r]);
+    const text = r.text || untitled;
+    const incoming = r.amount > 0;
+    // A refund and a purchase from the same place must remain separate choices.
+    // Otherwise their net preview is later expanded into two positive expenses.
+    const key = `${text}\u0000${incoming ? 'in' : 'out'}`;
+    const group = byText.get(key);
+    if (group) group.rows.push(r);
+    else byText.set(key, { text, incoming, rows: [r] });
   }
-  return [...byText.entries()]
-    .map(([text, rs]) => {
-      const total = rs.reduce((sum, r) => sum + r.amount, 0);
-      return { text, rows: rs, total, incoming: total > 0 };
+  return [...byText.values()]
+    .map(({ text, incoming, rows: groupedRows }) => {
+      const total = groupedRows.reduce((sum, r) => sum + r.amount, 0);
+      return { text, rows: groupedRows, total, incoming };
     })
     .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
 }

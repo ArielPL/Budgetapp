@@ -78,9 +78,12 @@ export interface ActualEntry {
   /** The bank's own wording, or what the user typed. Kept verbatim: it is what
    *  makes a transaction recognisable, and what the sorting learns from. */
   text: string;
-  /** Positive kronor, matching how budget rows are stored — the sign lives in
-   *  `categoryId` (income vs an expense category), not in the number. */
+  /** Positive kronor, matching how budget rows are stored. */
   amount: number;
+  /** Direction in the bank file. Optional for old and hand-written entries;
+   *  those keep the category-based behaviour they have always had. Keeping the
+   *  direction lets a refund reduce an expense even after it is re-categorised. */
+  direction?: 'in' | 'out';
   /** An expense category's id, or INCOME_ACTUAL_ID for money coming in. */
   categoryId: string;
   /** Typed by hand rather than imported. Shown to the user, because a bank

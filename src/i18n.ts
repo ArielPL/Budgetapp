@@ -233,8 +233,9 @@ export interface Translations {
   followUpCancel: string;
   followUpBadAmount: string;
   followUpBadText: string;
+  followUpBadDate: string;
+  followUpExternalReloaded: string;
   followUpEmptyBody: string;
-  followUpEmptySoon: string;
   followUpImport: string;
   csvTitle: string;
   csvDropLead: string;
@@ -256,7 +257,6 @@ export interface Translations {
   csvReviewLead: (rows: number, groups: number) => string;
   csvSkipped: (n: number) => string;
   csvRows: (n: number) => string;
-  csvChoose: string;
   csvImportN: (n: number) => string;
   csvUnassigned: (n: number) => string;
   csvDoneAdded: (n: number) => string;
@@ -274,7 +274,6 @@ export interface Translations {
   followUpSpanAria: string;
   followUpSpanRange: (from: string, to: string) => string;
   followUpSpanNoBudget: (n: number) => string;
-  followUpGroupedHint: string;
   followUpAdjustPeriod: string;
   followUpOnlyActuals: string;
   followUpUnsorted: string;
@@ -323,7 +322,6 @@ export interface Translations {
   // Copy confirmations — every copy path names its target before overwriting.
   copyOverwriteOne: (target: string, source: string) => string;
   copyOverwriteMany: (n: number) => string;
-  copyNothingToDo: string;
   // Pay-period label under the month heading. Purely descriptive.
   periodSection: string;
   periodStartDay: string;
@@ -563,6 +561,11 @@ export interface Translations {
   goalNameLabel: string;
   createGoal: string;
   cancel: string;
+  privacyTitle: string;
+  /** Paragraphs; a line beginning "## " is a heading. */
+  privacyBody: string[];
+  privacyUpdated: string;
+  privacyClose: string;
   goalErrorName: string;
   /** One message per real problem — "must be greater than 0" was shown for
    *  unparseable input too, which described the wrong mistake. */
@@ -708,8 +711,9 @@ export const translations: Record<Lang, Translations> = {
     followUpCancel: 'Avbryt',
     followUpBadAmount: 'Skriv ett belopp större än noll.',
     followUpBadText: 'Skriv vad posten gällde.',
+    followUpBadDate: 'Välj ett datum inom månaden som visas.',
+    followUpExternalReloaded: 'Utfallet ändrades i en annan flik. Den senaste versionen har lästs in — gör din ändring igen om det behövs.',
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
-    followUpEmptySoon: 'Snart kan du hämta ditt kontoutdrag som fil från banken i stället för att skriva in posterna själv.',
     followUpImport: 'Importera kontoutdrag',
     csvTitle: 'Importera kontoutdrag',
     csvDropLead: 'Släpp din fil här',
@@ -731,7 +735,6 @@ export const translations: Record<Lang, Translations> = {
     csvReviewLead: (rows, groups) => `${rows} transaktioner, ${groups} olika ställen. Välj kategori per ställe.`,
     csvSkipped: (n) => `${n} rader kunde inte läsas och hoppas över.`,
     csvRows: (n) => (n === 1 ? '1 post' : `${n} poster`),
-    csvChoose: 'Välj kategori',
     csvImportN: (n) => `Importera ${n} poster`,
     csvUnassigned: (n) => `${n} utan kategori importeras inte.`,
     csvDoneAdded: (n) => (n === 1 ? '1 post importerad' : `${n} poster importerade`),
@@ -749,7 +752,6 @@ export const translations: Record<Lang, Translations> = {
     followUpSpanAria: 'Hur många månader som visas',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
     followUpSpanNoBudget: (n) => (n === 1 ? '1 månad i spannet har ingen budget och räknas inte i planen.' : `${n} månader i spannet har ingen budget och räknas inte i planen.`),
-    followUpGroupedHint: 'Grupperat per ställe. Välj Månad för att rätta eller ta bort en post.',
     followUpAdjustPeriod: 'Justera',
     followUpOnlyActuals: 'Bara utfall',
     followUpUnsorted: 'Övrigt',
@@ -792,7 +794,6 @@ export const translations: Record<Lang, Translations> = {
     yearArchivedNote: (amount) => `${amount} kunde inte kopplas till något block — rader som togs bort innan appen började spara historik.`,
     copyOverwriteOne: (target, source) => `${target} har redan en budget. Ersätta inkomster och utgifter med ${source}?`,
     copyOverwriteMany: (n) => `${n} av de återstående månaderna har redan en budget. Ersätta dem?`,
-    copyNothingToDo: 'Ingenting att hämta — månaden är tom.',
     periodSection: 'Löneperiod',
     periodStartDay: 'Perioden börjar den',
     periodStartHint: 'Styr vilka poster som hamnar i månaden under Uppföljning. Budgetens belopp påverkas inte.',
@@ -1017,6 +1018,27 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Namn',
     createGoal: 'Skapa mål',
     cancel: 'Avbryt',
+    privacyTitle: "Integritet",
+    privacyBody: [
+      "Budgetappen samlar inte in, överför eller delar några personuppgifter.",
+      "## Allt stannar på din enhet",
+      "Din budget, dina registrerade utgifter och de kontoutdrag du importerar behandlas och sparas lokalt. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen server att skicka något till.",
+      "## Kontoutdrag läses på plats",
+      "När du importerar en CSV-fil läses den av appen på din enhet. Innehållet lämnar aldrig telefonen — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
+      "## Ingen reklam, ingen analys, ingen spårning",
+      "Appen innehåller inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg. Den innehåller inte heller några tredjeparts-SDK:er som samlar in data i bakgrunden.",
+      "Sorteringen som känner igen butiker är en lista inbyggd i appen, inte en tjänst den frågar. Den fungerar utan nätverk.",
+      "## Ingenting hämtas när appen körs",
+      "Appen hämtar inte typsnitt, bilder eller kod från externa servrar. Den fungerar helt utan internetanslutning.",
+      "## Radering",
+      "Tar du bort appen, eller rensar dess data, försvinner allt den har sparat. Utvecklaren har ingen kopia och kan inte återskapa den. Vill du ha en säkerhetskopia gör du den själv via Meny → Exportera data — filen hamnar där du väljer.",
+      "## Webbversionen",
+      "Budgetappen finns även som webbsida. Även där stannar dina uppgifter i din webbläsare. Webbservern som levererar sidan för dock, som alla webbservrar, en teknisk logg över förfrågningar som innehåller IP-adress. Den används bara för drift och kopplas aldrig till något du skrivit in i appen.",
+      "## Frågor",
+      "Kontaktuppgifter finns på appens sida i App Store.",
+    ],
+    privacyUpdated: "Senast uppdaterad 17 september 2026.",
+    privacyClose: "Stäng",
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
     goalErrorTargetRequired: 'Ange ett målbelopp',
@@ -1137,8 +1159,9 @@ export const translations: Record<Lang, Translations> = {
     followUpCancel: 'Cancel',
     followUpBadAmount: 'Enter an amount greater than zero.',
     followUpBadText: 'Say what the entry was for.',
+    followUpBadDate: 'Choose a date within the month being shown.',
+    followUpExternalReloaded: 'Actuals changed in another tab. The latest version has been loaded — repeat your edit if needed.',
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
-    followUpEmptySoon: 'Soon you will be able to bring your bank statement in as a file instead of typing the entries yourself.',
     followUpImport: 'Import statement',
     csvTitle: 'Import bank statement',
     csvDropLead: 'Drop your file here',
@@ -1160,7 +1183,6 @@ export const translations: Record<Lang, Translations> = {
     csvReviewLead: (rows, groups) => `${rows} transactions, ${groups} different places. Choose a category for each.`,
     csvSkipped: (n) => `${n} rows could not be read and are skipped.`,
     csvRows: (n) => (n === 1 ? '1 entry' : `${n} entries`),
-    csvChoose: 'Choose category',
     csvImportN: (n) => `Import ${n} entries`,
     csvUnassigned: (n) => `${n} without a category are not imported.`,
     csvDoneAdded: (n) => (n === 1 ? '1 entry imported' : `${n} entries imported`),
@@ -1178,7 +1200,6 @@ export const translations: Record<Lang, Translations> = {
     followUpSpanAria: 'How many months are shown',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
     followUpSpanNoBudget: (n) => (n === 1 ? '1 month in this span has no budget and is not counted in the plan.' : `${n} months in this span have no budget and are not counted in the plan.`),
-    followUpGroupedHint: 'Grouped by place. Choose Month to correct or remove an entry.',
     followUpAdjustPeriod: 'Adjust',
     followUpOnlyActuals: 'Actuals only',
     followUpUnsorted: 'Other',
@@ -1221,7 +1242,6 @@ export const translations: Record<Lang, Translations> = {
     yearArchivedNote: (amount) => `${amount} could not be matched to a block — rows deleted before the app started recording history.`,
     copyOverwriteOne: (target, source) => `${target} already has a budget. Replace its income and expenses with ${source}?`,
     copyOverwriteMany: (n) => `${n} of the remaining months already have a budget. Replace them?`,
-    copyNothingToDo: 'Nothing to pull — that month is empty.',
     periodSection: 'Pay period',
     periodStartDay: 'The period starts on the',
     periodStartHint: 'Decides which entries land in the month under Follow-up. The budget’s amounts are untouched.',
@@ -1446,6 +1466,27 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Name',
     createGoal: 'Create goal',
     cancel: 'Cancel',
+    privacyTitle: "Privacy",
+    privacyBody: [
+      "Budget does not collect, transmit or share any personal data.",
+      "## Everything stays on your device",
+      "Your budget, the spending you record and the bank statements you import are processed and stored locally. None of it is sent to the developer or to any third party. There is no account, no sign-in and no server to send anything to.",
+      "## Statements are read where they are",
+      "When you import a CSV file the app reads it on your device. The contents never leave the phone — not the transactions, not the amounts, not the names of the places you shopped.",
+      "## No ads, no analytics, no tracking",
+      "The app contains no advertising networks, no usage statistics and no tracking tools. It contains no third-party SDKs that collect data in the background either.",
+      "The sorting that recognises shops is a list built into the app, not a service it asks. It works with no network at all.",
+      "## Nothing is fetched while it runs",
+      "The app does not load fonts, images or code from external servers. It works entirely offline.",
+      "## Deletion",
+      "Remove the app, or clear its data, and everything it has stored is gone. The developer holds no copy and cannot restore it. If you want a backup you make it yourself through Menu → Export data, and the file goes wherever you choose.",
+      "## The web version",
+      "Budget also exists as a web page. There too, your data stays in your browser. The web server that delivers the page does, like every web server, keep a technical log of requests that includes an IP address. It is used only to run the service and is never connected to anything you typed into the app.",
+      "## Questions",
+      "Contact details are on the app's App Store page.",
+    ],
+    privacyUpdated: "Last updated 17 September 2026.",
+    privacyClose: "Close",
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
     goalErrorTargetRequired: 'Enter a goal amount',
@@ -1566,8 +1607,9 @@ export const translations: Record<Lang, Translations> = {
     followUpCancel: 'Cancelar',
     followUpBadAmount: 'Escribe un importe mayor que cero.',
     followUpBadText: 'Indica de qué se trataba.',
+    followUpBadDate: 'Elige una fecha dentro del mes que se muestra.',
+    followUpExternalReloaded: 'Los movimientos cambiaron en otra pestaña. Se cargó la versión más reciente; repite el cambio si hace falta.',
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
-    followUpEmptySoon: 'Pronto podrás traer el extracto de tu banco como archivo en lugar de escribir los movimientos tú mismo.',
     followUpImport: 'Importar extracto',
     csvTitle: 'Importar extracto bancario',
     csvDropLead: 'Suelta tu archivo aquí',
@@ -1589,7 +1631,6 @@ export const translations: Record<Lang, Translations> = {
     csvReviewLead: (rows, groups) => `${rows} movimientos, ${groups} sitios distintos. Elige categoría para cada uno.`,
     csvSkipped: (n) => `${n} filas no se pudieron leer y se omiten.`,
     csvRows: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
-    csvChoose: 'Elegir categoría',
     csvImportN: (n) => `Importar ${n} movimientos`,
     csvUnassigned: (n) => `${n} sin categoría no se importan.`,
     csvDoneAdded: (n) => (n === 1 ? '1 movimiento importado' : `${n} movimientos importados`),
@@ -1607,7 +1648,6 @@ export const translations: Record<Lang, Translations> = {
     followUpSpanAria: 'Cuántos meses se muestran',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
     followUpSpanNoBudget: (n) => (n === 1 ? '1 mes del periodo no tiene presupuesto y no cuenta en el plan.' : `${n} meses del periodo no tienen presupuesto y no cuentan en el plan.`),
-    followUpGroupedHint: 'Agrupado por sitio. Elige Mes para corregir o eliminar un movimiento.',
     followUpAdjustPeriod: 'Ajustar',
     followUpOnlyActuals: 'Solo movimientos',
     followUpUnsorted: 'Otros',
@@ -1650,7 +1690,6 @@ export const translations: Record<Lang, Translations> = {
     yearArchivedNote: (amount) => `${amount} no se pudo asociar a ningún bloque — filas eliminadas antes de que la app empezara a guardar el historial.`,
     copyOverwriteOne: (target, source) => `${target} ya tiene un presupuesto. ¿Reemplazar sus ingresos y gastos con ${source}?`,
     copyOverwriteMany: (n) => `${n} de los meses restantes ya tienen presupuesto. ¿Reemplazarlos?`,
-    copyNothingToDo: 'Nada que traer — ese mes está vacío.',
     periodSection: 'Periodo de pago',
     periodStartDay: 'El periodo empieza el día',
     periodStartHint: 'Decide qué movimientos caen en el mes en Seguimiento. Los importes del presupuesto no se tocan.',
@@ -1875,6 +1914,27 @@ export const translations: Record<Lang, Translations> = {
     goalNameLabel: 'Nombre',
     createGoal: 'Crear meta',
     cancel: 'Cancelar',
+    privacyTitle: "Privacidad",
+    privacyBody: [
+      "Budget no recoge, transmite ni comparte ningún dato personal.",
+      "## Todo se queda en tu dispositivo",
+      "Tu presupuesto, los gastos que registras y los extractos bancarios que importas se procesan y guardan localmente. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, ni inicio de sesión, ni servidor al que enviar nada.",
+      "## Los extractos se leen donde están",
+      "Cuando importas un archivo CSV, la app lo lee en tu dispositivo. El contenido nunca sale del teléfono — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
+      "## Sin publicidad, sin analítica, sin rastreo",
+      "La app no contiene redes publicitarias, ni estadísticas de uso, ni herramientas de rastreo. Tampoco incluye SDK de terceros que recojan datos en segundo plano.",
+      "La clasificación que reconoce comercios es una lista incorporada en la app, no un servicio al que pregunta. Funciona sin red.",
+      "## No descarga nada mientras funciona",
+      "La app no carga tipografías, imágenes ni código desde servidores externos. Funciona completamente sin conexión.",
+      "## Borrado",
+      "Si eliminas la app, o borras sus datos, desaparece todo lo que había guardado. El desarrollador no tiene copia y no puede recuperarlo. Si quieres una copia de seguridad la haces tú desde Menú → Exportar datos, y el archivo va donde tú elijas.",
+      "## La versión web",
+      "Budget también existe como página web. Allí tus datos también se quedan en tu navegador. El servidor que sirve la página guarda, como todo servidor web, un registro técnico de peticiones que incluye una dirección IP. Solo se usa para operar el servicio y nunca se vincula a nada que hayas escrito en la app.",
+      "## Preguntas",
+      "Los datos de contacto están en la página de la app en la App Store.",
+    ],
+    privacyUpdated: "Última actualización: 17 de septiembre de 2026.",
+    privacyClose: "Cerrar",
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
     goalErrorTargetRequired: 'Introduce un importe para la meta',

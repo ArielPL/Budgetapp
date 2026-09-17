@@ -1,4 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* ── Plus Jakarta Sans, served from this app ────────────────────────────────
+ *
+ * Self-hosted, not fetched from Google. The @import that used to sit here sent
+ * every user's IP address and user-agent to a third party on every single app
+ * start — the ONE thing that left the device in an app whose whole promise is
+ * that nothing does. It would also have made "we collect no data" untrue in
+ * the App Store declaration, and left a native build without its typeface the
+ * first time someone opened it on a train.
+ *
+ * Two subsets only: latin covers å ä ö, ñ and é; latin-ext covers the Central
+ * European letters. Cyrillic and Vietnamese are not downloaded. 48 kB in total,
+ * cached after the first load and present offline.
+ *
+ * Plus Jakarta Sans is licensed under the SIL Open Font License 1.1, which
+ * permits this — see public/fonts/OFL.txt.
+ */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -241,6 +272,8 @@ a:focus-visible,
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+.month-title-short { display: none; }
 
 .nav-btn {
   width: 44px;
@@ -600,16 +633,6 @@ a:focus-visible,
   padding: 2px;
 }
 
-.custom-section-name {
-  font-weight: 700;
-  color: var(--text);
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Compact width toggle — small icon segments, subtle (not a chunky pill). */
 .custom-width-toggle {
   display: inline-flex;
@@ -665,27 +688,9 @@ a:focus-visible,
   background: color-mix(in srgb, var(--tint-expense-text) 14%, transparent);
 }
 
-/* Arrows are mobile-only; desktop reorders by dragging the grip. */
-.ctrl-mobile-only { display: none; }
-
 /* Config-panel show-chart toggle reuses the icon-button look, a touch larger. */
 .custom-toggle-btn { width: 34px; height: 34px; border: 1px solid var(--border-strong); }
 .custom-toggle-on { background: var(--accent-brand); color: #fff; border-color: var(--accent-brand); }
-
-.custom-section-title {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.custom-inputs-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 /* ─── Custom v3: generic block builder ────────────────────────────── */
 /* Auto-contrast: `--cv3-ink` is the block's text colour. It defaults to the
@@ -1308,39 +1313,6 @@ a:focus-visible,
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-}
-
-/* ─── Expense chart style switch + list view ──────────────────────── */
-.chart-style-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  margin-bottom: 14px;
-  background: var(--surface-subtle, var(--bg));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  flex-wrap: wrap;
-}
-
-.chart-style-btn {
-  padding: 5px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.chart-style-btn:hover {
-  color: var(--text);
-}
-
-.chart-style-active {
-  background: var(--accent-brand);
-  color: #fff;
 }
 
 .expense-list {
@@ -3307,7 +3279,6 @@ a:focus-visible,
   margin-bottom: 14px;
 }
 .followup-empty p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); }
-.followup-empty-soon { margin-top: 8px !important; color: var(--accent-brand) !important; }
 
 .followup-table {
   background: var(--surface);
@@ -4185,13 +4156,6 @@ a:focus-visible,
   color: var(--text);
   margin: 0;
 }
-.welcome-lead {
-  font-size: 0.98rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
-  max-width: 30ch;
-}
 /* The letter. Left-aligned on purpose: the modal centres its heading and
    button, but centred prose is hard to read once it runs past a line or two,
    and this is several paragraphs of someone talking to you. */
@@ -4209,6 +4173,20 @@ a:focus-visible,
   line-height: 1.6;
   color: var(--text);
 }
+/* Headings inside the privacy letter — it is a document, not a story, so it
+   gets signposts the welcome letter does not need. */
+.privacy-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 22px 0 6px;
+}
+.privacy-updated {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 20px;
+}
+
 .welcome-signature {
   color: var(--text-muted);
   font-style: italic;
@@ -4769,14 +4747,11 @@ a:focus-visible,
   .custom-section.w-third { grid-column: span 3; }
   .custom-add-card { grid-column: 1 / -1; min-height: 84px; }
 
-  /* Touch: show ↑/↓ reorder arrows (drag is unreliable) and give the control
-     row room so it isn't squeezed; bump icon-button hit areas. */
-  .ctrl-mobile-only { display: inline-flex; }
+  /* Touch: give the control row room and bump icon-button hit areas. */
   /* While editing on a phone, every block spans the full row so the controls
      and inputs have room — the half/⅓ width only matters for the tile view. */
   .custom-section-editing { grid-column: 1 / -1 !important; }
   .custom-section-controls { flex-wrap: wrap; gap: 8px; }
-  .custom-section-name { flex-basis: 100%; }
   /* ≥40px touch targets on phones (design system). */
   .custom-icon-btn { width: 40px; height: 40px; }
   .width-seg { width: 40px; height: 36px; font-size: 0.95rem; }
@@ -4853,6 +4828,18 @@ a:focus-visible,
   .combined-section-title {
     scroll-margin-top: calc(var(--app-header-h, 78px) + var(--jump-nav-h, 56px) + 12px);
   }
+}
+
+/* The month title swaps to "Sep 2026" long before 340px. Measured at 320, 341,
+   360, 375, 390, 393 and 412 CSS px: the two arrows, the gear and the gaps take
+   a constant 216px, so the title gets (viewport − 216). "Septiembre 2026" needs
+   170px and "September 2026" 165px, so the full name only fits from 386px up.
+   At 375 (iPhone SE) the title read "Septiembr…" — an ellipsis there hides the
+   year, which is the one thing the header exists to say. 400px keeps 14px of
+   slack above the longest name; the font is self-hosted, so it cannot shift. */
+@media (max-width: 400px) {
+  .month-title-full { display: none; }
+  .month-title-short { display: inline; }
 }
 
 /* Very narrow phones (320px class): the category header carries icon + name +

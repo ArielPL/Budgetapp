@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { safeSetItem } from './storageWrite';
+import { applyStorageChanges, safeSetItem } from './storageWrite';
 import { saveMonthData, savePlanData, storageKey } from './defaults';
 import type { MonthData, PlanData } from './types';
 
@@ -17,6 +17,7 @@ class FakeStorage {
   /** Throw on every write of this key, modelling storage that stays refused
    *  until the user frees space — which is when "try again" has to work. */
   failOnKey: string | null = null;
+  failRemoveOnKey: string | null = null;
   /** What to throw. Different browsers throw different things for the same
    *  situation, and the save path must not care which. */
   error: unknown = new DOMException('QuotaExceededError');
@@ -28,7 +29,10 @@ class FakeStorage {
     if (k === this.failOnKey) throw this.error;
     this.map.set(k, v);
   }
-  removeItem(k: string) { this.map.delete(k); }
+  removeItem(k: string) {
+    if (k === this.failRemoveOnKey) throw this.error;
+    this.map.delete(k);
+  }
   clear() { this.map.clear(); }
 }
 
@@ -73,6 +77,36 @@ describe('safeSetItem', () => {
     store.failOnKey = 'blocked';
     expect(safeSetItem(store, 'blocked', 'v')).toBe(false);
     expect(safeSetItem(store, 'fine', 'v')).toBe(true);
+  });
+});
+
+describe('storage transactions', () => {
+  it('restores earlier keys when a later change fails', () => {
+    const store = new FakeStorage();
+    store.setItem('first', 'old-1');
+    store.setItem('second', 'old-2');
+    store.failOnKey = 'second';
+
+    expect(applyStorageChanges(store, [
+      { key: 'first', value: 'new-1' },
+      { key: 'second', value: 'new-2' },
+    ])).toBe(false);
+    expect(store.getItem('first')).toBe('old-1');
+    expect(store.getItem('second')).toBe('old-2');
+  });
+
+  it('restores earlier keys when a later removal fails', () => {
+    const store = new FakeStorage();
+    store.setItem('first', 'old-1');
+    store.setItem('second', 'old-2');
+    store.failRemoveOnKey = 'second';
+
+    expect(applyStorageChanges(store, [
+      { key: 'first', value: 'new-1' },
+      { key: 'second', value: null },
+    ])).toBe(false);
+    expect(store.getItem('first')).toBe('old-1');
+    expect(store.getItem('second')).toBe('old-2');
   });
 });
 

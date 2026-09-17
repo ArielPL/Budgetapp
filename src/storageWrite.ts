@@ -14,6 +14,17 @@ export interface WritableStorage {
   setItem(key: string, value: string): void;
 }
 
+export interface TransactionalStorage extends WritableStorage {
+  getItem(key: string): string | null;
+  removeItem(key: string): void;
+}
+
+export interface StorageChange {
+  key: string;
+  /** null removes the key. */
+  value: string | null;
+}
+
 /**
  * Write, and say whether it worked.
  *
@@ -28,6 +39,40 @@ export function safeSetItem(storage: WritableStorage, key: string, value: string
     storage.setItem(key, value);
     return true;
   } catch {
+    return false;
+  }
+}
+
+/**
+ * Apply several storage changes as one best-effort transaction.
+ *
+ * localStorage has no native transaction. Snapshotting each touched key first
+ * lets us restore the exact previous values when any write or removal fails,
+ * which prevents a multi-month import from becoming a half-import.
+ */
+export function applyStorageChanges(
+  storage: TransactionalStorage,
+  changes: StorageChange[],
+): boolean {
+  const before = new Map<string, string | null>();
+  try {
+    for (const { key } of changes) {
+      if (!before.has(key)) before.set(key, storage.getItem(key));
+    }
+    for (const { key, value } of changes) {
+      if (value === null) storage.removeItem(key);
+      else storage.setItem(key, value);
+    }
+    return true;
+  } catch {
+    for (const [key, value] of before) {
+      try {
+        if (value === null) storage.removeItem(key);
+        else storage.setItem(key, value);
+      } catch {
+        // The caller still receives false and surfaces the storage failure.
+      }
+    }
     return false;
   }
 }

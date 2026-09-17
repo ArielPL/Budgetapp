@@ -238,6 +238,11 @@ function App() {
   // Devices that already hold real budget data are EXISTING users updating into
   // this release — greeting them with "Welcome!" would be wrong, so mark the
   // welcome as seen instead (they get the What's-new badge, the right message).
+  // Apple requires a privacy policy to be reachable from inside the app, not
+  // only as a URL in App Store Connect. It is also the one claim this app makes
+  // that a user cannot check for themselves, so it should be easy to read.
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const privacyRef = useRef<HTMLDivElement>(null);
   const [welcomeOpen, setWelcomeOpen] = useState(() => {
     if (appStorage.getItem('budget_welcome_seen')) return false;
     if (hasMeaningfulData()) {
@@ -249,6 +254,7 @@ function App() {
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => { appStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
+  useModalFocus(privacyRef, privacyOpen, () => setPrivacyOpen(false));
 
   // "What's new" changelog panel. A subtle badge shows on the menu until the
   // user opens it (persisted per version, so it only re-appears after a release).
@@ -1326,6 +1332,12 @@ function App() {
                   >
                     💬 {t.aboutApp}
                   </button>
+                  <button
+                    className="utils-action"
+                    onClick={() => { setPrivacyOpen(true); setMenuOpen(false); }}
+                  >
+                    🔒 {t.privacyTitle}
+                  </button>
                   <button className="utils-action" onClick={openWhatsNew}>
                     <span>🎉 {t.whatsNew}</span>
                     {hasNewUpdate && <span className="utils-new-pill">{t.badgeNew}</span>}
@@ -1461,6 +1473,36 @@ function App() {
               </div>
               <button className="welcome-start-btn" onClick={dismissWelcome}>
                 {t.welcomeStart}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {privacyOpen && (
+        <>
+          <div className="theme-backdrop welcome-backdrop" onClick={() => setPrivacyOpen(false)} />
+          <div
+            className="theme-panel welcome-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="privacy-title"
+            tabIndex={-1}
+            ref={privacyRef}
+          >
+            <div className="welcome-body-wrap">
+              <div className="welcome-emoji" aria-hidden="true">🔒</div>
+              <h2 className="welcome-title" id="privacy-title">{t.privacyTitle}</h2>
+              <div className="welcome-letter">
+                {t.privacyBody.map((para, i) => (
+                  para.startsWith('## ')
+                    ? <h3 className="privacy-heading" key={i}>{para.slice(3)}</h3>
+                    : <p key={i}>{para}</p>
+                ))}
+                <p className="privacy-updated">{t.privacyUpdated}</p>
+              </div>
+              <button className="welcome-start-btn" onClick={() => setPrivacyOpen(false)}>
+                {t.privacyClose}
               </button>
             </div>
           </div>

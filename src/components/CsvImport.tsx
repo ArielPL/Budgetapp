@@ -14,9 +14,10 @@ import {
   type LearnedRules,
 } from '../categorise';
 import {
-  loadActuals, saveActuals, newEntries, groupByMonth,
+  actualsKey, loadActuals, newEntries, groupByMonth,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
+import { applyStorageChanges, type StorageChange } from '../storageWrite';
 import { useLang, MONTHS } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
 import type { ActualEntry, BudgetCategory } from '../types';
@@ -213,24 +214,55 @@ export const CsvImport = ({
 
   const doImport = () => {
     const entries: ActualEntry[] = ready.flatMap(g =>
-      g.rows.map(r => ({
-        id: generateId(),
-        date: r.date,
-        text: r.text || t.csvNoText,
-        // The sign lives in the category, not in the number — see actuals.ts.
-        amount: Math.abs(r.amount),
-        categoryId: resolve(g.choice),
-      })));
+      g.rows.map(r => {
+        const categoryId = resolve(g.choice);
+        return {
+          id: generateId(),
+          date: r.date,
+          text: r.text || t.csvNoText,
+          amount: Math.abs(r.amount),
+          direction: r.amount > 0 ? 'in' as const : 'out' as const,
+          categoryId,
+        };
+      }));
 
     const { months } = groupByMonth(entries, periodStartDay, periodLocks);
 
-    // The offers first, and into the months the entries are ABOUT to land in.
-    // A category that exists with nothing filed under it is harmless; entries
-    // filed under a category their own month does not have are not — they show
-    // up under "outside the budget" and have to be explained. Every month the
-    // file reaches, not only the ones that end up with something new: a month
-    // whose rows all turn out to be duplicates still holds those entries and
-    // still needs somewhere to show them.
+    const touched: string[] = [];
+    const written: TouchedMonth[] = [];
+    const changes: StorageChange[] = [];
+    let added = 0;
+    let duplicates = 0;
+
+    for (const bucket of months.values()) {
+      const existing = loadActuals(appStorage, bucket.year, bucket.month);
+      // Counts rather than matches: a genuine second identical purchase is kept,
+      // while re-importing the same statement adds nothing. See actuals.ts.
+      const fresh = newEntries(bucket.entries, existing);
+      duplicates += bucket.entries.length - fresh.length;
+      if (fresh.length === 0) continue;
+      changes.push({
+        key: actualsKey(bucket.year, bucket.month),
+        value: JSON.stringify([...existing, ...fresh]),
+      });
+      added += fresh.length;
+      touched.push(`${MONTHS[lang][bucket.month]} ${bucket.year}`);
+      written.push({ year: bucket.year, month: bucket.month });
+    }
+
+    // All touched months land together. If one write is refused, every earlier
+    // one is restored so retrying cannot duplicate a half-finished import.
+    if (!applyStorageChanges(appStorage, changes)) {
+      onSaveFailed();
+      return;
+    }
+
+    // Only commit secondary effects after the entries themselves landed. A
+    // refused actuals write must not leave behind categories or learned rules
+    // from an import the app correctly reported as failed.
+    //
+    // Categories go into every month the file reaches, including a month whose
+    // rows were already present: those stored entries still need a named home.
     if (toCreate.length > 0) {
       onCreateCategories(
         toCreate,
@@ -245,27 +277,6 @@ export const CsvImport = ({
     for (const g of ready) {
       if (g.auto) continue;
       rules = rememberCategoryRule(appStorage, g.text, resolve(g.choice), rules);
-    }
-
-    const touched: string[] = [];
-    const written: TouchedMonth[] = [];
-    let added = 0;
-    let duplicates = 0;
-
-    for (const bucket of months.values()) {
-      const existing = loadActuals(appStorage, bucket.year, bucket.month);
-      // Counts rather than matches: a genuine second identical purchase is kept,
-      // while re-importing the same statement adds nothing. See actuals.ts.
-      const fresh = newEntries(bucket.entries, existing);
-      duplicates += bucket.entries.length - fresh.length;
-      if (fresh.length === 0) continue;
-      if (!saveActuals(appStorage, bucket.year, bucket.month, [...existing, ...fresh])) {
-        onSaveFailed();
-        return;
-      }
-      added += fresh.length;
-      touched.push(`${MONTHS[lang][bucket.month]} ${bucket.year}`);
-      written.push({ year: bucket.year, month: bucket.month });
     }
 
     // Which months were touched is said out loud: a file may cover two of them
@@ -406,7 +417,9 @@ export const CsvImport = ({
                   <div className={`csv-group${g.choice ? '' : ' is-unset'}`} key={i}>
                     <span className="csv-group-text">{g.text}</span>
                     <span className="csv-group-count">{t.csvRows(g.rows.length)}</span>
-                    <span className="csv-group-sum">{money(Math.abs(g.total))}</span>
+                    <span className="csv-group-sum">
+                      {g.incoming ? '+' : '−'}{money(Math.abs(g.total))}
+                    </span>
                     <select
                       className={`csv-group-cat${g.choice.startsWith(CREATE) ? ' is-new' : ''}`}
                       value={g.choice}

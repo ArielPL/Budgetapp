@@ -1,4 +1,4 @@
-import { useLang, MONTHS } from '../i18n';
+import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 import { PeriodLabel } from './PeriodLabel';
 import type { PeriodLocks } from '../periodLabel';
 
@@ -33,7 +33,8 @@ export const MonthNav = ({
           aria-expanded={pickerOpen}
           title={MONTHS[lang][month]}
         >
-          <span className="month-title-text">{MONTHS[lang][month]} {year}</span>
+          <span className="month-title-text month-title-full">{MONTHS[lang][month]} {year}</span>
+          <span className="month-title-text month-title-short">{MONTHS_SHORT[lang][month]} {year}</span>
           <span className="month-title-caret">{pickerOpen ? '▴' : '▾'}</span>
         </button>
         <button className="nav-btn" onClick={onNext} aria-label={t.nextMonth}>›</button>
