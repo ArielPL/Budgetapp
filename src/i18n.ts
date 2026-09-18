@@ -255,7 +255,10 @@ export interface Translations {
   csvRemember: string;
   csvContinue: string;
   csvNeedBoth: string;
-  csvReviewLead: (rows: number, groups: number) => string;
+  /** `choices` is how many category decisions there are; `places` how many
+   *  distinct shops. They differ when a shop has both a purchase and a
+   *  refund, which must stay separate decisions (review 2026-09-18, F8). */
+  csvReviewLead: (rows: number, choices: number, places: number) => string;
   csvSkipped: (n: number) => string;
   csvRows: (n: number) => string;
   csvImportN: (n: number) => string;
@@ -711,6 +714,11 @@ export interface Translations {
   /** Always visible in the menu, so the user never has to guess. */
   backupLast: (date: string) => string;
   backupNever: string;
+  /** Shown after a plain browser download, which the web platform cannot report
+   *  on. The date in the menu is a promise that a file exists, so it is only
+   *  written on a yes (review 2026-09-18, F5). */
+  backupConfirmSaved: string;
+  backupSaved: string;
   // ── The guide to the follow-up tab ──────────────────────────────────────
   // Same shape as privacyBody: a '## ' prefix makes a heading, everything else
   // is a paragraph. One array per language rather than a dozen keys, because
@@ -781,7 +789,9 @@ export const translations: Record<Lang, Translations> = {
     csvRemember: 'Appen kommer ihåg uppställningen och frågar inte nästa gång du hämtar från samma bank.',
     csvContinue: 'Fortsätt',
     csvNeedBoth: 'Välj minst en datumkolumn och en beloppskolumn.',
-    csvReviewLead: (rows, groups) => `${rows} transaktioner, ${groups} olika ställen. Välj kategori per ställe.`,
+    csvReviewLead: (rows, choices, places) => places === choices
+      ? `${rows} transaktioner, ${places} olika ställen. Välj kategori per ställe.`
+      : `${rows} transaktioner, ${choices} kategorival för ${places} ställen. Köp och återbetalning från samma ställe väljs var för sig.`,
     csvSkipped: (n) => `${n} rader kunde inte läsas och hoppas över.`,
     csvRows: (n) => (n === 1 ? '1 post' : `${n} poster`),
     csvImportN: (n) => `Importera ${n} poster`,
@@ -791,7 +801,7 @@ export const translations: Record<Lang, Translations> = {
     csvDoneUnassigned: (n) => `${n} utan kategori`,
     csvGoToMonth: (monthName) => `Visa ${monthName}`,
     csvDoneCreated: (n) => (n === 1 ? '1 ny kategori' : `${n} nya kategorier`),
-    csvSorted: (n, total) => `${n} av ${total} sorterades åt dig.`,
+    csvSorted: (n, total) => `${n} av ${total} placerades i en kategori åt dig.`,
     csvExistingGroup: 'I din budget',
     csvChangeColumns: '↩ Ändra kolumner',
     followUpClear: 'Rensa månadens utfall',
@@ -1056,7 +1066,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
       if (action === 'copyBudget') return count > 1 ? `Budgeten skrevs över i ${count} månader` : `Budgeten skrevs över i ${where}`;
       if (action === 'deleteCategory') return `En kategori togs bort i ${where}`;
-      return 'Löneperioden ändrades';
+      if (action === 'deleteRow') return where ? `En rad togs bort i ${where}` : 'En rad togs bort';
+      if (action === 'deleteEntry') return `En post togs bort i ${where}`;
+      if (action === 'deleteGoal') return 'Ett sparmål togs bort';
+      if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
+      if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
+      if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
+      return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
     undoDone: '✓ Ångrat',
     undoFailed: 'Kunde inte ångra — enheten nekade skrivningen. Frigör utrymme och försök igen.',
@@ -1217,6 +1233,8 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Din senaste säkerhetskopia är ${months} månader gammal. Försvinner enheten finns ingenting att återställa från.`,
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
+    backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
+    backupSaved: '✓ Säkerhetskopia sparad',
     followUpHelp: 'Hjälp',
     followUpHelpTitle: 'Så fungerar utfallet',
     followUpHelpBody: [
@@ -1306,7 +1324,9 @@ export const translations: Record<Lang, Translations> = {
     csvRemember: 'The app remembers this layout and will not ask again for the same bank.',
     csvContinue: 'Continue',
     csvNeedBoth: 'Pick at least one date column and one amount column.',
-    csvReviewLead: (rows, groups) => `${rows} transactions, ${groups} different places. Choose a category for each.`,
+    csvReviewLead: (rows, choices, places) => places === choices
+      ? `${rows} transactions, ${places} different places. Choose a category for each.`
+      : `${rows} transactions, ${choices} category choices for ${places} places. A purchase and a refund from the same place are chosen separately.`,
     csvSkipped: (n) => `${n} rows could not be read and are skipped.`,
     csvRows: (n) => (n === 1 ? '1 entry' : `${n} entries`),
     csvImportN: (n) => `Import ${n} entries`,
@@ -1316,7 +1336,7 @@ export const translations: Record<Lang, Translations> = {
     csvDoneUnassigned: (n) => `${n} without a category`,
     csvGoToMonth: (monthName) => `Show ${monthName}`,
     csvDoneCreated: (n) => (n === 1 ? '1 new category' : `${n} new categories`),
-    csvSorted: (n, total) => `${n} of ${total} were sorted for you.`,
+    csvSorted: (n, total) => `${n} of ${total} were placed in a category for you.`,
     csvExistingGroup: 'In your budget',
     csvChangeColumns: '↩ Change columns',
     followUpClear: "Clear this month's actuals",
@@ -1582,7 +1602,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'restoreBackup') return 'The backup was restored';
       if (action === 'copyBudget') return count > 1 ? `The budget was written over ${count} months` : `The budget for ${where} was written over`;
       if (action === 'deleteCategory') return `A category was removed from ${where}`;
-      return 'The pay period was changed';
+      if (action === 'deleteRow') return where ? `A row was removed from ${where}` : 'A row was removed';
+      if (action === 'deleteEntry') return `An entry was removed from ${where}`;
+      if (action === 'deleteGoal') return 'A savings goal was removed';
+      if (action === 'deleteBlock') return 'A block was removed from Custom';
+      if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
+      if (count === 1) return 'The pay period was changed — 1 entry moved';
+      return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
     undoDone: '✓ Undone',
     undoFailed: 'Could not undo — the device refused the write. Free some space and try again.',
@@ -1742,6 +1768,8 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Your last backup is ${months} months old. If the device goes, there is nothing to restore from.`,
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
+    backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
+    backupSaved: '✓ Backup saved',
     followUpHelp: 'Help',
     followUpHelpTitle: 'How Follow-up works',
     followUpHelpBody: [
@@ -1831,7 +1859,9 @@ export const translations: Record<Lang, Translations> = {
     csvRemember: 'La app recuerda esta disposición y no volverá a preguntar para el mismo banco.',
     csvContinue: 'Continuar',
     csvNeedBoth: 'Elige al menos una columna de fecha y una de importe.',
-    csvReviewLead: (rows, groups) => `${rows} movimientos, ${groups} sitios distintos. Elige categoría para cada uno.`,
+    csvReviewLead: (rows, choices, places) => places === choices
+      ? `${rows} movimientos, ${places} sitios distintos. Elige categoría para cada uno.`
+      : `${rows} movimientos, ${choices} decisiones de categoría para ${places} sitios. Una compra y una devolución del mismo sitio se eligen por separado.`,
     csvSkipped: (n) => `${n} filas no se pudieron leer y se omiten.`,
     csvRows: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
     csvImportN: (n) => `Importar ${n} movimientos`,
@@ -1841,7 +1871,7 @@ export const translations: Record<Lang, Translations> = {
     csvDoneUnassigned: (n) => `${n} sin categoría`,
     csvGoToMonth: (monthName) => `Ver ${monthName}`,
     csvDoneCreated: (n) => (n === 1 ? '1 categoría nueva' : `${n} categorías nuevas`),
-    csvSorted: (n, total) => `${n} de ${total} se ordenaron automáticamente.`,
+    csvSorted: (n, total) => `${n} de ${total} se colocaron en una categoría automáticamente.`,
     csvExistingGroup: 'En tu presupuesto',
     csvChangeColumns: '↩ Cambiar columnas',
     followUpClear: 'Borrar los movimientos del mes',
@@ -2107,7 +2137,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
       if (action === 'copyBudget') return count > 1 ? `El presupuesto se sobrescribió en ${count} meses` : `El presupuesto de ${where} se sobrescribió`;
       if (action === 'deleteCategory') return `Se eliminó una categoría de ${where}`;
-      return 'Se cambió el periodo de cobro';
+      if (action === 'deleteRow') return where ? `Se eliminó una fila de ${where}` : 'Se eliminó una fila';
+      if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;
+      if (action === 'deleteGoal') return 'Se eliminó una meta de ahorro';
+      if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
+      if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
+      if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
+      return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
     undoDone: '✓ Deshecho',
     undoFailed: 'No se pudo deshacer — el dispositivo rechazó la escritura. Libera espacio e inténtalo de nuevo.',
@@ -2267,6 +2303,8 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Tu última copia de seguridad tiene ${months} meses. Si el dispositivo desaparece, no hay nada que restaurar.`,
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
+    backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
+    backupSaved: '✓ Copia de seguridad guardada',
     followUpHelp: 'Ayuda',
     followUpHelpTitle: 'Cómo funciona Seguimiento',
     followUpHelpBody: [

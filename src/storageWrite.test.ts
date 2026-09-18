@@ -147,6 +147,30 @@ describe('the save paths report a refused write', () => {
     expect(JSON.parse(store.getItem(KEY)!).income[0].amount).toBe(30000);
   });
 
+  // ── Review 2026-09-18, F2 ───────────────────────────────────────────────
+  //
+  // "Copy to all remaining months" writes up to eleven month keys in one go. It
+  // used to call saveMonthData per month and discard the result, so a refusal
+  // partway through left some months copied and others not — and the app said
+  // it had worked. Now the whole run goes through one reversible operation, and
+  // a refusal at ANY position has to leave every month as it was.
+  describe.each([0, 1, 2])('a multi-month copy refused at position %i', pos => {
+    it('leaves every target month unchanged', () => {
+      const keys = ['budget_2026_9', 'budget_2026_10', 'budget_2026_11'];
+      const storage = new FakeStorage();
+      keys.forEach((k, i) => storage.setItem(k, `original-${i}`));
+      storage.failOnKey = keys[pos];
+
+      const ok = applyStorageChanges(
+        storage,
+        keys.map(key => ({ key, value: 'copied' })),
+      );
+
+      expect(ok).toBe(false);
+      keys.forEach((k, i) => expect(storage.getItem(k)).toBe(`original-${i}`));
+    });
+  });
+
   it('does not damage what was already stored when a write fails', () => {
     expect(saveMonthData(2026, 8, month(30000))).toBe(true);
     store.failOnKey = KEY;

@@ -29,8 +29,8 @@ import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
 import { shortWhen, longDate } from './dateLabel';
-import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry } from './undo';
-import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
+import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
+import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
@@ -57,55 +57,11 @@ import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText 
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 import { appStorage } from './storage';
-import { safeSetItem } from './storageWrite';
+import { safeSetItem, applyStorageChanges, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, applyRefile } from './actuals';
+import { hasRestorableUserData } from './userData';
 
 
-
-// Sum every amount in a month (income + expense rows + savings rows).
-function monthTotal(raw: string): number {
-  try {
-    const m = JSON.parse(raw) as MonthData;
-    let total = 0;
-    for (const row of m.income ?? []) total += row.amount || 0;
-    for (const cat of m.expenses ?? []) {
-      for (const row of cat.rows ?? []) total += row.amount || 0;
-    }
-    for (const cat of m.savings ?? []) {
-      for (const row of cat.rows ?? []) total += row.amount || 0;
-    }
-    return total;
-  } catch {
-    return 0;
-  }
-}
-
-// True only if there are real, non-zero amounts worth backing up.
-function hasMeaningfulData(): boolean {
-  // Any month with a positive total counts as data.
-  for (let i = 0; i < appStorage.length; i++) {
-    const key = appStorage.key(i);
-    if (!key || !/^budget_\d{4}_\d+$/.test(key)) continue;
-    const raw = appStorage.getItem(key);
-    if (raw && monthTotal(raw) > 0) return true;
-  }
-
-  // Plan goals or giving amounts also count as data.
-  const planRaw = appStorage.getItem('budget_plan');
-  if (planRaw) {
-    try {
-      const plan = JSON.parse(planRaw) as PlanData;
-      const goalsHaveData = (plan.goals ?? []).some(
-        (g: SavingsGoal) => (g.currentAmount || 0) > 0 || (g.targetAmount || 0) > 0,
-      );
-      if (goalsHaveData) return true;
-    } catch {
-      /* malformed plan JSON → ignore */
-    }
-  }
-
-  return false;
-}
 
 /** How old the last backup is. The thresholds and the snooze rules live in
  *  backupAge.ts, where they can be tested without waiting six months. */
@@ -125,7 +81,7 @@ function shouldShowBackupReminder(): boolean {
     currentBackupAge(),
     appStorage.getItem('budget_backup_dismissed'),
     Date.now(),
-    hasMeaningfulData(),
+    hasRestorableUserData(appStorage),
   );
 }
 
@@ -197,7 +153,19 @@ function App() {
     const plan = planRefile(appStorage, nextDay, nextLocks);
     if (plan.moving > 0) {
       if (!window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
+      // Review 2026-09-18, F3: 'periodChange' existed in UndoAction but nothing
+      // ever recorded it. Refiling rewrites every month the entries move
+      // between, so the capture covers the buckets AND the files being emptied
+      // — exactly the keys applyRefile is about to write.
+      const touched = [...plan.buckets.keys(), ...plan.emptied];
+      const before = captureKeys(appStorage, touched);
       if (!applyRefile(appStorage, plan)) { setSaveFailed(true); return false; }
+      recordUndo({
+        at: new Date().toISOString(),
+        action: 'periodChange',
+        count: plan.moving,
+        changes: before,
+      });
       showMsg(t.periodRefileDone(plan.moving));
     }
     return true;
@@ -259,7 +227,7 @@ function App() {
   // other half: opened from the menu, never on its own.
   const [introOpen, setIntroOpen] = useState(() => {
     if (appStorage.getItem('budget_welcome_seen')) return false;
-    if (hasMeaningfulData()) {
+    if (hasRestorableUserData(appStorage)) {
       appStorage.setItem('budget_welcome_seen', '1');
       return false;
     }
@@ -281,7 +249,7 @@ function App() {
   const [changelogSeen, setChangelogSeen] = useState(() => {
     const seen = appStorage.getItem('budget_changelog_seen');
     if (seen) return seen;
-    if (!hasMeaningfulData()) {
+    if (!hasRestorableUserData(appStorage)) {
       appStorage.setItem('budget_changelog_seen', LATEST_VERSION);
       return LATEST_VERSION;
     }
@@ -514,23 +482,80 @@ function App() {
   // ── Backup: export every backup-owned key to a JSON file ─────────
   // The key policy, validation and replace-with-rollback all live in backup.ts
   // so they can be unit-tested without a real localStorage; this is just the
-  // browser plumbing (file download, confirm dialog, reload).
-  const exportData = () => {
+  // browser plumbing.
+
+  /** The date in the menu is a PROMISE that a file exists. Only a confirmed
+   *  save may write it — see the note on exportData. */
+  const markBackupDone = () => {
+    appStorage.setItem('budget_last_backup', new Date().toISOString());
+    setLastBackup(currentBackupAge());
+    setShowBackupReminder(false);
+  };
+
+  /**
+   * Export, and record the date only when the file really landed.
+   *
+   * Review 2026-09-18, F5: this used to click a hidden download link and write
+   * `budget_last_backup` on the next line. It could not know whether the user
+   * cancelled, whether the browser blocked the file, or whether anything was
+   * written at all — and the menu then showed a date, which a user reads as
+   * proof that years of local data can be restored. For an app with no server
+   * copy, a backup date that is not true is worse than no date.
+   *
+   * Two paths:
+   *
+   *   1. File System Access API: the write is awaited and the handle closed, so
+   *      success is real and a cancelled picker is an AbortError we honour by
+   *      changing nothing.
+   *   2. Plain download: nothing in the web platform reports whether it
+   *      succeeded. Rather than guess, the app asks — one honest question —
+   *      and records the date only on a yes.
+   */
+  const exportData = async () => {
     const payload = buildBackup(appStorage);
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const text = JSON.stringify(payload, null, 2);
+    const name = backupFilename();
+    setMenuOpen(false);
+
+    const picker = (window as unknown as {
+      showSaveFilePicker?: (o: unknown) => Promise<{
+        createWritable: () => Promise<{ write: (d: string) => Promise<void>; close: () => Promise<void> }>;
+      }>;
+    }).showSaveFilePicker;
+
+    if (typeof picker === 'function') {
+      try {
+        const handle = await picker({
+          suggestedName: name,
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        markBackupDone();
+        showMsg(t.backupSaved);
+        return;
+      } catch (err) {
+        // A cancelled picker is a decision, not a failure: leave the previous
+        // backup date exactly as it was and say nothing.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // Anything else (permission denied, write error) falls through to the
+        // download below, which at least gives the user a file to save.
+      }
+    }
+
+    const blob = new Blob([text], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = backupFilename();
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setMenuOpen(false);
-    // Record the backup so the reminder banner stays hidden.
-    appStorage.setItem('budget_last_backup', new Date().toISOString());
-    setLastBackup(currentBackupAge());
-    setShowBackupReminder(false);
+
+    // The one honest thing left to do: ask.
+    if (window.confirm(t.backupConfirmSaved)) markBackupDone();
   };
 
   const dismissBackupReminder = () => {
@@ -699,9 +724,44 @@ function App() {
     expenses: data.expenses.map(c => ({ ...c, rows: c.rows.filter(recursNextMonth) })),
   });
 
-  const copyBudgetInto = (targetYear: number, targetMonth: number) => {
+  /**
+   * The change one target month needs — planned, not written.
+   *
+   * Review 2026-09-18, F2: this used to call saveMonthData directly and throw
+   * away its result, so a refused write was reported to the user as success,
+   * and a copy to eleven months could stop halfway and leave the year in two
+   * different states. Planning every change first lets all of them go through
+   * one reversible operation.
+   */
+  const copyBudgetChange = (targetYear: number, targetMonth: number): StorageChange => {
     const target = loadMonthData(targetYear, targetMonth, lang);
-    saveMonthData(targetYear, targetMonth, { ...target, ...recurringBudget() });
+    return {
+      key: storageKey(targetYear, targetMonth),
+      value: JSON.stringify({ ...target, ...recurringBudget() }),
+    };
+  };
+
+  /**
+   * Write a whole copy, or none of it, and say which happened.
+   *
+   * The undo step is recorded only after the write succeeded, so it can never
+   * describe changes that were rolled back.
+   */
+  const applyCopy = (targets: { y: number; m: number }[]): boolean => {
+    const changes = targets.map(({ y, m }) => copyBudgetChange(y, m));
+    const before = captureKeys(appStorage, changes.map(c => c.key));
+    if (!applyStorageChanges(appStorage, changes)) {
+      setSaveFailed(true);
+      return false;
+    }
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'copyBudget',
+      ...(targets.length === 1 ? { year: targets[0].y, month: targets[0].m } : {}),
+      count: targets.length,
+      changes: before,
+    });
+    return true;
   };
 
   /** The months this copy would land on that already hold a budget. */
@@ -715,15 +775,7 @@ function App() {
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
     )) return;
-    recordUndo({
-      at: new Date().toISOString(),
-      action: 'copyBudget',
-      year: nextYear,
-      month: nextMth,
-      count: 1,
-      changes: captureKeys(appStorage, [storageKey(nextYear, nextMth)]),
-    });
-    copyBudgetInto(nextYear, nextMth);
+    if (!applyCopy([{ y: nextYear, m: nextMth }])) return;
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
@@ -734,18 +786,11 @@ function App() {
     // then declines would be the worst of both outcomes.
     const occupied = occupiedTargets(targets);
     if (occupied.length > 0 && !window.confirm(t.copyOverwriteMany(occupied.length))) return;
-    // Up to eleven built budgets, replaced by one tap. This was the single most
-    // destructive button in the app and the one the first pass of undo missed:
-    // every other action here touches one month, this one touches the rest of
-    // the year. All of them are captured before the first write, so the step
-    // back puts every month in the run back where it was.
-    recordUndo({
-      at: new Date().toISOString(),
-      action: 'copyBudget',
-      count: targets.length,
-      changes: captureKeys(appStorage, targets.map(({ y, m }) => storageKey(y, m))),
-    });
-    targets.forEach(({ y, m }) => copyBudgetInto(y, m));
+    // Up to eleven built budgets, replaced by one tap — the most destructive
+    // button in the app. All of them are written as ONE reversible operation:
+    // a refusal partway through restores every month and reports the failure,
+    // rather than leaving the year half copied and saying it worked.
+    if (!applyCopy(targets)) return;
     setMenuOpen(false);
     showMsg(t.copiedToMonths(targets.length));
   };
@@ -812,11 +857,19 @@ function App() {
 
   // ── Income ────────────────────────────────────────────────────────
   const setIncome = (rows: BudgetRow[]) => {
+    // A row that disappeared is a DELETE, not an edit — and a deleted row is
+    // typed text the user cannot get back from anywhere. Detected here rather
+    // than inside IncomeSection so every path that removes a row is covered,
+    // including any future one.
+    if (rows.length < data.income.length) recordMonthUndo('deleteRow');
     setData(d => ({ ...d, income: rows }));
   };
 
   // ── Expenses — with goal↔budget sync ─────────────────────────────
   const setExpenseCategory = (updatedCat: BudgetCategory) => {
+    // Same rule as income: fewer rows than before means one was removed.
+    const previous = data.expenses.find(c => c.id === updatedCat.id);
+    if (previous && updatedCat.rows.length < previous.rows.length) recordMonthUndo('deleteRow');
     // When "sparande" changes, sync both amount AND label back to the linked goal
     if (updatedCat.id === 'sparande') {
       const oldSparande = data.expenses.find(c => c.id === 'sparande');
@@ -931,6 +984,23 @@ function App() {
   };
 
   /**
+   * Remember the month on screen before a destructive edit to it.
+   *
+   * Everything here — a deleted row, a deleted category — reaches storage the
+   * same way: setData, then the save effect on the next render. So the capture
+   * has to happen BEFORE setData, while the old month is still on disk.
+   */
+  const recordMonthUndo = (action: UndoAction) => {
+    recordUndo({
+      at: new Date().toISOString(),
+      action,
+      year,
+      month,
+      changes: captureKeys(appStorage, [storageKey(year, month)]),
+    });
+  };
+
+  /**
    * Remember a deleted category — but only one that held something.
    *
    * Structure counts, not amounts: a category worth 0 kr can still carry the
@@ -940,13 +1010,7 @@ function App() {
    */
   const recordCategoryDelete = (hadRows: boolean) => {
     if (!hadRows) return;
-    recordUndo({
-      at: new Date().toISOString(),
-      action: 'deleteCategory',
-      year,
-      month,
-      changes: captureKeys(appStorage, [storageKey(year, month)]),
-    });
+    recordMonthUndo('deleteCategory');
   };
 
   const deleteExpenseCategory = (id: string) => {
@@ -1036,6 +1100,25 @@ function App() {
     const oldGoals   = planData.goals;
     const newGoals   = newPlan.goals;
     const newGoalIds = new Set(newGoals.map(g => g.id));
+
+    // Not in the review's list, found by searching for the rest: DELETING A
+    // GOAL. It removes the goal itself and sweeps its linked row out of every
+    // month that has one, so the capture has to cover the plan AND every budget
+    // month — the sweep below decides which ones only as it walks them, so all
+    // of them are captured rather than guessed at. Capturing a month the sweep
+    // does not touch is harmless: undo writes back what is already there.
+    if (oldGoals.some(g => !newGoalIds.has(g.id))) {
+      const monthKeys: string[] = ['budget_plan'];
+      for (let i = 0; i < appStorage.length; i++) {
+        const key = appStorage.key(i);
+        if (key && /^budget_\d{4}_\d+$/.test(key)) monthKeys.push(key);
+      }
+      recordUndo({
+        at: new Date().toISOString(),
+        action: 'deleteGoal',
+        changes: captureKeys(appStorage, monthKeys),
+      });
+    }
     // Linked rows of deleted goals. Removal rule (here AND in the cross-month
     // sweep below): only rows still at 0 kr — a row the user has put real money
     // in is budget history and survives as an ordinary custom row.
@@ -1772,7 +1855,7 @@ function App() {
                Tab bar hidden; the global month selector drives its per-month
                amounts. */
           <Suspense fallback={lazyFallback}>
-            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} />
+            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />
           </Suspense>
         )}
       </main>

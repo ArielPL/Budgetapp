@@ -13,8 +13,9 @@
 // Skippable from the first card. Anyone who skips has decided, and asking again
 // on the next launch would only say the app was not listening.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLang } from '../i18n';
+import { useModalFocus } from '../useModalFocus';
 
 interface Props {
   /** Called on both "Get started" and "Skip" — from the app's point of view
@@ -26,6 +27,16 @@ export const Intro = ({ onDone }: Props) => {
   const { t } = useLang();
   const pages = t.introPages;
   const [page, setPage] = useState(0);
+  const panel = useRef<HTMLDivElement>(null);
+  // Review 2026-09-18, F7: this claimed aria-modal but had no focus trap, so the
+  // first Tab landed on "Previous month" behind the backdrop — a dialog the
+  // keyboard could walk straight out of while the screen said it could not.
+  //
+  // Escape is wired to the same thing as Skip. It is not destructive: the
+  // letter the intro replaced is still under "About the app", so a stray
+  // Escape costs nothing, and behaving like every other dialog in the app is
+  // worth more than protecting three cards from being dismissed.
+  useModalFocus(panel, true, onDone);
   const last = page === pages.length - 1;
   const current = pages[page];
 
@@ -39,6 +50,8 @@ export const Intro = ({ onDone }: Props) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="intro-title"
+        tabIndex={-1}
+        ref={panel}
       >
         <button className="intro-skip" onClick={onDone}>{t.introSkip}</button>
 

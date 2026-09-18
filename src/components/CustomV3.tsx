@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
-import { safeSetItem } from '../storageWrite';
+import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
@@ -295,9 +296,12 @@ interface Props {
    *  user the edit is still only on screen (review 2026-09-05, F4). Must be
    *  stable — it sits in the save effect's dependencies. */
   onSaveFailed: () => void;
+  /** Remember a step back from the destructive actions here. Custom owns its
+   *  own keys, so it captures them itself (review 2026-09-18, F3). */
+  onRecordUndo: (entry: UndoEntry) => void;
 }
 
-export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
+export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => {
   const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
@@ -410,6 +414,14 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
     if (hasOwn && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, MONTHS[lang][pm]),
     )) return;
+    onRecordUndo({
+      at: new Date().toISOString(),
+      action: 'copyBudget',
+      year,
+      month,
+      count: 1,
+      changes: captureKeys(appStorage, [valuesKey(year, month), customSnapshotKey(year, month)]),
+    });
     setValues(loadValues(py, pm)); // the save effect persists it to this month's key
     setToast(t.copiedLastMonth);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -431,7 +443,22 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
       const k = appStorage.key(i);
       if (k && (k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))) doomed.push(k);
     }
-    doomed.forEach(k => appStorage.removeItem(k));
+    // Review 2026-09-18, F3. This reaches EVERY month at once — a bigger
+    // intervention than several actions that already had a way back. Captured
+    // first, then removed as one reversible operation so a refusal cannot leave
+    // half the years cleared.
+    const before = captureKeys(appStorage, doomed);
+    if (!applyStorageChanges(appStorage, doomed.map(key => ({ key, value: null })))) {
+      onSaveFailed();
+      return;
+    }
+    onRecordUndo({
+      at: new Date().toISOString(),
+      action: 'clearCustom',
+      // Value keys only: the meta keys describe the same months.
+      count: doomed.filter(k => k.startsWith('budget_custom_v3_values')).length,
+      changes: before,
+    });
     setValues({});
     setToast(t.clearedAmounts);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -497,13 +524,33 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   const monthsHolding = (rowIds: string[]): number =>
     monthsHoldingRows(appStorage, rowIds);
 
+  /**
+   * Remember the Custom LAYOUT before it changes.
+   *
+   * The layout is what makes stored amounts reachable: a month's figures are
+   * keyed by row id, so a removed block or row leaves the money on disk and out
+   * of sight. Restoring this one key restores the history with it.
+   *
+   * Captured before setBlocks, because the save effect writes on the next
+   * render and the old layout is gone by then.
+   */
+  const recordStructureUndo = (action: 'deleteBlock' | 'deleteRow') => {
+    onRecordUndo({
+      at: new Date().toISOString(),
+      action,
+      changes: captureKeys(appStorage, [LS_STRUCT]),
+    });
+  };
+
   const removeBlock = (id: string) => {
-    // Deleting a block is instant and has no undo. Amounts recorded against its
-    // rows in OTHER months stay on disk but stop being reachable, which reads to
-    // the user as history quietly changing. Say so before it happens.
+    // Amounts recorded against its rows in OTHER months stay on disk but stop
+    // being reachable, which reads to the user as history quietly changing. The
+    // dialog says so before it happens — and since 2026-09-18 the layout is
+    // captured too, so undo restores reachability as well as structure.
     const block = blocks.find(b => b.id === id);
     const affected = monthsHolding(block?.rows.map(r => r.id) ?? []);
     if (affected > 0 && !window.confirm(t.deleteBlockHistoryConfirm(affected))) return;
+    recordStructureUndo('deleteBlock');
     setBlocks(prev => prev.filter(b => b.id !== id));
   };
 
@@ -547,6 +594,7 @@ export const CustomV3 = ({ year, month, onSaveFailed }: Props) => {
   const deleteRow = (id: string, rowId: string) => {
     const affected = monthsHolding([rowId]);
     if (affected > 0 && !window.confirm(t.deleteRowHistoryConfirm(affected))) return;
+    recordStructureUndo('deleteRow');
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: b.rows.filter(r => r.id !== rowId) } : b));
   };

@@ -16,6 +16,46 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.1',
+    date: '2026-09-18',
+    title: { sv: 'Löftena stämmer nu', en: 'The promises hold now', es: 'Las promesas ahora se cumplen' },
+    items: {
+      sv: [
+        'Backuppåminnelsen såg inte importerade kontoutdrag. Hade du bara läst in transaktioner — eller bara arbetat i Anpassad — tyckte appen att det inte fanns något att förlora, och bad dig aldrig säkerhetskopiera. Den frågan avgörs nu på ett enda ställe, och räknar allt du skapat: utfall, Anpassad-belopp, egna kategorier utan siffror, sparmål och anteckningar',
+        '"Kopiera till alla återstående" kunde misslyckas halvvägs och ändå säga att det gick bra. Elva månader skrivs nu antingen allihop eller inga alls, och nekas skrivningen står varje månad kvar som den var — med besked om det',
+        'Ångra täcker nu allt det påstod sig täcka. Borttagen inkomst- eller utgiftsrad, en enskild utfallspost, ett Anpassad-block, en Anpassad-rad, alla Anpassad-belopp över alla månader, ett borttaget sparmål, och byte av löneperiod som flyttar poster mellan månader. Löftet i förra listan var större än verkligheten',
+        'Ångrar du en import tas nu hela importen tillbaka. Kategorier som importen skapade försvinner, regler den lärde sig återställs, och kolumnuppställningen den kom ihåg glöms — tidigare låg allt kvar och påverkade nästa import fast appen sagt att allt var ogjort. Man ångrar oftast en import för att det var fel fil, och då ska inte den filens uppställning bli kvar',
+        'Backupdatumet skrivs först när filen verkligen sparats. Appen klickade förut på en nedladdning och antecknade datumet i nästa andetag, utan att veta om du avbröt eller om filen blockerades. Datumet i menyn läses som ett bevis på att en kopia finns — då måste det vara sant',
+        'Och du som uppdaterat från en äldre version får nu sexmånadersvarningen. En gammal markör gjorde att klockan aldrig startade',
+        'Introduktionen håller kvar tangentbordet. Första Tab hoppade förut ut till knappen bakom rutan, trots att rutan sa att den var modal',
+        'Importens sammanfattning räknar rätt. Ett köp och en återbetalning från samma ställe är två kategorival men ett ställe — appen kallade dem två ställen. Och poster som hamnade i Övrigt räknas inte längre som "sorterade åt dig", vilket motsade raden precis under',
+        'Ångra-raden täcker inte längre innehållet. Den ligger kvar tills du stänger den, så sidan reserverar exakt så mycket plats som raden tar — mätt, inte gissat, eftersom höjden ändras med språk och skärmbredd',
+      ],
+      en: [
+        'The backup reminder could not see imported statements. If you had only loaded transactions — or worked only in Custom — the app decided there was nothing to lose and never asked you to back up. That question is now answered in one place, and counts everything you made: records, Custom amounts, your own categories with no figures in them yet, savings goals and notes',
+        '"Copy to all remaining" could fail halfway and still report success. Eleven months are now written either all together or not at all, and a refused write leaves every month exactly as it was — and says so',
+        'Undo now covers everything it claimed to. A deleted income or expense row, a single recorded entry, a Custom block, a Custom row, every Custom amount across every month, a deleted savings goal, and a pay-period change that moves entries between months. The promise in the last list was larger than the reality',
+        'Undoing an import now takes back the whole import. Categories the import created are removed, rules it learned are restored, and the column layout it remembered is forgotten — all of it used to stay behind and shape the next import while the app said everything had been undone. An import is most often undone because it was the wrong file, and that file\u2019s layout should not be what survives',
+        'The backup date is written only once the file really was saved. The app used to click a download and record the date on the next line, without knowing whether you cancelled or the browser blocked it. That date reads as proof that a copy exists, so it has to be true',
+        'And if you updated from an older version you now get the six-month warning. An old marker meant the clock never started',
+        'The introduction keeps the keyboard. The first Tab used to jump to the button behind it, although the dialog said it was modal',
+        'The import summary counts correctly. A purchase and a refund from the same shop are two category choices but one place — the app called them two places. And entries that landed in Övrigt no longer count as "sorted for you", which contradicted the line right underneath',
+        'The undo bar no longer covers content. It stays until you dismiss it, so the page reserves exactly as much room as the bar takes — measured, not assumed, because its height changes with the language and the width of the screen',
+      ],
+      es: [
+        'El recordatorio de copia de seguridad no veía los extractos importados. Si solo habías cargado movimientos — o trabajado solo en Personalizado — la app decidía que no había nada que perder y nunca te pedía una copia. Esa pregunta se responde ahora en un solo sitio, y cuenta todo lo que has creado: movimientos, importes de Personalizado, categorías propias aún sin cifras, metas de ahorro y notas',
+        '"Copiar a todos los restantes" podía fallar a medias y aun así decir que había ido bien. Los once meses se escriben ahora todos juntos o ninguno, y si la escritura se rechaza cada mes queda como estaba — y se te avisa',
+        'Deshacer cubre ya todo lo que decía cubrir. Una fila de ingreso o gasto eliminada, un movimiento registrado, un bloque de Personalizado, una fila de Personalizado, todos los importes de Personalizado de todos los meses, una meta de ahorro eliminada, y un cambio de periodo de cobro que mueve movimientos entre meses. La promesa de la lista anterior era mayor que la realidad',
+        'Deshacer una importación ahora la deshace entera. Las categorías que creó la importación desaparecen, las reglas que aprendió se restauran y se olvida la disposición de columnas que memorizó — antes todo eso se quedaba y afectaba a la siguiente importación mientras la app decía que todo estaba deshecho. Una importación se deshace casi siempre porque era el archivo equivocado, y entonces su disposición no debería sobrevivir',
+        'La fecha de la copia se escribe solo cuando el archivo se guardó de verdad. Antes la app pulsaba una descarga y anotaba la fecha acto seguido, sin saber si cancelaste o si el navegador la bloqueó. Esa fecha se lee como prueba de que existe una copia, así que tiene que ser cierta',
+        'Y si actualizaste desde una versión antigua ahora recibes el aviso de los seis meses. Un marcador viejo hacía que el reloj no arrancara nunca',
+        'La introducción retiene el teclado. El primer Tab saltaba antes al botón de detrás, aunque el diálogo dijera que era modal',
+        'El resumen de la importación cuenta bien. Una compra y una devolución del mismo sitio son dos decisiones de categoría pero un solo sitio — la app los llamaba dos sitios. Y lo que acabó en Övrigt ya no cuenta como "ordenado automáticamente", que contradecía la línea de justo debajo',
+        'La barra de deshacer ya no tapa el contenido. Se queda hasta que la cierras, así que la página reserva exactamente el espacio que ocupa — medido, no supuesto, porque su altura cambia con el idioma y el ancho de la pantalla',
+      ],
+    },
+  },
+  {
     version: '1.12.0',
     date: '2026-09-18',
     title: { sv: 'Tanken bakom appen', en: 'The thinking behind the app', es: 'La idea detrás de la app' },

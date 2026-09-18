@@ -5093,6 +5093,16 @@ a:focus-visible,
    leaves a transform behind and would anchor it to the tab instead of the
    screen (the same trap the CSV dialog fell into — see dialogGuard.test.ts).
    It is rendered from App.tsx, outside every tab, which is why it holds. */
+/* The bar is fixed and does NOT time out, so unlike a toast it can sit on top
+   of content for as long as the user leaves it there. At 320px it covered the
+   last rows and the jump nav — things the user could see but not reach
+   (review 2026-09-18, F10).
+   The page therefore reserves exactly the bar's MEASURED height, published as
+   --undo-bar-h by UndoBar. Measured rather than assumed: the height changes
+   with the language, with the wrap below 480px, and with the length of the
+   place name inside it. When the bar is gone the variable is 0 and nothing is
+   reserved. These rules sit after the mobile block on purpose — same
+   specificity, later in source, so they win. */
 .undo-bar {
   position: fixed;
   left: 50%;
@@ -5251,5 +5261,37 @@ a:focus-visible,
   .triage-accept {
     flex: 1 1 auto;
     min-width: 0;
+  }
+}
+
+/* ── Room for the undo bar (review 2026-09-18, F10) ──────────────────────
+   The bar is fixed and does NOT time out, so unlike a toast it can sit on top
+   of content for as long as the user leaves it there. Measured at 320×700 it
+   is 85px tall and covered the last controls and the tab bar — things the user
+   could see but not reach.
+
+   The page reserves exactly the bar's MEASURED height, published as
+   --undo-bar-h by UndoBar: measured rather than assumed, because the height
+   changes with the language, with the wrap below 480px and with the length of
+   the place name inside it. With no bar the variable is 0 and nothing is
+   reserved.
+
+   These live at the END of the file on purpose. A media query adds no
+   specificity, so the first attempt — placed just above the `.undo-bar` block —
+   lost to the base rule that followed it, and the bar went on overlapping the
+   tab bar exactly as before. Source order is the whole mechanism here. */
+.app {
+  padding-bottom: calc(48px + var(--undo-bar-h, 0px));
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding-bottom: calc(
+      var(--bottom-nav-h) + env(safe-area-inset-bottom) + 24px + var(--undo-bar-h, 0px)
+    );
+  }
+  /* And the bar itself sits above the tab bar instead of across it. */
+  .undo-bar {
+    bottom: calc(var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
   }
 }

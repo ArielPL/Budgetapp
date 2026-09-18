@@ -49,7 +49,18 @@ export type UndoAction =
   /** A budget written over one or more months — including "pull from last
    *  month", which writes over the month on screen. */
   | 'copyBudget'
-  | 'deleteCategory';
+  | 'deleteCategory'
+  /** One income or expense row, or one Custom row. */
+  | 'deleteRow'
+  /** One recorded entry in the follow-up tab. */
+  | 'deleteEntry'
+  /** A savings goal, which also sweeps its linked row out of every month. */
+  | 'deleteGoal'
+  /** A Custom block, whose removal also hides the historic amounts filed
+   *  under it — the money stays stored but becomes unreachable. */
+  | 'deleteBlock'
+  /** Every Custom amount, across every month. */
+  | 'clearCustom';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -94,6 +105,11 @@ const ACTIONS: Record<UndoAction, true> = {
   periodChange: true,
   copyBudget: true,
   deleteCategory: true,
+  deleteRow: true,
+  deleteEntry: true,
+  deleteGoal: true,
+  deleteBlock: true,
+  clearCustom: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than

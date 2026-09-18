@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useLang } from '../i18n';
 import { appStorage } from '../storage';
-import type { BackupLevel } from '../backupAge';
+import { migrateSeenMarker, type BackupLevel } from '../backupAge';
+import { safeSetItem } from '../storageWrite';
 
 interface Props {
   /** How late the backup is. 'urgent' gets a different message and a different
@@ -29,8 +31,16 @@ export const BackupBanner = ({ level, months, neverBackedUp, onExport, onDismiss
   const { t } = useLang();
   // Full banner the very first time; a slim one-liner on every later reminder
   // so it stops competing with what the user is actually doing.
-  const seen = !!appStorage.getItem(SEEN_KEY);
-  if (!seen) appStorage.setItem(SEEN_KEY, new Date().toISOString());
+  const stored = appStorage.getItem(SEEN_KEY);
+  const seen = !!stored;
+
+  // Written in an EFFECT, not during render: a render may be discarded or run
+  // twice, and this value is the clock the six-month escalation counts from.
+  // safeSetItem because a refused write here must not throw out of a banner.
+  useEffect(() => {
+    const next = migrateSeenMarker(stored, Date.now());
+    if (next !== null) safeSetItem(appStorage, SEEN_KEY, next);
+  }, [stored]);
 
   const urgent = level === 'urgent';
   // The urgent one is never compact. Six months in, the quiet line has been

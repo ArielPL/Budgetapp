@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  backupAge, shouldRemind, DAY_MS,
+  backupAge, shouldRemind, migrateSeenMarker, DAY_MS,
   BACKUP_STALE_DAYS, BACKUP_URGENT_DAYS, BACKUP_SNOOZE_DAYS, BACKUP_URGENT_SNOOZE_DAYS,
 } from './backupAge';
 
@@ -118,5 +118,44 @@ describe('whether to say anything', () => {
 
   it('ignores a dismissal it cannot read rather than staying silent', () => {
     expect(shouldRemind(stale, 'nonsense', NOW, true)).toBe(true);
+  });
+});
+
+describe('migrating the old "seen" marker (F6)', () => {
+  // Older versions stored the string '1'. The banner only checked that
+  // SOMETHING was stored, so it was never replaced — and those users had no
+  // start clock, which meant the six-month escalation could never fire.
+
+  it('replaces "1" with today', () => {
+    const next = migrateSeenMarker('1', NOW);
+    expect(next).toBe(new Date(NOW).toISOString());
+  });
+
+  it('replaces any other unreadable value', () => {
+    expect(migrateSeenMarker('yes', NOW)).toBe(new Date(NOW).toISOString());
+    expect(migrateSeenMarker('2026-09-18', NOW)).toBe(new Date(NOW).toISOString());
+  });
+
+  it('writes one when there is none', () => {
+    expect(migrateSeenMarker(null, NOW)).toBe(new Date(NOW).toISOString());
+  });
+
+  it('leaves a valid marker alone, new or old', () => {
+    expect(migrateSeenMarker(daysAgo(1), NOW)).toBeNull();
+    expect(migrateSeenMarker(daysAgo(900), NOW)).toBeNull();
+  });
+
+  it('does not hand the migrated user an immediate alarm', () => {
+    // They have just updated; this clock has not asked them anything yet.
+    const migrated = migrateSeenMarker('1', NOW)!;
+    expect(backupAge(null, NOW, migrated).level).toBe('never');
+  });
+
+  it('but escalates 182 days later, and not 181', () => {
+    const migrated = migrateSeenMarker('1', NOW)!;
+    const at181 = NOW + (BACKUP_URGENT_DAYS - 1) * DAY_MS;
+    const at182 = NOW + BACKUP_URGENT_DAYS * DAY_MS;
+    expect(backupAge(null, at181, migrated).level).toBe('never');
+    expect(backupAge(null, at182, migrated).level).toBe('urgent');
   });
 });

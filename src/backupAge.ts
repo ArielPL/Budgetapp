@@ -52,6 +52,24 @@ function parseStamp(value: string | null): number | null {
   return Number.isNaN(at) ? null : at;
 }
 
+/**
+ * The value the "banner seen" marker should be given, or null to leave it.
+ *
+ * Review 2026-09-18, F6: older versions stored the string '1'. `parseStamp`
+ * correctly refuses it as a date, but the banner only checked that SOMETHING
+ * was stored, so it was never replaced — and those users had no start clock at
+ * all, which meant the six-month escalation could never fire for them.
+ *
+ * Migrating to TODAY rather than to some invented past date is deliberate: the
+ * escalation is for people who have been asked for six months and not acted. A
+ * user who has just updated the app has not been asked yet by this clock, and
+ * greeting them with the alarm would be a lie in the other direction.
+ */
+export function migrateSeenMarker(stored: string | null, now: number): string | null {
+  if (parseStamp(stored) !== null) return null;
+  return new Date(now).toISOString();
+}
+
 export type BackupLevel = 'never' | 'urgent' | 'stale' | 'recent';
 
 export interface BackupAge {

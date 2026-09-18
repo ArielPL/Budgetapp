@@ -1,16 +1,17 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { appStorage } from '../storage';
-import { generateId, shownName, standardExpenseCategory } from '../defaults';
+import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
   parseDate,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
-import { loadCsvMaps, rememberCsvMap, forgetCsvMap } from '../csvMaps';
+import { loadCsvMaps, rememberCsvMap, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
 import {
   suggest, isTransfer, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
+  CATEGORY_RULES_KEY,
   type LearnedRules,
 } from '../categorise';
 import {
@@ -184,7 +185,11 @@ export const CsvImport = ({
   };
 
   const confirmColumns = () => {
-    rememberCsvMap(appStorage, headerFingerprint(header), roles, dateOrder);
+    // The layout is NOT remembered here any more. Confirming the columns is a
+    // step on the way, not a decision to keep them: the user can still close the
+    // dialog, and an import that is later undone must not leave the wrong file's
+    // layout behind. It is stored after a successful import instead, with the
+    // rest of the import's lasting effects.
     toReview(dataRows, roles);
   };
 
@@ -194,10 +199,28 @@ export const CsvImport = ({
   const unassigned = groups.length - ready.length;
   const toUnsorted = groups.filter(g => g.choice === UNSORTED_ACTUAL_ID).length;
   const toTransfer = groups.filter(g => g.choice === TRANSFER_ACTUAL_ID).length;
-  /** How many the sorter placed without being asked — the number that says
-   *  whether it is earning its keep. Counted before any correction, so it does
-   *  not flatter itself by counting the ones you fixed. */
-  const sorted = groups.filter(g => g.auto && g.choice).length;
+  /**
+   * How many the sorter placed IN A CATEGORY without being asked.
+   *
+   * Counted before any correction, so it does not flatter itself by counting
+   * the ones you fixed — and, since review 2026-09-18 F8, Övrigt does not count
+   * either. Övrigt is where the sorter puts what it could not place; calling
+   * that "sorted for you" contradicted the line right underneath, which said
+   * how many had gone there.
+   */
+  const sorted = groups.filter(
+    g => g.auto && g.choice && g.choice !== UNSORTED_ACTUAL_ID,
+  ).length;
+
+  /**
+   * Distinct PLACES, which is not the same as distinct choices.
+   *
+   * A purchase and a refund from the same shop must stay separate choices —
+   * they can legitimately go to different categories — but they are one place,
+   * and the summary used to call them two. Four places therefore read as "5
+   * different places" (review 2026-09-18, F8).
+   */
+  const places = new Set(groups.map(g => g.text.trim().toLowerCase())).size;
 
   /** The standard categories this import would create, each named once. */
   const toCreate = [...new Set(
@@ -256,20 +279,36 @@ export const CsvImport = ({
 
     // All touched months land together. If one write is refused, every earlier
     // one is restored so retrying cannot duplicate a half-finished import.
-    // Captured from the SAME list the import is about to write, so the step
-    // back covers exactly what changed — no more, no less.
-    const before = captureKeys(appStorage, changes.map(c => c.key));
+    //
+    // Review 2026-09-18, F4: the step back used to cover the ENTRIES only. An
+    // import also creates categories and learns rules, and undoing it left both
+    // behind — so the app said the import had been taken back while a category
+    // it invented stayed in the budget and a rule it learned changed the next
+    // import. Everything the import can touch is captured here, before the
+    // first write:
+    //
+    //   · the actuals key of every month the file reaches;
+    //   · the budget month of every month a category could be created in;
+    //   · the learned-rules key;
+    //   · the remembered COLUMN LAYOUT for this bank's file.
+    //
+    // The column layout was found still surviving undo during the verification
+    // of this fix. It belongs here for one reason: an import is most often
+    // undone because it was the WRONG FILE, and remembering that file's columns
+    // is precisely the wrong thing to keep.
+    //
+    // Capturing a key the import turns out not to change is harmless: undo
+    // writes back the value that is already there.
+    const monthKeys = [...months.values()].map(b => storageKey(b.year, b.month));
+    const before = captureKeys(appStorage, [
+      ...changes.map(c => c.key),
+      ...monthKeys,
+      CATEGORY_RULES_KEY,
+      CSV_MAPS_KEY,
+    ]);
     if (!applyStorageChanges(appStorage, changes)) {
       onSaveFailed();
       return;
-    }
-    if (added > 0) {
-      onRecordUndo({
-        at: new Date().toISOString(),
-        action: 'import',
-        count: added,
-        changes: before,
-      });
     }
 
     // Only commit secondary effects after the entries themselves landed. A
@@ -278,6 +317,10 @@ export const CsvImport = ({
     //
     // Categories go into every month the file reaches, including a month whose
     // rows were already present: those stored entries still need a named home.
+    // Remembered now, not when the columns were confirmed — so it is covered by
+    // the same step back as everything else the import leaves behind.
+    rememberCsvMap(appStorage, headerFingerprint(header), roles, dateOrder);
+
     if (toCreate.length > 0) {
       onCreateCategories(
         toCreate,
@@ -292,6 +335,17 @@ export const CsvImport = ({
     for (const g of ready) {
       if (g.auto) continue;
       rules = rememberCategoryRule(appStorage, g.text, resolve(g.choice), rules);
+    }
+
+    // Recorded LAST, once the categories and rules have been written too, so the
+    // step back describes the whole import rather than a part of it.
+    if (added > 0) {
+      onRecordUndo({
+        at: new Date().toISOString(),
+        action: 'import',
+        count: added,
+        changes: before,
+      });
     }
 
     // Which months were touched is said out loud: a file may cover two of them
@@ -423,7 +477,9 @@ export const CsvImport = ({
           {step === 'review' && (
             <>
               <p className="csv-lead">
-                {t.csvReviewLead(groups.reduce((s, g) => s + g.rows.length, 0), groups.length)}
+                {t.csvReviewLead(
+                  groups.reduce((s, g) => s + g.rows.length, 0), groups.length, places,
+                )}
                 {sorted > 0 && <span className="csv-sorted"> {t.csvSorted(sorted, groups.length)}</span>}
                 {skippedCount > 0 && <span className="csv-skipped"> {t.csvSkipped(skippedCount)}</span>}
               </p>

@@ -325,7 +325,21 @@ export const FollowUpTab = ({
     // duplicate rule exists to prevent.
     const victim = entries.find(e => e.id === id);
     if (victim && !window.confirm(t.followUpDeleteConfirm(victim.text))) return;
-    persist(entries.filter(e => e.id !== id));
+    // Review 2026-09-18, F3. One entry is small, but it is a record of what was
+    // actually spent — it has to be fetched from the bank again, not retyped.
+    // Captured across every month the view writes back, the same key list
+    // `persist` builds.
+    const before = captureKeys(appStorage, months.map(m => actualsKey(m.year, m.month)));
+    if (persist(entries.filter(e => e.id !== id))) {
+      onRecordUndo({
+        at: new Date().toISOString(),
+        action: 'deleteEntry',
+        year,
+        month,
+        count: 1,
+        changes: before,
+      });
+    }
   };
 
   const setAmount = (id: string, amount: number) => {
