@@ -4830,6 +4830,296 @@ a:focus-visible,
   }
 }
 
+/* ── Intro: three cards on the first run ─────────────────────────────────
+   Fixed height per card so the button does not jump between steps — a moving
+   primary button is how a double tap skips a page nobody read. */
+.intro-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 32px));
+  padding: 18px;
+}
+
+.intro-skip {
+  align-self: flex-end;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .intro-skip:hover { color: var(--text); }
+}
+
+.intro-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  /* Room for the longest of the three bodies in the longest language, so the
+     footer sits still while the cards change under it. */
+  min-height: 210px;
+  padding: 6px 4px 18px;
+}
+
+.intro-emoji { font-size: 2.6rem; line-height: 1; }
+
+.intro-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.intro-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.intro-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.intro-dots-visual { display: flex; gap: 6px; }
+
+.intro-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 0.15s;
+}
+
+.intro-dot.is-on { background: var(--accent-brand); }
+
+.intro-next {
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+/* ── Triage: the leftover pile as a worklist ─────────────────────────────
+   Sits above the table because it is work to DO, not a number to read. Closed
+   by default — an open list of 34 unsorted places on every visit reads as an
+   accusation. */
+.triage {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.triage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.triage-title {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.triage-toggle {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+.triage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 12px;
+  /* Long piles scroll inside the panel rather than pushing the table off the
+     screen — the table is what the user came for. */
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.triage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.triage-place {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.triage-place-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triage-place-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.triage-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The one-tap answer. Two lines: what it would do, and why it thinks so. */
+.triage-accept {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-height: 38px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border-strong);
+}
+
+.triage-accept-new { border-style: dashed; }
+
+.triage-why {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .triage-accept:hover { background: var(--accent-brand); color: #fff; }
+  .triage-accept:hover .triage-why { color: rgba(255, 255, 255, 0.85); }
+}
+
+.triage-other,
+.triage-skip {
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0 8px;
+}
+
+@media (hover: hover) {
+  .triage-skip:hover { color: var(--text); background: var(--surface2); }
+}
+
+/* ── Undo ───────────────────────────────────────────────────────────────
+   The bar sits above the content at the bottom of the screen, where a phone's
+   thumb already is. It is `fixed`, so it must not be inside a tab: `.tab-enter`
+   leaves a transform behind and would anchor it to the tab instead of the
+   screen (the same trap the CSV dialog fell into — see dialogGuard.test.ts).
+   It is rendered from App.tsx, outside every tab, which is why it holds. */
+.undo-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: undoBarIn 0.18s ease-out;
+}
+
+@keyframes undoBarIn {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-bar { animation: none; }
+}
+
+.undo-bar-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  /* One long place name must not push the button off the bar. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undo-bar-action {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+.undo-bar-close {
+  flex: 0 0 auto;
+  width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .undo-bar-close:hover { color: var(--text); background: var(--surface); }
+}
+
+/* The menu's copy: two lines, because "Undo" alone a week later is a question
+   rather than an offer. */
+.utils-action-undo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  color: var(--text);
+}
+
+.utils-undo-label { font-weight: 700; }
+
+.utils-undo-what {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: normal;
+  line-height: 1.3;
+}
+
 /* The month title swaps to "Sep 2026" long before 340px. Measured at 320, 341,
    360, 375, 390, 393 and 412 CSS px: the two arrows, the gear and the gaps take
    a constant 216px, so the title gets (viewport − 216). "Septiembre 2026" needs
@@ -4867,4 +5157,47 @@ a:focus-visible,
    (see LONG_AMOUNT_CHARS in SummaryCards.tsx). */
 @media (max-width: 360px) {
   .summary-card .card-amount-long { font-size: 0.8rem; }
+}
+
+/* A triage row wants roughly 390px: the place needs ~110px to be readable at
+   all, and the three controls beside it need ~257px plus gaps. Measured at
+   320px the controls were pushed 17px past the panel's own edge and every
+   place name — "ICA Nära" included — was clipped to nothing. Below 480px the
+   row therefore stacks: the place takes its own full-width line, the controls
+   take the next. Nothing is dropped, and nothing has to be guessed at. */
+@media (max-width: 480px) {
+  /* The undo bar's sentence is ellipsised on a phone — "Se eliminaron 3
+     movimientos de Septiembre 2026" needs more than 320px gives it, and a bar
+     that hides WHAT it would undo asks the user to take it on faith.
+     Letting the text wrap in place was worse: as a flex item beside two
+     controls it collapsed to its minimum width and ran to five lines, 118px
+     tall. It takes the whole first line instead, and the controls take the
+     second — the sentence reads in two lines and the button keeps its size. */
+  /* An explicit width is required, not cosmetic: the bar is `position: fixed`
+     with only a max-width, so it is shrink-to-fit, and a `flex-basis: 100%`
+     child then resolves against a width that depends on that child — the text
+     came out 134px wide and ran to three lines inside a bar it had itself
+     narrowed. Given a real width, the sentence gets the full line. */
+  .undo-bar {
+    flex-wrap: wrap;
+    width: calc(100vw - 24px);
+  }
+  .undo-bar-text {
+    flex: 1 0 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+  .undo-bar-action { margin-left: auto; }
+  .triage-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .triage-actions {
+    justify-content: space-between;
+  }
+  .triage-accept {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }

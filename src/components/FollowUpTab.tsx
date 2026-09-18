@@ -9,6 +9,10 @@ import {
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
 import { applyStorageChanges } from '../storageWrite';
+import { captureKeys, type UndoEntry } from '../undo';
+import { triageUnsorted, movableIds } from '../triage';
+import { loadCategoryRules } from '../categorise';
+import { standardExpenseCategory } from '../defaults';
 import { spanMonths, SPANS, isSpan, type Span } from '../span';
 import { rememberCategoryRule } from '../categorise';
 import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
@@ -52,6 +56,9 @@ interface Props {
   onLockPeriod: (year: number, month: number, iso: string | null) => void;
   /** Create a category the user named, in the months given, and return its id. */
   onCreateNamedCategory: (name: string, months: { year: number; month: number }[]) => string;
+  /** Remember a step back from the two actions here that destroy: clearing a
+   *  month's record, and an import that lands in the wrong one. */
+  onRecordUndo: (entry: UndoEntry) => void;
 }
 
 /** Sentinel in the move dropdown: not a category, an invitation to make one. */
@@ -72,7 +79,7 @@ const NO_ENTRIES: ActualEntry[] = [];
 
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
-  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory,
+  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory, onRecordUndo,
 }: Props) => {
   const { t, lang, money } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
@@ -94,6 +101,13 @@ export const FollowUpTab = ({
   const [openPlace, setOpenPlace] = useState<string | null>(null);
   /** The place whose ⇄ is currently asking for a new category's name. */
   const [namingPlace, setNamingPlace] = useState<string | null>(null);
+  /** The leftover pile, opened as a worklist. Closed by default: it is an
+   *  offer to do some work, not an accusation waiting on every visit. */
+  const [triageOpen, setTriageOpen] = useState(false);
+  /** Places set aside for now. Session-only on purpose — a skip means "not
+   *  this time", not "never ask again", and nothing about it is worth
+   *  writing to the user's storage. */
+  const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
   const [newCatName, setNewCatName] = useState('');
   // How an opened category lists what is in it. "place" answers "where does it
   // go"; "date" answers "what happened when". Both are real questions, so this
@@ -191,6 +205,41 @@ export const FollowUpTab = ({
   }, [months, periodStartDay, periodLocks, onSaveFailed, reloadEntries, t.followUpExternalReloaded]);
 
   const sums = useMemo(() => sumByCategory(entries), [entries]);
+
+  /** What is still waiting, worth the most money first, each with a proposal.
+   *  Rules are read here rather than held in state: a move made in this session
+   *  teaches one, and the next decision should already know about it. */
+  const decisions = useMemo(() => {
+    const unsorted = entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID);
+    if (unsorted.length === 0) return [];
+    const filed = entries.filter(e => !isBucketId(e.categoryId));
+    return triageUnsorted(
+      unsorted, filed, movableIds(categories.map(c => c.id)), loadCategoryRules(appStorage),
+    ).filter(d => !skipped.has(d.text.toLowerCase()));
+  }, [entries, categories, skipped]);
+
+  /** The label on the one-tap button: an existing category, or Income. */
+  const categoryLabel = (id: string): string => {
+    if (id === INCOME_ACTUAL_ID) return t.followUpIncome;
+    const found = categories.find(c => c.id === id);
+    return found ? shownName(found, lang) : id;
+  };
+
+  /** A standard category's name in the current language, for the "create it"
+   *  button. The lookup cannot miss — `create` is a StandardCategoryId — but a
+   *  fallback beats a crash if the list is ever edited carelessly. */
+  const standardName = (id: string): string => {
+    const found = standardExpenseCategory(id, lang);
+    return found ? shownName(found, lang) : id;
+  };
+
+  /** Accept a proposal for a standard category the budget does not hold: make
+   *  it first, in every month the view writes back, then move the place into
+   *  it. Same order as the import — the home exists before anything moves in. */
+  const createStandardAndMove = (place: string, id: string) => {
+    onCreateCategories([id], months.map(m => ({ year: m.year, month: m.month })));
+    movePlace(place, id);
+  };
 
   // Each entry is indexed once. The old render path scanned the full list once
   // per category, which became noticeable after large statement imports.
@@ -323,7 +372,18 @@ export const FollowUpTab = ({
     const n = entries.length;
     if (n === 0) return;
     if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
+    // Captured before the write, across every month the view writes back — the
+    // same key list `persist` builds, so undo restores exactly what was emptied.
+    const before = captureKeys(appStorage, months.map(m => actualsKey(m.year, m.month)));
     if (persist([])) {
+      onRecordUndo({
+        at: new Date().toISOString(),
+        action: 'clearActuals',
+        year,
+        month,
+        count: n,
+        changes: before,
+      });
       setOpenRow(null);
       setToast({ text: t.followUpClearDone(n), months: [] });
     }
@@ -665,6 +725,7 @@ export const FollowUpTab = ({
           onCreateCategories={onCreateCategories}
           onClose={() => setImporting(false)}
           onSaveFailed={onSaveFailed}
+          onRecordUndo={onRecordUndo}
           onImported={(summary, months) => {
             setImporting(false);
             setToast({ text: summary, months });
@@ -678,6 +739,79 @@ export const FollowUpTab = ({
       {entries.length === 0 && (
         <div className="followup-empty">
           <p>{t.followUpEmptyBody}</p>
+        </div>
+      )}
+
+      {/* ── The leftover pile, as a short list of decisions ──────────────
+          The parts were all here already: a place moves in one go and the move
+          is learned. What was missing was the asking. Sorting used to mean
+          finding the Övrigt row, opening it, and reading 34 places to see which
+          were worth a move. This puts the biggest ones in front, with a
+          proposal, and each tap teaches the sorter for next month. */}
+      {decisions.length > 0 && (
+        <div className="triage">
+          <div className="triage-head">
+            <span className="triage-title">
+              ❔ {t.triageWaiting(entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID).length)}
+            </span>
+            <button className="triage-toggle" onClick={() => setTriageOpen(o => !o)}>
+              {triageOpen ? t.triageHide : t.triageOpen}
+            </button>
+          </div>
+
+          {triageOpen && (
+            <ul className="triage-list">
+              {decisions.map(d => (
+                <li className="triage-item" key={d.text}>
+                  <div className="triage-place">
+                    <span className="triage-place-text">{d.text}</span>
+                    <span className="triage-place-meta">
+                      {t.csvRows(d.count)} · {money(d.total)}
+                    </span>
+                  </div>
+                  <div className="triage-actions">
+                    {d.categoryId && (
+                      <button
+                        className="triage-accept"
+                        onClick={() => movePlace(d.text, d.categoryId!)}
+                      >
+                        {categoryLabel(d.categoryId)}
+                        {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
+                      </button>
+                    )}
+                    {d.create && (
+                      <button
+                        className="triage-accept triage-accept-new"
+                        onClick={() => createStandardAndMove(d.text, d.create!)}
+                      >
+                        {t.triageCreate(standardName(d.create))}
+                        {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
+                      </button>
+                    )}
+                    <select
+                      className="triage-other"
+                      value=""
+                      aria-label={t.followUpMoveTo(d.text)}
+                      onChange={ev => { if (ev.target.value) movePlace(d.text, ev.target.value); }}
+                    >
+                      <option value="">{t.triageOther}</option>
+                      <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
+                      {categories.map(c => (
+                        <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
+                      ))}
+                      <option value={TRANSFER_ACTUAL_ID}>{t.followUpTransfer}</option>
+                    </select>
+                    <button
+                      className="triage-skip"
+                      onClick={() => setSkipped(prev => new Set(prev).add(d.text.toLowerCase()))}
+                    >
+                      {t.triageSkip}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

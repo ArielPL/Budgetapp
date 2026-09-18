@@ -18,6 +18,7 @@ import {
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
 import { applyStorageChanges, type StorageChange } from '../storageWrite';
+import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
 import type { ActualEntry, BudgetCategory } from '../types';
@@ -69,6 +70,9 @@ interface Props {
   /** Add standard categories the user accepted an offer to create, into the
    *  months the entries are being filed in. */
   onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
+  /** Remember what the touched months held before the file landed, so an import
+   *  of the wrong file — or into the wrong months — has a way back. */
+  onRecordUndo: (entry: UndoEntry) => void;
 }
 
 /** Prefix marking a choice that is an offer to create rather than a category
@@ -88,7 +92,7 @@ interface Group extends TextGroup {
 
 export const CsvImport = ({
   categories, periodStartDay, periodLocks, onClose, onImported, onSaveFailed,
-  onCreateCategories,
+  onCreateCategories, onRecordUndo,
 }: Props) => {
   const { t, lang, money } = useLang();
   const [step, setStep] = useState<Step>('file');
@@ -252,9 +256,20 @@ export const CsvImport = ({
 
     // All touched months land together. If one write is refused, every earlier
     // one is restored so retrying cannot duplicate a half-finished import.
+    // Captured from the SAME list the import is about to write, so the step
+    // back covers exactly what changed — no more, no less.
+    const before = captureKeys(appStorage, changes.map(c => c.key));
     if (!applyStorageChanges(appStorage, changes)) {
       onSaveFailed();
       return;
+    }
+    if (added > 0) {
+      onRecordUndo({
+        at: new Date().toISOString(),
+        action: 'import',
+        count: added,
+        changes: before,
+      });
     }
 
     // Only commit secondary effects after the entries themselves landed. A

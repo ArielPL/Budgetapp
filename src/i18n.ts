@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { UndoAction } from './undo';
 
 export type Lang = 'sv' | 'en' | 'es';
 
@@ -379,7 +380,17 @@ export interface Translations {
   cfgWidthThird: string;
   cfgDone: string;
   addStarterCategories: string;
-  // First-run welcome / introduction
+  // ── First run: three cards, then out of the way ────────────────────────
+  // The letter below is the app's best writing and stays — under "About the
+  // app", where someone who wants it will find it. It is not a first screen:
+  // measured at 320px it ran four screen-heights before its button, and a
+  // stranger deciding whether to keep the app does not read four screens.
+  introPages: { emoji: string; title: string; body: string }[];
+  introNext: string;
+  introSkip: string;
+  introDone: string;
+  introStep: (n: number, of: number) => string;
+  // The letter, kept for the menu
   welcomeTitle: string;
   /** The letter shown on first run and from the menu, one string per paragraph.
    *  Ariel's own words — edit them as prose, not as UI copy. */
@@ -510,6 +521,27 @@ export interface Translations {
   resetMonthConfirmKept: (monthName: string, n: number) => string;
   resetMonthDone: string;
   dangerZone: string;
+  // Undo — the step back from the buttons above. See src/undo.ts.
+  undo: string;
+  /** What the step back would take back, named in the CURRENT language: an undo
+   *  entry stores the month as numbers rather than as a sentence, so a user who
+   *  switches language does not find yesterday's actions written in the old one.
+   *  `where` is "September 2026" or empty; `count` is 0 when it does not apply. */
+  undoWhat: (action: UndoAction, where: string, count: number) => string;
+  undoDone: string;
+  undoFailed: string;
+  undoDismiss: string;
+  // Triage — the short list of decisions the leftover pile becomes. src/triage.ts
+  triageWaiting: (n: number) => string;
+  triageOpen: string;
+  triageHide: string;
+  triageSkip: string;
+  triageOther: string;
+  triageCreate: (name: string) => string;
+  /** Why a category is being proposed. Shown, because "you corrected this
+   *  yourself" and "a built-in list guessed" deserve different trust. */
+  triageSource: (source: 'rule' | 'history' | 'seed') => string;
+  triageAllDone: string;
   // Month nav
   prevMonth: string;
   nextMonth: string;
@@ -746,7 +778,7 @@ export const translations: Record<Lang, Translations> = {
     csvExistingGroup: 'I din budget',
     csvChangeColumns: '↩ Ändra kolumner',
     followUpClear: 'Rensa månadens utfall',
-    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Detta tar bort den enda posten för ${monthName}` : `Detta tar bort alla ${n} poster för ${monthName}`} och kan inte ångras.\n\nBudgeten påverkas inte.\n\nVill du fortsätta?`,
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Detta tar bort den enda posten för ${monthName}` : `Detta tar bort alla ${n} poster för ${monthName}`}.\n\nBudgeten påverkas inte, och du kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
     followUpClearDone: (n) => (n === 1 ? '1 post borttagen' : `${n} poster borttagna`),
     followUpSpan: (n) => (n === 1 ? 'Månad' : `${n} mån`),
     followUpSpanAria: 'Hur många månader som visas',
@@ -843,6 +875,27 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tredjedel',
     cfgDone: 'Klar',
     addStarterCategories: 'Lägg till startkategorier',
+    introPages: [
+      {
+        emoji: '🔒',
+        title: 'Allt stannar på din enhet',
+        body: 'Ingen inloggning, inget konto, ingen server. Det du skriver sparas här och lämnar inte enheten — om du inte själv exporterar en säkerhetskopia.',
+      },
+      {
+        emoji: '✏️',
+        title: 'Gör månadens budget',
+        body: 'Börja från en mall eller ett tomt ark. Skriv in inkomsten och de utgifter du vet kommer. Några minuter, en gång i månaden.',
+      },
+      {
+        emoji: '📊',
+        title: 'Se vad som faktiskt hände',
+        body: 'Under Uppföljning läser du in bankens CSV-fil. Appen sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
+      },
+    ],
+    introNext: 'Nästa',
+    introSkip: 'Hoppa över',
+    introDone: 'Kom igång',
+    introStep: (n, of) => `Steg ${n} av ${of}`,
     welcomeTitle: 'Välkommen till Budgetapp!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
@@ -975,9 +1028,28 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'Filen är skadad och kunde inte läsas. Ingenting har ändrats — din nuvarande data är kvar.',
     importWriteFailed: 'Importen misslyckades och avbröts. Din tidigare data är återställd och oförändrad.',
     resetMonth: '↺ Återställ månad',
-    resetMonthConfirm: (monthName) => `Detta nollställer budgeten för ${monthName} och kan inte ångras. Vill du fortsätta?`,
-    resetMonthConfirmKept: (monthName, n) => `Detta nollställer budgeten för ${monthName} och kan inte ångras.\n\n${n === 1 ? 'Den registrerade posten' : `De ${n} registrerade posterna`} under Uppföljning ligger kvar — ${n === 1 ? 'den' : 'de'} rensas därifrån.\n\nVill du fortsätta?`,
+    resetMonthConfirm: (monthName) => `Detta nollställer budgeten för ${monthName}.\n\nDu kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
+    resetMonthConfirmKept: (monthName, n) => `Detta nollställer budgeten för ${monthName}.\n\n${n === 1 ? 'Den registrerade posten' : `De ${n} registrerade posterna`} under Uppföljning ligger kvar — ${n === 1 ? 'den' : 'de'} rensas därifrån.\n\nDu kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
     resetMonthDone: '✓ Budgeten återställd',
+    undo: '↩ Ångra',
+    undoWhat: (action, where, count) => {
+      if (action === 'resetMonth') return `Budgeten för ${where} nollställdes`;
+      if (action === 'clearActuals') return count === 1 ? `1 post togs bort i ${where}` : `${count} poster togs bort i ${where}`;
+      if (action === 'import') return count === 1 ? '1 post importerades' : `${count} poster importerades`;
+      if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
+      return 'Löneperioden ändrades';
+    },
+    undoDone: '✓ Ångrat',
+    undoFailed: 'Kunde inte ångra — enheten nekade skrivningen. Frigör utrymme och försök igen.',
+    undoDismiss: 'Stäng',
+    triageWaiting: (n) => n === 1 ? '1 post väntar på en kategori' : `${n} poster väntar på en kategori`,
+    triageOpen: 'Sortera',
+    triageHide: 'Dölj',
+    triageSkip: 'Hoppa över',
+    triageOther: 'Annan…',
+    triageCreate: (name) => `+ ${name}`,
+    triageSource: (source) => source === 'rule' ? 'din regel' : source === 'history' ? 'som du gjort förut' : 'förslag',
+    triageAllDone: '✓ Inget väntar — allt är sorterat',
     dangerZone: 'Farozon',
     prevMonth: 'Föregående månad',
     nextMonth: 'Nästa månad',
@@ -1194,7 +1266,7 @@ export const translations: Record<Lang, Translations> = {
     csvExistingGroup: 'In your budget',
     csvChangeColumns: '↩ Change columns',
     followUpClear: "Clear this month's actuals",
-    followUpClearConfirm: (n, monthName) => `${n === 1 ? `This removes the only entry for ${monthName}` : `This removes all ${n} entries for ${monthName}`} and cannot be undone.\n\nThe budget is not affected.\n\nContinue?`,
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `This removes the only entry for ${monthName}` : `This removes all ${n} entries for ${monthName}`}.\n\nThe budget is not affected, and you can undo it straight afterwards.\n\nContinue?`,
     followUpClearDone: (n) => (n === 1 ? '1 entry removed' : `${n} entries removed`),
     followUpSpan: (n) => (n === 1 ? 'Month' : `${n} mo`),
     followUpSpanAria: 'How many months are shown',
@@ -1291,6 +1363,27 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Third',
     cfgDone: 'Done',
     addStarterCategories: 'Add starter categories',
+    introPages: [
+      {
+        emoji: '🔒',
+        title: 'Everything stays on your device',
+        body: 'No sign-in, no account, no server. What you type is kept here and does not leave the device — unless you export a backup yourself.',
+      },
+      {
+        emoji: '✏️',
+        title: 'Build the month\u2019s budget',
+        body: 'Start from a template or an empty sheet. Type the income and the costs you know are coming. A few minutes, once a month.',
+      },
+      {
+        emoji: '📊',
+        title: 'See what actually happened',
+        body: 'Under Follow-up you load your bank\u2019s CSV file. The app sorts the entries and puts the plan next to reality — so you can see where the money went.',
+      },
+    ],
+    introNext: 'Next',
+    introSkip: 'Skip',
+    introDone: 'Get started',
+    introStep: (n, of) => `Step ${n} of ${of}`,
     welcomeTitle: 'Welcome to Budgetapp!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
@@ -1423,10 +1516,29 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'This file is damaged and could not be read. Nothing was changed — your current data is still here.',
     importWriteFailed: 'The import failed and was cancelled. Your previous data has been restored and is unchanged.',
     resetMonth: '↺ Reset month',
-    resetMonthConfirm: (monthName) => `This resets the budget for ${monthName} and cannot be undone. Continue?`,
+    resetMonthConfirm: (monthName) => `This resets the budget for ${monthName}.\n\nYou can undo it straight afterwards.\n\nContinue?`,
     dangerZone: 'Danger zone',
-    resetMonthConfirmKept: (monthName, n) => `This resets the budget for ${monthName} and cannot be undone.\n\n${n === 1 ? 'The recorded entry under Follow-up is kept — clear it from there.' : `The ${n} recorded entries under Follow-up are kept — clear those from there.`}\n\nContinue?`,
+    resetMonthConfirmKept: (monthName, n) => `This resets the budget for ${monthName}.\n\n${n === 1 ? 'The recorded entry under Follow-up is kept — clear it from there.' : `The ${n} recorded entries under Follow-up are kept — clear those from there.`}\n\nYou can undo it straight afterwards.\n\nContinue?`,
     resetMonthDone: '✓ Budget reset',
+    undo: '↩ Undo',
+    undoWhat: (action, where, count) => {
+      if (action === 'resetMonth') return `The budget for ${where} was reset`;
+      if (action === 'clearActuals') return count === 1 ? `1 entry was removed from ${where}` : `${count} entries were removed from ${where}`;
+      if (action === 'import') return count === 1 ? '1 entry was imported' : `${count} entries were imported`;
+      if (action === 'restoreBackup') return 'The backup was restored';
+      return 'The pay period was changed';
+    },
+    undoDone: '✓ Undone',
+    undoFailed: 'Could not undo — the device refused the write. Free some space and try again.',
+    undoDismiss: 'Dismiss',
+    triageWaiting: (n) => n === 1 ? '1 entry is waiting for a category' : `${n} entries are waiting for a category`,
+    triageOpen: 'Sort them',
+    triageHide: 'Hide',
+    triageSkip: 'Skip',
+    triageOther: 'Other…',
+    triageCreate: (name) => `+ ${name}`,
+    triageSource: (source) => source === 'rule' ? 'your rule' : source === 'history' ? 'as you did before' : 'suggestion',
+    triageAllDone: '✓ Nothing waiting — everything is sorted',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
     income: 'Income',
@@ -1642,7 +1754,7 @@ export const translations: Record<Lang, Translations> = {
     csvExistingGroup: 'En tu presupuesto',
     csvChangeColumns: '↩ Cambiar columnas',
     followUpClear: 'Borrar los movimientos del mes',
-    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Esto elimina el único movimiento de ${monthName}` : `Esto elimina los ${n} movimientos de ${monthName}`} y no se puede deshacer.\n\nEl presupuesto no se ve afectado.\n\n¿Continuar?`,
+    followUpClearConfirm: (n, monthName) => `${n === 1 ? `Esto elimina el único movimiento de ${monthName}` : `Esto elimina los ${n} movimientos de ${monthName}`}.\n\nEl presupuesto no se ve afectado, y puedes deshacerlo justo después.\n\n¿Continuar?`,
     followUpClearDone: (n) => (n === 1 ? '1 movimiento eliminado' : `${n} movimientos eliminados`),
     followUpSpan: (n) => (n === 1 ? 'Mes' : `${n} meses`),
     followUpSpanAria: 'Cuántos meses se muestran',
@@ -1739,6 +1851,27 @@ export const translations: Record<Lang, Translations> = {
     cfgWidthThird: 'Tercio',
     cfgDone: 'Listo',
     addStarterCategories: 'Añadir categorías iniciales',
+    introPages: [
+      {
+        emoji: '🔒',
+        title: 'Todo se queda en tu dispositivo',
+        body: 'Sin registro, sin cuenta, sin servidor. Lo que escribes se guarda aquí y no sale del dispositivo — salvo que exportes una copia tú mismo.',
+      },
+      {
+        emoji: '✏️',
+        title: 'Haz el presupuesto del mes',
+        body: 'Empieza con una plantilla o con una hoja en blanco. Escribe los ingresos y los gastos que sabes que llegan. Unos minutos, una vez al mes.',
+      },
+      {
+        emoji: '📊',
+        title: 'Mira qué pasó de verdad',
+        body: 'En Seguimiento cargas el archivo CSV de tu banco. La app clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
+      },
+    ],
+    introNext: 'Siguiente',
+    introSkip: 'Omitir',
+    introDone: 'Empezar',
+    introStep: (n, of) => `Paso ${n} de ${of}`,
     welcomeTitle: '¡Bienvenido a Budgetapp!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
@@ -1871,10 +2004,29 @@ export const translations: Record<Lang, Translations> = {
     importCorrupt: 'El archivo está dañado y no se pudo leer. No se ha cambiado nada: tus datos siguen intactos.',
     importWriteFailed: 'La importación falló y se canceló. Tus datos anteriores se han restaurado y están intactos.',
     resetMonth: '↺ Restablecer mes',
-    resetMonthConfirm: (monthName) => `Esto reinicia el presupuesto de ${monthName} y no se puede deshacer. ¿Continuar?`,
+    resetMonthConfirm: (monthName) => `Esto reinicia el presupuesto de ${monthName}.\n\nPuedes deshacerlo justo después.\n\n¿Continuar?`,
     dangerZone: 'Zona de peligro',
-    resetMonthConfirmKept: (monthName, n) => `Esto reinicia el presupuesto de ${monthName} y no se puede deshacer.\n\n${n === 1 ? 'El movimiento registrado en Seguimiento se conserva — bórralo desde allí.' : `Los ${n} movimientos registrados en Seguimiento se conservan — bórralos desde allí.`}\n\n¿Continuar?`,
+    resetMonthConfirmKept: (monthName, n) => `Esto reinicia el presupuesto de ${monthName}.\n\n${n === 1 ? 'El movimiento registrado en Seguimiento se conserva — bórralo desde allí.' : `Los ${n} movimientos registrados en Seguimiento se conservan — bórralos desde allí.`}\n\nPuedes deshacerlo justo después.\n\n¿Continuar?`,
     resetMonthDone: '✓ Presupuesto restablecido',
+    undo: '↩ Deshacer',
+    undoWhat: (action, where, count) => {
+      if (action === 'resetMonth') return `El presupuesto de ${where} se restableció`;
+      if (action === 'clearActuals') return count === 1 ? `Se eliminó 1 movimiento de ${where}` : `Se eliminaron ${count} movimientos de ${where}`;
+      if (action === 'import') return count === 1 ? 'Se importó 1 movimiento' : `Se importaron ${count} movimientos`;
+      if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
+      return 'Se cambió el periodo de cobro';
+    },
+    undoDone: '✓ Deshecho',
+    undoFailed: 'No se pudo deshacer — el dispositivo rechazó la escritura. Libera espacio e inténtalo de nuevo.',
+    undoDismiss: 'Cerrar',
+    triageWaiting: (n) => n === 1 ? '1 movimiento espera una categoría' : `${n} movimientos esperan una categoría`,
+    triageOpen: 'Clasificar',
+    triageHide: 'Ocultar',
+    triageSkip: 'Omitir',
+    triageOther: 'Otra…',
+    triageCreate: (name) => `+ ${name}`,
+    triageSource: (source) => source === 'rule' ? 'tu regla' : source === 'history' ? 'como hiciste antes' : 'sugerencia',
+    triageAllDone: '✓ No queda nada — todo está clasificado',
     prevMonth: 'Mes anterior',
     nextMonth: 'Mes siguiente',
     income: 'Ingresos',

@@ -16,6 +16,46 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.13.0',
+    date: '2026-09-17',
+    title: { sv: 'Ett steg tillbaka', en: 'One step back', es: 'Un paso atrás' },
+    items: {
+      sv: [
+        'Nytt: Ångra. "Återställ månad" och "Rensa månad" gick inte att ta tillbaka — de frågade först, och en fråga ställs precis i det ögonblick du är säker. Nu sparas det som fanns innan, och en knapp lägger tillbaka det',
+        'Även en inläst säkerhetskopia går att ångra. Det är den enda åtgärden i appen som kan ta allt på en gång, och fram tills nu var fel fil en slutgiltig händelse',
+        'Knappen dyker upp direkt efter åtgärden och ligger kvar i ⚙ Meny med vad som gjordes och när — för ångern kommer ibland en vecka senare. Tio steg sparas',
+        'Det som sparas är inte en kopia av appen utan de värden som faktiskt ändrades. Tio steg kostar därför några kilobyte i stället för tio kopior av allt — och de följer inte med i en säkerhetskopia, som ska innehålla dina siffror och inte en andra uppsättning gamla',
+        'Dialogerna säger inte längre "kan inte ångras", eftersom det inte längre är sant',
+        'Nytt: Sortera, i Uppföljning. Det som hamnade i Övrigt visas som en lista med störst belopp först och ett förslag per ställe — ett tryck flyttar hela stället och lär sig valet. På ett riktigt kontoutdrag var det 34 poster, hopvikta i en rad du själv fick komma på att öppna',
+        'Störst belopp först, inte flest poster: åtta kaffe och en hyra är inte lika mycket värda att trycka på',
+        'Förslaget säger varifrån det kommer — din egen regel, hur du gjort förut, eller den inbyggda listan. Din egen historik väger tyngre än listan. Saknas kategorin helt erbjuds den att skapas, aldrig bakom ryggen på dig',
+        'Första starten visar tre korta kort i stället för brevet: var din data hamnar, vad du gör först, och vad du får ut av det. Brevet ligger kvar under 💬 Om appen — det var fyra skärmhöjder på en telefon, och det är inte en första skärm',
+      ],
+      en: [
+        'New: Undo. "Reset month" and "Clear month" could not be taken back — they asked first, and a question is put at the exact moment you are certain. What was there before is now kept, and a button puts it back',
+        'A restored backup can be undone too. It is the one action in the app that can take everything at once, and until now the wrong file was final',
+        'The button appears right after the action and stays in the ⚙ Menu with what was done and when — because regret sometimes arrives a week later. Ten steps are kept',
+        'What is kept is not a copy of the app but the values that actually changed. Ten steps therefore cost a few kilobytes instead of ten copies of everything — and they do not travel in a backup, which should hold your figures, not a second set of older ones',
+        'The dialogs no longer say "cannot be undone", because it is no longer true',
+        'New: Sort them, in Follow-up. Whatever landed in Övrigt is shown as a list, biggest first, with a proposal per place — one tap moves the whole place and learns the choice. On a real statement that was 34 entries, folded inside a row you had to think to open',
+        'Ordered by money, not by count: eight coffees and one rent bill are not equally worth a tap',
+        'The proposal says where it came from — your own rule, what you did before, or the built-in list. Your own history outranks the list. When the category is missing entirely it is offered, never created behind your back',
+        'The first run shows three short cards instead of the letter: where your data goes, what to do first, and what you get out of it. The letter is still there under 💬 About the app — it ran four screen-heights on a phone, and that is not a first screen',
+      ],
+      es: [
+        'Nuevo: Deshacer. "Reiniciar mes" y "Vaciar mes" no se podían recuperar — preguntaban primero, y una pregunta se hace justo en el momento en que estás seguro. Ahora se guarda lo que había antes, y un botón lo devuelve',
+        'También se puede deshacer una copia de seguridad restaurada. Es la única acción de la app que puede llevarse todo de golpe, y hasta ahora el archivo equivocado era definitivo',
+        'El botón aparece justo después de la acción y se queda en el ⚙ Menú con qué se hizo y cuándo — porque el arrepentimiento a veces llega una semana después. Se guardan diez pasos',
+        'Lo que se guarda no es una copia de la app sino los valores que de verdad cambiaron. Diez pasos cuestan unos kilobytes en vez de diez copias de todo — y no viajan en la copia de seguridad, que debe llevar tus cifras y no un segundo juego de las antiguas',
+        'Los diálogos ya no dicen "no se puede deshacer", porque ya no es cierto',
+        'Nuevo: Clasificar, en Seguimiento. Lo que acabó en Övrigt se muestra como una lista, de mayor a menor, con una propuesta por sitio — un toque mueve el sitio entero y aprende la elección. En un extracto real eran 34 movimientos, plegados en una fila que tenías que acordarte de abrir',
+        'Ordenado por dinero, no por número: ocho cafés y un alquiler no merecen el mismo toque',
+        'La propuesta dice de dónde viene — tu propia regla, lo que hiciste antes, o la lista incorporada. Tu historial pesa más que la lista. Si falta la categoría se ofrece crearla, nunca a tus espaldas',
+        'El primer arranque muestra tres tarjetas cortas en vez de la carta: dónde va tu información, qué hacer primero y qué sacas de ello. La carta sigue en 💬 Sobre la app — ocupaba cuatro pantallas en un teléfono, y eso no es una primera pantalla',
+      ],
+    },
+  },
+  {
     version: '1.12.0',
     date: '2026-09-12',
     title: { sv: 'Tanken bakom appen', en: 'The thinking behind the app', es: 'La idea detrás de la app' },

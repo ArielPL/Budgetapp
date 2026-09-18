@@ -24,6 +24,10 @@ import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import { adoptExternalMonth } from './crossTab';
+import { UndoBar } from './components/UndoBar';
+import { Intro } from './components/Intro';
+import { undoWhere, shortWhen } from './undoLabel';
+import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
@@ -167,6 +171,11 @@ function App() {
   // Single utilities menu (language, theme, copy budget, data export/import)
   const [menuOpen, setMenuOpen] = useState(false);
   const [copyMsg, setCopyMsg] = useState('');
+  // The newest step back, for the menu — read from storage so a reset the user
+  // slept on is still offered the next morning. The BAR is separate: it belongs
+  // to the moment after the action, not to every load.
+  const [undoLatest, setUndoLatest] = useState<UndoEntry | null>(() => latestUndo(appStorage));
+  const [undoBarOpen, setUndoBarOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,7 +252,9 @@ function App() {
   // that a user cannot check for themselves, so it should be easy to read.
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const privacyRef = useRef<HTMLDivElement>(null);
-  const [welcomeOpen, setWelcomeOpen] = useState(() => {
+  // The three-card intro is the FIRST RUN. The letter below is the same flag's
+  // other half: opened from the menu, never on its own.
+  const [introOpen, setIntroOpen] = useState(() => {
     if (appStorage.getItem('budget_welcome_seen')) return false;
     if (hasMeaningfulData()) {
       appStorage.setItem('budget_welcome_seen', '1');
@@ -251,8 +262,10 @@ function App() {
     }
     return true;
   });
+  const dismissIntro = () => { appStorage.setItem('budget_welcome_seen', '1'); setIntroOpen(false); };
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
-  const dismissWelcome = () => { appStorage.setItem('budget_welcome_seen', '1'); setWelcomeOpen(false); };
+  const dismissWelcome = () => setWelcomeOpen(false);
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
   useModalFocus(privacyRef, privacyOpen, () => setPrivacyOpen(false));
 
@@ -537,15 +550,53 @@ function App() {
         return;
       }
       if (!window.confirm(t.importConfirm)) return;
+      // The whole of the user's data, captured before it is replaced. This is
+      // the one entry worth its size: a restore of the wrong file is the only
+      // action in the app that can lose everything at once.
+      const before = captureAll(appStorage);
       const result = applyBackup(appStorage, check.payload);
       if (!result.ok) {
         alert(importErrorText(result.reason, t));
         return;
       }
+      // pushUndo, not recordUndo: the reload below throws the bar away, so the
+      // way back is offered in the menu instead.
+      pushUndo(appStorage, {
+        at: new Date().toISOString(),
+        action: 'restoreBackup',
+        changes: before,
+        full: true,
+      });
       location.reload();
     };
     reader.onerror = () => alert(t.importInvalid);
     reader.readAsText(file);
+  };
+
+  /**
+   * Remember a step back, then offer it.
+   *
+   * A refused write is NOT allowed to stop the action: undo is a safety net, not
+   * a gate. An app that would not let you clear a month because it could not
+   * afford to remember the clearing would be worse than one without undo — so
+   * the bar is simply not offered, and the action goes ahead.
+   */
+  const recordUndo = useCallback((entry: UndoEntry) => {
+    if (!pushUndo(appStorage, entry)) return;
+    setUndoLatest(entry);
+    setUndoBarOpen(true);
+  }, []);
+
+  /** Take the step back, then reload. The same reload a restored backup already
+   *  does: every tab, every cached month and every derived number is rebuilt
+   *  from storage, which is the only way to be sure the screen matches disk. */
+  const doUndo = () => {
+    const done = undoLast(appStorage);
+    if (!done) {
+      alert(t.undoFailed);
+      return;
+    }
+    location.reload();
   };
 
   const showMsg = (msg: string) => {
@@ -684,6 +735,15 @@ function App() {
     // Reset to a blank month, but re-create the goal-linked budget rows so the
     // goal↔budget links the Plan tab promises survive the wipe. (Before this, a
     // reset dropped them because a blank month has no sparande category.)
+    // Captured BEFORE setData: the save effect writes the blank month on the
+    // next render, and by then the old one is gone.
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'resetMonth',
+      year,
+      month,
+      changes: captureKeys(appStorage, [storageKey(year, month)]),
+    });
     const fresh = ensureGoalLinkedBudgetRows(defaultMonthData(lang), planData.goals, lang);
     setData(fresh);
     setMenuOpen(false);
@@ -1165,6 +1225,7 @@ function App() {
         periodLocks={periodLocks}
         onLockPeriod={lockPeriod}
         onCreateNamedCategory={createNamedCategory}
+        onRecordUndo={recordUndo}
       />
     </Suspense>
   );
@@ -1401,6 +1462,20 @@ function App() {
                     {t.importData}
                   </button>
 
+                  {/* The way back, offered next to the buttons that need it.
+                      Shows WHAT and WHEN, because a bare "Undo" a week after
+                      the fact is a question, not an offer. */}
+                  {undoLatest && (
+                    <button className="utils-action utils-action-undo" onClick={doUndo}>
+                      <span className="utils-undo-label">{t.undo}</span>
+                      <span className="utils-undo-what">
+                        {t.undoWhat(undoLatest.action, undoWhere(undoLatest, lang), undoLatest.count ?? 0)}
+                        {' · '}
+                        {shortWhen(undoLatest.at, lang)}
+                      </span>
+                    </button>
+                  )}
+
                   {/* Danger zone — destructive actions, visually separated.
                       Also classic-only: resetCurrentMonth blanks the classic
                       month whatever layout is on screen, so in Custom mode it
@@ -1448,6 +1523,8 @@ function App() {
         )}
       </header>
 
+      {introOpen && <Intro onDone={dismissIntro} />}
+
       {welcomeOpen && (
         <>
           <div className="theme-backdrop welcome-backdrop" onClick={dismissWelcome} />
@@ -1479,6 +1556,13 @@ function App() {
         </>
       )}
 
+      {undoBarOpen && undoLatest && (
+        <UndoBar
+          entry={undoLatest}
+          onUndo={doUndo}
+          onDismiss={() => setUndoBarOpen(false)}
+        />
+      )}
       {privacyOpen && (
         <>
           <div className="theme-backdrop welcome-backdrop" onClick={() => setPrivacyOpen(false)} />

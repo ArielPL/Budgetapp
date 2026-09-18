@@ -53,10 +53,24 @@ export function isAuthenticationKey(key: string): boolean {
   return AUTH_KEY_PATTERNS.some(re => re.test(key));
 }
 
+/**
+ * Ours, but not the user's data: working state that must not travel in a backup.
+ *
+ * The undo stack holds PREVIOUS values of keys — a second, older copy of the
+ * same budget. Exporting it would roughly double the file for no gain, and
+ * restoring it would offer steps back into a state that belonged to a different
+ * device on a different day. It is deliberately matched by name here rather
+ * than imported from undo.ts, which would make the two files circular; the
+ * guard test in undo.test.ts holds them to the same name.
+ */
+const NEVER_BACKED_UP = [/^budget_undo$/];
+
 /** The single key policy shared by export, delete and import — so the three can
  *  never disagree about what "your data" means. */
 export function isBackupOwnedKey(key: string): boolean {
-  return key.startsWith(BACKUP_PREFIX) && !isAuthenticationKey(key);
+  return key.startsWith(BACKUP_PREFIX)
+    && !isAuthenticationKey(key)
+    && !NEVER_BACKED_UP.some(re => re.test(key));
 }
 
 /** Re-exported so the five modules that already import it from here keep
