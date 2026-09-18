@@ -25,8 +25,10 @@ import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
 import { adoptExternalMonth } from './crossTab';
 import { UndoBar } from './components/UndoBar';
+import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
-import { undoWhere, shortWhen } from './undoLabel';
+import { undoWhere } from './undoLabel';
+import { shortWhen, longDate } from './dateLabel';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, SavingsGoal, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
@@ -58,9 +60,7 @@ import { appStorage } from './storage';
 import { safeSetItem } from './storageWrite';
 import { loadActuals, planRefile, applyRefile } from './actuals';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const BACKUP_STALE_DAYS = 30;
-const BACKUP_SNOOZE_DAYS = 7;
+
 
 // Sum every amount in a month (income + expense rows + savings rows).
 function monthTotal(raw: string): number {
@@ -107,26 +107,26 @@ function hasMeaningfulData(): boolean {
   return false;
 }
 
+/** How old the last backup is. The thresholds and the snooze rules live in
+ *  backupAge.ts, where they can be tested without waiting six months. */
+function currentBackupAge(): BackupAge {
+  return backupAge(
+    appStorage.getItem('budget_last_backup'),
+    Date.now(),
+    // The day the banner first appeared — the only clock the escalation has for
+    // someone who has never exported. Written by BackupBanner.
+    appStorage.getItem('budget_backup_banner_seen'),
+  );
+}
+
 // Decide whether the backup-reminder banner should appear on load.
 function shouldShowBackupReminder(): boolean {
-  // Only nag if there is real, non-zero data worth backing up.
-  if (!hasMeaningfulData()) return false;
-
-  const now = Date.now();
-
-  // Snoozed recently → stay hidden.
-  const dismissed = appStorage.getItem('budget_backup_dismissed');
-  if (dismissed) {
-    const dismissedAt = Date.parse(dismissed);
-    if (!isNaN(dismissedAt) && now - dismissedAt < BACKUP_SNOOZE_DAYS * DAY_MS) return false;
-  }
-
-  // Never backed up, or last backup older than the stale threshold → show.
-  const lastBackup = appStorage.getItem('budget_last_backup');
-  if (!lastBackup) return true;
-  const lastAt = Date.parse(lastBackup);
-  if (isNaN(lastAt)) return true;
-  return now - lastAt >= BACKUP_STALE_DAYS * DAY_MS;
+  return shouldRemind(
+    currentBackupAge(),
+    appStorage.getItem('budget_backup_dismissed'),
+    Date.now(),
+    hasMeaningfulData(),
+  );
 }
 
 function App() {
@@ -230,6 +230,9 @@ function App() {
 
   // Backup reminder banner
   const [showBackupReminder, setShowBackupReminder] = useState(() => shouldShowBackupReminder());
+  /** Refreshed on every export, so the menu line and the banner never disagree
+   *  about when the last backup was. */
+  const [lastBackup, setLastBackup] = useState<BackupAge>(() => currentBackupAge());
   // A write that did not land. Not dismissable: the edit really is unsaved, and
   // a banner the user can wave away would be the same lie as saying nothing
   // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
@@ -526,6 +529,7 @@ function App() {
     setMenuOpen(false);
     // Record the backup so the reminder banner stays hidden.
     appStorage.setItem('budget_last_backup', new Date().toISOString());
+    setLastBackup(currentBackupAge());
     setShowBackupReminder(false);
   };
 
@@ -651,6 +655,16 @@ function App() {
       t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
     )) return;
 
+    // Captured before setData, like every other step back here: the save effect
+    // writes the new month on the next render, and by then the old one is gone.
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'copyBudget',
+      year,
+      month,
+      count: 1,
+      changes: captureKeys(appStorage, [storageKey(year, month)]),
+    });
     // Re-link goal rows afterwards: the incoming expenses come from a month that
     // may predate a goal, and the Plan tab's goal↔budget link must survive.
     setData(cur => ensureGoalLinkedBudgetRows(
@@ -701,6 +715,14 @@ function App() {
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
     )) return;
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'copyBudget',
+      year: nextYear,
+      month: nextMth,
+      count: 1,
+      changes: captureKeys(appStorage, [storageKey(nextYear, nextMth)]),
+    });
     copyBudgetInto(nextYear, nextMth);
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
@@ -712,6 +734,17 @@ function App() {
     // then declines would be the worst of both outcomes.
     const occupied = occupiedTargets(targets);
     if (occupied.length > 0 && !window.confirm(t.copyOverwriteMany(occupied.length))) return;
+    // Up to eleven built budgets, replaced by one tap. This was the single most
+    // destructive button in the app and the one the first pass of undo missed:
+    // every other action here touches one month, this one touches the rest of
+    // the year. All of them are captured before the first write, so the step
+    // back puts every month in the run back where it was.
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'copyBudget',
+      count: targets.length,
+      changes: captureKeys(appStorage, targets.map(({ y, m }) => storageKey(y, m))),
+    });
     targets.forEach(({ y, m }) => copyBudgetInto(y, m));
     setMenuOpen(false);
     showMsg(t.copiedToMonths(targets.length));
@@ -897,9 +930,29 @@ function App() {
     return cat.id;
   };
 
+  /**
+   * Remember a deleted category — but only one that held something.
+   *
+   * Structure counts, not amounts: a category worth 0 kr can still carry the
+   * user's own row names and order, which is the part that took the effort. An
+   * empty one is not worth a step, and recording it would push a real step off
+   * the end of a stack that only holds ten.
+   */
+  const recordCategoryDelete = (hadRows: boolean) => {
+    if (!hadRows) return;
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'deleteCategory',
+      year,
+      month,
+      changes: captureKeys(appStorage, [storageKey(year, month)]),
+    });
+  };
+
   const deleteExpenseCategory = (id: string) => {
     // sparande is protected (the component already hides delete for it).
     if (id === 'sparande') return;
+    recordCategoryDelete((data.expenses.find(c => c.id === id)?.rows.length ?? 0) > 0);
     setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
 
@@ -970,6 +1023,7 @@ function App() {
   const deleteSavingsCategory = (id: string) => {
     // The four default savings categories are protected.
     if (isProtectedCategory(id)) return;
+    recordCategoryDelete((data.savings.find(c => c.id === id)?.rows.length ?? 0) > 0);
     setData(d => ({
       ...d,
       savings: d.savings.filter(c => c.id !== id),
@@ -1461,6 +1515,11 @@ function App() {
                   <button className="utils-action" onClick={() => fileInputRef.current?.click()}>
                     {t.importData}
                   </button>
+                  {/* Always shown, never as a warning. A user should not have to
+                      guess how exposed they are, and the answer is a date. */}
+                  <p className={`utils-backup-age${lastBackup.level === 'urgent' || lastBackup.level === 'never' ? ' is-late' : ''}`}>
+                    {lastBackup.at === null ? t.backupNever : t.backupLast(longDate(lastBackup.at, lang))}
+                  </p>
 
                   {/* The way back, offered next to the buttons that need it.
                       Shows WHAT and WHEN, because a bare "Undo" a week after
@@ -1624,7 +1683,13 @@ function App() {
           </div>
         )}
         {showBackupReminder && (
-          <BackupBanner onExport={exportData} onDismiss={dismissBackupReminder} />
+          <BackupBanner
+            level={lastBackup.level}
+            months={Math.floor((lastBackup.days ?? 0) / 30)}
+            neverBackedUp={lastBackup.neverBackedUp}
+            onExport={exportData}
+            onDismiss={dismissBackupReminder}
+          />
         )}
         {layout === 'classic' && (
           /* ── Classic: tabbed. key={activeTab} remounts on every switch so the

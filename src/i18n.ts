@@ -702,6 +702,23 @@ export interface Translations {
   backupReminderShort: string;
   backupReminderExport: string;
   backupReminderDismiss: string;
+  /** The escalation, after roughly six months. Says what is actually at stake
+   *  rather than repeating "recommended" in a louder colour. */
+  backupUrgent: (months: number) => string;
+  /** The same escalation for someone who has never exported at all — where the
+   *  count is months of USING the app, not months since a backup. */
+  backupNeverUrgent: (months: number) => string;
+  /** Always visible in the menu, so the user never has to guess. */
+  backupLast: (date: string) => string;
+  backupNever: string;
+  // ── The guide to the follow-up tab ──────────────────────────────────────
+  // Same shape as privacyBody: a '## ' prefix makes a heading, everything else
+  // is a paragraph. One array per language rather than a dozen keys, because
+  // this is prose and prose is edited as a whole.
+  followUpHelp: string;
+  followUpHelpTitle: string;
+  followUpHelpBody: string[];
+  followUpHelpClose: string;
   // Growth chart line labels
   lineSparkonto: string;
   lineIsk: string;
@@ -1037,6 +1054,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `1 post togs bort i ${where}` : `${count} poster togs bort i ${where}`;
       if (action === 'import') return count === 1 ? '1 post importerades' : `${count} poster importerades`;
       if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
+      if (action === 'copyBudget') return count > 1 ? `Budgeten skrevs över i ${count} månader` : `Budgeten skrevs över i ${where}`;
+      if (action === 'deleteCategory') return `En kategori togs bort i ${where}`;
       return 'Löneperioden ändrades';
     },
     undoDone: '✓ Ångrat',
@@ -1194,6 +1213,41 @@ export const translations: Record<Lang, Translations> = {
     backupReminderShort: 'Backup rekommenderas',
     backupReminderExport: 'Exportera nu',
     backupReminderDismiss: 'Stäng',
+    backupNeverUrgent: (months) => `Du har använt appen i ${months} månader utan att säkerhetskopiera en enda gång. Försvinner enheten finns ingenting att återställa från.`,
+    backupUrgent: (months) => `Din senaste säkerhetskopia är ${months} månader gammal. Försvinner enheten finns ingenting att återställa från.`,
+    backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
+    backupNever: 'Senaste säkerhetskopia: aldrig',
+    followUpHelp: 'Hjälp',
+    followUpHelpTitle: 'Så fungerar utfallet',
+    followUpHelpBody: [
+      '## Vad fliken är till för',
+      'Budgeten är vad du tänkte. Utfallet är vad som hände. Här står de bredvid varandra, kategori för kategori, så du ser var det gick åt mer än du trodde — och var det gick åt mindre.',
+      '## Få in siffrorna',
+      'Två vägar: läs in bankens CSV-fil med Importera kontoutdrag, eller skriv in en post för hand med +.',
+      'Filen läses på din enhet och skickas ingenstans. Varje post hamnar i den månad dess eget datum tillhör, så en fil som spänner över två månader fyller båda — appen säger vilka den rörde och tar dig dit.',
+      '## Perioden',
+      'Får du lön den 25:e lever du inte i kalendermånader. Ställ in startdagen, så räknas utfallet från lönedag till lönedag: 25 juli till 24 augusti.',
+      'Infaller den 25:e på en helg flyttar appen till närmaste vardag före, för det är då pengarna kom. Blir det ändå fel kan du nåla fast en enskild period för hand — det gäller bara den månaden.',
+      '## Sorteraren',
+      'Det är ingen AI, och ingenting laddas ner. Det är en lista på 863 namn — butiker, banker och tjänster i Sverige, USA, Spanien och internationellt — plus dina egna rättelser.',
+      '1. Den läser texten på raden och letar efter ett namn den känner igen. "ICA NÄRA KUNGSHOLMEN 4711" är ICA.',
+      '2. Känner den inte igen något lägger den posten i Övrigt i stället för att gissa. En fel kategori kostar mer än en tom.',
+      '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
+      'Det sista är hela poängen. Efter en månad eller två är listan mest din egen. Den är inte smart — den är bara noggrann, och den lyssnar på dig.',
+      '## Sortera resten',
+      'Sortera tar det som ligger i Övrigt och visar det som en lista med störst belopp först och ett förslag per ställe. Ett tryck flyttar hela stället — alla åtta ICA-posterna på en gång — och lär sig valet.',
+      'Förslaget säger varifrån det kommer: din regel, som du gjort förut, eller förslag ur den inbyggda listan. Är den osäker föreslår den ingenting alls.',
+      '## Övrigt och Överföring',
+      'Övrigt är det sorteraren inte kände igen. Överföring är pengar mellan dina egna konton — de räknas inte som utgift, för att flytta 5 000 kr till sparkontot är inte att spendera 5 000 kr.',
+      'Båda går att ändra. Ingenting kastas bort.',
+      '## Verktygen',
+      'Månad / 3 / 6 / 12 summerar över flera månader. Bra för "hur mycket lägger jag egentligen på mat".',
+      'Bara utfall tar bort plan och skillnad och sorterar kategorierna efter var pengarna går. För när frågan inte är "höll jag budgeten" utan "var blöder det".',
+      'Per ställe / Per datum visar åtta besök som en rad, eller i tidsordning. Klicka på ett ställe för att se datumen.',
+      '## Om du ångrar dig',
+      'Rensa månad, en import och en borttagen kategori går att ta tillbaka. Knappen dyker upp direkt efteråt och ligger kvar i ⚙ Meny.',
+    ],
+    followUpHelpClose: 'Stäng',
     lineSparkonto: 'Sparkonto',
     lineIsk: 'ISK / Aktiedepå',
     lineFonder: 'Fonder',
@@ -1526,6 +1580,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `1 entry was removed from ${where}` : `${count} entries were removed from ${where}`;
       if (action === 'import') return count === 1 ? '1 entry was imported' : `${count} entries were imported`;
       if (action === 'restoreBackup') return 'The backup was restored';
+      if (action === 'copyBudget') return count > 1 ? `The budget was written over ${count} months` : `The budget for ${where} was written over`;
+      if (action === 'deleteCategory') return `A category was removed from ${where}`;
       return 'The pay period was changed';
     },
     undoDone: '✓ Undone',
@@ -1682,6 +1738,41 @@ export const translations: Record<Lang, Translations> = {
     backupReminderShort: 'Backup recommended',
     backupReminderExport: 'Export now',
     backupReminderDismiss: 'Dismiss',
+    backupNeverUrgent: (months) => `You have used the app for ${months} months without backing up once. If the device goes, there is nothing to restore from.`,
+    backupUrgent: (months) => `Your last backup is ${months} months old. If the device goes, there is nothing to restore from.`,
+    backupLast: (date) => `Last backup: ${date}`,
+    backupNever: 'Last backup: never',
+    followUpHelp: 'Help',
+    followUpHelpTitle: 'How Follow-up works',
+    followUpHelpBody: [
+      '## What this tab is for',
+      'The budget is what you intended. Follow-up is what happened. Here they stand side by side, category by category, so you can see where more went than you thought — and where less did.',
+      '## Getting the figures in',
+      'Two ways: load your bank\u2019s CSV file with Import statement, or type an entry by hand with +.',
+      'The file is read on your device and sent nowhere. Every entry lands in the month its own date belongs to, so a file spanning two months fills both — the app says which ones it touched and takes you there.',
+      '## The period',
+      'If you are paid on the 25th you do not live in calendar months. Set the start day and Follow-up counts from payday to payday: 25 July to 24 August.',
+      'When the 25th falls on a weekend the app moves to the nearest weekday before it, because that is when the money arrived. If it is still wrong you can pin a single period by hand — that applies to that month only.',
+      '## The sorter',
+      'It is not an AI, and nothing is downloaded. It is a list of 863 names — shops, banks and services in Sweden, the United States, Spain and internationally — plus your own corrections.',
+      '1. It reads the text on the row and looks for a name it knows. "ICA NÄRA KUNGSHOLMEN 4711" is ICA.',
+      '2. If it recognises nothing it puts the entry in Övrigt rather than guessing. A wrong category costs more than an empty one.',
+      '3. When you move a place to the right category it remembers. Next time your correction outweighs the list.',
+      'That last part is the whole point. After a month or two the list is mostly your own. It is not clever — it is only careful, and it listens to you.',
+      '## Sorting the rest',
+      'Sort them takes what sits in Övrigt and shows it as a list, biggest first, with a proposal per place. One tap moves the whole place — all eight ICA entries at once — and learns the choice.',
+      'The proposal says where it came from: your rule, as you did before, or suggestion from the built-in list. When it is unsure it proposes nothing at all.',
+      '## Övrigt and Transfer',
+      'Övrigt is what the sorter did not recognise. Transfer is money between your own accounts — it does not count as spending, because moving 5 000 kr to your savings account is not spending 5 000 kr.',
+      'Both can be changed. Nothing is thrown away.',
+      '## The tools',
+      'Month / 3 / 6 / 12 sums across several months. Good for "how much do I actually spend on food".',
+      'Actuals only drops the plan and difference columns and sorts the categories by where the money goes. For when the question is not "did I keep to the budget" but "where is it bleeding".',
+      'By place / By date shows eight visits as one row, or in time order. Tap a place to see the dates.',
+      '## If you change your mind',
+      'Clearing a month, an import and a deleted category can all be taken back. The button appears right afterwards and stays in the ⚙ Menu.',
+    ],
+    followUpHelpClose: 'Close',
     lineSparkonto: 'Savings account',
     lineIsk: 'Investment account',
     lineFonder: 'Funds',
@@ -2014,6 +2105,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `Se eliminó 1 movimiento de ${where}` : `Se eliminaron ${count} movimientos de ${where}`;
       if (action === 'import') return count === 1 ? 'Se importó 1 movimiento' : `Se importaron ${count} movimientos`;
       if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
+      if (action === 'copyBudget') return count > 1 ? `El presupuesto se sobrescribió en ${count} meses` : `El presupuesto de ${where} se sobrescribió`;
+      if (action === 'deleteCategory') return `Se eliminó una categoría de ${where}`;
       return 'Se cambió el periodo de cobro';
     },
     undoDone: '✓ Deshecho',
@@ -2170,6 +2263,41 @@ export const translations: Record<Lang, Translations> = {
     backupReminderShort: 'Copia de seguridad recomendada',
     backupReminderExport: 'Exportar ahora',
     backupReminderDismiss: 'Descartar',
+    backupNeverUrgent: (months) => `Llevas ${months} meses usando la app sin hacer ni una copia de seguridad. Si el dispositivo desaparece, no hay nada que restaurar.`,
+    backupUrgent: (months) => `Tu última copia de seguridad tiene ${months} meses. Si el dispositivo desaparece, no hay nada que restaurar.`,
+    backupLast: (date) => `Última copia de seguridad: ${date}`,
+    backupNever: 'Última copia de seguridad: nunca',
+    followUpHelp: 'Ayuda',
+    followUpHelpTitle: 'Cómo funciona Seguimiento',
+    followUpHelpBody: [
+      '## Para qué sirve esta pestaña',
+      'El presupuesto es lo que pensabas. Seguimiento es lo que pasó. Aquí están uno al lado del otro, categoría por categoría, para que veas dónde se fue más de lo que creías — y dónde menos.',
+      '## Meter las cifras',
+      'Dos caminos: carga el archivo CSV de tu banco con Importar extracto, o escribe un movimiento a mano con +.',
+      'El archivo se lee en tu dispositivo y no se envía a ninguna parte. Cada movimiento cae en el mes al que pertenece su propia fecha, así que un archivo que abarca dos meses llena los dos — la app dice cuáles tocó y te lleva allí.',
+      '## El periodo',
+      'Si cobras el día 25 no vives en meses naturales. Fija el día de inicio y Seguimiento cuenta de cobro a cobro: del 25 de julio al 24 de agosto.',
+      'Si el 25 cae en fin de semana la app se mueve al día laborable anterior, porque es cuando llegó el dinero. Si aun así falla puedes fijar un periodo a mano — vale solo para ese mes.',
+      '## El clasificador',
+      'No es una IA, y no se descarga nada. Es una lista de 863 nombres — tiendas, bancos y servicios de Suecia, Estados Unidos, España e internacionales — más tus propias correcciones.',
+      '1. Lee el texto de la fila y busca un nombre que conozca. "ICA NÄRA KUNGSHOLMEN 4711" es ICA.',
+      '2. Si no reconoce nada deja el movimiento en Övrigt en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
+      '3. Cuando mueves un sitio a la categoría correcta lo recuerda. La próxima vez tu corrección pesa más que la lista.',
+      'Eso último es lo esencial. Al cabo de un mes o dos la lista es sobre todo tuya. No es lista — solo es cuidadosa, y te hace caso.',
+      '## Clasificar el resto',
+      'Clasificar toma lo que está en Övrigt y lo muestra como una lista, de mayor a menor, con una propuesta por sitio. Un toque mueve el sitio entero — los ocho movimientos de ICA a la vez — y aprende la elección.',
+      'La propuesta dice de dónde viene: tu regla, como hiciste antes, o sugerencia de la lista incorporada. Si duda, no propone nada.',
+      '## Övrigt y Transferencia',
+      'Övrigt es lo que el clasificador no reconoció. Transferencia es dinero entre tus propias cuentas — no cuenta como gasto, porque mover 5 000 kr a tu cuenta de ahorro no es gastar 5 000 kr.',
+      'Los dos se pueden cambiar. No se tira nada.',
+      '## Las herramientas',
+      'Mes / 3 / 6 / 12 suma varios meses. Útil para "cuánto gasto de verdad en comida".',
+      'Solo movimientos quita las columnas de plan y diferencia y ordena las categorías por dónde va el dinero. Para cuando la pregunta no es "¿cumplí el presupuesto?" sino "¿por dónde se escapa?".',
+      'Por sitio / Por fecha muestra ocho visitas como una fila, o en orden cronológico. Pulsa un sitio para ver las fechas.',
+      '## Si te arrepientes',
+      'Vaciar un mes, una importación y una categoría eliminada se pueden deshacer. El botón aparece justo después y se queda en el ⚙ Menú.',
+    ],
+    followUpHelpClose: 'Cerrar',
     lineSparkonto: 'Cuenta de ahorro',
     lineIsk: 'Cuenta de inversión',
     lineFonder: 'Fondos',

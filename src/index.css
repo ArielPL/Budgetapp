@@ -5035,6 +5035,58 @@ a:focus-visible,
   .triage-skip:hover { color: var(--text); background: var(--surface2); }
 }
 
+/* The guide's ? button. Round and quiet — it sits next to Import, which is the
+   thing people came to press, and must not compete with it. */
+.followup-help-btn {
+  flex: 0 0 auto;
+  /* 40px, matching the Import button beside it: measured, the 34px first
+     version sat three pixels low and gave a smaller touch target than every
+     other control in the row. */
+  width: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .followup-help-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface2);
+  }
+}
+
+/* The sorter's three steps read as steps: hanging indent so the wrapped lines
+   line up under the words, not under the number. */
+.help-step {
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+}
+
+/* The backup date in the menu. Plain text, not a warning — it is a fact the
+   user should be able to read without being told off for it. It only takes a
+   colour once the answer is "never" or "six months ago". */
+.utils-backup-age {
+  margin: 2px 12px 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.utils-backup-age.is-late { color: var(--negative); }
+
+/* The escalation. A different colour AND a different sentence: repeating the
+   quiet line in red would only teach the user to dismiss red too. */
+.backup-banner-urgent {
+  border-color: var(--negative);
+  background: var(--tint-expense-bg);
+}
+
+.backup-banner-urgent .backup-banner-text { color: var(--tint-expense-text); }
+
 /* ── Undo ───────────────────────────────────────────────────────────────
    The bar sits above the content at the bottom of the screen, where a phone's
    thumb already is. It is `fixed`, so it must not be inside a tab: `.tab-enter`

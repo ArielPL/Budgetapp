@@ -41,8 +41,16 @@ const source = (path: string): string => {
   return found;
 };
 
-describe('a dialog opened from inside a tab escapes the tab', () => {
-  const src = source('./components/CsvImport.tsx');
+// Every dialog opened from INSIDE a tab, not just the first one. The trap does
+// not care which dialog walks into it: the CSV import found it, and the guide
+// in the same tab would have found it next.
+const IN_TAB_DIALOGS = [
+  './components/CsvImport.tsx',
+  './components/FollowUpHelp.tsx',
+];
+
+describe.each(IN_TAB_DIALOGS)('%s escapes the tab', path => {
+  const src = source(path);
 
   it('renders through a portal', () => {
     expect(src).toContain("import { createPortal } from 'react-dom'");

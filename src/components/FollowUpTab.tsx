@@ -11,6 +11,7 @@ import {
 import { applyStorageChanges } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { triageUnsorted, movableIds } from '../triage';
+import { FollowUpHelp } from './FollowUpHelp';
 import { loadCategoryRules } from '../categorise';
 import { standardExpenseCategory } from '../defaults';
 import { spanMonths, SPANS, isSpan, type Span } from '../span';
@@ -104,6 +105,9 @@ export const FollowUpTab = ({
   /** The leftover pile, opened as a worklist. Closed by default: it is an
    *  offer to do some work, not an accusation waiting on every visit. */
   const [triageOpen, setTriageOpen] = useState(false);
+  /** The guide. Opened from here rather than from a settings menu: help
+   *  filed away from the thing it explains is help nobody reads. */
+  const [helpOpen, setHelpOpen] = useState(false);
   /** Places set aside for now. Session-only on purpose — a skip means "not
    *  this time", not "never ask again", and nothing about it is worth
    *  writing to the user's storage. */
@@ -619,6 +623,14 @@ export const FollowUpTab = ({
           <button className="followup-import" onClick={() => setImporting(true)}>
             ⬆ {t.followUpImport}
           </button>
+          <button
+            className="followup-help-btn"
+            onClick={() => setHelpOpen(true)}
+            title={t.followUpHelpTitle}
+            aria-label={t.followUpHelpTitle}
+          >
+            ?
+          </button>
         </div>
       </div>
 
@@ -716,6 +728,8 @@ export const FollowUpTab = ({
             ))}
         </p>
       )}
+
+      {helpOpen && <FollowUpHelp onClose={() => setHelpOpen(false)} />}
 
       {importing && (
         <CsvImport

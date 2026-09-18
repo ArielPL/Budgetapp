@@ -45,7 +45,11 @@ export type UndoAction =
   | 'clearActuals'
   | 'import'
   | 'restoreBackup'
-  | 'periodChange';
+  | 'periodChange'
+  /** A budget written over one or more months — including "pull from last
+   *  month", which writes over the month on screen. */
+  | 'copyBudget'
+  | 'deleteCategory';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -74,9 +78,23 @@ function isChange(v: unknown): v is StorageChange {
     && (v.value === null || typeof v.value === 'string');
 }
 
-const ACTIONS: UndoAction[] = [
-  'resetMonth', 'clearActuals', 'import', 'restoreBackup', 'periodChange',
-];
+/**
+ * Every action, as a record rather than a list.
+ *
+ * TypeScript then refuses to compile if a member is added to UndoAction and
+ * forgotten here — which would make `readUndo` silently drop every entry of the
+ * new kind, and the step back would simply never appear. A plain array cannot
+ * catch that; an exhaustive record can.
+ */
+const ACTIONS: Record<UndoAction, true> = {
+  resetMonth: true,
+  clearActuals: true,
+  import: true,
+  restoreBackup: true,
+  periodChange: true,
+  copyBudget: true,
+  deleteCategory: true,
+};
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than
  *  half-trusted: offering a step back that restores nonsense is worse than
@@ -85,7 +103,7 @@ function isEntry(v: unknown): v is UndoEntry {
   return isObj(v)
     && typeof v.at === 'string'
     && typeof v.action === 'string'
-    && ACTIONS.includes(v.action as UndoAction)
+    && ACTIONS[v.action as UndoAction] === true
     && Array.isArray(v.changes)
     && v.changes.every(isChange);
 }
