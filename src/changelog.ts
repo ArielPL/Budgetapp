@@ -21,6 +21,7 @@ export const CHANGELOG: Release[] = [
     title: { sv: 'Löftena stämmer nu', en: 'The promises hold now', es: 'Las promesas ahora se cumplen' },
     items: {
       sv: [
+        'Brevet under 💬 Om appen lovade att importen av kontoutdrag var på väg. Den finns sedan en tid, så brevet säger det i stället — ett löfte som redan är infriat ska inte stå kvar och se ut som något som saknas',
         'Backuppåminnelsen såg inte importerade kontoutdrag. Hade du bara läst in transaktioner — eller bara arbetat i Anpassad — tyckte appen att det inte fanns något att förlora, och bad dig aldrig säkerhetskopiera. Den frågan avgörs nu på ett enda ställe, och räknar allt du skapat: utfall, Anpassad-belopp, egna kategorier utan siffror, sparmål och anteckningar',
         '"Kopiera till alla återstående" kunde misslyckas halvvägs och ändå säga att det gick bra. Elva månader skrivs nu antingen allihop eller inga alls, och nekas skrivningen står varje månad kvar som den var — med besked om det',
         'Ångra täcker nu allt det påstod sig täcka. Borttagen inkomst- eller utgiftsrad, en enskild utfallspost, ett Anpassad-block, en Anpassad-rad, alla Anpassad-belopp över alla månader, ett borttaget sparmål, och byte av löneperiod som flyttar poster mellan månader. Löftet i förra listan var större än verkligheten',
@@ -32,6 +33,7 @@ export const CHANGELOG: Release[] = [
         'Ångra-raden täcker inte längre innehållet. Den ligger kvar tills du stänger den, så sidan reserverar exakt så mycket plats som raden tar — mätt, inte gissat, eftersom höjden ändras med språk och skärmbredd',
       ],
       en: [
+        'The letter under 💬 About the app promised that statement import was on its way. It has been here for a while, so the letter says so instead — a promise that has already been kept should not stand there looking like something missing',
         'The backup reminder could not see imported statements. If you had only loaded transactions — or worked only in Custom — the app decided there was nothing to lose and never asked you to back up. That question is now answered in one place, and counts everything you made: records, Custom amounts, your own categories with no figures in them yet, savings goals and notes',
         '"Copy to all remaining" could fail halfway and still report success. Eleven months are now written either all together or not at all, and a refused write leaves every month exactly as it was — and says so',
         'Undo now covers everything it claimed to. A deleted income or expense row, a single recorded entry, a Custom block, a Custom row, every Custom amount across every month, a deleted savings goal, and a pay-period change that moves entries between months. The promise in the last list was larger than the reality',
@@ -43,6 +45,7 @@ export const CHANGELOG: Release[] = [
         'The undo bar no longer covers content. It stays until you dismiss it, so the page reserves exactly as much room as the bar takes — measured, not assumed, because its height changes with the language and the width of the screen',
       ],
       es: [
+        'La carta en 💬 Sobre la app prometía que la importación de extractos estaba en camino. Lleva un tiempo funcionando, así que la carta lo dice — una promesa ya cumplida no debería quedarse ahí pareciendo algo que falta',
         'El recordatorio de copia de seguridad no veía los extractos importados. Si solo habías cargado movimientos — o trabajado solo en Personalizado — la app decidía que no había nada que perder y nunca te pedía una copia. Esa pregunta se responde ahora en un solo sitio, y cuenta todo lo que has creado: movimientos, importes de Personalizado, categorías propias aún sin cifras, metas de ahorro y notas',
         '"Copiar a todos los restantes" podía fallar a medias y aun así decir que había ido bien. Los once meses se escriben ahora todos juntos o ninguno, y si la escritura se rechaza cada mes queda como estaba — y se te avisa',
         'Deshacer cubre ya todo lo que decía cubrir. Una fila de ingreso o gasto eliminada, un movimiento registrado, un bloque de Personalizado, una fila de Personalizado, todos los importes de Personalizado de todos los meses, una meta de ahorro eliminada, y un cambio de periodo de cobro que mueve movimientos entre meses. La promesa de la lista anterior era mayor que la realidad',
