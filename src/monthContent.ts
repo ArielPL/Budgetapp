@@ -26,11 +26,3 @@ export function hasBudgetContent(month: MonthData | null | undefined): boolean {
   if (!month) return false;
   return (month.income ?? []).length > 0 || (month.expenses ?? []).length > 0;
 }
-
-/** The months among `targets` that already hold something. */
-export function monthsWithContent<T>(
-  targets: T[],
-  read: (t: T) => MonthData | null,
-): T[] {
-  return targets.filter(t => hasBudgetContent(read(t)));
-}

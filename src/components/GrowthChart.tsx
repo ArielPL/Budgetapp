@@ -8,12 +8,13 @@ import type { BudgetCategory } from '../types';
 import { loadYearSavingsTotals } from '../defaults';
 import { useLang, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { appStorage } from '../storage';
 
 type ChartType = 'area' | 'line' | 'stacked';
 const CHART_TYPE_KEY = 'budget_savings_chart';
 
 function loadChartType(): ChartType {
-  const v = localStorage.getItem(CHART_TYPE_KEY);
+  const v = appStorage.getItem(CHART_TYPE_KEY);
   return v === 'line' || v === 'stacked' ? v : 'area';
 }
 
@@ -55,7 +56,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings, currentSnapsho
 
   const selectChartType = (type: ChartType) => {
     setChartType(type);
-    localStorage.setItem(CHART_TYPE_KEY, type);
+    appStorage.setItem(CHART_TYPE_KEY, type);
   };
 
   const { text: tickColor, grid: gridColor } = chartColors();

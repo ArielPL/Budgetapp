@@ -21,11 +21,14 @@
 // deleted, never overwritten. See isBackupOwnedKey.
 
 import { isLang, isCurrency, type Lang } from './i18n';
+import type { StorageLike } from './storage';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
 import { isMonthSnapshot } from './customYear';
+import { isActualEntry } from './actuals';
+import { CSV_MAPS_KEY } from './csvMaps';
 import { PERIOD_LABEL_MAX } from './periodLabel';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
@@ -50,20 +53,29 @@ export function isAuthenticationKey(key: string): boolean {
   return AUTH_KEY_PATTERNS.some(re => re.test(key));
 }
 
+/**
+ * Ours, but not the user's data: working state that must not travel in a backup.
+ *
+ * The undo stack holds PREVIOUS values of keys — a second, older copy of the
+ * same budget. Exporting it would roughly double the file for no gain, and
+ * restoring it would offer steps back into a state that belonged to a different
+ * device on a different day. It is deliberately matched by name here rather
+ * than imported from undo.ts, which would make the two files circular; the
+ * guard test in undo.test.ts holds them to the same name.
+ */
+const NEVER_BACKED_UP = [/^budget_undo$/];
+
 /** The single key policy shared by export, delete and import — so the three can
  *  never disagree about what "your data" means. */
 export function isBackupOwnedKey(key: string): boolean {
-  return key.startsWith(BACKUP_PREFIX) && !isAuthenticationKey(key);
+  return key.startsWith(BACKUP_PREFIX)
+    && !isAuthenticationKey(key)
+    && !NEVER_BACKED_UP.some(re => re.test(key));
 }
 
-/** The bits of localStorage we use, so tests can pass a plain fake. */
-export interface StorageLike {
-  readonly length: number;
-  key(i: number): string | null;
-  getItem(k: string): string | null;
-  setItem(k: string, v: string): void;
-  removeItem(k: string): void;
-}
+/** Re-exported so the five modules that already import it from here keep
+ *  working. It is DEFINED in ./storage, next to the port it describes. */
+export type { StorageLike };
 
 export interface BackupPayload {
   app: 'budget';
@@ -211,6 +223,17 @@ function isValidValue(key: string, raw: string): boolean {
   // then blank the app on the next start (review 2026-09-05, F3).
   if (key === 'budget_lang') return isLang(raw);
   if (key === 'budget_currency') return isCurrency(raw);
+  // Entries behind every "actual" figure. Validated rather than waved through:
+  // a bad row here would sit inside a category total the user cannot open and
+  // correct, which is the opposite of what that view is for.
+  if (/^budget_actuals_/.test(key)) {
+    return parseThen(v => Array.isArray(v) && v.every(isActualEntry));
+  }
+  // Remembered column layouts. Junk here is harmless — the loader drops what it
+  // cannot use — but a backup should not carry it either.
+  if (key === CSV_MAPS_KEY) {
+    return parseThen(v => typeof v === 'object' && v !== null && !Array.isArray(v));
+  }
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);

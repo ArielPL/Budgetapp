@@ -63,8 +63,17 @@ export function useModalFocus(
         .filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
 
     // Move focus into the panel (next tick, after it has rendered/positioned).
+    //
+    // A panel that opts in with tabIndex={-1} is focused ITSELF rather than its
+    // first control. That matters for a panel which is mostly text: focusing a
+    // button below the fold makes the browser scroll it into view, so the panel
+    // opens halfway down its own content and the reader misses the beginning.
+    // Focusing the dialog leaves it scrolled to the top, still announces it as a
+    // dialog, and Tab reaches the controls from there as usual.
     const t = setTimeout(() => {
-      if (!container.contains(document.activeElement)) focusables()[0]?.focus();
+      if (container.contains(document.activeElement)) return;
+      const target = container.hasAttribute('tabindex') ? container : focusables()[0];
+      target?.focus();
     }, 0);
 
     const onKeyDown = (e: KeyboardEvent) => {

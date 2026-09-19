@@ -6,6 +6,8 @@
 // whole app on every tab. 'custom' is a separate palette: the user's
 // per-var overrides layered on top of a base (Sorbet of the active mode).
 
+import { appStorage } from './storage';
+
 export type PaletteId = 'sorbet' | 'ocean' | 'forest' | 'sunset' | 'custom';
 export type Mode = 'dark' | 'light';
 
@@ -344,13 +346,13 @@ export function applyVars(vars: ThemeVars, mode: Mode): void {
  */
 export function loadThemeState(): ThemeState {
   // Current scheme.
-  const palette = localStorage.getItem(LS_PALETTE);
+  const palette = appStorage.getItem(LS_PALETTE);
   if (palette && VALID_PALETTES.includes(palette as PaletteId)) {
-    const mode: Mode = localStorage.getItem(LS_MODE) === 'light' ? 'light' : 'dark';
+    const mode: Mode = appStorage.getItem(LS_MODE) === 'light' ? 'light' : 'dark';
     let custom: ThemeVars = {};
     if (palette === 'custom') {
       try {
-        const raw = localStorage.getItem(LS_CUSTOM);
+        const raw = appStorage.getItem(LS_CUSTOM);
         if (raw) custom = JSON.parse(raw) as ThemeVars;
       } catch {
         custom = {};
@@ -360,7 +362,7 @@ export function loadThemeState(): ThemeState {
   }
 
   // v1 preset migration.
-  const legacyPreset = localStorage.getItem(LS_LEGACY_PRESET);
+  const legacyPreset = appStorage.getItem(LS_LEGACY_PRESET);
   if (legacyPreset) {
     const map: Record<string, { palette: PaletteId; mode: Mode }> = {
       sorbet: { palette: 'sorbet', mode: 'dark' },
@@ -375,7 +377,7 @@ export function loadThemeState(): ThemeState {
       let custom: ThemeVars = {};
       if (hit.palette === 'custom') {
         try {
-          const raw = localStorage.getItem(LS_CUSTOM);
+          const raw = appStorage.getItem(LS_CUSTOM);
           if (raw) custom = JSON.parse(raw) as ThemeVars;
         } catch {
           custom = {};
@@ -386,7 +388,7 @@ export function loadThemeState(): ThemeState {
   }
 
   // v0 light/dark toggle migration.
-  const legacy = localStorage.getItem(LS_LEGACY_THEME);
+  const legacy = appStorage.getItem(LS_LEGACY_THEME);
   const mode: Mode = legacy === 'light' ? 'light' : 'dark';
   return { palette: 'sorbet', mode, custom: {} };
 }

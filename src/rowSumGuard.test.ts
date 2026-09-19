@@ -40,6 +40,11 @@ const ALLOWED = new Set([
   'metrics.ts',
   // Savings balances — see the note above. Periodisation never applies here.
   'defaults.ts',
+  // Rows read out of a bank file, previewed before they become anything. They
+  // are not budget rows: no period, not stored, and the figure describes a file
+  // rather than a budget. Entry amounts have their own single owner in
+  // actuals.ts; budget row amounts still have only metrics.ts.
+  'csvImport.ts',
   'components/GrowthChart.tsx',
   'components/SavingsDonuts.tsx',
 ]);

@@ -62,9 +62,41 @@ export interface SavingsGoal {
   userNamed?: boolean;
 }
 
+/**
+ * One thing that actually happened: a purchase, a salary, a transfer.
+ *
+ * Imported from a bank file or typed by hand — the app stores both the same
+ * way ON PURPOSE. A hand-entered figure is not a competing total, it is simply
+ * an entry with no file behind it, so a category can never end up with two
+ * different answers for what it cost. See src/actuals.ts.
+ */
+export interface ActualEntry {
+  id: string;
+  /** "YYYY-MM-DD". Decides which month the entry belongs to — never the month
+   *  that happens to be on screen when it is imported. */
+  date: string;
+  /** The bank's own wording, or what the user typed. Kept verbatim: it is what
+   *  makes a transaction recognisable, and what the sorting learns from. */
+  text: string;
+  /** Positive kronor, matching how budget rows are stored. */
+  amount: number;
+  /** Direction in the bank file. Optional for old and hand-written entries;
+   *  those keep the category-based behaviour they have always had. Keeping the
+   *  direction lets a refund reduce an expense even after it is re-categorised. */
+  direction?: 'in' | 'out';
+  /** An expense category's id, or INCOME_ACTUAL_ID for money coming in. */
+  categoryId: string;
+  /** Typed by hand rather than imported. Shown to the user, because a bank
+   *  record and someone's memory deserve to be told apart. Absent = imported. */
+  manual?: boolean;
+}
+
 export interface PlanData {
   goals: SavingsGoal[];
   notes: string;
 }
 
-export type ActiveTab = 'budget' | 'savings' | 'plan' | 'year';
+/** 'followup' sits second, right after 'budget': the plan and what came of it
+ *  belong side by side, and the tabs then run from this month outwards to the
+ *  year. */
+export type ActiveTab = 'budget' | 'followup' | 'savings' | 'plan' | 'year';

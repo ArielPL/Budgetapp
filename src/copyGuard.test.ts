@@ -92,14 +92,16 @@ describe('deleting in Custom warns before history changes', () => {
 describe('legacy Custom months are protected before they can be edited', () => {
   const src = source('./components/CustomV3.tsx');
 
+  // Storage goes through the appStorage port now, not localStorage directly —
+  // see src/storage.ts. The rule these two guard is unchanged; only the name is.
   it('runs the migration', () => {
-    expect(src).toContain('migrateLegacySnapshots(localStorage');
+    expect(src).toContain('migrateLegacySnapshots(appStorage');
   });
 
   it('runs it once on mount, not on every structure change', () => {
     // Mid-session it would freeze a filing the user is in the middle of
     // changing. Mount is the last moment the stored past is still the past.
-    const at = src.indexOf('migrateLegacySnapshots(localStorage');
+    const at = src.indexOf('migrateLegacySnapshots(appStorage');
     expect(src.slice(at, at + 120)).toContain('}, []);');
   });
 });

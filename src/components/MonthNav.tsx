@@ -1,5 +1,6 @@
-import { useLang, MONTHS } from '../i18n';
+import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 import { PeriodLabel } from './PeriodLabel';
+import type { PeriodLocks } from '../periodLabel';
 
 interface Props {
   year: number;
@@ -12,12 +13,14 @@ interface Props {
   periodLabel?: string;
   /** Pay-period start day, or null when the rule is off. */
   periodStartDay: number | null;
+  /** Pinned periods, forwarded so the header and the follow-up tab agree. */
+  periodLocks?: PeriodLocks;
   onPeriodLabelChange: (label: string | undefined) => void;
 }
 
 export const MonthNav = ({
   year, month, onPrev, onNext, pickerOpen, onTogglePicker,
-  periodLabel, periodStartDay, onPeriodLabelChange,
+  periodLabel, periodStartDay, periodLocks, onPeriodLabelChange,
 }: Props) => {
   const { lang, t } = useLang();
   return (
@@ -30,7 +33,8 @@ export const MonthNav = ({
           aria-expanded={pickerOpen}
           title={MONTHS[lang][month]}
         >
-          <span className="month-title-text">{MONTHS[lang][month]} {year}</span>
+          <span className="month-title-text month-title-full">{MONTHS[lang][month]} {year}</span>
+          <span className="month-title-text month-title-short">{MONTHS_SHORT[lang][month]} {year}</span>
           <span className="month-title-caret">{pickerOpen ? '▴' : '▾'}</span>
         </button>
         <button className="nav-btn" onClick={onNext} aria-label={t.nextMonth}>›</button>
@@ -39,6 +43,7 @@ export const MonthNav = ({
       <PeriodLabel
         value={periodLabel}
         startDay={periodStartDay}
+        locks={periodLocks}
         year={year}
         month={month}
         monthName={`${MONTHS[lang][month]} ${year}`}

@@ -5,6 +5,7 @@ import { MONTHS_SHORT } from './i18n';
 import { calculateSavingsMetrics, isRowPeriod } from './metrics';
 import type { StorageLike } from './backup';
 import { coerceStoredMoney, isValidMoney } from './money';
+import { appStorage } from './storage';
 
 export const CATEGORY_COLORS: Record<string, string> = {
   boende: '#6366f1',
@@ -14,6 +15,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   personligt: '#ec4899',
   fritid: '#f97316',
   sparande: '#14b8a6',
+  lan: '#f43f5e',
 };
 
 export const SAVINGS_COLORS: Record<string, string> = {
@@ -93,6 +95,12 @@ const L = {
   hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos' },
   giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones' },
   vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones' },
+  // lån — a real budget line for most people and, until now, a missing concept:
+  // a student-loan repayment fitted none of the other seven and landed in Övrigt.
+  lan: { sv: 'Lån & Krediter', en: 'Loans & Credit', es: 'Préstamos y créditos' },
+  studyLoan: { sv: 'Studielån (CSN)', en: 'Student loan', es: 'Préstamo estudiantil' },
+  mortgage: { sv: 'Bolån & amortering', en: 'Mortgage', es: 'Hipoteca' },
+  otherCredit: { sv: 'Övriga lån & krediter', en: 'Other loans & credit', es: 'Otros créditos' },
   // sparande
   sparande: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
   savingsRow: { sv: 'Sparande', en: 'Savings', es: 'Ahorro' },
@@ -207,6 +215,14 @@ function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
       ],
     },
     {
+      id: 'lan', name: tr(L.lan, lang), icon: '🏦', color: CATEGORY_COLORS.lan,
+      rows: [
+        { id: makeId(), label: tr(L.studyLoan, lang), amount: 0 },
+        { id: makeId(), label: tr(L.mortgage, lang), amount: 0 },
+        { id: makeId(), label: tr(L.otherCredit, lang), amount: 0 },
+      ],
+    },
+    {
       id: 'sparande', name: tr(L.sparande, lang), icon: '💰', color: CATEGORY_COLORS.sparande,
       rows: [
         { id: makeId(), label: tr(L.savingsRow, lang), amount: 0 },
@@ -262,6 +278,38 @@ export function defaultPlanData(_lang: Lang = 'sv'): PlanData {
 // compatibility with existing callers.
 export function defaultMonthData(_lang: Lang = 'sv'): MonthData {
   return { income: [], expenses: [], savings: [] };
+}
+
+/**
+ * One of the seven standard expense categories, built fresh, WITH ITS STABLE ID.
+ *
+ * The id is the point. `createCategory` mints a random one, which is right for
+ * a category the user invents and wrong for restoring a standard one: entries
+ * filed under `mat` in August have to meet the same `mat` in September, and a
+ * fresh random id would leave them orphaned in every other month. Used by the
+ * import when it offers to create a category the month is missing.
+ */
+export function standardExpenseCategory(id: string, lang: Lang = 'sv'): BudgetCategory | undefined {
+  return defaultExpenses(lang).find(c => c.id === id);
+}
+
+/**
+ * A month's data with the named standard categories appended, skipping any it
+ * already has. Pure, and returns the SAME object when nothing was missing, so a
+ * caller can use identity to decide whether a write is needed at all.
+ *
+ * Idempotent by construction: accepting the same offer twice — two imports of
+ * overlapping statements — cannot produce a duplicate category.
+ */
+export function withStandardCategories(
+  data: MonthData, ids: readonly string[], lang: Lang = 'sv',
+): MonthData {
+  const have = new Set(data.expenses.map(c => c.id));
+  const fresh = [...new Set(ids)]
+    .filter(id => !have.has(id))
+    .map(id => standardExpenseCategory(id, lang))
+    .filter((c): c is BudgetCategory => c !== undefined);
+  return fresh.length === 0 ? data : { ...data, expenses: [...data.expenses, ...fresh] };
 }
 
 // The old default category set, offered as a one-tap "starter pack" so a blank
@@ -343,7 +391,7 @@ export function isHistoricMonth(year: number, monthIndex: number, now = new Date
 
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
   const key = storageKey(year, month);
-  const raw = localStorage.getItem(key);
+  const raw = appStorage.getItem(key);
   if (!raw) return defaultMonthData(lang); // new/empty month → blank
   try {
     const parsed = JSON.parse(raw) as MonthData;
@@ -397,8 +445,8 @@ export function saveMonthData(year: number, month: number, data: MonthData): boo
   const empty = data.income.length === 0 && data.expenses.length === 0
     && data.savings.length === 0 && !data.periodLabel;
   // Nothing to write is not a failure: the month legitimately stays absent.
-  if (empty && localStorage.getItem(key) === null) return true;
-  return safeSetItem(localStorage, key, JSON.stringify(data));
+  if (empty && appStorage.getItem(key) === null) return true;
+  return safeSetItem(appStorage, key, JSON.stringify(data));
 }
 
 /**
@@ -424,7 +472,7 @@ export function cleanupHistoricGoalRows(
   now = new Date(),
   // Injected so the repair is unit-testable without a browser, same port style
   // as backup.ts. Defaults to the real thing in the app.
-  storage: StorageLike = localStorage,
+  storage: StorageLike = appStorage,
 ): number {
   const linkedIds = new Set(goals.map(g => g.budgetRowId).filter((id): id is string => !!id));
   if (linkedIds.size === 0) return 0;
@@ -482,7 +530,7 @@ export const HISTORIC_GOAL_ROWS_MIGRATION = 'budget_migration_historic_goal_rows
 export function runHistoricGoalRowMigration(
   goals: SavingsGoal[],
   now = new Date(),
-  storage: StorageLike = localStorage,
+  storage: StorageLike = appStorage,
 ): number {
   if (storage.getItem(HISTORIC_GOAL_ROWS_MIGRATION)) return 0;
   const cleaned = cleanupHistoricGoalRows(goals, now, storage);
@@ -491,7 +539,7 @@ export function runHistoricGoalRowMigration(
 }
 
 export function loadPlanData(lang: Lang = 'sv'): PlanData {
-  const raw = localStorage.getItem('budget_plan');
+  const raw = appStorage.getItem('budget_plan');
   if (!raw) return defaultPlanData(lang);
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -519,7 +567,7 @@ export function loadPlanData(lang: Lang = 'sv'): PlanData {
 
 /** Returns whether the plan was written — see saveMonthData. */
 export function savePlanData(data: PlanData): boolean {
-  return safeSetItem(localStorage, 'budget_plan', JSON.stringify(data));
+  return safeSetItem(appStorage, 'budget_plan', JSON.stringify(data));
 }
 
 export function generateId(): string {

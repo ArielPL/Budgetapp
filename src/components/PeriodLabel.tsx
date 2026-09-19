@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLang, MONTHS_SHORT } from '../i18n';
-import { periodLabelFor, PERIOD_LABEL_MAX, type PeriodRange } from '../periodLabel';
+import {
+  periodLabelFor, PERIOD_LABEL_MAX, type PeriodRange, type PeriodLocks,
+} from '../periodLabel';
 
 // The line under the month heading: "25 jul – 24 aug", or whatever the user
 // typed instead. Click to write your own, clear it to go back to automatic.
@@ -15,13 +17,18 @@ interface Props {
   value?: string;
   /** Day of the month the pay period starts, or null when the rule is off. */
   startDay: number | null;
+  /** Periods pinned by hand. The header and the follow-up tab must read the
+   *  same ones, or they print two different ranges for one month. */
+  locks?: PeriodLocks;
   year: number;
   month: number;
   monthName: string;
   onChange: (label: string | undefined) => void;
 }
 
-export const PeriodLabel = ({ value, startDay, year, month, monthName, onChange }: Props) => {
+export const PeriodLabel = ({
+  value, startDay, locks = {}, year, month, monthName, onChange,
+}: Props) => {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -40,8 +47,8 @@ export const PeriodLabel = ({ value, startDay, year, month, monthName, onChange 
     `${r.to.getDate()} ${monthWord(r.to.getMonth())}`;
 
   /** What the rule alone would say — the placeholder, and what clearing restores. */
-  const generated = periodLabelFor({ startDay, year, month, format });
-  const shown = periodLabelFor({ override: value, startDay, year, month, format });
+  const generated = periodLabelFor({ startDay, year, month, format, locks });
+  const shown = periodLabelFor({ override: value, startDay, year, month, format, locks });
 
   const commit = () => {
     const trimmed = draft.trim();

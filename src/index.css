@@ -1,4 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* ── Plus Jakarta Sans, served from this app ────────────────────────────────
+ *
+ * Self-hosted, not fetched from Google. The @import that used to sit here sent
+ * every user's IP address and user-agent to a third party on every single app
+ * start — the ONE thing that left the device in an app whose whole promise is
+ * that nothing does. It would also have made "we collect no data" untrue in
+ * the App Store declaration, and left a native build without its typeface the
+ * first time someone opened it on a train.
+ *
+ * Two subsets only: latin covers å ä ö, ñ and é; latin-ext covers the Central
+ * European letters. Cyrillic and Vietnamese are not downloaded. 48 kB in total,
+ * cached after the first load and present offline.
+ *
+ * Plus Jakarta Sans is licensed under the SIL Open Font License 1.1, which
+ * permits this — see public/fonts/OFL.txt.
+ */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -241,6 +272,8 @@ a:focus-visible,
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+.month-title-short { display: none; }
 
 .nav-btn {
   width: 44px;
@@ -600,16 +633,6 @@ a:focus-visible,
   padding: 2px;
 }
 
-.custom-section-name {
-  font-weight: 700;
-  color: var(--text);
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Compact width toggle — small icon segments, subtle (not a chunky pill). */
 .custom-width-toggle {
   display: inline-flex;
@@ -665,27 +688,9 @@ a:focus-visible,
   background: color-mix(in srgb, var(--tint-expense-text) 14%, transparent);
 }
 
-/* Arrows are mobile-only; desktop reorders by dragging the grip. */
-.ctrl-mobile-only { display: none; }
-
 /* Config-panel show-chart toggle reuses the icon-button look, a touch larger. */
 .custom-toggle-btn { width: 34px; height: 34px; border: 1px solid var(--border-strong); }
 .custom-toggle-on { background: var(--accent-brand); color: #fff; border-color: var(--accent-brand); }
-
-.custom-section-title {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.custom-inputs-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 /* ─── Custom v3: generic block builder ────────────────────────────── */
 /* Auto-contrast: `--cv3-ink` is the block's text colour. It defaults to the
@@ -1308,39 +1313,6 @@ a:focus-visible,
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-}
-
-/* ─── Expense chart style switch + list view ──────────────────────── */
-.chart-style-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  margin-bottom: 14px;
-  background: var(--surface-subtle, var(--bg));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  flex-wrap: wrap;
-}
-
-.chart-style-btn {
-  padding: 5px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.chart-style-btn:hover {
-  color: var(--text);
-}
-
-.chart-style-active {
-  background: var(--accent-brand);
-  color: #fff;
 }
 
 .expense-list {
@@ -2671,7 +2643,14 @@ a:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 24px;
-  animation: tab-enter 0.2s ease both;
+  /* `backwards`, not `both`. `both` keeps the final keyframe applied for good,
+     and that frame sets a transform — identity, invisible, and enough to make
+     this element the containing block for every `position: fixed` descendant
+     inside the tab. A dialog opened from a tab then anchors to the tab rather
+     than to the screen. The final frame here is the element's resting state
+     anyway, so holding it buys nothing. CsvImport also portals out, so neither
+     fix depends on the other. */
+  animation: tab-enter 0.2s ease backwards;
 }
 
 @keyframes tab-enter {
@@ -3281,7 +3260,648 @@ a:focus-visible,
 }
 
 
+/* ── Follow-up: the plan next to what happened ─────────────────────────────
+   A four-column grid rather than a table so the same markup works as buttons
+   (each row opens) and keeps the numbers right-aligned in one another's column.
+   Every figure here can be unfolded, which is where the tab's whole point sits:
+   a total nobody can open is just a claim. */
+.followup-heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.followup-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.followup-empty p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); }
+
+.followup-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.followup-head,
+.followup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  width: 100%;
+  text-align: left;
+}
+.followup-head {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.followup-head .num, .followup-row .num { text-align: right; }
+.followup-row {
+  font-size: 0.88rem;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  min-height: 46px;
+}
+.followup-row-wrap:first-child .followup-row { border-top: none; }
+@media (hover: hover) {
+  .followup-row-wrap:not(.is-open) .followup-row:hover { background: var(--surface2); }
+}
+.followup-row-wrap.is-open { background: var(--surface2); }
+.followup-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.followup-caret { color: var(--text-muted); font-size: 0.7rem; }
+/* The plan is context; the actual is the news. Muting one makes the pair read
+   left to right without needing a legend. */
+.followup-planned { color: var(--text-muted); }
+.followup-diff-over { color: var(--negative); }
+.followup-diff-under, .followup-diff-ok { color: var(--positive); }
+.followup-total {
+  border-top: 1px solid var(--border-strong);
+  font-weight: 700;
+  cursor: default;
+}
+
+.followup-entries { padding: 2px 14px 12px; }
+.followup-none { font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 8px; }
+.followup-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.followup-entry-date { font-variant-numeric: tabular-nums; }
+.followup-entry-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.followup-manual {
+  margin-left: 7px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: 0.66rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 6px);
+}
+.followup-entry-amount {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm, 6px);
+  min-height: 32px;
+}
+@media (hover: hover) { .followup-entry-amount:hover { background: var(--surface); } }
+.followup-entry-input {
+  width: 92px;
+  text-align: right;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.followup-entry-input.has-error { border-color: var(--negative); }
+.followup-delete {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+@media (hover: hover) { .followup-delete:hover { color: var(--negative); background: var(--surface); } }
+.followup-add {
+  color: var(--accent-brand);
+  font-size: 0.82rem;
+  padding: 8px 0 2px;
+  min-height: 40px;
+}
+
+.followup-form {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0 2px;
+}
+.followup-form input {
+  padding: 7px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-amount { width: 92px; text-align: right; }
+.followup-form-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.followup-form-save {
+  background: var(--accent-brand);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-cancel {
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  min-height: 38px;
+}
+.followup-form-error {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--negative);
+}
+
+/* ── CSV import ────────────────────────────────────────────────────────────
+   A panel, not a page: the import is something you pass through once a month,
+   not somewhere you live. Sized to show the column preview without the numbers
+   wrapping, and scrolls inside itself on anything shorter. */
+.followup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.followup-top .followup-heading { margin: 0; }
+.followup-import {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border-radius: var(--radius-pill);
+  padding: 9px 16px;
+  font-size: 0.84rem;
+  min-height: 40px;
+}
+@media (hover: hover) { .followup-import:hover { background: var(--accent-brand); color: #fff; } }
+.followup-top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* How many months are in view. Chips rather than a select: there are four, they
+   are one word each, and the current one should be readable without opening
+   anything. */
+.followup-spans {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.followup-span {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  min-height: 34px;
+}
+.followup-span.is-on {
+  background: var(--accent-brand);
+  border-color: var(--accent-brand);
+  color: #fff;
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .followup-span:not(.is-on):hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
+.followup-span-range { font-size: 0.8rem; color: var(--text-muted); margin-left: 4px; }
+
+/* The two view switches: whether the plan is beside the record at all, and
+   whether an opened category lists places or dates. Quieter than the span
+   chips — they change how you read the table, not what is in it. */
+.followup-toggles { display: flex; gap: 6px; margin-left: auto; }
+.followup-toggle {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+.followup-toggle.is-on { border-color: var(--accent-brand); color: var(--accent-brand); }
+@media (hover: hover) { .followup-toggle:hover { border-color: var(--accent-brand); color: var(--accent-brand); } }
+
+/* Without the plan there are two columns, not four, and the one that matters
+   gets the room the comparison used to take. */
+.followup-table.is-actuals-only .followup-head,
+.followup-table.is-actuals-only .followup-row {
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr);
+}
+
+/* The pinned-period control. Shown as the range itself, so the thing you are
+   about to change is the thing you are reading. */
+.followup-period { margin: 0 0 12px; }
+.followup-period-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+@media (hover: hover) { .followup-period-btn:hover { border-color: var(--accent-brand); color: var(--accent-brand); } }
+.followup-period-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.followup-period-edit input[type="date"] {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  min-height: 36px;
+}
+.followup-period-reset,
+.followup-period-cancel {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+.followup-period-hint { flex-basis: 100%; margin: 0; font-size: 0.76rem; }
+
+/* A place is a row plus a way to move it. The button still fills the row; the
+   select sits beside it so clicking the name opens, and clicking ⇄ refiles. */
+.followup-place-head { display: flex; align-items: center; gap: 6px; }
+.followup-place-head .followup-place { flex: 1; min-width: 0; }
+.followup-place-move {
+  flex: none;
+  width: 42px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  min-height: 32px;
+  padding: 0 4px;
+}
+@media (hover: hover) {
+  .followup-place-move:hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
+
+/* Naming a category where you realised you needed one. */
+.followup-newcat {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0 8px 16px;
+}
+.followup-newcat-name {
+  flex: 1;
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--accent-brand);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  min-height: 36px;
+}
+.followup-newcat-save {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+.followup-newcat-cancel {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+/* The two holding buckets. Quieter than a real category — they are where
+   things wait, not where they belong. */
+.followup-row.is-bucket .followup-name { color: var(--text-muted); }
+
+/* A place opens onto its own dated entries — folded, never hidden. */
+.followup-place-wrap { border-top: 1px solid var(--border); }
+.followup-place-wrap:first-child { border-top: none; }
+.followup-entry.is-nested { padding-left: 16px; }
+.followup-note {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* One place inside an opened category, over a span. Same three columns as an
+   entry, so the two read alike, but with a count instead of a date. */
+.followup-place {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 0.82rem;
+}
+.followup-place .followup-caret { margin-left: 6px; opacity: 0.55; font-size: 0.7rem; }
+@media (hover: hover) { .followup-place:hover .followup-place-text { color: var(--accent-brand); } }
+.followup-place-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.followup-place-count { color: var(--text-muted); font-size: 0.76rem; }
+.followup-place-sum { color: var(--text); font-variant-numeric: tabular-nums; }
+/* Quiet on purpose: it empties the month's record and cannot be undone, so it
+   should be findable without competing with the thing you came here to do. */
+.followup-clear {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  min-height: 40px;
+}
+@media (hover: hover) {
+  .followup-clear:hover { border-color: var(--negative); color: var(--negative); }
+}
+.followup-toast {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--surface2);
+  border-left: 3px solid var(--accent-brand);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+/* The summary names the months it wrote to; this gets you to one. A statement
+   is usually last month's, so the table in front of you is routinely not the
+   one that changed — without this the import looks like it did nothing. */
+.followup-toast-go {
+  padding: 5px 12px;
+  border: 1px solid var(--accent-brand);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--accent-brand);
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-height: 32px;
+}
+.followup-toast-go:hover { background: var(--accent-brand); color: #fff; }
+
+/* Qualified with .theme-panel on purpose. Both classes are on the same element
+   and .theme-panel is defined further down this file, so on equal specificity it
+   won every one of these declarations — the import dialog was silently rendered
+   at the theme panel's 460px, which is why 44 rows of file looked cramped. */
+.theme-panel.csv-panel {
+  z-index: 301;
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100dvh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+.csv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.csv-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+.csv-body { overflow-y: auto; padding: 14px 18px 18px; min-height: 0; }
+.csv-lead { margin: 0 0 12px; font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; }
+.csv-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  border-left: 3px solid var(--negative);
+  color: var(--negative);
+  font-size: 0.84rem;
+}
+.csv-drop {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 34px 18px;
+  text-align: center;
+}
+.csv-drop-lead { margin: 0 0 4px; font-size: 0.95rem; color: var(--text); }
+.csv-drop-sub { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
+.csv-pick {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  min-height: 42px;
+}
+
+.csv-cols { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+.csv-col { min-width: 128px; flex: 0 0 auto; }
+.csv-role {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.76rem;
+  min-height: 34px;
+}
+.csv-col-head {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 6px 2px 4px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csv-col-cell {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  padding: 4px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csv-remember { margin: 12px 0 0; font-size: 0.78rem; color: var(--text-muted); }
+
+.csv-groups { display: flex; flex-direction: column; }
+.csv-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto auto minmax(120px, 0.9fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.csv-group-text { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.csv-group-count { color: var(--text-muted); font-size: 0.76rem; }
+.csv-group-sum { color: var(--text); font-variant-numeric: tabular-nums; }
+.csv-group-cat {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.78rem;
+  min-height: 36px;
+}
+/* Not red: an unset row is work still to do, not a mistake. */
+.csv-group.is-unset .csv-group-cat { border-color: var(--accent-brand); }
+/* Dashed, because this category does not exist yet. It is a proposal, and the
+   border says so until pressing Import makes it real. */
+.csv-group-cat.is-new {
+  border-style: dashed;
+  border-color: var(--accent-brand);
+  color: var(--accent-brand);
+}
+.csv-skipped { color: var(--negative); }
+/* The sorter's own score, said plainly. If this number is low the built-in list
+   needs work, and the user should be able to see that for themselves. */
+.csv-sorted { color: var(--positive); }
+.csv-hint-new { color: var(--accent-brand); }
+
+/* Sticky, because the list above it has no ceiling: a month's statement can
+   hold forty distinct places, and the button was then a thousand pixels below
+   the fold with nothing to say it existed. Kept in view, it also keeps the
+   count and the "N without a category are not imported" note in view — which
+   is where the answer to "must I fill in all of them?" belongs. */
+.csv-actions {
+  position: sticky;
+  /* -18px, not 0: a sticky element is held inside the scroller's CONTENT box,
+     which stops 18px short of the panel edge — exactly where .csv-body's own
+     bottom padding is — and rows scrolled through the strip left over. */
+  bottom: -18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* Negative margins pull the bar out into the body's own padding and the
+     padding puts the space back inside it, so the strip it sits on reaches the
+     panel edges. Without that, rows scrolled past it through an 18px gap. */
+  margin: 10px -18px -18px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.csv-primary {
+  background: var(--accent-brand);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  min-height: 42px;
+}
+.csv-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* The date order, shown with the reading spelled out. Getting it wrong is
+   completely silent, so it gets a line of its own rather than a footnote. */
+.csv-dateorder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.csv-dateorder.is-guess { border-left: 3px solid var(--accent-brand); }
+.csv-dateorder-label { color: var(--text); }
+.csv-dateorder-pick {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  min-height: 34px;
+}
+.csv-dateorder-example { font-variant-numeric: tabular-nums; }
+.csv-dateorder-note { flex-basis: 100%; color: var(--accent-brand); font-size: 0.78rem; }
+.csv-note {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+/* Pushed to the far end: it is the way back, not a second way forward. */
+.csv-secondary {
+  margin-left: auto;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+@media (hover: hover) {
+  .csv-secondary:hover { border-color: var(--accent-brand); color: var(--accent-brand); }
+}
+.csv-hint { font-size: 0.78rem; color: var(--text-muted); }
+
 @media (max-width: 640px) {
+  /* The group row cannot hold four columns on a phone: the place and its
+     category get a line each, with the count and sum between them. */
+  .csv-group {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .csv-group-cat { grid-column: 1 / -1; }
+  .theme-panel.csv-panel { width: 100%; max-height: 88dvh; }
+
+  /* Four columns do not fit a phone. The category keeps its own line and the
+     three figures share the next one, so nothing is truncated and the plan
+     still sits beside the actual where the comparison is made. */
+  .followup-head { display: none; }
+  .followup-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: 'name name name' 'plan actual diff';
+    row-gap: 4px;
+  }
+  .followup-name { grid-area: name; }
+  .followup-planned { grid-area: plan; text-align: left !important; }
+  /* Named classes, not :nth-of-type — that counts ELEMENTS, and every cell here
+     is a span, so positional selectors silently addressed the wrong ones and
+     dealt the three figures out in the wrong order. */
+  .followup-actual { grid-area: actual; }
+  .followup-diffcell { grid-area: diff; }
+  .followup-form { grid-template-columns: minmax(0, 1fr); }
+  .followup-form-amount { width: 100%; }
+
   .goal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -3536,34 +4156,41 @@ a:focus-visible,
   color: var(--text);
   margin: 0;
 }
-.welcome-lead {
-  font-size: 0.98rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
-  max-width: 30ch;
-}
-.welcome-features {
-  list-style: none;
-  margin: 6px 0 4px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* The letter. Left-aligned on purpose: the modal centres its heading and
+   button, but centred prose is hard to read once it runs past a line or two,
+   and this is several paragraphs of someone talking to you. */
+.welcome-letter {
   width: 100%;
   text-align: left;
-}
-.welcome-features li {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.92rem;
-  color: var(--text);
-  background: var(--surface2);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 12px;
+  margin: 2px 0 4px;
 }
-.welcome-features li span { font-size: 1.15rem; flex-shrink: 0; }
+.welcome-letter p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+/* Headings inside the privacy letter — it is a document, not a story, so it
+   gets signposts the welcome letter does not need. */
+.privacy-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 22px 0 6px;
+}
+.privacy-updated {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 20px;
+}
+
+.welcome-signature {
+  color: var(--text-muted);
+  font-style: italic;
+}
 .welcome-start-btn {
   margin-top: 8px;
   width: 100%;
@@ -4120,14 +4747,11 @@ a:focus-visible,
   .custom-section.w-third { grid-column: span 3; }
   .custom-add-card { grid-column: 1 / -1; min-height: 84px; }
 
-  /* Touch: show ↑/↓ reorder arrows (drag is unreliable) and give the control
-     row room so it isn't squeezed; bump icon-button hit areas. */
-  .ctrl-mobile-only { display: inline-flex; }
+  /* Touch: give the control row room and bump icon-button hit areas. */
   /* While editing on a phone, every block spans the full row so the controls
      and inputs have room — the half/⅓ width only matters for the tile view. */
   .custom-section-editing { grid-column: 1 / -1 !important; }
   .custom-section-controls { flex-wrap: wrap; gap: 8px; }
-  .custom-section-name { flex-basis: 100%; }
   /* ≥40px touch targets on phones (design system). */
   .custom-icon-btn { width: 40px; height: 40px; }
   .width-seg { width: 40px; height: 36px; font-size: 0.95rem; }
@@ -4206,6 +4830,370 @@ a:focus-visible,
   }
 }
 
+/* ── Intro: three cards on the first run ─────────────────────────────────
+   Fixed height per card so the button does not jump between steps — a moving
+   primary button is how a double tap skips a page nobody read. */
+.intro-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 32px));
+  padding: 18px;
+}
+
+.intro-skip {
+  align-self: flex-end;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .intro-skip:hover { color: var(--text); }
+}
+
+.intro-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  /* Room for the longest of the three bodies in the longest language, so the
+     footer sits still while the cards change under it. */
+  min-height: 210px;
+  padding: 6px 4px 18px;
+}
+
+.intro-emoji { font-size: 2.6rem; line-height: 1; }
+
+.intro-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.intro-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.intro-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.intro-dots-visual { display: flex; gap: 6px; }
+
+.intro-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 0.15s;
+}
+
+.intro-dot.is-on { background: var(--accent-brand); }
+
+.intro-next {
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+/* ── Triage: the leftover pile as a worklist ─────────────────────────────
+   Sits above the table because it is work to DO, not a number to read. Closed
+   by default — an open list of 34 unsorted places on every visit reads as an
+   accusation. */
+.triage {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.triage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.triage-title {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.triage-toggle {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+.triage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 12px;
+  /* Long piles scroll inside the panel rather than pushing the table off the
+     screen — the table is what the user came for. */
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.triage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.triage-place {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.triage-place-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triage-place-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.triage-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The one-tap answer. Two lines: what it would do, and why it thinks so. */
+.triage-accept {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-height: 38px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border-strong);
+}
+
+.triage-accept-new { border-style: dashed; }
+
+.triage-why {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .triage-accept:hover { background: var(--accent-brand); color: #fff; }
+  .triage-accept:hover .triage-why { color: rgba(255, 255, 255, 0.85); }
+}
+
+.triage-other,
+.triage-skip {
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0 8px;
+}
+
+@media (hover: hover) {
+  .triage-skip:hover { color: var(--text); background: var(--surface2); }
+}
+
+/* The guide's ? button. Round and quiet — it sits next to Import, which is the
+   thing people came to press, and must not compete with it. */
+.followup-help-btn {
+  flex: 0 0 auto;
+  /* 40px, matching the Import button beside it: measured, the 34px first
+     version sat three pixels low and gave a smaller touch target than every
+     other control in the row. */
+  width: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .followup-help-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface2);
+  }
+}
+
+/* The sorter's three steps read as steps: hanging indent so the wrapped lines
+   line up under the words, not under the number. */
+.help-step {
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+}
+
+/* The backup date in the menu. Plain text, not a warning — it is a fact the
+   user should be able to read without being told off for it. It only takes a
+   colour once the answer is "never" or "six months ago". */
+.utils-backup-age {
+  margin: 2px 12px 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.utils-backup-age.is-late { color: var(--negative); }
+
+/* The escalation. A different colour AND a different sentence: repeating the
+   quiet line in red would only teach the user to dismiss red too. */
+.backup-banner-urgent {
+  border-color: var(--negative);
+  background: var(--tint-expense-bg);
+}
+
+.backup-banner-urgent .backup-banner-text { color: var(--tint-expense-text); }
+
+/* ── Undo ───────────────────────────────────────────────────────────────
+   The bar sits above the content at the bottom of the screen, where a phone's
+   thumb already is. It is `fixed`, so it must not be inside a tab: `.tab-enter`
+   leaves a transform behind and would anchor it to the tab instead of the
+   screen (the same trap the CSV dialog fell into — see dialogGuard.test.ts).
+   It is rendered from App.tsx, outside every tab, which is why it holds. */
+/* The bar is fixed and does NOT time out, so unlike a toast it can sit on top
+   of content for as long as the user leaves it there. At 320px it covered the
+   last rows and the jump nav — things the user could see but not reach
+   (review 2026-09-18, F10).
+   The page therefore reserves exactly the bar's MEASURED height, published as
+   --undo-bar-h by UndoBar. Measured rather than assumed: the height changes
+   with the language, with the wrap below 480px, and with the length of the
+   place name inside it. When the bar is gone the variable is 0 and nothing is
+   reserved. These rules sit after the mobile block on purpose — same
+   specificity, later in source, so they win. */
+.undo-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: undoBarIn 0.18s ease-out;
+}
+
+@keyframes undoBarIn {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-bar { animation: none; }
+}
+
+.undo-bar-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  /* One long place name must not push the button off the bar. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undo-bar-action {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-brand-strong);
+}
+
+.undo-bar-close {
+  flex: 0 0 auto;
+  width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .undo-bar-close:hover { color: var(--text); background: var(--surface); }
+}
+
+/* The menu's copy: two lines, because "Undo" alone a week later is a question
+   rather than an offer. */
+.utils-action-undo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  color: var(--text);
+}
+
+.utils-undo-label { font-weight: 700; }
+
+.utils-undo-what {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* The month title swaps to "Sep 2026" long before 340px. Measured at 320, 341,
+   360, 375, 390, 393 and 412 CSS px: the two arrows, the gear and the gaps take
+   a constant 216px, so the title gets (viewport − 216). "Septiembre 2026" needs
+   170px and "September 2026" 165px, so the full name only fits from 386px up.
+   At 375 (iPhone SE) the title read "Septiembr…" — an ellipsis there hides the
+   year, which is the one thing the header exists to say. 400px keeps 14px of
+   slack above the longest name; the font is self-hosted, so it cannot shift. */
+@media (max-width: 400px) {
+  .month-title-full { display: none; }
+  .month-title-short { display: inline; }
+}
+
 /* Very narrow phones (320px class): the category header carries icon + name +
    total + two 40px buttons, so the only room left to give is the gaps. Touch
    targets stay at 40px — the title's ellipsis absorbs the rest. */
@@ -4231,4 +5219,79 @@ a:focus-visible,
    (see LONG_AMOUNT_CHARS in SummaryCards.tsx). */
 @media (max-width: 360px) {
   .summary-card .card-amount-long { font-size: 0.8rem; }
+}
+
+/* A triage row wants roughly 390px: the place needs ~110px to be readable at
+   all, and the three controls beside it need ~257px plus gaps. Measured at
+   320px the controls were pushed 17px past the panel's own edge and every
+   place name — "ICA Nära" included — was clipped to nothing. Below 480px the
+   row therefore stacks: the place takes its own full-width line, the controls
+   take the next. Nothing is dropped, and nothing has to be guessed at. */
+@media (max-width: 480px) {
+  /* The undo bar's sentence is ellipsised on a phone — "Se eliminaron 3
+     movimientos de Septiembre 2026" needs more than 320px gives it, and a bar
+     that hides WHAT it would undo asks the user to take it on faith.
+     Letting the text wrap in place was worse: as a flex item beside two
+     controls it collapsed to its minimum width and ran to five lines, 118px
+     tall. It takes the whole first line instead, and the controls take the
+     second — the sentence reads in two lines and the button keeps its size. */
+  /* An explicit width is required, not cosmetic: the bar is `position: fixed`
+     with only a max-width, so it is shrink-to-fit, and a `flex-basis: 100%`
+     child then resolves against a width that depends on that child — the text
+     came out 134px wide and ran to three lines inside a bar it had itself
+     narrowed. Given a real width, the sentence gets the full line. */
+  .undo-bar {
+    flex-wrap: wrap;
+    width: calc(100vw - 24px);
+  }
+  .undo-bar-text {
+    flex: 1 0 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+  .undo-bar-action { margin-left: auto; }
+  .triage-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .triage-actions {
+    justify-content: space-between;
+  }
+  .triage-accept {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* ── Room for the undo bar (review 2026-09-18, F10) ──────────────────────
+   The bar is fixed and does NOT time out, so unlike a toast it can sit on top
+   of content for as long as the user leaves it there. Measured at 320×700 it
+   is 85px tall and covered the last controls and the tab bar — things the user
+   could see but not reach.
+
+   The page reserves exactly the bar's MEASURED height, published as
+   --undo-bar-h by UndoBar: measured rather than assumed, because the height
+   changes with the language, with the wrap below 480px and with the length of
+   the place name inside it. With no bar the variable is 0 and nothing is
+   reserved.
+
+   These live at the END of the file on purpose. A media query adds no
+   specificity, so the first attempt — placed just above the `.undo-bar` block —
+   lost to the base rule that followed it, and the bar went on overlapping the
+   tab bar exactly as before. Source order is the whole mechanism here. */
+.app {
+  padding-bottom: calc(48px + var(--undo-bar-h, 0px));
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding-bottom: calc(
+      var(--bottom-nav-h) + env(safe-area-inset-bottom) + 24px + var(--undo-bar-h, 0px)
+    );
+  }
+  /* And the bar itself sits above the tab bar instead of across it. */
+  .undo-bar {
+    bottom: calc(var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
+  }
 }
