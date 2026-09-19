@@ -21,6 +21,8 @@ export const CHANGELOG: Release[] = [
     title: { sv: 'Löftena stämmer nu', en: 'The promises hold now', es: 'Las promesas ahora se cumplen' },
     items: {
       sv: [
+        'Integritetspolicyn beskrev en app som inte finns än. Den talade om telefonen, om att ta bort appen, och hänvisade till en App Store-sida för kontaktuppgifter — allt sådant som gäller en butiksapp. Budgetappen är i dag en webbsida, och nu säger policyn det rakt ut, inklusive att någon version i App Store eller Google Play inte finns',
+        'Kontaktuppgiften är numera en riktig adress: ariel_padilla@hotmail.com. En policy som pekar mot något som inte existerar är sämre än en som säger var man faktiskt når någon',
         'Brevet under 💬 Om appen lovade att importen av kontoutdrag var på väg. Den finns sedan en tid, så brevet säger det i stället — ett löfte som redan är infriat ska inte stå kvar och se ut som något som saknas',
         'Backuppåminnelsen såg inte importerade kontoutdrag. Hade du bara läst in transaktioner — eller bara arbetat i Anpassad — tyckte appen att det inte fanns något att förlora, och bad dig aldrig säkerhetskopiera. Den frågan avgörs nu på ett enda ställe, och räknar allt du skapat: utfall, Anpassad-belopp, egna kategorier utan siffror, sparmål och anteckningar',
         '"Kopiera till alla återstående" kunde misslyckas halvvägs och ändå säga att det gick bra. Elva månader skrivs nu antingen allihop eller inga alls, och nekas skrivningen står varje månad kvar som den var — med besked om det',
@@ -33,6 +35,8 @@ export const CHANGELOG: Release[] = [
         'Ångra-raden täcker inte längre innehållet. Den ligger kvar tills du stänger den, så sidan reserverar exakt så mycket plats som raden tar — mätt, inte gissat, eftersom höjden ändras med språk och skärmbredd',
       ],
       en: [
+        'The privacy policy described an app that does not exist yet. It spoke of the phone, of deleting the app, and pointed at an App Store page for contact details — all things that belong to a store app. Budget is a web page today, and the policy now says so plainly, including that there is no App Store or Google Play version',
+        'The contact detail is now a real address: ariel_padilla@hotmail.com. A policy pointing at something that is not there is worse than one that says where somebody can actually be reached',
         'The letter under 💬 About the app promised that statement import was on its way. It has been here for a while, so the letter says so instead — a promise that has already been kept should not stand there looking like something missing',
         'The backup reminder could not see imported statements. If you had only loaded transactions — or worked only in Custom — the app decided there was nothing to lose and never asked you to back up. That question is now answered in one place, and counts everything you made: records, Custom amounts, your own categories with no figures in them yet, savings goals and notes',
         '"Copy to all remaining" could fail halfway and still report success. Eleven months are now written either all together or not at all, and a refused write leaves every month exactly as it was — and says so',
@@ -45,6 +49,8 @@ export const CHANGELOG: Release[] = [
         'The undo bar no longer covers content. It stays until you dismiss it, so the page reserves exactly as much room as the bar takes — measured, not assumed, because its height changes with the language and the width of the screen',
       ],
       es: [
+        'La política de privacidad describía una app que todavía no existe. Hablaba del teléfono, de desinstalar la app y remitía a una página de la App Store para el contacto — todo eso pertenece a una app de tienda. Budget es hoy una página web, y la política ya lo dice sin rodeos, incluida la ausencia de versión en App Store o Google Play',
+        'El dato de contacto es ahora una dirección real: ariel_padilla@hotmail.com. Una política que apunta a algo inexistente es peor que una que dice dónde se puede contactar de verdad',
         'La carta en 💬 Sobre la app prometía que la importación de extractos estaba en camino. Lleva un tiempo funcionando, así que la carta lo dice — una promesa ya cumplida no debería quedarse ahí pareciendo algo que falta',
         'El recordatorio de copia de seguridad no veía los extractos importados. Si solo habías cargado movimientos — o trabajado solo en Personalizado — la app decidía que no había nada que perder y nunca te pedía una copia. Esa pregunta se responde ahora en un solo sitio, y cuenta todo lo que has creado: movimientos, importes de Personalizado, categorías propias aún sin cifras, metas de ahorro y notas',
         '"Copiar a todos los restantes" podía fallar a medias y aun así decir que había ido bien. Los once meses se escriben ahora todos juntos o ninguno, y si la escritura se rechaza cada mes queda como estaba — y se te avisa',

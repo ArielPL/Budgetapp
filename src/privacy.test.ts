@@ -16,7 +16,13 @@ import page from '../public/privacy.html?raw';
 // after the Google Fonts import that used to send every user's IP to a third
 // party on startup was removed.
 
+// Inline markup is stripped before comparing. The page may legitimately wrap a
+// word in a tag — the contact address is a mailto link, which is the right
+// thing on a public page — while the in-app string is plain text. What must
+// match is the SENTENCE, not the markup around it. Entities are decoded after
+// the tags come out, so an escaped `<` in the prose is not mistaken for one.
 const decoded = page
+  .replace(/<[^>]+>/g, '')
   .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
   .replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
 
