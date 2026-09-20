@@ -149,6 +149,27 @@ function periodOpen(
   return startDate(year, month - 1, startDay);
 }
 
+/**
+ * How many days budget month `month` actually covers.
+ *
+ * With no pay period set this is the calendar month. With one it is the real
+ * length of the period, which is not the same number: 25 Jan – 24 Feb is 31
+ * days while February is 28. "Left to live on" divided by the calendar month
+ * regardless, so the per-day and per-week pace were quietly off by that
+ * difference for everyone paid on a day other than the 1st.
+ *
+ * Subtracting the two dates rather than counting: `Math.round` absorbs the
+ * hour a daylight-saving change adds or removes, which a plain division by
+ * 86 400 000 would turn into 30.96 days.
+ */
+export function periodDays(
+  year: number, month: number, startDay: number | null, locks: PeriodLocks = {},
+): number {
+  if (startDay === null) return new Date(year, month + 1, 0).getDate();
+  const { from, to } = periodRange(year, month, startDay, locks);
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
+}
+
 export function periodRange(
   year: number, month: number, startDay: number, locks: PeriodLocks = {},
 ): PeriodRange {

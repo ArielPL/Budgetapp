@@ -1,10 +1,16 @@
-import { daysInMonth, splitRemaining } from '../metrics';
+import { splitRemaining } from '../metrics';
+import { periodDays, type PeriodLocks } from '../periodLabel';
 import { useLang, MONTHS, formatMoneyCompact } from '../i18n';
 
 interface Props {
   remaining: number; // income − budgeted expenses for the viewed month
   year: number;      // viewed year
   month: number;     // viewed month (0-based)
+  /** The pay period's start day, or null for plain calendar months. The budget
+   *  month is what this tile divides by, and for anyone paid on the 25th that
+   *  is not the calendar month — see periodDays. */
+  periodStartDay?: number | null;
+  periodLocks?: PeriodLocks;
 }
 
 // "Left to live on" — what's left spread evenly across the WHOLE month, so it
@@ -17,10 +23,10 @@ interface Props {
 // nobody could act on, and one that climbed precisely as the month ran out.
 // Dividing by the month's real length is a budget; dividing by what's left is a
 // burn-down, and that's a separate (planned) feature.
-export const DailyBudget = ({ remaining, year, month }: Props) => {
+export const DailyBudget = ({ remaining, year, month, periodStartDay = null, periodLocks = {} }: Props) => {
   const { lang, t, money, currency } = useLang();
 
-  const days = daysInMonth(year, month);
+  const days = periodDays(year, month, periodStartDay, periodLocks);
   const { perDay, perWeek } = splitRemaining(remaining, days);
   const tone = perDay < 0 ? ' daily-budget-negative' : '';
   // Billion-class figures compact like the summary cards — a 12-digit expense

@@ -31,7 +31,7 @@ import { undoWhere } from './undoLabel';
 import { shortWhen, longDate } from './dateLabel';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -1204,6 +1204,15 @@ function App() {
       oldGoals.filter(g => !newGoalIds.has(g.id) && g.budgetRowId).map(g => g.budgetRowId!),
     );
 
+    // Linked rows of RENAMED goals, as rowId → the new label. Computed here so
+    // the month on screen and every other month apply exactly the same map.
+    const renamedRows = new Map<string, string>();
+    for (const newGoal of newGoals) {
+      if (!newGoal.budgetRowId) continue;
+      const oldGoal = oldGoals.find(g => g.id === newGoal.id);
+      if (oldGoal && oldGoal.name !== newGoal.name) renamedRows.set(newGoal.budgetRowId, newGoal.name);
+    }
+
     setData(d => {
       let expenses = d.expenses;
       const idx = expenses.findIndex(c => c.id === 'sparande');
@@ -1212,13 +1221,12 @@ function App() {
         let rows = [...expenses[idx].rows];
         let changed = false;
         // Renamed goals → update the linked budget row's label.
-        for (const newGoal of newGoals) {
-          if (!newGoal.budgetRowId) continue;
-          const oldGoal = oldGoals.find(g => g.id === newGoal.id);
-          if (oldGoal && oldGoal.name !== newGoal.name) {
-            rows = rows.map(r => r.id === newGoal.budgetRowId ? { ...r, label: newGoal.name } : r);
-            changed = true;
-          }
+        if (renamedRows.size > 0) {
+          rows = rows.map(r => {
+            const label = renamedRows.get(r.id);
+            return label === undefined ? r : { ...r, label };
+          });
+          changed = true;
         }
         // Deleted goals → remove the linked budget row (only if still 0 kr).
         if (deletedRowIds.size > 0) {
@@ -1246,33 +1254,15 @@ function App() {
     // forever. Same conservation rule as above: rows with real amounts stay.
     // (The currently-loaded month was handled in state; skip its key so the
     // save effect doesn't race this write.)
-    if (deletedRowIds.size > 0) {
-      const currentKey = storageKey(year, month);
-      let sweepOk = true;
-      for (let i = appStorage.length - 1; i >= 0; i--) {
-        const key = appStorage.key(i);
-        if (!key || !/^budget_\d{4}_\d+$/.test(key) || key === currentKey) continue;
-        // The write is computed inside the try and performed OUTSIDE it. The
-        // catch is for a malformed month blob, which is a reason to skip the
-        // month; it used to swallow a refused WRITE too, so a full quota left
-        // orphaned rows behind in silence (finding 19).
-        let write: string | null = null;
-        try {
-          const m = JSON.parse(appStorage.getItem(key)!) as MonthData;
-          const sp = m.expenses?.find(c => c.id === 'sparande');
-          if (!sp) continue;
-          const kept = sp.rows.filter(r => !(deletedRowIds.has(r.id) && (r.amount || 0) === 0));
-          if (kept.length === sp.rows.length) continue;
-          const expenses = kept.length > 0
-            ? m.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
-            : m.expenses.filter(c => c.id !== 'sparande');
-          write = JSON.stringify({ ...m, expenses });
-        } catch {
-          // Malformed month blob — leave it untouched rather than risk data.
-        }
-        if (write !== null && !safeSetItem(appStorage, key, write)) sweepOk = false;
-      }
-      if (!sweepOk) setSaveFailed(true);
+    //
+    // A RENAME is swept the same way, and for the same reason. Renaming a goal
+    // used to relabel its row only in the month on screen, so renaming "Resa"
+    // to "Japan 2027" in September left August still reading "Resa" — the link
+    // held, but the two names disagreed for as long as the history lasted.
+    // The month on screen is handled in state above, so its key is skipped here
+    // — otherwise this write and the save effect would race each other.
+    if (!sweepGoalRows(appStorage, deletedRowIds, renamedRows, storageKey(year, month))) {
+      setSaveFailed(true);
     }
 
     setPlanData(newPlan);
@@ -1376,7 +1366,13 @@ function App() {
       />
       {/* Daily/weekly pace for the remaining money — current real month only. */}
       {totalIncome > 0 && (
-        <DailyBudget remaining={totalIncome - totalExpenses} year={year} month={month} />
+        <DailyBudget
+          remaining={totalIncome - totalExpenses}
+          year={year}
+          month={month}
+          periodStartDay={periodStartDay}
+          periodLocks={periodLocks}
+        />
       )}
       <div className="budget-grid">
         <div className="budget-left">
