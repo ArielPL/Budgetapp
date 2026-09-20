@@ -44,6 +44,24 @@ export function adoptExternalMonth(
   currentKey: string,
   lastSeenRaw: string | null,
 ): AdoptedMonth | null {
+  return adoptExternalValue<MonthData>(event, currentKey, lastSeenRaw, isMonthData);
+}
+
+/**
+ * The same decision, for any key this app keeps a private copy of.
+ *
+ * Buggy sweep 2026-09-19, finding 11. The rule above was applied to exactly one
+ * key — the classic month — while the Custom layout and the savings plan are
+ * held in state from mount and written back whole in precisely the same way.
+ * Two tabs in Custom, or one on Plan and one on Budget, still lost the first
+ * edit without a word. The rule was never month-specific; only its wiring was.
+ */
+export function adoptExternalValue<T>(
+  event: StorageEventLike,
+  currentKey: string,
+  lastSeenRaw: string | null,
+  isValid: (v: unknown) => boolean,
+): { data: T; raw: string } | null {
   // A different key entirely — another month, the plan, a theme setting. Never
   // let one month's data be adopted into another month's view.
   if (event.key !== currentKey) return null;
@@ -66,11 +84,11 @@ export function adoptExternalMonth(
 
   // Same validator the backup importer uses. A write from another tab is no
   // more trustworthy than a file someone hands us.
-  if (!isMonthData(parsed)) return null;
+  if (!isValid(parsed)) return null;
 
-  const data = parsed as MonthData;
+  const data = parsed as T;
   // Re-stringify rather than reusing event.newValue: the baseline must be
   // byte-identical to what this tab would itself produce from `data`, or the
-  // save effect will think the month changed and write it out again.
+  // save effect will think the value changed and write it out again.
   return { data, raw: JSON.stringify(data) };
 }

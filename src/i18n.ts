@@ -465,6 +465,9 @@ export interface Translations {
   themeDark: string;
   // Theme Builder panel
   themeTitle: string;
+  /** The browser tab / installed-app title. Follows the interface language,
+   *  which the <title> in index.html cannot do on its own. */
+  appTitle: string;
   themeClose: string;
   presets: string;
   accent: string;
@@ -1008,6 +1011,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
     themeTitle: 'Tema',
+    appTitle: 'Budget – Månadsbudget',
     themeClose: 'Stäng',
     presets: 'Förinställningar',
     accent: 'Accentfärg',
@@ -1546,6 +1550,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeTitle: 'Theme',
+    appTitle: 'Budget – Monthly budget',
     themeClose: 'Close',
     presets: 'Presets',
     accent: 'Accent',
@@ -2084,6 +2089,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Claro',
     themeDark: 'Oscuro',
     themeTitle: 'Tema',
+    appTitle: 'Budget – Presupuesto mensual',
     themeClose: 'Cerrar',
     presets: 'Preajustes',
     accent: 'Color de acento',

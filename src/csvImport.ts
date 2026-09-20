@@ -91,14 +91,30 @@ export function decodeCsv(bytes: ArrayBuffer): string {
  *  Swedish Excel writes semicolons, which is why a comma-only parser would
  *  read a whole row as a single field and silently import nothing. */
 export function detectDelimiter(text: string): string {
-  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 20);
   let best = ';';
-  let bestCount = 0;
+  let bestScore = -1;
   for (const d of [';', ',', '\t']) {
-    // The median-ish signal: how many times it appears on the line that uses it
-    // most. A stray comma inside one description cannot outvote a real column.
-    const count = Math.max(0, ...lines.map(l => l.split(d).length - 1));
-    if (count > bestCount) { bestCount = count; best = d; }
+    // Score by AGREEMENT, not by frequency. Counting raw occurrences counted
+    // them inside quoted fields too, and scored each candidate on the single
+    // busiest line — so "ICA SUPERMARKET, SOLNA, SE" in a semicolon file
+    // outvoted the semicolons, every row collapsed into one field, and a
+    // perfectly good statement was reported as unreadable (finding 5).
+    //
+    // Parsing with the real parser instead means quotes are honoured, and the
+    // right delimiter is the one that makes the rows agree on a column count.
+    const rows = parseCsv(text, d).slice(0, 20).filter(r => r.length > 0);
+    if (rows.length === 0) continue;
+    const tally = new Map<number, number>();
+    for (const r of rows) tally.set(r.length, (tally.get(r.length) ?? 0) + 1);
+    let columns = 0;
+    let agreeing = 0;
+    for (const [n, count] of tally) {
+      if (count > agreeing || (count === agreeing && n > columns)) { columns = n; agreeing = count; }
+    }
+    // One field per row means this character never separated anything.
+    if (columns < 2) continue;
+    const score = agreeing * 100 + columns;
+    if (score > bestScore) { bestScore = score; best = d; }
   }
   return best;
 }
@@ -205,10 +221,31 @@ export function parseAmount(raw: string): number | null {
   if (head && CURRENCY.test(head[0])) s = s.slice(head[0].length);
   const tail = /[^\d.,]+$/.exec(s);
   if (tail && CURRENCY.test(tail[0])) s = s.slice(0, s.length - tail[0].length);
-  // A comma is the decimal separator here; a dot may be either, so it only
-  // counts as one when it is followed by exactly two digits at the end.
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  else if (!/\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
+  // Which mark is the decimal point.
+  //
+  // When BOTH appear, the LAST one is the decimal and the other groups
+  // thousands — true of "1.234,56" and of "1,234.56" alike, and the only rule
+  // that does not have to guess the file's nationality. This used to read "if
+  // there is a comma anywhere, delete every dot", which made an American
+  // "1,234.56" into 1.23456: a thousandfold error, on the rent and the salary
+  // but not on the small rows, and baked into the duplicate fingerprint so a
+  // corrected re-import would not replace it (finding 4).
+  //
+  // When only ONE appears, the comma is a decimal point (Swedish) while a dot
+  // is one only if exactly one or two digits follow it at the end — otherwise
+  // it is grouping, as in "1.234".
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimal = lastComma > lastDot ? ',' : '.';
+    const grouping = decimal === ',' ? '.' : ',';
+    s = s.split(grouping).join('');
+    s = s.replace(decimal, '.');
+  } else if (lastComma >= 0) {
+    s = s.replace(',', '.');
+  } else if (!/\.\d{1,2}$/.test(s)) {
+    s = s.replace(/\./g, '');
+  }
   if (!/^\d+(\.\d+)?$/.test(s)) return null;
   const n = Number(s);
   if (!Number.isFinite(n)) return null;

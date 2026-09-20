@@ -77,6 +77,14 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
   let cache = new Map<string, string>();
   let ready = false;
 
+  // Keys REMOVED before hydrate finished. The cache alone cannot express this:
+  // a removal deletes the key, so hydrate's merge of "what is in the cache"
+  // over "what came off disk" had nothing to merge and quietly reinstated the
+  // stored value. The queued backend.remove still ran, so memory and disk then
+  // disagreed — a read answered with a key the user had deleted, and it
+  // vanished at the next launch (finding 21).
+  const removedBeforeHydrate = new Set<string>();
+
   const listeners = new Set<(key: string) => void>();
   const fail = (key: string) => {
     for (const l of listeners) l(key);
@@ -120,21 +128,27 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
       // reads its own writes constantly — the save effect, the undo capture,
       // the baseline check — and none of them can wait for a promise.
       cache.set(k, v);
+      // Written again after being removed: no longer a removal.
+      if (!ready) removedBeforeHydrate.delete(k);
       enqueue(k, () => backend.write(k, v));
     },
 
     removeItem(k: string) {
       cache.delete(k);
+      if (!ready) removedBeforeHydrate.add(k);
       enqueue(k, () => backend.remove(k));
     },
 
     async hydrate() {
       const all = await backend.loadAll();
       // Anything written before hydrate finished wins over what came off disk:
-      // it is newer, and it is already queued to be stored.
+      // it is newer, and it is already queued to be stored. Removals win the
+      // same way, and have to be applied explicitly — see the note above.
       const written = cache;
       cache = new Map(Object.entries(all));
+      for (const k of removedBeforeHydrate) cache.delete(k);
       for (const [k, v] of written) cache.set(k, v);
+      removedBeforeHydrate.clear();
       ready = true;
     },
 

@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
 import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { useIsPhone } from '../useIsPhone';
+import { adoptExternalValue } from '../crossTab';
+import { isCustomValues, isCustomStructure } from '../backup';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import { ExpenseChart } from './Charts';
@@ -275,20 +278,6 @@ function loadValues(y: number, m: number): Record<string, number> {
   } catch { return {}; }
 }
 
-// ── matchMedia hook: phone vs desktop is a genuinely different UI ──
-function useIsPhone(): boolean {
-  const [phone, setPhone] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)');
-    const handler = (e: MediaQueryListEvent) => setPhone(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return phone;
-}
-
 interface Props {
   year: number;
   month: number;
@@ -356,12 +345,26 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   // load effect so it's armed before the save effect runs on the same commit.
   const skipSave = useRef(true);
 
+  // A month switch makes the save effect run TWICE, and skipSave is a one-shot.
+  // Run one is this commit — year/month have changed but `values` is still the
+  // old month's, so the guard above stops the bleed. Run two is after setValues
+  // commits, and by then the guard is spent: the effect wrote the just-loaded
+  // amounts straight back, along with a snapshot built from TODAY's blocks. So
+  // merely walking back through last year re-filed every month it passed
+  // (finding 2). These two refs say what is already on disk for the month on
+  // screen, which makes "the user changed something" distinguishable from
+  // "this is what we just read".
+  const savedValues = useRef(values);
+  const savedBlocks = useRef(blocks);
+
   // Load this month's amounts when the month changes — arm the guard FIRST so
   // the save effect below (which also re-runs on this commit) skips this load
   // instead of writing the previous month's values into the new month's key.
   useEffect(() => {
     skipSave.current = true;
-    setValues(loadValues(year, month));
+    const fresh = loadValues(year, month);
+    savedValues.current = fresh;
+    setValues(fresh);
   }, [year, month]);
 
   // Persist amounts for the active month. Don't CREATE a key for an untouched
@@ -369,6 +372,12 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   // month is still updated (so clearing its amounts persists).
   useEffect(() => {
     if (skipSave.current) { skipSave.current = false; return; }
+    // Nothing has changed since this month was read, or since the last write —
+    // so there is nothing to record, and recording anyway would replace the
+    // month's own history with today's layout. A retag DOES still reach here,
+    // because `blocks` is a new array then: the month on screen follows the
+    // current structure, which is what the year view expects.
+    if (values === savedValues.current && blocks === savedBlocks.current) return;
     const key = valuesKey(year, month);
     if (Object.keys(values).length === 0 && appStorage.getItem(key) === null) return;
     // Two writes, one meaning. If the amounts land but the snapshot does not,
@@ -385,7 +394,46 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
       JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month))),
     ) && ok;
     if (!ok) onSaveFailed();
+    // What is on disk now. A refused write deliberately does NOT update these:
+    // the next change should try again rather than assume it landed.
+    if (ok) { savedValues.current = values; savedBlocks.current = blocks; }
   }, [values, year, month, blocks, onSaveFailed]);
+
+  // ── Another tab edited this month, or the structure ──────────────────────
+  //
+  // Custom has exactly the shape that made two tabs overwrite each other on
+  // the classic month: read once, held in state, written back whole. The fix
+  // from review 2026-09-05 F1 was applied to the month key and to actuals, and
+  // never here — so two tabs in Custom still lost the first edit in silence
+  // (finding 11).
+  //
+  // Adoption must not itself write anything. Setting the baseline refs to the
+  // adopted objects is what guarantees that: the save effects above compare by
+  // identity, so both see "nothing has changed" and stay quiet. A storage event
+  // only fires in OTHER tabs, so this cannot react to its own writes.
+  useEffect(() => {
+    const key = valuesKey(year, month);
+    const onStorage = (e: StorageEvent) => {
+      const incoming = adoptExternalValue<Record<string, number>>(
+        e, key, JSON.stringify(savedValues.current), isCustomValues,
+      );
+      if (incoming) {
+        savedValues.current = incoming.data;
+        setValues(incoming.data);
+        return;
+      }
+      const structure = adoptExternalValue<CustomBlock[]>(
+        e, LS_STRUCT, JSON.stringify(loadedBlocks.current), isCustomStructure,
+      );
+      if (structure) {
+        loadedBlocks.current = structure.data;
+        savedBlocks.current = structure.data;
+        setBlocks(structure.data);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [year, month]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {
     setValues(v => ({ ...v, [rowId]: amount }));
@@ -396,7 +444,8 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   useEffect(() => {
     if (!appStorage.getItem('budget_custom_help_seen')) {
       setHelpOpen(true);
-      appStorage.setItem('budget_custom_help_seen', '1');
+      // A refused flag write costs only a second showing of this help.
+      safeSetItem(appStorage, 'budget_custom_help_seen', '1');
     }
   }, []);
 

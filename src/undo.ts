@@ -213,7 +213,12 @@ export function undoLast(storage: StorageLike): UndoEntry | null {
   const entry = list[0];
   if (!entry) return null;
   if (!applyStorageChanges(storage, undoChanges(storage, entry))) return null;
-  safeSetItem(storage, UNDO_KEY, JSON.stringify(list.slice(1)));
+  // If the pop itself is refused, the entry has ALREADY been applied but would
+  // still be offered — and taking it a second time would write those same old
+  // values over anything edited in between. Dropping the whole stack is the
+  // honest fallback: nothing is left that could be applied twice, and the step
+  // the user asked for did happen (finding 18).
+  if (!safeSetItem(storage, UNDO_KEY, JSON.stringify(list.slice(1)))) clearUndo(storage);
   return entry;
 }
 

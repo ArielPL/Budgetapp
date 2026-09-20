@@ -710,3 +710,85 @@ describe('the order is only a question when the file could mean either', () => {
     expect(got.dateOrderGuessed).toBe(true);
   });
 });
+
+// ── Buggy sweep 2026-09-19 ─────────────────────────────────────────────────
+
+describe('the decimal point is decided by punctuation, not by nationality (finding 4)', () => {
+  it('reads an American thousands comma at full value', () => {
+    // This returned 1.23456 — a thousandfold error, silent, and carried into
+    // the duplicate fingerprint so a corrected re-import would not replace it.
+    expect(parseAmount('1,234.56')).toBe(1234.56);
+    expect(parseAmount('-1,234.56')).toBe(-1234.56);
+    expect(parseAmount('3,500.00')).toBe(3500);
+    expect(parseAmount('1,234,567.89')).toBe(1234567.89);
+  });
+
+  it('still reads a European thousands dot', () => {
+    expect(parseAmount('1.234,56')).toBe(1234.56);
+    expect(parseAmount('-1.234,56')).toBe(-1234.56);
+    expect(parseAmount('1.234.567,89')).toBe(1234567.89);
+  });
+
+  it('leaves the single-separator readings alone', () => {
+    expect(parseAmount('1 234,56')).toBe(1234.56);   // space groups, comma decides
+    expect(parseAmount('842,00')).toBe(842);         // comma is Swedish decimal
+    expect(parseAmount('1234.56')).toBe(1234.56);    // dot with two digits
+    expect(parseAmount('1.234')).toBe(1234);         // dot with three: grouping
+    expect(parseAmount('62.10')).toBe(62.1);
+  });
+
+  it('still refuses what it cannot read rather than inventing a number', () => {
+    expect(parseAmount('ICA 4521 SOLNA')).toBeNull();
+    expect(parseAmount('')).toBeNull();
+    expect(parseAmount('--5')).toBeNull();
+  });
+});
+
+describe('the delimiter is the one the rows agree on (finding 5)', () => {
+  const swedish = [
+    '"Datum";"Text";"Belopp"',
+    '"2026-08-03";"ICA SUPERMARKET, SOLNA, SE";"-1 234,56"',
+    '"2026-08-04";"HEMKOP";"-210,00"',
+  ].join('\n');
+
+  it('is not outvoted by commas inside a quoted description', () => {
+    // Two commas in a place name plus the decimal comma used to beat two
+    // semicolons, collapsing every row into one field. The dialog then said
+    // "no rows we can read" about a perfectly valid statement.
+    expect(detectDelimiter(swedish)).toBe(';');
+    expect(parseCsv(swedish, detectDelimiter(swedish))[1]).toEqual([
+      '2026-08-03', 'ICA SUPERMARKET, SOLNA, SE', '-1 234,56',
+    ]);
+  });
+
+  it('is not outvoted by commas in an UNQUOTED description either', () => {
+    const unquoted = [
+      'Datum;Text;Belopp',
+      '2026-08-03;ICA SUPERMARKET, SOLNA, SE;-1 234,56',
+      '2026-08-04;HEMKOP;-210,00',
+    ].join('\n');
+    expect(detectDelimiter(unquoted)).toBe(';');
+  });
+
+  it('still finds a real comma file', () => {
+    const american = [
+      'Date,Description,Amount',
+      '2026-08-03,WHOLE FOODS MKT,-84.21',
+      '2026-08-04,CHEVRON,-52.00',
+    ].join('\n');
+    expect(detectDelimiter(american)).toBe(',');
+  });
+
+  it('still finds tabs', () => {
+    const tabbed = ['Datum\tText\tBelopp', '2026-08-03\tICA\t-23,66'].join('\n');
+    expect(detectDelimiter(tabbed)).toBe('\t');
+  });
+
+  it('an American file survives detection AND parsing together', () => {
+    // The two findings compound: the wrong delimiter hid the wrong amount.
+    const american = 'Date,Description,Amount\n2026-08-03,RENT,"-1,234.56"';
+    const d = detectDelimiter(american);
+    const rows = parseCsv(american, d);
+    expect(parseAmount(rows[1][2])).toBe(-1234.56);
+  });
+});

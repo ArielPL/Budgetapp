@@ -7,6 +7,7 @@
 // unit-tests in node without a browser or a React tree.
 
 import { coerceStoredMoney } from './money';
+import { safeSetItem } from './storageWrite';
 import type { StorageLike } from './backup';
 import type { BlockTag, BlockKind } from './components/CustomV3';
 
@@ -258,10 +259,14 @@ export function migrateLegacySnapshots(
     pending.push({ key: customSnapshotKey(year, month), tags });
   }
 
+  // safeSetItem: this runs from a mount effect, so a throw here takes the
+  // Custom tab down with it. The backfill is idempotent, so a month refused
+  // today is simply retried on the next mount.
+  let written = 0;
   for (const { key, tags } of pending) {
-    storage.setItem(key, JSON.stringify({ v: 1, tags } satisfies MonthSnapshot));
+    if (safeSetItem(storage, key, JSON.stringify({ v: 1, tags } satisfies MonthSnapshot))) written += 1;
   }
-  return pending.length;
+  return written;
 }
 
 /**

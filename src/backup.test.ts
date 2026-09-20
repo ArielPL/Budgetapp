@@ -68,7 +68,10 @@ describe('export', () => {
       unrelated: 'x',
     });
     const payload = buildBackup(s, new Date('2026-07-16T10:00:00Z'));
-    expect(Object.keys(payload.data).sort()).toEqual(['budget_2026_6', 'budget_lang']);
+    // budget_last_backup is always present: the file records its own date, so
+    // it is written whether or not the device had ever been backed up before.
+    expect(Object.keys(payload.data).sort())
+      .toEqual(['budget_2026_6', 'budget_lang', 'budget_last_backup'].sort());
     expect(payload.app).toBe('budget');
     expect(payload.version).toBe(BACKUP_VERSION);
   });
@@ -80,7 +83,25 @@ describe('export', () => {
     const check = checkBackup(file);
     expect(check.ok).toBe(true);
     if (check.ok) applyBackup(target, check.payload);
-    expect(target.snapshot()).toEqual(original);
+    // Everything except the backup date, which the file now stamps itself.
+    const restored = target.snapshot();
+    delete restored.budget_last_backup;
+    expect(restored).toEqual(original);
+  });
+
+  // Buggy sweep 2026-09-19, finding 17.
+  it('stamps the file with ITS OWN date, not the previous backup\'s', () => {
+    // buildBackup runs before markBackupDone, so the value still in storage
+    // points at the backup before this one. Copying it verbatim set the clock
+    // back on restore, and a previous date over a month old popped the "time to
+    // back up" banner on a device restored from a file made seconds earlier.
+    const s = new FakeStorage({
+      budget_2026_6: monthJSON(100),
+      budget_last_backup: '2025-01-01T00:00:00.000Z',
+    });
+    const payload = buildBackup(s, new Date('2026-07-16T10:00:00Z'));
+    expect(payload.data.budget_last_backup).toBe('2026-07-16T10:00:00.000Z');
+    expect(payload.data.budget_last_backup).toBe(payload.exportedAt);
   });
   it('names the file by date', () => {
     expect(backupFilename(new Date('2026-07-16T22:00:00Z'))).toBe('budget-backup-2026-07-16.json');

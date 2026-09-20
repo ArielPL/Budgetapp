@@ -62,3 +62,34 @@ describe.each(IN_TAB_DIALOGS)('%s escapes the tab', path => {
     expect(src).toContain('document.body');
   });
 });
+
+// ── A dialog that says aria-modal must behave like one ─────────────────────
+//
+// Buggy sweep 2026-09-19, finding 8. CsvImport declared role="dialog"
+// aria-modal="true" and had none of it: no focus trap, no Escape, nothing
+// inert behind the backdrop. Focus stayed on the button under the backdrop,
+// Tab walked the page behind and back out again, and Enter on a button back
+// there opened a second dialog on top of the first. Review 2026-09-18 F7
+// fixed precisely this for Intro; the import was simply missed, which is the
+// argument for checking it by rule rather than by memory.
+//
+// useModalFocus is the one implementation of all of it, so requiring its
+// presence is requiring the behaviour.
+
+describe('every aria-modal dialog uses useModalFocus', () => {
+  const claiming = Object.entries(MODULES)
+    .filter(([path]) => !path.endsWith('.test.ts') && !path.endsWith('.test.tsx'))
+    .filter(([, src]) => src.includes('aria-modal="true"'));
+
+  it('finds the dialogs to check', () => {
+    // If this drops to zero the guard has stopped guarding anything.
+    expect(claiming.length).toBeGreaterThan(0);
+  });
+
+  it.each(claiming.map(([path]) => path))('%s traps focus and closes on Escape', path => {
+    const src = source(path);
+    expect(src).toContain('useModalFocus');
+    // Imported from the shared hook, not re-implemented locally.
+    expect(src).toMatch(/import \{[^}]*useModalFocus[^}]*\} from '\.{1,2}\/(\.\.\/)?useModalFocus'/);
+  });
+});

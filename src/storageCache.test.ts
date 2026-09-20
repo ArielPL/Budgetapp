@@ -17,6 +17,13 @@ class FakeStore {
   removeItem(k: string) { this.map.delete(k); }
 }
 
+/** A FakeStore that already holds something, as a device would. */
+function seeded(entries: Record<string, string>): FakeStore {
+  const store = new FakeStore();
+  for (const [k, v] of Object.entries(entries)) store.setItem(k, v);
+  return store;
+}
+
 /** A backend that resolves only when told to, so ordering can be observed. */
 function controllable() {
   const landed: string[] = [];
@@ -234,5 +241,53 @@ describe('it behaves like the storage it replaces', () => {
 
     expect(store.getItem('budget_lang')).toBeNull();
     expect(store.getItem('budget_2026_8')).toBe('{"income":[]}');
+  });
+});
+
+// ── Buggy sweep 2026-09-19, finding 21 ─────────────────────────────────────
+
+describe('a removal made before hydrate survives it', () => {
+  it('does not resurrect a key that was deleted while loading', async () => {
+    // The cache cannot express "deleted" by absence alone: hydrate merged what
+    // was IN the cache over what came off disk, so a removal had nothing to
+    // merge and the stored value came back. The queued remove still ran, so a
+    // read answered with a key the user had deleted and it disappeared at the
+    // next launch instead.
+    const backend = backendFromSync(seeded({ budget_lang: 'sv', budget_currency: 'sek' }));
+    const store = createCachedStorage(backend);
+
+    store.removeItem('budget_lang');
+    await store.hydrate();
+
+    expect(store.getItem('budget_lang')).toBeNull();
+    expect(store.getItem('budget_currency')).toBe('sek');
+
+    await store.flush();
+    // And the backend agrees, so a reload shows the same thing.
+    expect((await backend.loadAll()).budget_lang).toBeUndefined();
+  });
+
+  it('a key removed and then written again before hydrate keeps the new value', async () => {
+    const backend = backendFromSync(seeded({ budget_lang: 'sv' }));
+    const store = createCachedStorage(backend);
+
+    store.removeItem('budget_lang');
+    store.setItem('budget_lang', 'es');
+    await store.hydrate();
+
+    expect(store.getItem('budget_lang')).toBe('es');
+    await store.flush();
+    expect((await backend.loadAll()).budget_lang).toBe('es');
+  });
+
+  it('a removal AFTER hydrate still works', async () => {
+    const backend = backendFromSync(seeded({ budget_lang: 'sv' }));
+    const store = createCachedStorage(backend);
+    await store.hydrate();
+
+    store.removeItem('budget_lang');
+    expect(store.getItem('budget_lang')).toBeNull();
+    await store.flush();
+    expect((await backend.loadAll()).budget_lang).toBeUndefined();
   });
 });

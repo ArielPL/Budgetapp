@@ -448,9 +448,15 @@ export const FollowUpTab = ({
       ? <span className="amount-unknown" title={t.followUpNotRecorded}>–</span>
       : money(sums[id]);
 
-  const diffCell = (id: string, planned: number) => {
-    if (sums[id] === undefined || planned === 0) return null;
-    const diff = sums[id] - planned;
+  /** Recorded against planned. `id` only decides which direction is bad.
+   *  Split out from diffCell so the total row can use it with figures it
+   *  already holds: the total's cell called diffCell('__total__', 0), and both
+   *  of those arguments made it return null every time, so the Difference
+   *  column was permanently blank on the one row summarising all the others
+   *  (finding 15). */
+  const renderDiff = (actual: number, planned: number, id: string) => {
+    if (planned === 0) return null;
+    const diff = actual - planned;
     if (diff === 0) return <span className="followup-diff followup-diff-ok">✓</span>;
     // Over the plan is bad for an expense and good for income, so the sign alone
     // cannot decide the colour.
@@ -461,6 +467,9 @@ export const FollowUpTab = ({
       </span>
     );
   };
+
+  const diffCell = (id: string, planned: number) =>
+    sums[id] === undefined ? null : renderDiff(sums[id], planned, id);
 
   /** One row of the table, with what is inside it when opened. Used for every
    *  kind — income, a budget category, and the two buckets — so they cannot
@@ -920,7 +929,9 @@ export const FollowUpTab = ({
             {anyOut ? money(actualOut) : <span className="amount-unknown" title={t.followUpNotRecorded}>–</span>}
           </span>
           {showPlan && (
-            <span className="num followup-diffcell">{anyOut ? diffCell('__total__', 0) : null}</span>
+            <span className="num followup-diffcell">
+              {anyOut ? renderDiff(actualOut, plannedOut, '__total__') : null}
+            </span>
           )}
         </div>
 
