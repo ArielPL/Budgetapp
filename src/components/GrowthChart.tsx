@@ -8,7 +8,9 @@ import type { BudgetCategory } from '../types';
 import { loadYearSavingsTotals } from '../defaults';
 import { useLang, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { PENSION_CATEGORY_ID } from '../metrics';
 import { appStorage } from '../storage';
+import { safeSetItem } from '../storageWrite';
 
 type ChartType = 'area' | 'line' | 'stacked';
 const CHART_TYPE_KEY = 'budget_savings_chart';
@@ -56,19 +58,52 @@ export const GrowthChart = ({ year, currentMonth, currentSavings, currentSnapsho
 
   const selectChartType = (type: ChartType) => {
     setChartType(type);
-    appStorage.setItem(CHART_TYPE_KEY, type);
+    // A display preference: worth keeping, not worth an error banner.
+    safeSetItem(appStorage, CHART_TYPE_KEY, type);
   };
 
   const { text: tickColor, grid: gridColor } = chartColors();
 
-  // Pension is excluded from the growth chart — it's tracked as a separate bucket.
-  const LINES = [
-    { key: 'sparkonto', label: t.lineSparkonto, color: '#22d3ee' },
-    { key: 'isk',       label: t.lineIsk,       color: '#22c55e' },
-    { key: 'fonder',    label: t.lineFonder,    color: '#a78bfa' },
-  ];
-
   const allMonths = loadYearSavingsTotals(year, lang);
+
+  // The three categories the app ships with keep their translated labels and
+  // their established chart colours, so nothing an existing user recognises
+  // moves.
+  const BUILT_IN: Record<string, { label: string; color: string }> = {
+    sparkonto: { label: t.lineSparkonto, color: '#22d3ee' },
+    isk:       { label: t.lineIsk,       color: '#22c55e' },
+    fonder:    { label: t.lineFonder,    color: '#a78bfa' },
+  };
+
+  // Which lines to draw.
+  //
+  // This was hardcoded to exactly those three ids. But the Savings tab offers
+  // "+ add category", and calculateSavingsMetrics sums ALL of them except
+  // pension — so a category the user made was counted by the card above and
+  // ignored by the chart below. 20 000 on the sparkonto plus 30 000 in a
+  // self-made "Buffert" showed a card reading 50 000 over a chart adding up to
+  // 20 000; with everything in Buffert, the chart claimed nothing was recorded
+  // at all (finding 7). Pension stays out, which was the real intent all along
+  // — it is a separate bucket, and metrics.ts excludes it everywhere too.
+  const lineMap = new Map<string, { key: string; label: string; color: string }>();
+  const addCategory = (c: { id: string; name: string; color: string }) => {
+    if (c.id === PENSION_CATEGORY_ID || lineMap.has(c.id)) return;
+    const builtIn = BUILT_IN[c.id];
+    lineMap.set(c.id, {
+      key: c.id,
+      label: builtIn?.label ?? c.name,
+      color: builtIn?.color ?? c.color,
+    });
+  };
+  // Built-ins first, in their familiar order, then whatever the user added.
+  for (const id of Object.keys(BUILT_IN)) {
+    const found = allMonths.flatMap(m => m.categories).find(c => c.id === id)
+      ?? currentSavings.find(c => c.id === id);
+    if (found) addCategory(found);
+  }
+  for (const m of allMonths.slice(0, currentMonth + 1)) m.categories.forEach(addCategory);
+  for (const c of currentSavings) addCategory(c);
+  const LINES = [...lineMap.values()];
 
   // Build flat data array — fix: use live currentSavings for the current month
   // instead of stale localStorage value
@@ -91,15 +126,14 @@ export const GrowthChart = ({ year, currentMonth, currentSavings, currentSnapsho
     // plotting 0 drew the balance plunging to the axis and back, money the user
     // never withdrew. Within a recorded month, an absent category IS 0.
     const at = (key: string) => (hasSnapshot ? byCategory[key] ?? 0 : null);
-    return {
-      month: entry.month,
-      sparkonto: at('sparkonto'),
-      isk:       at('isk'),
-      fonder:    at('fonder'),
-    };
+    const row: Record<string, string | number | null> = { month: entry.month };
+    for (const l of LINES) row[l.key] = at(l.key);
+    return row;
   });
 
-  const hasData = data.some(d => (d.sparkonto ?? 0) + (d.isk ?? 0) + (d.fonder ?? 0) > 0);
+  const hasData = data.some(
+    d => LINES.reduce((sum, l) => sum + ((d[l.key] as number | null) ?? 0), 0) > 0,
+  );
 
   if (!hasData) {
     return (
@@ -188,9 +222,7 @@ export const GrowthChart = ({ year, currentMonth, currentSavings, currentSnapsho
                 <th scope="row">{d.month}</th>
                 {LINES.map(l => (
                   <td key={l.key}>
-                    {d[l.key as 'sparkonto' | 'isk' | 'fonder'] === null
-                      ? t.notRecorded
-                      : money(d[l.key as 'sparkonto' | 'isk' | 'fonder'] as number)}
+                    {d[l.key] === null ? t.notRecorded : money(d[l.key] as number)}
                   </td>
                 ))}
               </tr>

@@ -65,6 +65,9 @@ export function isAuthenticationKey(key: string): boolean {
  */
 const NEVER_BACKED_UP = [/^budget_undo$/];
 
+/** When the last backup was taken. Owned by the backup, and set by it. */
+export const LAST_BACKUP_KEY = 'budget_last_backup';
+
 /** The single key policy shared by export, delete and import — so the three can
  *  never disagree about what "your data" means. */
 export function isBackupOwnedKey(key: string): boolean {
@@ -161,7 +164,7 @@ const isGoal = (v: unknown): boolean => {
   );
 };
 
-const isPlanData = (v: unknown): boolean =>
+export const isPlanData = (v: unknown): boolean =>
   isPlainObject(v) &&
   Array.isArray(v.goals) && v.goals.every(isGoal) &&
   (v.notes === undefined || typeof v.notes === 'string');
@@ -179,7 +182,7 @@ const isSavingsPlan = (v: unknown): boolean =>
   typeof v.startYM === 'string' &&
   validateSavingsPlan(v as unknown as SavingsPlan).length === 0;
 
-const isCustomValues = (v: unknown): boolean =>
+export const isCustomValues = (v: unknown): boolean =>
   // isValidMoney, not just "is it finite": a local finite-only check accepted
   // −5 and values past the ceiling, the import reported success, and then
   // coerceStoredMoney turned each one into 0 on the next load — a silent loss
@@ -198,7 +201,7 @@ const isCustomValues = (v: unknown): boolean =>
  *  user has); the loader stays defensive. Both now read the allowed values from
  *  blockChart.ts. Legacy 'trend' is the one explicit exception — it is accepted
  *  and migrated to the bars it always actually drew. */
-const isCustomStructure = (v: unknown): boolean =>
+export const isCustomStructure = (v: unknown): boolean =>
   Array.isArray(v) && v.every(b =>
     isPlainObject(b)
     && (b.name === undefined || typeof b.name === 'string')
@@ -294,12 +297,18 @@ export function collectBackupData(storage: StorageLike): Record<string, string> 
 }
 
 export function buildBackup(storage: StorageLike, now = new Date()): BackupPayload {
-  return {
-    app: 'budget',
-    version: BACKUP_VERSION,
-    exportedAt: now.toISOString(),
-    data: collectBackupData(storage),
-  };
+  const exportedAt = now.toISOString();
+  const data = collectBackupData(storage);
+  // The file records ITS OWN date as the last backup.
+  //
+  // collectBackupData copies budget_last_backup exactly as it stands, and at
+  // export time that still points at the backup BEFORE this one — the new date
+  // is only written afterwards, and only if the save is confirmed. So restoring
+  // put the clock back, and a file whose previous date was over a month old
+  // popped the "time to back up" reminder on a device restored from a backup
+  // made seconds earlier (finding 17).
+  data[LAST_BACKUP_KEY] = exportedAt;
+  return { app: 'budget', version: BACKUP_VERSION, exportedAt, data };
 }
 
 /**

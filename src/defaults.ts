@@ -2,7 +2,7 @@ import type { BudgetCategory, BudgetRow, MonthData, PlanData, SavingsGoal } from
 import { safeSetItem } from './storageWrite';
 import type { Lang } from './i18n';
 import { MONTHS_SHORT } from './i18n';
-import { calculateSavingsMetrics, isRowPeriod } from './metrics';
+import { calculateSavingsMetrics, isRowPeriod, PENSION_CATEGORY_ID } from './metrics';
 import type { StorageLike } from './backup';
 import { coerceStoredMoney, isValidMoney } from './money';
 import { appStorage } from './storage';
@@ -504,8 +504,12 @@ export function cleanupHistoricGoalRows(
       const expenses = kept.length > 0
         ? month.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
         : month.expenses.filter(c => c.id !== 'sparande');
-      storage.setItem(key, JSON.stringify({ ...month, expenses }));
-      cleaned += sparande.rows.length - kept.length;
+      // safeSetItem inside the try on purpose: the catch is for a malformed
+      // blob, and it used to absorb a refused write as well, so a repair that
+      // never happened still counted itself as done (finding 19).
+      if (safeSetItem(storage, key, JSON.stringify({ ...month, expenses }))) {
+        cleaned += sparande.rows.length - kept.length;
+      }
     } catch {
       // Malformed month blob — leave it alone rather than risk data.
     }
@@ -590,23 +594,31 @@ export function makeGoalColor(index: number): string {
 }
 
 // Read savings totals for every month in a year, for the growth chart
-export function loadYearSavingsTotals(year: number, lang: Lang = 'sv'): { month: string; total: number; hasSnapshot: boolean; byCategory: Record<string, number> }[] {
+export function loadYearSavingsTotals(year: number, lang: Lang = 'sv'): { month: string; total: number; hasSnapshot: boolean; byCategory: Record<string, number>; categories: { id: string; name: string; color: string }[] }[] {
   return Array.from({ length: 12 }, (_, m) => {
     const data = loadMonthData(year, m, lang);
     const byCategory: Record<string, number> = {};
-    let total = 0;
+    const categories: { id: string; name: string; color: string }[] = [];
     for (const cat of data.savings) {
-      const sum = cat.rows.reduce((s, r) => s + r.amount, 0);
-      byCategory[cat.id] = sum;
-      total += sum;
+      byCategory[cat.id] = cat.rows.reduce((s, r) => s + r.amount, 0);
+      if (cat.id !== PENSION_CATEGORY_ID) {
+        categories.push({ id: cat.id, name: cat.name, color: cat.color });
+      }
     }
     // `hasSnapshot: false` = the month was never filled in, so callers must plot
     // a gap rather than a 0 (which draws the pot crashing to the axis).
-    // Sourced from metrics so there's exactly one definition of "recorded".
+    // Sourced from metrics so there's exactly one definition of "recorded" —
+    // and `total` now comes from the same place, because it used to sum the
+    // savings categories by hand WITH pension folded in, two lines under that
+    // very comment (finding 14). `byCategory` still carries pension, so that a
+    // caller which wants it can ask for it by name.
+    const metrics = calculateSavingsMetrics(data);
     return {
-      month: MONTHS_SHORT[lang][m], total,
-      hasSnapshot: calculateSavingsMetrics(data).hasSnapshot,
+      month: MONTHS_SHORT[lang][m],
+      total: metrics.balance,
+      hasSnapshot: metrics.hasSnapshot,
       byCategory,
+      categories,
     };
   });
 }

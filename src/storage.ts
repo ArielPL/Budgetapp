@@ -36,16 +36,45 @@ export interface StorageLike {
   removeItem(k: string): void;
 }
 
-/** The app's persistent storage. Use this instead of localStorage directly. */
+/**
+ * The app's persistent storage. Use this instead of localStorage directly.
+ *
+ * READS NEVER THROW; WRITES STILL DO. That split is deliberate.
+ *
+ * A browser with site data blocked (Safari's "block all cookies", Firefox's
+ * strictest mode) throws SecurityError on the very act of touching
+ * localStorage — not only on writing to it. Reads happen in useState
+ * initialisers, so a throw there is a throw out of React's render and the app
+ * mounts NOTHING: a blank white page with no menu to fix it from. Answering
+ * "there is nothing stored" is not a lie in that situation, it is the truth,
+ * and it degrades to the one thing the app can still honestly be — empty.
+ *
+ * Writes keep throwing because they have somewhere to report to. safeSetItem
+ * turns the throw into a false, and the caller shows the "could not save"
+ * banner. Swallowing it here would cost the app the only signal it has that
+ * the user's edit did not land.
+ */
 export const appStorage: StorageLike = {
   get length() {
-    return globalThis.localStorage.length;
+    try {
+      return globalThis.localStorage.length;
+    } catch {
+      return 0;
+    }
   },
   key(i: number) {
-    return globalThis.localStorage.key(i);
+    try {
+      return globalThis.localStorage.key(i);
+    } catch {
+      return null;
+    }
   },
   getItem(k: string) {
-    return globalThis.localStorage.getItem(k);
+    try {
+      return globalThis.localStorage.getItem(k);
+    } catch {
+      return null;
+    }
   },
   setItem(k: string, v: string) {
     globalThis.localStorage.setItem(k, v);

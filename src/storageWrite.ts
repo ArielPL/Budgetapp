@@ -14,9 +14,13 @@ export interface WritableStorage {
   setItem(key: string, value: string): void;
 }
 
-export interface TransactionalStorage extends WritableStorage {
-  getItem(key: string): string | null;
+/** The sliver a removal needs. */
+export interface RemovableStorage {
   removeItem(key: string): void;
+}
+
+export interface TransactionalStorage extends WritableStorage, RemovableStorage {
+  getItem(key: string): string | null;
 }
 
 export interface StorageChange {
@@ -37,6 +41,23 @@ export interface StorageChange {
 export function safeSetItem(storage: WritableStorage, key: string, value: string): boolean {
   try {
     storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Remove, and say whether it worked.
+ *
+ * The mirror of safeSetItem, and needed for the same reason: a browser with
+ * site data blocked throws SecurityError on removal too, and several settings
+ * are stored as "the key is absent" rather than as a value. A removal that
+ * throws out of an effect takes the whole app down with it.
+ */
+export function safeRemoveItem(storage: RemovableStorage, key: string): boolean {
+  try {
+    storage.removeItem(key);
     return true;
   } catch {
     return false;

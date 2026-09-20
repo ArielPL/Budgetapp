@@ -7,6 +7,7 @@ import type { BudgetCategory } from '../types';
 import { shownName } from '../defaults';
 import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
 import { chartColors } from '../themes';
+import { useIsPhone } from '../useIsPhone';
 import { categoryTotal } from '../metrics';
 import type { ExpenseChartStyle } from '../blockChart';
 
@@ -68,6 +69,9 @@ interface ExpenseChartProps {
 // AND by Custom-mode sections (which pass their own style + height).
 export const ExpenseChart = ({ data, totalExpenses, style, height, money, currency, totalLabel }: ExpenseChartProps) => {
   const { lang } = useLang();
+  // Subscribed, not sampled: reading window.innerWidth once in the render body
+  // kept axis labels truncated after a rotation into landscape (finding 20).
+  const narrow = useIsPhone();
   const isLight = document.documentElement.dataset.theme === 'light';
   const { text: tickColor, grid: gridColor } = chartColors();
   const tickColorStrong = isLight ? '#5d5972' : '#94a3b8';
@@ -131,7 +135,6 @@ export const ExpenseChart = ({ data, totalExpenses, style, height, money, curren
   if (style === 'bars') {
     // Narrow screens: truncate long category names ("Mat & Dryck…") on the
     // axis so bars keep room — the tooltip still shows the full name.
-    const narrow = typeof window !== 'undefined' && window.innerWidth <= 640;
     const tickLabel = (v: string) =>
       narrow && v.length > 10 ? `${v.slice(0, 9)}…` : v;
     return (

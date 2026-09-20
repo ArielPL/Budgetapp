@@ -23,7 +23,7 @@ const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
 import { LATEST_VERSION } from './changelog';
-import { adoptExternalMonth } from './crossTab';
+import { adoptExternalMonth, adoptExternalValue } from './crossTab';
 import { UndoBar } from './components/UndoBar';
 import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
@@ -53,11 +53,11 @@ import {
   loadStartDay, isValidStartDay, PERIOD_START_KEY,
   loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
 } from './periodLabel';
-import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText } from './backup';
+import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
 import { useModalFocus } from './useModalFocus';
 import './index.css';
 import { appStorage } from './storage';
-import { safeSetItem, applyStorageChanges, type StorageChange } from './storageWrite';
+import { safeSetItem, safeRemoveItem, applyStorageChanges, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, applyRefile } from './actuals';
 import { hasRestorableUserData } from './userData';
 
@@ -157,7 +157,16 @@ function App() {
       // ever recorded it. Refiling rewrites every month the entries move
       // between, so the capture covers the buckets AND the files being emptied
       // — exactly the keys applyRefile is about to write.
-      const touched = [...plan.buckets.keys(), ...plan.emptied];
+      // The SETTING that moved them belongs in the capture too. Without it,
+      // undo put the entries back and left the new period rule in force, so
+      // stored filing and the rule disagreed — and the next Follow-up edit
+      // wrote only the months in view, dropping every entry whose budget month
+      // had fallen outside them (finding 3). Both keys are captured whichever
+      // caller we came from: restoring the one that never changed is a no-op.
+      const touched = [
+        ...plan.buckets.keys(), ...plan.emptied,
+        PERIOD_START_KEY, PERIOD_LOCKS_KEY,
+      ];
       const before = captureKeys(appStorage, touched);
       if (!applyRefile(appStorage, plan)) { setSaveFailed(true); return false; }
       recordUndo({
@@ -178,8 +187,10 @@ function App() {
     else delete next[lockKey(y, m)];
     if (!applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`)) return;
     setPeriodLocks(next);
-    if (Object.keys(next).length === 0) appStorage.removeItem(PERIOD_LOCKS_KEY);
-    else if (!safeSetItem(appStorage, PERIOD_LOCKS_KEY, JSON.stringify(next))) setSaveFailed(true);
+    const ok = Object.keys(next).length === 0
+      ? safeRemoveItem(appStorage, PERIOD_LOCKS_KEY)
+      : safeSetItem(appStorage, PERIOD_LOCKS_KEY, JSON.stringify(next));
+    if (!ok) setSaveFailed(true);
   };
 
   const changeStartDay = (day: number | null) => {
@@ -189,8 +200,13 @@ function App() {
     // moved, so it is counted out loud first and never done silently.
     if (!applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day))) return;
     setPeriodStartDay(day);
-    if (day === null) appStorage.removeItem(PERIOD_START_KEY);
-    else appStorage.setItem(PERIOD_START_KEY, String(day));
+    // Reported like every other write: the entries have already been moved to
+    // match this setting, so a setting that did not land leaves the two
+    // disagreeing — which is exactly the state finding 3 showed is dangerous.
+    const ok = day === null
+      ? safeRemoveItem(appStorage, PERIOD_START_KEY)
+      : safeSetItem(appStorage, PERIOD_START_KEY, String(day));
+    if (!ok) setSaveFailed(true);
   };
 
   // Tap-to-open month picker (the 12-month strip)
@@ -210,8 +226,10 @@ function App() {
   // explicitly chooses "start from empty" (persisted so it never nags again).
   const [onboardBudgetDone, setOnboardBudgetDone] = useState(() => !!appStorage.getItem('budget_onboard_budget'));
   const [onboardSavingsDone, setOnboardSavingsDone] = useState(() => !!appStorage.getItem('budget_onboard_savings'));
-  const dismissBudgetHero = () => { appStorage.setItem('budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
-  const dismissSavingsHero = () => { appStorage.setItem('budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
+  // A refused flag write is not worth a banner: the only cost is that the hero
+  // appears again next launch. The dismissal itself still takes effect now.
+  const dismissBudgetHero = () => { safeSetItem(appStorage, 'budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
+  const dismissSavingsHero = () => { safeSetItem(appStorage, 'budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
 
   // First-run welcome/introduction — shown once, before anything else, until the
   // user taps "Get started" (persisted so it never appears again on this device).
@@ -228,12 +246,17 @@ function App() {
   const [introOpen, setIntroOpen] = useState(() => {
     if (appStorage.getItem('budget_welcome_seen')) return false;
     if (hasRestorableUserData(appStorage)) {
-      appStorage.setItem('budget_welcome_seen', '1');
+      // safeSetItem, not a raw write: this runs DURING RENDER, so a throw here
+      // is a throw out of React and the app mounts nothing at all — a blank
+      // page with no menu to recover from. There is also nowhere to report to
+      // from inside a useState initialiser, and nothing needs reporting: the
+      // worst a refused seed costs is meeting this intro again next launch.
+      safeSetItem(appStorage, 'budget_welcome_seen', '1');
       return false;
     }
     return true;
   });
-  const dismissIntro = () => { appStorage.setItem('budget_welcome_seen', '1'); setIntroOpen(false); };
+  const dismissIntro = () => { safeSetItem(appStorage, 'budget_welcome_seen', '1'); setIntroOpen(false); };
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => setWelcomeOpen(false);
@@ -250,7 +273,8 @@ function App() {
     const seen = appStorage.getItem('budget_changelog_seen');
     if (seen) return seen;
     if (!hasRestorableUserData(appStorage)) {
-      appStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+      // During render — see the note on budget_welcome_seen above.
+      safeSetItem(appStorage, 'budget_changelog_seen', LATEST_VERSION);
       return LATEST_VERSION;
     }
     return null;
@@ -259,7 +283,7 @@ function App() {
   const openWhatsNew = () => {
     setMenuOpen(false);
     setWhatsNewOpen(true);
-    appStorage.setItem('budget_changelog_seen', LATEST_VERSION);
+    safeSetItem(appStorage, 'budget_changelog_seen', LATEST_VERSION);
     setChangelogSeen(LATEST_VERSION);
   };
 
@@ -280,13 +304,14 @@ function App() {
   useEffect(() => {
     const state = { palette: themePalette, mode: themeMode, custom: themeCustom };
     applyVars(resolveVars(state), themeMode);
-    appStorage.setItem(LS_PALETTE, themePalette);
-    appStorage.setItem(LS_MODE, themeMode);
-    if (themePalette === 'custom') {
-      appStorage.setItem(LS_CUSTOM, JSON.stringify(themeCustom));
-    } else {
-      appStorage.removeItem(LS_CUSTOM);
-    }
+    let ok = safeSetItem(appStorage, LS_PALETTE, themePalette);
+    ok = safeSetItem(appStorage, LS_MODE, themeMode) && ok;
+    // Stored for any family, not only the legacy 'custom' palette — the whole
+    // point of the fix is that Ocean can carry an accent of its own.
+    ok = (Object.keys(themeCustom).length > 0
+      ? safeSetItem(appStorage, LS_CUSTOM, JSON.stringify(themeCustom))
+      : safeRemoveItem(appStorage, LS_CUSTOM)) && ok;
+    if (!ok) setSaveFailed(true);
   }, [themePalette, themeMode, themeCustom]);
 
   // Selecting a palette family replaces the whole palette and clears overrides
@@ -305,20 +330,22 @@ function App() {
   }, []);
 
   // Changing the accent updates only --accent-brand (+ -strong), keeping the
-  // rest of the chosen palette. This flips to 'custom' and stores the override.
+  // rest of the chosen palette — and now it really does. It used to also flip
+  // the palette to 'custom', whose base was hard-wired to Sorbet, so one tap on
+  // an accent swatch replaced every other colour of Ocean, Forest or Sunset
+  // with Sorbet's and left no way back (finding 6). The family stays; the
+  // override sits on top of it.
   const setAccent = useCallback((value: string) => {
     setThemeCustom((prev) => ({
       ...prev,
       '--accent-brand': value,
       '--accent-brand-strong': value,
     }));
-    setThemePalette((p) => (p === 'custom' ? p : 'custom'));
   }, []);
 
-  // Overriding any individual color flips to 'custom' and stores the var.
+  // Overriding any individual colour layers it over the chosen family too.
   const overrideColor = useCallback((cssVar: string, value: string) => {
     setThemeCustom((prev) => ({ ...prev, [cssVar]: value }));
-    setThemePalette((p) => (p === 'custom' ? p : 'custom'));
   }, []);
 
   // Reset: clear all overrides and re-apply the active palette/mode cleanly.
@@ -334,17 +361,23 @@ function App() {
 
   // ── Language ──────────────────────────────────────────────────────
   useEffect(() => {
-    appStorage.setItem('budget_lang', lang);
-  }, [lang]);
+    if (!safeSetItem(appStorage, 'budget_lang', lang)) setSaveFailed(true);
+    // The document's language has to follow the interface's, or a screen reader
+    // pronounces an English or Spanish UI with Swedish rules — and since the
+    // app opens in the DEVICE's language, that is not a rare case.
+    document.documentElement.lang = lang;
+    // The tab title too — it was Swedish on every device, whatever the UI said.
+    document.title = t.appTitle;
+  }, [lang, t]);
 
   // ── Currency (symbol/format only — never converts amounts) ─────────
   useEffect(() => {
-    appStorage.setItem('budget_currency', currency);
+    if (!safeSetItem(appStorage, 'budget_currency', currency)) setSaveFailed(true);
   }, [currency]);
 
   // ── Budget tab layout (classic / combined) ─────────────────────────
   useEffect(() => {
-    appStorage.setItem('budget_layout', layout);
+    if (!safeSetItem(appStorage, 'budget_layout', layout)) setSaveFailed(true);
   }, [layout]);
 
   // ── Sticky-header height → CSS var ────────────────────────────────
@@ -460,7 +493,28 @@ function App() {
     return () => window.removeEventListener('storage', onStorage);
   }, [year, month]);
 
-  useEffect(() => { if (!savePlanData(planData)) setSaveFailed(true); }, [planData]);
+  // The plan gets the same cross-tab treatment as the month (finding 11): it is
+  // read once at mount, held in state, and written back WHOLE on every change —
+  // the exact shape that made two tabs overwrite each other. The baseline ref
+  // is what stops an adopted plan being written straight back out as an echo.
+  const lastPlanRaw = useRef<string | null>(null);
+  useEffect(() => {
+    const raw = JSON.stringify(planData);
+    if (raw === lastPlanRaw.current) return;
+    if (!savePlanData(planData)) setSaveFailed(true);
+    lastPlanRaw.current = raw;
+  }, [planData]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      const adopted = adoptExternalValue<PlanData>(e, 'budget_plan', lastPlanRaw.current, isPlanData);
+      if (!adopted) return;
+      lastPlanRaw.current = adopted.raw;
+      setPlanData(adopted.data);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // ── Close utilities menu on outside click ────────────────────────
   useEffect(() => {
@@ -487,7 +541,7 @@ function App() {
   /** The date in the menu is a PROMISE that a file exists. Only a confirmed
    *  save may write it — see the note on exportData. */
   const markBackupDone = () => {
-    appStorage.setItem('budget_last_backup', new Date().toISOString());
+    if (!safeSetItem(appStorage, 'budget_last_backup', new Date().toISOString())) setSaveFailed(true);
     setLastBackup(currentBackupAge());
     setShowBackupReminder(false);
   };
@@ -559,7 +613,7 @@ function App() {
   };
 
   const dismissBackupReminder = () => {
-    appStorage.setItem('budget_backup_dismissed', new Date().toISOString());
+    safeSetItem(appStorage, 'budget_backup_dismissed', new Date().toISOString());
     setShowBackupReminder(false);
   };
 
@@ -628,10 +682,17 @@ function App() {
     location.reload();
   };
 
+  // The handle is kept so a second message cancels the first one's timer.
+  // Without it, two confirmations less than 2.2 s apart left the older timer
+  // running and it wiped the newer message a moment after it appeared
+  // (finding 16). CustomV3 already did this correctly.
+  const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showMsg = (msg: string) => {
+    if (msgTimer.current !== null) clearTimeout(msgTimer.current);
     setCopyMsg(msg);
-    setTimeout(() => setCopyMsg(''), 2200);
+    msgTimer.current = setTimeout(() => { setCopyMsg(''); msgTimer.current = null; }, 2200);
   };
+  useEffect(() => () => { if (msgTimer.current !== null) clearTimeout(msgTimer.current); }, []);
 
   // Switching tabs always opens the new tab at the top. Without this, a long
   // scroll in one tab (e.g. Year) leaves the next tab scrolled past its header
@@ -869,7 +930,21 @@ function App() {
   const setExpenseCategory = (updatedCat: BudgetCategory) => {
     // Same rule as income: fewer rows than before means one was removed.
     const previous = data.expenses.find(c => c.id === updatedCat.id);
-    if (previous && updatedCat.rows.length < previous.rows.length) recordMonthUndo('deleteRow');
+    if (previous && updatedCat.rows.length < previous.rows.length) {
+      // Deleting a sparande row in an open month also DROPS the goal's link,
+      // which writes budget_plan a few lines below. Capturing only the month
+      // gave the row back with the goal still detached from it: editing the
+      // row no longer moved the goal, and renaming the goal no longer renamed
+      // the row (finding 10). Captured only when an unlink will really happen.
+      const willUnlink =
+        updatedCat.id === 'sparande' &&
+        !isHistoricMonth(year, month) &&
+        planData.goals.some(g =>
+          !!g.budgetRowId
+          && previous.rows.some(r => r.id === g.budgetRowId)
+          && !updatedCat.rows.some(r => r.id === g.budgetRowId));
+      recordMonthUndo('deleteRow', willUnlink ? ['budget_plan'] : []);
+    }
     // When "sparande" changes, sync both amount AND label back to the linked goal
     if (updatedCat.id === 'sparande') {
       const oldSparande = data.expenses.find(c => c.id === 'sparande');
@@ -990,13 +1065,16 @@ function App() {
    * same way: setData, then the save effect on the next render. So the capture
    * has to happen BEFORE setData, while the old month is still on disk.
    */
-  const recordMonthUndo = (action: UndoAction) => {
+  /** `also` covers keys an action writes BESIDES the month itself. Passed only
+   *  when the action really touches them: over-capturing would let an undo
+   *  quietly revert an unrelated change made in between. */
+  const recordMonthUndo = (action: UndoAction, also: string[] = []) => {
     recordUndo({
       at: new Date().toISOString(),
       action,
       year,
       month,
-      changes: captureKeys(appStorage, [storageKey(year, month)]),
+      changes: captureKeys(appStorage, [storageKey(year, month), ...also]),
     });
   };
 
@@ -1170,9 +1248,15 @@ function App() {
     // save effect doesn't race this write.)
     if (deletedRowIds.size > 0) {
       const currentKey = storageKey(year, month);
+      let sweepOk = true;
       for (let i = appStorage.length - 1; i >= 0; i--) {
         const key = appStorage.key(i);
         if (!key || !/^budget_\d{4}_\d+$/.test(key) || key === currentKey) continue;
+        // The write is computed inside the try and performed OUTSIDE it. The
+        // catch is for a malformed month blob, which is a reason to skip the
+        // month; it used to swallow a refused WRITE too, so a full quota left
+        // orphaned rows behind in silence (finding 19).
+        let write: string | null = null;
         try {
           const m = JSON.parse(appStorage.getItem(key)!) as MonthData;
           const sp = m.expenses?.find(c => c.id === 'sparande');
@@ -1182,11 +1266,13 @@ function App() {
           const expenses = kept.length > 0
             ? m.expenses.map(c => (c.id === 'sparande' ? { ...c, rows: kept } : c))
             : m.expenses.filter(c => c.id !== 'sparande');
-          appStorage.setItem(key, JSON.stringify({ ...m, expenses }));
+          write = JSON.stringify({ ...m, expenses });
         } catch {
           // Malformed month blob — leave it untouched rather than risk data.
         }
+        if (write !== null && !safeSetItem(appStorage, key, write)) sweepOk = false;
       }
+      if (!sweepOk) setSaveFailed(true);
     }
 
     setPlanData(newPlan);

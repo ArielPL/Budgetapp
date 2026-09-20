@@ -78,6 +78,14 @@ export const YearTab = ({ year }: Props) => {
     { income: 0, expenses: 0, remaining: 0 }
   );
 
+  // Whether the year holds a budget at all. Each month cell already renders
+  // "–" for a month never filled in, but the total row printed money(0) raw
+  // over a reducer seeded at zero — so a year where only savings balances were
+  // recorded showed twelve dashes above a Totalt row reading "0 kr, 0 kr,
+  // +0 kr" (finding 9). Absence is not zero, in the summary as well as the
+  // rows it summarises.
+  const anyBudget = rows.some(r => r.hasBudget);
+
   // Savings is a running BALANCE, so the year's figure is NOT the sum of the
   // months (that would add the same money twelve times — the old bug). It's how
   // much the balance actually grew: where it ended, minus what carried in from
@@ -207,12 +215,14 @@ export const YearTab = ({ year }: Props) => {
             {/* Full-year total card — the mobile counterpart of the table footer. */}
             <div className="year-card year-card-total">
               <div className="year-card-month">{t.yearTotal}</div>
-              <div className="year-card-row"><span>{t.colIncome}</span><span>{money(totals.income)}</span></div>
-              <div className="year-card-row"><span>{t.colExpenses}</span><span>{money(totals.expenses)}</span></div>
+              <div className="year-card-row"><span>{t.colIncome}</span><span>{budgetCell(totals.income, anyBudget)}</span></div>
+              <div className="year-card-row"><span>{t.colExpenses}</span><span>{budgetCell(totals.expenses, anyBudget)}</span></div>
               <div className="year-card-row"><span>{t.colSavedDuringYear}</span><span style={{ color: SAVINGS_COLOR }}>{yearCell}</span></div>
               <div className="year-card-row year-card-remaining">
                 <span>{t.colRemaining}</span>
-                <span style={{ color: remColor(totals.remaining) }}>{totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}</span>
+                <span style={{ color: anyBudget ? remColor(totals.remaining) : undefined }}>
+                  {budgetCell(totals.remaining, anyBudget, true)}
+                </span>
               </div>
             </div>
           </div>
@@ -247,14 +257,14 @@ export const YearTab = ({ year }: Props) => {
                       above are balances, this is the year's change — so the
                       cell carries its own VISIBLE label, not just a title. */}
                   <td>{t.yearTotal}</td>
-                  <td className="num">{money(totals.income)}</td>
-                  <td className="num">{money(totals.expenses)}</td>
+                  <td className="num">{budgetCell(totals.income, anyBudget)}</td>
+                  <td className="num">{budgetCell(totals.expenses, anyBudget)}</td>
                   <td className="num" style={{ color: SAVINGS_COLOR }}>
                     <span className="year-total-measure">{t.colSavedDuringYear}</span>
                     {yearCell}
                   </td>
-                  <td className="num" style={{ color: remColor(totals.remaining) }}>
-                    {totals.remaining > 0 ? '+' : ''}{money(totals.remaining)}
+                  <td className="num" style={{ color: anyBudget ? remColor(totals.remaining) : undefined }}>
+                    {budgetCell(totals.remaining, anyBudget, true)}
                   </td>
                 </tr>
               </tfoot>

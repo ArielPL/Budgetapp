@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { appStorage } from '../storage';
+import { useModalFocus } from '../useModalFocus';
 import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
   decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
@@ -96,6 +97,21 @@ export const CsvImport = ({
   onCreateCategories, onRecordUndo,
 }: Props) => {
   const { t, lang, money } = useLang();
+
+  // This dialog declared role="dialog" aria-modal="true" and then behaved like
+  // nothing of the sort: no focus trap, no Escape, nothing inert behind it.
+  // Focus stayed on the "Import statement" button under the backdrop, Tab
+  // walked the page behind and straight back out, and pressing Enter on a
+  // button back there opened a SECOND dialog on top of this one — two stacked
+  // dialogs, neither aware of the other (finding 8). Review 2026-09-18 F7
+  // fixed exactly this for Intro; the import was missed.
+  //
+  // `true`, not `open`: the component only mounts while it is open. The
+  // tabIndex={-1} below is what tells the hook to focus the panel itself
+  // rather than a control partway down a multi-step form.
+  const panel = useRef<HTMLDivElement>(null);
+  useModalFocus(panel, true, onClose);
+
   const [step, setStep] = useState<Step>('file');
   const [error, setError] = useState<string | null>(null);
   const [header, setHeader] = useState<string[]>([]);
@@ -384,7 +400,7 @@ export const CsvImport = ({
   return createPortal(
     <>
       <div className="theme-backdrop" onClick={onClose} />
-      <div className="theme-panel csv-panel" role="dialog" aria-modal="true" aria-label={t.csvTitle} tabIndex={-1}>
+      <div ref={panel} className="theme-panel csv-panel" role="dialog" aria-modal="true" aria-label={t.csvTitle} tabIndex={-1}>
         <div className="csv-head">
           <h2 className="csv-title">{t.csvTitle}</h2>
           <button className="utils-menu-close-btn" onClick={onClose} aria-label={t.themeClose}>✕</button>

@@ -310,18 +310,32 @@ export interface ThemeState {
   custom: ThemeVars;
 }
 
-/** The base var map for a (palette, mode); custom uses Sorbet of the mode. */
-export function baseVars(palette: PaletteId, mode: Mode): ThemeVars {
-  if (palette === 'custom') return { ...PALETTES.sorbet[mode] };
-  return { ...PALETTES[palette][mode] };
+/**
+ * The family a palette id draws its base colours from.
+ *
+ * 'custom' is a LEGACY value: it used to be written whenever the user touched
+ * an accent, and it means Sorbet because that is what those devices have been
+ * rendering. Nothing creates it any more — overrides now sit on top of the
+ * family the user actually chose (finding 6) — but stored themes keep working.
+ */
+function baseFamily(palette: PaletteId): Exclude<PaletteId, 'custom'> {
+  return palette === 'custom' ? 'sorbet' : palette;
 }
 
-/** Full var map: base palette/mode with any custom overrides layered on top. */
+/** The base var map for a (palette, mode), before any overrides. */
+export function baseVars(palette: PaletteId, mode: Mode): ThemeVars {
+  return { ...PALETTES[baseFamily(palette)][mode] };
+}
+
+/**
+ * Full var map: the chosen family, with any custom overrides layered on top.
+ *
+ * This used to ignore the family entirely whenever overrides existed and start
+ * from Sorbet — so picking an accent swatch on Ocean silently replaced all 26
+ * variables with Sorbet's, in one tap, with no way back.
+ */
 export function resolveVars(state: ThemeState): ThemeVars {
-  if (state.palette === 'custom') {
-    return { ...PALETTES.sorbet[state.mode], ...state.custom };
-  }
-  return { ...PALETTES[state.palette][state.mode] };
+  return { ...PALETTES[baseFamily(state.palette)][state.mode], ...state.custom };
 }
 
 /** Apply a full var map inline on :root, and set data-theme for chart tints. */
@@ -344,19 +358,40 @@ export function applyVars(vars: ThemeVars, mode: Mode): void {
  *   v0 budget_theme (light/dark toggle):
  *     light→sorbet/light, dark/absent→sorbet/dark.
  */
+/**
+ * A stored override map, or nothing.
+ *
+ * `JSON.parse('null')` returns null WITHOUT throwing, so a catch around the
+ * parse never fired and `custom` became null. Spreading null is legal, so the
+ * theme still applied — and then App's `themeCustom['--accent-brand']` threw
+ * during render, which meant a blank page on every load with no menu left to
+ * repair it from. A restored backup could carry exactly that, because the
+ * theme keys fall through backup validation as "any string is fine"
+ * (finding 13). Values are checked too: a non-string would reach
+ * setProperty and is not a colour.
+ */
+function asThemeVars(parsed: unknown): ThemeVars {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
+  const out: ThemeVars = {};
+  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+    if (k.startsWith('--') && typeof v === 'string') out[k] = v;
+  }
+  return out;
+}
+
 export function loadThemeState(): ThemeState {
   // Current scheme.
   const palette = appStorage.getItem(LS_PALETTE);
   if (palette && VALID_PALETTES.includes(palette as PaletteId)) {
     const mode: Mode = appStorage.getItem(LS_MODE) === 'light' ? 'light' : 'dark';
+    // Read for EVERY palette, not only 'custom': an accent now sits on top of
+    // the family the user chose rather than replacing it.
     let custom: ThemeVars = {};
-    if (palette === 'custom') {
-      try {
-        const raw = appStorage.getItem(LS_CUSTOM);
-        if (raw) custom = JSON.parse(raw) as ThemeVars;
-      } catch {
-        custom = {};
-      }
+    try {
+      const raw = appStorage.getItem(LS_CUSTOM);
+      if (raw) custom = asThemeVars(JSON.parse(raw));
+    } catch {
+      custom = {};
     }
     return { palette: palette as PaletteId, mode, custom };
   }
