@@ -31,9 +31,20 @@ interface Props {
    * 1 000 kr for the same account at the same time.
    */
   amountKind?: 'flow' | 'balance';
+  /** Show a 0 as "0 kr" rather than the "–" that means "no answer".
+   *
+   * For a flow — an expense or an income — 0 really does mean nothing has been
+   *  budgeted, so the dash is right. A BALANCE of 0 is a different statement:
+   *  the account is empty, and the user typed that. Showing the same dash for
+   *  both left them no way to tell whether their 0 had been saved, while the
+   *  summary card above reported a recorded balance of 0 kr and a real negative
+   *  "saved this month". Gated on the month's balances actually being recorded,
+   *  so a template's untouched rows still say "–" rather than claiming a zero
+   *  the user never entered. */
+  showZero?: boolean;
 }
 
-export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow' }: Props) => {
+export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow', showZero }: Props) => {
   const { t, lang, money, currency } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -188,6 +199,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                   onChange={val => updateAmount(row.id, val)}
                   color={category.color}
                   label={shownName(row, lang)}
+                  showZero={showZero}
                 />
                 {/* The slot is always here, empty or not, so every amount in
                     the category ends at the same right edge — otherwise rows

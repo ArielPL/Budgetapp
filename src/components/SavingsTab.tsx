@@ -85,11 +85,15 @@ export const SavingsSummary = ({ categories, year, currentMonth, snapshotRecorde
 };
 
 // The editable savings category list + "add category" button.
-export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDeleteCategory, starterSlot }: {
+export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDeleteCategory, snapshotRecorded, starterSlot }: {
   categories: BudgetCategory[];
   onChange: (cat: BudgetCategory, amountEdited?: boolean) => void;
   onAddCategory: () => void;
   onDeleteCategory: (id: string) => void;
+  /** Whether this month's balances have been recorded at all. Decides whether a
+   *  0 reads as "the account is empty" or as "no answer yet" — see showZero on
+   *  ExpenseCategory. */
+  snapshotRecorded?: boolean;
   starterSlot?: ReactNode;
 }) => {
   const { t } = useLang();
@@ -103,6 +107,7 @@ export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDel
           onDelete={onDeleteCategory}
           protectedNote={t.protectedSavingsCategory}
           amountKind="balance"
+          showZero={snapshotRecorded === true}
         />
       ))}
       <button className="add-category-btn" onClick={onAddCategory}>
@@ -127,6 +132,7 @@ export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCatego
             onChange={onChange}
             onAddCategory={onAddCategory}
             onDeleteCategory={onDeleteCategory}
+            snapshotRecorded={snapshotRecorded}
             starterSlot={starterSlot}
           />
         </div>

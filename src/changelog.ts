@@ -16,6 +16,32 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.3',
+    date: '2026-09-20',
+    title: {
+      sv: 'Tre som var smakfrågor',
+      en: 'Three that were judgment calls',
+      es: 'Tres que eran cuestión de criterio',
+    },
+    items: {
+      sv: [
+        'Ett sparsaldo du satt till noll visar nu "0 kr". Förut visade det samma streck som betyder "inte ifyllt", så du kunde inte se om din nolla hade sparats — medan kortet ovanför samtidigt räknade den som ett registrerat saldo. Ett tomt konto är ett svar, inte frånvaron av ett. Rader i en mall som du aldrig rört visar fortfarande streck, för där finns verkligen inget svar än',
+        '"Kvar att leva på" räknar mot din löneperiod, inte mot kalendermånaden. Har du perioden från den 25:e är februari inte 28 dagar utan 33 — lönen kommer den 23:e när den 25:e är en söndag. Appen delade ändå alltid med kalendermånaden, så takten per dag och per vecka var som mest fel i den månad då det märks tydligast',
+        'Byter du namn på ett sparmål följer den kopplade budgetraden med i alla månader. Döpte du om "Resa" till "Japan 2027" i september stod augusti kvar med "Resa" — kopplingen höll, men namnen sa emot varandra så länge historiken fanns kvar',
+      ],
+      en: [
+        'A savings balance you set to zero now reads "0 kr". It used to show the same dash that means "not filled in", so you could not tell whether your zero had been saved — while the card above it was counting it as a recorded balance. An empty account is an answer, not the absence of one. Rows from a template you never touched still show a dash, because there really is no answer there yet',
+        '"Left to live on" divides by your pay period, not by the calendar month. With a period starting on the 25th, February is not 28 days but 33 — pay arrives on the 23rd when the 25th is a Sunday. The app divided by the calendar month regardless, so the per-day and per-week pace was furthest off in the month where it shows most',
+        'Renaming a savings goal renames its linked budget row in every month. Renaming "Resa" to "Japan 2027" in September left August still reading "Resa" — the link held, but the two names contradicted each other for as long as the history lasted',
+      ],
+      es: [
+        'Un saldo de ahorro que pones a cero ahora muestra "0 kr". Antes mostraba el mismo guion que significa "sin rellenar", así que no podías saber si tu cero se había guardado — mientras la tarjeta de arriba sí lo contaba como saldo registrado. Una cuenta vacía es una respuesta, no la ausencia de una. Las filas de una plantilla que nunca tocaste siguen mostrando guion, porque ahí realmente no hay respuesta todavía',
+        '"Queda para vivir" divide por tu periodo de cobro, no por el mes natural. Con un periodo que empieza el día 25, febrero no son 28 días sino 33 — la nómina llega el 23 cuando el 25 cae en domingo. La app dividía igualmente por el mes natural, así que el ritmo diario y semanal fallaba más justo en el mes donde más se nota',
+        'Cambiar el nombre de una meta de ahorro renombra su fila de presupuesto vinculada en todos los meses. Renombrar "Resa" a "Japan 2027" en septiembre dejaba agosto con "Resa" — el vínculo aguantaba, pero los dos nombres se contradecían mientras durase el historial',
+      ],
+    },
+  },
+  {
     version: '1.12.2',
     date: '2026-09-20',
     title: {

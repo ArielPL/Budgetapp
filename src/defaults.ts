@@ -376,6 +376,10 @@ export function storageKey(year: number, month: number): string {
   return `budget_${year}_${month}`;
 }
 
+/** The shape storageKey produces — the one pattern every sweep matches on, so
+ *  none of them can disagree about what counts as a stored month. */
+const MONTH_KEY_RE = /^budget_(\d{4})_(\d{1,2})$/;
+
 /**
  * Is this month already over? A finished month is HISTORY: the goal↔budget
  * backfill must never reach into it and add rows the user never budgeted for.
@@ -487,7 +491,7 @@ export function cleanupHistoricGoalRows(
   }
 
   for (const key of keys) {
-    const match = /^budget_(\d{4})_(\d{1,2})$/.exec(key);
+    const match = MONTH_KEY_RE.exec(key);
     if (!match) continue;
     const year = Number(match[1]);
     const monthIndex = Number(match[2]);
@@ -515,6 +519,70 @@ export function cleanupHistoricGoalRows(
     }
   }
   return cleaned;
+}
+
+/**
+ * Apply a goal's deletion or rename to every stored month except `skipKey`.
+ *
+ * The month-load effect backfills a goal's linked row into EVERY month the
+ * user visits, so a change to the goal has to reach all of them or the months
+ * drift apart:
+ *
+ *   · DELETING a goal must sweep its row out, or each month keeps an orphaned
+ *     0 kr row forever. Rows holding real money are budget history and stay —
+ *     the same conservation rule cleanupHistoricGoalRows uses.
+ *   · RENAMING one must relabel its row. This used to happen only in the month
+ *     on screen, so renaming "Resa" to "Japan 2027" in September left August
+ *     still reading "Resa": the link held while the two names disagreed for as
+ *     long as the history lasted.
+ *
+ * Returns false if any write was refused, so the caller can tell the user.
+ * Pure but for the injected storage, which is what makes it testable without
+ * driving the whole app.
+ */
+export function sweepGoalRows(
+  storage: StorageLike,
+  deletedRowIds: ReadonlySet<string>,
+  renamedRows: ReadonlyMap<string, string>,
+  skipKey?: string,
+): boolean {
+  if (deletedRowIds.size === 0 && renamedRows.size === 0) return true;
+  let ok = true;
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (!key || !MONTH_KEY_RE.test(key) || key === skipKey) continue;
+    // The write is computed inside the try and performed OUTSIDE it. The catch
+    // is for a malformed month blob, which is a reason to skip the month; it
+    // must not also absorb a refused write, or a full quota would leave the
+    // months half-swept in silence.
+    let write: string | null = null;
+    try {
+      const raw = storage.getItem(key);
+      if (raw === null) continue;
+      const month = JSON.parse(raw) as MonthData;
+      const sparande = month.expenses?.find(c => c.id === 'sparande');
+      if (!sparande) continue;
+      const kept = sparande.rows.filter(r => !(deletedRowIds.has(r.id) && (r.amount || 0) === 0));
+      const removedAny = kept.length !== sparande.rows.length;
+      let renamedAny = false;
+      const rows = kept.map(r => {
+        const label = renamedRows.get(r.id);
+        if (label === undefined || r.label === label) return r;
+        renamedAny = true;
+        return { ...r, label };
+      });
+      if (!removedAny && !renamedAny) continue;
+      // A sparande category left with nothing is just clutter — drop it too.
+      const expenses = rows.length > 0
+        ? month.expenses.map(c => (c.id === 'sparande' ? { ...c, rows } : c))
+        : month.expenses.filter(c => c.id !== 'sparande');
+      write = JSON.stringify({ ...month, expenses });
+    } catch {
+      // Malformed month blob — leave it untouched rather than risk data.
+    }
+    if (write !== null && !safeSetItem(storage, key, write)) ok = false;
+  }
+  return ok;
 }
 
 /** Marks the historic-goal-row repair as done. Versioned in the name so a

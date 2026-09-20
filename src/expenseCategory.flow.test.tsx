@@ -149,3 +149,53 @@ describe('Deleting a category asks first', () => {
     vi.restoreAllMocks();
   });
 });
+
+// ── A recorded zero is an answer ───────────────────────────────────────────
+//
+// Buggy sweep 2026-09-19. "–" is the app's mark for "no answer", and a savings
+// row the user had deliberately zeroed showed exactly that — while the summary
+// card above it correctly reported a recorded balance of 0 kr and a real
+// negative "saved this month". There was no way to tell whether the 0 had been
+// saved. For a FLOW a 0 really does mean nothing is budgeted, so the dash is
+// right there; a BALANCE of 0 means the account is empty, which is a fact.
+
+const amountText = () => document.querySelector('.amount-display')?.textContent ?? '';
+
+describe('a zero balance the user recorded reads as 0, not as a dash', () => {
+  it('shows 0 kr for a recorded balance of zero', () => {
+    render(
+      <ExpenseCategory
+        category={cat([row('s1', 'Huvudkonto', 0)])}
+        onChange={() => {}}
+        amountKind="balance"
+        showZero
+      />,
+    );
+    expect(amountText()).toContain('0');
+    expect(amountText()).not.toBe('–');
+  });
+
+  it('still shows a dash before the month has any recorded balance', () => {
+    // A template creates rows at 0 the user never touched. Calling those
+    // "0 kr" would assert a balance nobody entered.
+    render(
+      <ExpenseCategory
+        category={cat([row('s1', 'Huvudkonto', 0)])}
+        onChange={() => {}}
+        amountKind="balance"
+      />,
+    );
+    expect(amountText()).toBe('–');
+  });
+
+  it('leaves an unbudgeted expense row as a dash', () => {
+    // The flow case, unchanged: 0 means "not budgeted", not "costs nothing".
+    render(
+      <ExpenseCategory
+        category={cat([row('e1', 'Hyra', 0)])}
+        onChange={() => {}}
+      />,
+    );
+    expect(amountText()).toBe('–');
+  });
+});
