@@ -85,7 +85,14 @@ function shouldShowBackupReminder(): boolean {
   );
 }
 
-function App() {
+interface AppProps {
+  /** A step back main.tsx recorded before the first render, when stored entries
+   *  had to be moved to the month the pay-period rule gives them. Opens the undo
+   *  bar, so the move is seen and can be taken back. See filingRepair.ts. */
+  startupRepair?: UndoEntry | null;
+}
+
+function App({ startupRepair = null }: AppProps) {
   const now = new Date();
   // Validate, never cast: a damaged value must not be able to lock the user out
   // of the app that would let them fix it (review 2026-09-05, F3).
@@ -131,7 +138,7 @@ function App() {
   // slept on is still offered the next morning. The BAR is separate: it belongs
   // to the moment after the action, not to every load.
   const [undoLatest, setUndoLatest] = useState<UndoEntry | null>(() => latestUndo(appStorage));
-  const [undoBarOpen, setUndoBarOpen] = useState(false);
+  const [undoBarOpen, setUndoBarOpen] = useState(() => startupRepair !== null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { applyPersistedTheme } from './themes.ts'
 import { appStorage } from './storage.ts'
 import { isLang, deviceLang } from './i18n.ts'
+import { repairFiling } from './filingRepair.ts'
 
 // Apply the saved theme palette to :root before React renders, so the very
 // first paint already uses the right colors (no flash of the default Sorbet).
@@ -18,8 +19,14 @@ applyPersistedTheme()
 const startupLang = appStorage.getItem('budget_lang')
 document.documentElement.lang = isLang(startupLang) ? startupLang : deviceLang()
 
+// Entries stored in a different month than the pay-period rule gives them are
+// moved home before anything is drawn — see filingRepair.ts. Before render, so
+// no tab can load the old filing first and hold it in memory. Once per page
+// load, outside React, so StrictMode's double render cannot run it twice.
+const startupRepair = repairFiling(appStorage)
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <App startupRepair={startupRepair} />
   </StrictMode>,
 )

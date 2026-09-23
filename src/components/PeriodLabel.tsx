@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLang, MONTHS_SHORT } from '../i18n';
+import { useLang } from '../i18n';
+import { formatPeriodRange } from '../dateLabel';
 import {
   periodLabelFor, PERIOD_LABEL_MAX, type PeriodRange, type PeriodLocks,
 } from '../periodLabel';
@@ -36,15 +37,9 @@ export const PeriodLabel = ({
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
-  // MONTHS_SHORT is capitalised because it labels chart axes. Inside a phrase,
-  // Swedish and Spanish write month names in lower case; English does not.
-  const monthWord = (i: number) => {
-    const w = MONTHS_SHORT[lang][i];
-    return lang === 'en' ? w : w.toLowerCase();
-  };
-  const format = (r: PeriodRange) =>
-    `${r.from.getDate()} ${monthWord(r.from.getMonth())} – ` +
-    `${r.to.getDate()} ${monthWord(r.to.getMonth())}`;
+  // Lower-case month inside a date, and shared with the spending card, so both
+  // print a period the same way — see formatPeriodRange in dateLabel.ts.
+  const format = (r: PeriodRange) => formatPeriodRange(r, lang);
 
   /** What the rule alone would say — the placeholder, and what clearing restores. */
   const generated = periodLabelFor({ startDay, year, month, format, locks });

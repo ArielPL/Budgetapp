@@ -4,7 +4,7 @@ import { generateId, shownName, loadMonthData } from '../defaults';
 import { categoryTotal, calculateBudgetMetrics } from '../metrics';
 import { parseMoneyOrZero } from '../money';
 import {
-  actualsKey, loadActuals, sumByCategory, groupByMonth,
+  actualsKey, loadActuals, sumByCategory, planPersist,
   actualContribution, groupEntriesByText, isBucketId,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
@@ -20,6 +20,8 @@ import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
 import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth } from './CsvImport';
+import { SpendingCard } from './SpendingCard';
+import { spendingBreakdown } from '../spending';
 import type { ActualEntry, BudgetCategory } from '../types';
 import { isValidIsoDate } from '../date';
 
@@ -64,6 +66,10 @@ interface Props {
 
 /** Sentinel in the move dropdown: not a category, an invitation to make one. */
 const NEW_CATEGORY = '__new_category__';
+
+/** One line for every category the budget no longer has — the same pooling the
+ *  table does under "outside the budget", and the same id it uses for that row. */
+const ORPHANS = '__orphans__';
 
 interface RowSpec {
   id: string;
@@ -163,7 +169,18 @@ export const FollowUpTab = ({
     return () => window.removeEventListener('storage', onStorage);
   }, [months, reloadEntries, t.followUpExternalReloaded]);
 
-  const persist = useCallback((next: ActualEntry[]): boolean => {
+  /**
+   * Write `next` back. When `undo` is given, the step back is captured HERE,
+   * from the very key list about to be written — see planPersist. It used to be
+   * captured by the caller over the months in view only, which was the same list
+   * then. It is not any more: an entry that belongs to a month outside the view
+   * is now moved home instead of dropped, and a step back that did not cover
+   * that month would restore the entry where it was AND leave it where it went.
+   */
+  const persist = useCallback((
+    next: ActualEntry[],
+    undo?: { action: 'deleteEntry' | 'clearActuals'; count: number },
+  ): boolean => {
     // The event above is asynchronous. Compare the raw values as well, so an
     // edit can never knowingly overwrite a newer version already in storage.
     let changedElsewhere: boolean;
@@ -184,29 +201,43 @@ export const FollowUpTab = ({
 
     // Written back per BUDGET MONTH, not to "the month on screen": over a span
     // the entries in hand come from several files and each has to go home to
-    // its own. Every month in view is written, empty ones included, or a
-    // deletion that emptied a month would appear to have been undone on the
-    // next load.
-    const { months: byMonth, undated } = groupByMonth(next, periodStartDay, periodLocks);
-    if (undated.length > 0) {
+    // its own — including a home outside the view. See planPersist for the
+    // entries this used to delete.
+    const plan = planPersist(appStorage, next, months, periodStartDay, periodLocks);
+    if (plan.undated.length > 0) {
       onSaveFailed();
       return false;
     }
-    const changes = months.map(m => {
-      const bucket = byMonth.get(`${m.year}_${m.month}`);
-      return {
-        key: actualsKey(m.year, m.month),
-        value: bucket?.entries.length ? JSON.stringify(bucket.entries) : null,
-      };
-    });
-    if (!applyStorageChanges(appStorage, changes)) {
+    const before = undo ? captureKeys(appStorage, plan.changes.map(c => c.key)) : null;
+    if (!applyStorageChanges(appStorage, plan.changes)) {
       onSaveFailed();
       return false;
     }
-    setEntries(next);
-    storageBaseline.current = new Map(changes.map(change => [change.key, change.value]));
+    setEntries(plan.kept);
+    storageBaseline.current = new Map(plan.changes.map(change => [change.key, change.value]));
+    if (undo && before) {
+      onRecordUndo({
+        at: new Date().toISOString(),
+        action: undo.action,
+        year,
+        month,
+        count: undo.count,
+        changes: before,
+      });
+    }
+    // Said out loud: entries leaving the table without a word is exactly what
+    // this fix exists to end, even when leaving is the right thing for them.
+    if (plan.movedTo.length > 0) {
+      const n = plan.movedTo.reduce((sum, m) => sum + m.count, 0);
+      setToast({
+        text: t.followUpMovedOut(n),
+        months: plan.movedTo.map(({ year: y, month: m }) => ({ year: y, month: m })),
+      });
+    }
     return true;
-  }, [months, periodStartDay, periodLocks, onSaveFailed, reloadEntries, t.followUpExternalReloaded]);
+  }, [
+    months, periodStartDay, periodLocks, onSaveFailed, reloadEntries, onRecordUndo, year, month, t,
+  ]);
 
   const sums = useMemo(() => sumByCategory(entries), [entries]);
 
@@ -327,19 +358,8 @@ export const FollowUpTab = ({
     if (victim && !window.confirm(t.followUpDeleteConfirm(victim.text))) return;
     // Review 2026-09-18, F3. One entry is small, but it is a record of what was
     // actually spent — it has to be fetched from the bank again, not retyped.
-    // Captured across every month the view writes back, the same key list
-    // `persist` builds.
-    const before = captureKeys(appStorage, months.map(m => actualsKey(m.year, m.month)));
-    if (persist(entries.filter(e => e.id !== id))) {
-      onRecordUndo({
-        at: new Date().toISOString(),
-        action: 'deleteEntry',
-        year,
-        month,
-        count: 1,
-        changes: before,
-      });
-    }
+    // persist captures the step back from the exact keys it writes.
+    persist(entries.filter(e => e.id !== id), { action: 'deleteEntry', count: 1 });
   };
 
   const setAmount = (id: string, amount: number) => {
@@ -390,18 +410,9 @@ export const FollowUpTab = ({
     const n = entries.length;
     if (n === 0) return;
     if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
-    // Captured before the write, across every month the view writes back — the
-    // same key list `persist` builds, so undo restores exactly what was emptied.
-    const before = captureKeys(appStorage, months.map(m => actualsKey(m.year, m.month)));
-    if (persist([])) {
-      onRecordUndo({
-        at: new Date().toISOString(),
-        action: 'clearActuals',
-        year,
-        month,
-        count: n,
-        changes: before,
-      });
+    // persist captures the step back from the exact keys it writes, so undo
+    // restores exactly what was emptied.
+    if (persist([], { action: 'clearActuals', count: n })) {
       setOpenRow(null);
       setToast({ text: t.followUpClearDone(n), months: [] });
     }
@@ -424,6 +435,41 @@ export const FollowUpTab = ({
     return entries.filter(e => ids.has(e.categoryId));
   }, [entries, orphanIds]);
   const orphanTotal = orphanIds.reduce((s, id) => s + (sums[id] ?? 0), 0);
+
+  // ── "Where did the money go?" ──────────────────────────────────────────
+  // Entries under a category this budget no longer has are pooled into one
+  // line, exactly as the table below pools them into "outside the budget" — so
+  // the card can never split the money differently from the rows it sums.
+  const breakdown = useMemo(() => {
+    const known = new Set(categories.map(c => c.id));
+    return spendingBreakdown(entries.map(e => (
+      !known.has(e.categoryId) && !isBucketId(e.categoryId) ? { ...e, categoryId: ORPHANS } : e
+    )));
+  }, [entries, categories]);
+
+  /** The days in view: from the first month's period to the last one's. */
+  const viewRange = useMemo(() => ({
+    from: periodRange(months[0].year, months[0].month, periodStartDay ?? 1, periodLocks).from,
+    to: periodRange(
+      months[months.length - 1].year, months[months.length - 1].month, periodStartDay ?? 1, periodLocks,
+    ).to,
+  }), [months, periodStartDay, periodLocks]);
+
+  const nameOf = useCallback((id: string) => {
+    if (id === ORPHANS) return t.followUpOutsideBudget;
+    return rows.find(r => r.id === id)?.label ?? id;
+  }, [rows, t]);
+
+  /** The card's "sort these": open the list and bring it into view, since on a
+   *  phone it sits below the fold. Instant under reduced motion, as tab changes are. */
+  const triageRef = useRef<HTMLDivElement>(null);
+  const openTriage = () => {
+    setTriageOpen(true);
+    requestAnimationFrame(() => {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      triageRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    });
+  };
 
   const plannedOut = categories.reduce((s, c) => s + (planned.perCategory[c.id] ?? 0), 0);
   // Orphans and Övrigt count here: they are money that left, whatever it was
@@ -779,6 +825,10 @@ export const FollowUpTab = ({
         </div>
       )}
 
+      {entries.length > 0 && (
+        <SpendingCard breakdown={breakdown} range={viewRange} nameOf={nameOf} onSort={openTriage} />
+      )}
+
       {/* ── The leftover pile, as a short list of decisions ──────────────
           The parts were all here already: a place moves in one go and the move
           is learned. What was missing was the asking. Sorting used to mean
@@ -786,7 +836,7 @@ export const FollowUpTab = ({
           were worth a move. This puts the biggest ones in front, with a
           proposal, and each tap teaches the sorter for next month. */}
       {decisions.length > 0 && (
-        <div className="triage">
+        <div className="triage" ref={triageRef}>
           <div className="triage-head">
             <span className="triage-title">
               ❔ {t.triageWaiting(entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID).length)}
@@ -863,16 +913,16 @@ export const FollowUpTab = ({
         {shownRows.filter(r => r.id !== TRANSFER_ACTUAL_ID).map(renderRow)}
 
         {orphanIds.length > 0 && (
-          <div className={`followup-row-wrap${openRow === '__orphans__' ? ' is-open' : ''}`}>
+          <div className={`followup-row-wrap${openRow === ORPHANS ? ' is-open' : ''}`}>
             <button
               className="followup-row"
-              aria-expanded={openRow === '__orphans__'}
-              onClick={() => setOpenRow(openRow === '__orphans__' ? null : '__orphans__')}
+              aria-expanded={openRow === ORPHANS}
+              onClick={() => setOpenRow(openRow === ORPHANS ? null : ORPHANS)}
             >
               <span className="followup-name">
                 <span aria-hidden="true">❓</span> {t.followUpOutsideBudget}
                 <span className="followup-caret" aria-hidden="true">
-                  {openRow === '__orphans__' ? '⌃' : '⌄'}
+                  {openRow === ORPHANS ? '⌃' : '⌄'}
                 </span>
               </span>
               {showPlan && (
@@ -884,7 +934,7 @@ export const FollowUpTab = ({
               {showPlan && <span className="num followup-diffcell" />}
             </button>
 
-            {openRow === '__orphans__' && span > 1 && (
+            {openRow === ORPHANS && span > 1 && (
               <div className="followup-entries">
                 <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
                 {groupEntriesByText(orphanEntries).map(g => (
@@ -897,7 +947,7 @@ export const FollowUpTab = ({
               </div>
             )}
 
-            {openRow === '__orphans__' && span === 1 && (
+            {openRow === ORPHANS && span === 1 && (
               <div className="followup-entries">
                 <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
                 {orphanEntries.map(e => (

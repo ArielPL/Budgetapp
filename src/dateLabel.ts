@@ -14,6 +14,18 @@ import { MONTHS, MONTHS_SHORT, type Lang } from './i18n';
 
 const lower = (name: string, lang: Lang) => (lang === 'en' ? name : name.toLowerCase());
 
+/**
+ * "25 aug – 24 sep": a pay period, or any stretch of days, on one line.
+ *
+ * Shared by the month header (PeriodLabel) and the spending card, so the two
+ * can never print the same period two different ways on the same screen. No
+ * year: both show it beside a heading that already names the month and year.
+ */
+export function formatPeriodRange(range: { from: Date; to: Date }, lang: Lang): string {
+  const day = (d: Date) => `${d.getDate()} ${lower(MONTHS_SHORT[lang][d.getMonth()], lang)}`;
+  return `${day(range.from)} – ${day(range.to)}`;
+}
+
 /** "17 sep 13:40" — one line, exact enough to answer "when did I do that?". */
 export function shortWhen(iso: string, lang: Lang): string {
   const at = new Date(iso);

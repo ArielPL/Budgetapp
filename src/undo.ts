@@ -60,7 +60,10 @@ export type UndoAction =
    *  under it — the money stays stored but becomes unreachable. */
   | 'deleteBlock'
   /** Every Custom amount, across every month. */
-  | 'clearCustom';
+  | 'clearCustom'
+  /** Entries the app itself moved to the month the pay-period rule says they
+   *  belong to, because they were stored somewhere else — see filingRepair.ts. */
+  | 'refileRepair';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -110,6 +113,7 @@ const ACTIONS: Record<UndoAction, true> = {
   deleteGoal: true,
   deleteBlock: true,
   clearCustom: true,
+  refileRepair: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than
