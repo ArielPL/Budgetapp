@@ -20,6 +20,7 @@
 // Authentication is explicitly out of scope: its keys are never exported, never
 // deleted, never overwritten. See isBackupOwnedKey.
 
+import { CUSTOM_MODE_KEY, CUSTOM_LINKED_KEY, isCustomMode } from './customMode';
 import { isLang, isCurrency, type Lang } from './i18n';
 import type { StorageLike } from './storage';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
@@ -240,6 +241,12 @@ function isValidValue(key: string, raw: string): boolean {
   if (key === 'budget_plan') return parseThen(isPlanData);
   if (key === 'budget_savings_plan') return parseThen(isSavingsPlan);
   if (key === 'budget_custom_v3') return parseThen(isCustomStructure);
+  // Which kind of Custom panel was chosen, and a linked panel's layout. A mode
+  // outside the two would leave the panel unable to decide what to show.
+  if (key === CUSTOM_MODE_KEY) return isCustomMode(raw);
+  if (key === CUSTOM_LINKED_KEY) {
+    return parseThen(v => Array.isArray(v) && v.every(b => isPlainObject(b) && isPlainObject(b.source)));
+  }
   if (/^budget_custom_v3_values_/.test(key)) return parseThen(isCustomValues);
   // The per-month structure snapshot the year view reads. Rejecting a bad one
   // matters: a wrong tag would refile a month's money into the wrong column.

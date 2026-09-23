@@ -55,6 +55,8 @@
   --income-color: #22d3ee;
   --positive: #22c55e;
   --negative: #ef4444;
+  /* Between fine and over: a spending limit that is nearly used up. */
+  --caution: #f59e0b;
   --header-bg: rgba(15, 23, 42, 0.92);
 
   /* Brand accent (selected states, primary buttons) */
@@ -101,6 +103,7 @@
   --income-color: #0fa99a;
   --positive: #2f9e44;
   --negative: #e8590c;
+  --caution: #a16207; /* amber, darker than --negative's orange; AA on white */
   --header-bg: rgba(251, 250, 255, 0.9);
 
   --accent-brand: #8b5cf6;
@@ -525,16 +528,174 @@ a:focus-visible,
   flex-wrap: wrap;
 }
 
+/* "Separate budget" line under the toolbar — quiet, but always there. */
+.custom-standalone-note {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* An empty month after a filled one: say so, and offer the one-tap fix. */
+.custom-month-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Phone ••• menu. The layer is a plain wrapper; the toolbar anchors the menu. */
+.custom-toolbar { position: relative; }
+.custom-more-btn { letter-spacing: 1px; }
+.custom-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.custom-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.custom-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.custom-menu-item:hover,
+.custom-menu-item:focus-visible { background: color-mix(in srgb, var(--accent-brand) 10%, transparent); }
+
 /* Budget/Year switch sits at the START of the toolbar; everything else stays
    right-aligned. It is the only route to a multi-month view in Custom, so it
    reads first rather than being lost among the edit actions. */
 .custom-view-seg { margin-right: auto; }
 
-/* Divides the "what kind of block" choices from the ready-made ones. */
-.custom-picker-sep {
-  height: 1px;
-  background: var(--border);
-  margin: 14px 0 12px;
+/* Custom's first screen: linked to the budget, or a budget of its own. */
+.custom-choice {
+  max-width: 760px;
+  margin: 24px auto;
+  text-align: center;
+}
+.custom-choice-title { margin: 0 0 8px; font-size: 1.4rem; }
+.custom-choice-intro { margin: 0 0 20px; color: var(--text-muted); }
+.custom-choice-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  text-align: left;
+}
+.custom-choice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.custom-choice-card h3 { margin: 0; font-size: 1.05rem; }
+.custom-choice-card p { margin: 0; flex: 1; color: var(--text-muted); line-height: 1.45; }
+.custom-choice-card .custom-primary-btn { align-self: flex-start; }
+.custom-choice-later { margin: 16px 0 0; font-size: 0.85rem; color: var(--text-muted); }
+
+/* Outcome, goal and figure blocks on a linked panel (LinkedInsights). */
+.cv3-insight-big {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--cv3-ink, var(--text));
+  font-variant-numeric: tabular-nums;
+}
+.cv3-insight-sub {
+  margin: 2px 0 6px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--cv3-ink-muted, var(--text-muted));
+}
+.cv3-insight-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--cv3-ink-muted, var(--text-muted));
+}
+/* The per-day block reuses the budget tab's card; inside a block it drops its
+   own frame so it is not a card within a card. */
+.custom-section .daily-budget { margin: 0; border: none; background: transparent; padding: 0; box-shadow: none; }
+
+/* Quick entry: the month's amounts as one list, grouped by block. */
+.quick-entry { max-width: 520px; }
+.quick-entry-group + .quick-entry-group { margin-top: 14px; }
+.quick-entry-heading {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.quick-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+.quick-entry-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.quick-entry-row .cv3-amount-input { background: var(--bg); color: var(--text); }
+.quick-entry-saved, .quick-entry-empty { margin: 14px 0 0; font-size: 0.85rem; color: var(--text-muted); }
+
+/* A linked block whose category this month's budget does not have. */
+.cv3-linked-missing {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--cv3-ink-muted, var(--text-muted));
+  font-style: italic;
+}
+.custom-picker-empty { margin: 0 0 8px; color: var(--text-muted); font-size: 0.9rem; }
+
+/* Headings over the two kinds of choice in the Add block picker. */
+.custom-picker-heading {
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.custom-picker-heading-next {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 /* Brief confirmation toast (e.g. "Copied from last month"). */
@@ -729,6 +890,13 @@ a:focus-visible,
 .cv3-title-row .cv3-name-input { width: auto; min-width: 4ch; }
 
 /* Note block: free-text body. */
+/* Under a note's title: which month(s) it belongs to. */
+.cv3-note-scope {
+  margin: -4px 0 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--cv3-ink-muted);
+}
 .cv3-note-text {
   width: 100%;
   resize: vertical;
@@ -761,11 +929,22 @@ a:focus-visible,
 .cv3-target-label {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-top: 4px;
   font-size: 0.78rem;
   color: var(--cv3-ink-muted);
   font-variant-numeric: tabular-nums;
 }
+/* A goal fills in the block's own ink. A limit speaks in warning colours as it
+   is used up — with words beside it (TargetBar), never colour alone. */
+.cv3-target-status { font-weight: 600; }
+.cv3-target-reached .cv3-target-status { color: var(--positive); }
+.cv3-target-ok .cv3-target-fill { background: var(--positive); }
+.cv3-target-near .cv3-target-fill { background: var(--caution); }
+.cv3-target-near .cv3-target-status { color: var(--caution); }
+.cv3-target-over .cv3-target-fill { background: var(--negative); }
+.cv3-target-over .cv3-target-status { color: var(--negative); }
 
 /* Fixed, non-editable KIND tag (top-left): what kind of money this block is. */
 .cv3-kind-tag {
@@ -816,6 +995,8 @@ a:focus-visible,
   cursor: pointer;
   overflow: hidden;
 }
+/* Outside Edit layout the dot is only a colour, not a control. */
+.cv3-row-color-static { cursor: default; }
 .cv3-row-color input[type='color'] {
   position: absolute; inset: 0; opacity: 0; border: none; cursor: pointer;
   width: 100%; height: 100%;
@@ -5449,4 +5630,19 @@ a:focus-visible,
   .spending-card-detail-meta {
     text-align: left;
   }
+}
+
+/* Custom on a phone: the toolbar is one line (Budget/Year · Edit · •••), and the
+   notes under it read from the left like the blocks do. */
+@media (max-width: 640px) {
+  /* Three controls in 351px at 375 wide. Still allowed to wrap: on a 320px
+     phone a second line beats a switch pushed off the left edge. */
+  .custom-toolbar { gap: 6px; }
+  .custom-toolbar .custom-edit-btn { min-height: 44px; padding: 8px 10px; white-space: nowrap; }
+  .custom-toolbar .custom-more-btn { min-width: 44px; padding: 8px; justify-content: center; letter-spacing: 0; }
+  .custom-standalone-note { text-align: left; }
+  .custom-month-empty .custom-primary-btn { width: 100%; justify-content: center; min-height: 44px; }
+  .custom-choice { margin: 8px auto; }
+  .custom-choice-cards { grid-template-columns: minmax(0, 1fr); }
+  .custom-choice-card .custom-primary-btn { align-self: stretch; justify-content: center; min-height: 44px; }
 }

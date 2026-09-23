@@ -63,7 +63,9 @@ export type UndoAction =
   | 'clearCustom'
   /** Entries the app itself moved to the month the pay-period rule says they
    *  belong to, because they were stored somewhere else — see filingRepair.ts. */
-  | 'refileRepair';
+  | 'refileRepair'
+  /** Custom started over: its keys removed and the choice offered again. */
+  | 'resetCustom';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -114,6 +116,7 @@ const ACTIONS: Record<UndoAction, true> = {
   deleteBlock: true,
   clearCustom: true,
   refileRepair: true,
+  resetCustom: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than

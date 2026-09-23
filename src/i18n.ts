@@ -453,6 +453,19 @@ export interface Translations {
   summaryExpenses: string;
   summarySaved: string;
   summaryRemaining: string;
+  /** Custom's "Kvar" is before saving; this row is after it, which is what
+   *  Classic calls "Kvar". Shown only when something was saved. */
+  summaryRemainingAfterSaving: string;
+  /** Custom keeps its own amounts; says so at the top of the page. */
+  customStandalone: string;
+  /** An empty month whose previous month is filled in. */
+  customMonthEmpty: (month: string) => string;
+  customCopyFrom: (month: string) => string;
+  /** The phone toolbar's ••• menu. */
+  moreActions: string;
+  /** Background presets in words, for the swatch buttons. */
+  cfgBgPresets: { 'bg-brand': string; 'bg-income': string; 'bg-expense': string; 'bg-savings': string; 'bg-remain': string };
+  ariaTargetInput: (block: string) => string;
   copyLastMonth: string;
   copiedLastMonth: string;
   clearAmounts: string;
@@ -467,6 +480,75 @@ export interface Translations {
   cfgEmoji: string;
   cfgEmojiDefault: string;
   cfgTarget: string;
+  /** An expense block's target is a ceiling, not a goal. */
+  cfgLimit: string;
+  /** Headings in the Add block picker. */
+  pickerBuildOwn: string;
+  /** Linked-panel blocks that show outcome, goals and figures (LinkedInsights). */
+  kindActual: string;
+  kindGoal: string;
+  kindKpi: string;
+  actualNoEntries: (month: string) => string;
+  actualNothingHere: (name: string) => string;
+  actualUnsorted: (amount: string) => string;
+  actualIncomeDone: string;
+  actualIncomeToCome: (amount: string) => string;
+  actualOver: (amount: string) => string;
+  actualLeft: (amount: string) => string;
+  actualOfBudget: (amount: string) => string;
+  actualNoBudget: string;
+  actualCount: (n: number) => string;
+  goalMissing: string;
+  goalOf: (amount: string) => string;
+  goalBy: (month: string) => string;
+  goalThisMonth: (amount: string, month: string) => string;
+  kpiNoIncome: string;
+  kpiLargest: string;
+  kpiShare: (pct: number) => string;
+  kpiNothing: string;
+  pickerNewCategory: string;
+  pickerOutcome: string;
+  pickerGoals: string;
+  pickerFigures: string;
+  /** Quick entry: every amount of the month in one list. */
+  quickEntry: string;
+  quickEntryTitle: (month: string) => string;
+  quickEntryEmpty: string;
+  quickEntrySaved: string;
+  /** The guide for a linked panel. */
+  customHelpLinkedIntro: string;
+  customHelpLinked: { title: string; body: string }[];
+  /** Custom linked to the regular budget (CustomLinked.tsx) and the choice. */
+  customLinkedNote: string;
+  linkedMissing: (name: string, month: string) => string;
+  linkedRemove: string;
+  ariaLinkedRemove: (name: string) => string;
+  pickerFromBudget: string;
+  pickerOther: string;
+  linkedAllShown: string;
+  startOver: string;
+  startOverConfirmStandalone: string;
+  startOverConfirmLinked: string;
+  customChooseAgain: string;
+  choiceTitle: string;
+  choiceIntro: string;
+  choiceLinkedTitle: string;
+  choiceLinkedBody: string;
+  choiceLinkedCta: string;
+  choiceStandaloneTitle: string;
+  choiceStandaloneBody: string;
+  choiceStandaloneCta: string;
+  choiceChangeLater: string;
+  /** Where a note block is shown: one month, or all of them. */
+  noteScope: string;
+  noteScopeMonth: (month: string) => string;
+  noteScopeAll: string;
+  pickerReadyMade: string;
+  ariaLimitInput: (block: string) => string;
+  targetReached: string;
+  targetToGo: (amount: string) => string;
+  limitLeft: (amount: string) => string;
+  limitOver: (amount: string) => string;
   kindNote: string;
   addNote: string;
   newNoteName: string;
@@ -1004,6 +1086,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Utgifter',
     summarySaved: 'Sparat',
     summaryRemaining: 'Kvar',
+    summaryRemainingAfterSaving: 'Kvar efter sparande',
+    customStandalone: 'Fristående budget – påverkar inte din vanliga budget',
+    customMonthEmpty: (month) => `${month} är inte ifylld ännu`,
+    customCopyFrom: (month) => `Kopiera ${month}`,
+    moreActions: 'Fler val',
+    cfgBgPresets: {
+      'bg-brand': 'Accentfärg', 'bg-income': 'Inkomstfärg', 'bg-expense': 'Utgiftsfärg',
+      'bg-savings': 'Sparfärg', 'bg-remain': 'Kvar-färg',
+    },
+    ariaTargetInput: (block) => `Målbelopp för ${block}`,
     copyLastMonth: 'Kopiera förra månaden',
     copiedLastMonth: 'Kopierat från förra månaden',
     clearAmounts: 'Rensa belopp',
@@ -1017,19 +1109,90 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Lägg till block', body: 'Tryck på "Lägg till block", ge det ett namn och välj vad det är – pengar in, ut, sparande eller en anteckning.' },
       { title: 'IN / UT / SPAR', body: 'Taggen avgör hur blocket räknas. Översikten använder den för att räkna ut vad som är kvar.' },
-      { title: 'Dina egna rader', body: 'Inuti ett block lägger du till hur många kategorirader du vill och skriver in beloppen.' },
+      { title: 'Dina egna rader', body: 'Inuti ett block skriver du in beloppen. Nya rader, namn och färger ändrar du under Redigera layout.' },
       { title: 'Ändra storlek', body: 'Sätt varje block till Hel, Halv eller ⅓ bredd. På mobilen blir de tryckbara rutor.' },
       { title: 'Färg & emoji', body: 'Ge valfritt block en egen bakgrundsfärg och ikon – gör det till ditt.' },
       { title: 'Diagram', body: 'Slå på ett diagram och välj stil (munk, paj, staplar, trädkarta …), storlek och var det placeras.' },
-      { title: 'Mål', body: 'Sätt ett målbelopp så fylls en förloppsmätare på vägen dit.' },
-      { title: 'Anteckningar', body: 'Lägg till ett textblock för påminnelser eller planer, bredvid dina pengar.' },
+      { title: 'Mål', body: 'Sätt ett målbelopp så fylls en förloppsmätare på vägen dit. För ett utgiftsblock blir det en gräns, som varnar när den nästan är nådd.' },
+      { title: 'Anteckningar', body: 'Lägg till ett textblock för påminnelser eller planer, bredvid dina pengar. Välj om det gäller bara en månad eller alla.' },
       { title: 'Översikt', body: 'Lägg till ett översiktsblock – det räknar Inkomst − Utgifter automatiskt och visar förändringen mot förra månaden.' },
       { title: 'Kopiera förra månaden', body: 'Ett tryck hämtar förra månadens belopp till denna månad så du slipper skriva om.' },
-      { title: 'Redigera layout', body: 'Dra för att flytta (↑↓ på mobil), ⚙ för inställningar, ✕ för att ta bort, 🧹 för att rensa alla belopp.' },
+      { title: 'Redigera layout', body: 'Här lägger du till rader och byter namn och färg. Dra för att flytta (↑↓ på mobil), ⚙ för inställningar, ✕ för att ta bort, 🧹 för att rensa alla belopp.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Standard',
     cfgTarget: 'Mål',
+    cfgLimit: 'Gräns',
+    pickerBuildOwn: 'Bygg själv',
+    kindActual: 'UTFALL',
+    kindGoal: 'SPARMÅL',
+    kindKpi: 'NYCKELTAL',
+    actualNoEntries: (month) => `Inga transaktioner för ${month} ännu. Importera ett kontoutdrag under Uppföljning.`,
+    actualNothingHere: (name) => `Inget har registrerats i ${name} ännu.`,
+    actualUnsorted: (amount) => `Upp till ${amount} osorterat kan höra hit.`,
+    actualIncomeDone: '✓ Allt har kommit in',
+    actualIncomeToCome: (amount) => `${amount} har inte kommit in än`,
+    actualOver: (amount) => `⚠ ${amount} över budget`,
+    actualLeft: (amount) => `${amount} kvar av budgeten`,
+    actualOfBudget: (amount) => `av ${amount} i budget`,
+    actualNoBudget: 'ingen budget satt',
+    actualCount: (n) => (n === 1 ? '1 transaktion' : `${n} transaktioner`),
+    goalMissing: 'Sparmålet finns inte längre i Plan.',
+    goalOf: (amount) => `av ${amount}`,
+    goalBy: (month) => `Klart senast ${month}`,
+    goalThisMonth: (amount, month) => `${amount} sparas i ${month}`,
+    kpiNoIncome: 'Fyll i inkomsten först.',
+    kpiLargest: 'Största kategorin',
+    kpiShare: (pct) => `${pct} % av utgifterna`,
+    kpiNothing: 'Inga utgifter i budgeten ännu.',
+    pickerNewCategory: 'Ny kategori',
+    pickerOutcome: 'Utfall',
+    pickerGoals: 'Sparmål',
+    pickerFigures: 'Nyckeltal',
+    quickEntry: 'Snabbinmatning',
+    quickEntryTitle: (month) => `Fyll i ${month}`,
+    quickEntryEmpty: 'Det finns inga rader att fylla i än. Lägg till block eller rader först.',
+    quickEntrySaved: 'Allt sparas medan du skriver.',
+    customHelpLinkedIntro: 'Panelen visar din vanliga budget på ditt sätt. Samma belopp, samma kategorier – bara ordnade som du vill.',
+    customHelpLinked: [
+      { title: 'Samma budget', body: 'Ett belopp du skriver här ändras även under Uppföljning, Sparande, Plan och År. Det finns bara en siffra.' },
+      { title: 'Snabbinmatning', body: 'Fyll i alla belopp för månaden i en enda lista.' },
+      { title: 'Utfall', body: 'Lägg till ett utfallsblock för en kategori och se vad som faktiskt har gått åt, från transaktionerna du importerat under Uppföljning.' },
+      { title: 'Sparmål', body: 'Visa ett mål från Plan direkt i panelen.' },
+      { title: 'Nyckeltal', body: 'Största kategorin och Kvar att leva på, samma siffror som i budgeten.' },
+      { title: 'Ny kategori', body: 'Skapar en kategori i din vanliga budget för månaden du tittar på.' },
+      { title: 'Redigera layout', body: 'Välj vad som visas, ordning, storlek och färg. ✕ tar bara bort blocket från panelen – budgeten ändras inte.' },
+      { title: 'Börja om', body: 'Tar dig tillbaka till valet mellan kopplad och fristående. Din vanliga budget rörs inte.' },
+    ],
+    customLinkedNote: '🔗 Kopplad till din vanliga budget – samma belopp på båda ställena',
+    linkedMissing: (name, month) => `${name || 'Kategorin'} finns inte i budgeten för ${month}`,
+    linkedRemove: 'Ta bort från panelen',
+    ariaLinkedRemove: (name) => `Ta bort ${name} från panelen. Budgeten ändras inte`,
+    pickerFromBudget: 'Från din budget',
+    pickerOther: 'Övrigt',
+    linkedAllShown: 'Allt i din budget visas redan',
+    startOver: 'Börja om',
+    startOverConfirmStandalone: 'Börja om Anpassad?\n\nAlla block, belopp och anteckningar i Anpassad raderas, i alla månader. Din vanliga budget påverkas inte.\n\nTips: exportera en backup först. Du kan också ångra direkt efteråt.',
+    startOverConfirmLinked: 'Börja om Anpassad?\n\nBara panelens upplägg raderas: vilka block som visas, ordningen, färgerna och anteckningarna. Din vanliga budget och alla belopp finns kvar.\n\nDu kan ångra direkt efteråt.',
+    customChooseAgain: 'Välj en annan sorts panel',
+    choiceTitle: 'Vad ska Anpassad vara?',
+    choiceIntro: 'Visa din vanliga budget på ditt eget sätt, eller bygg en separat budget, till exempel för en resa.',
+    choiceLinkedTitle: '🔗 Kopplad till min budget',
+    choiceLinkedBody: 'Använder kategorierna och beloppen i din vanliga budget. Ändrar du ett belopp syns det på båda ställena. Uppföljning, Sparande, Plan och År följer med.',
+    choiceLinkedCta: 'Välj kopplad',
+    choiceStandaloneTitle: '👛 Fristående budget',
+    choiceStandaloneBody: 'Egna block och belopp som inte påverkar din vanliga budget. Passar resor, projekt och tillfälliga budgetar.',
+    choiceStandaloneCta: 'Välj fristående',
+    choiceChangeLater: 'Du kan välja om senare med "Börja om" under Redigera layout.',
+    noteScope: 'Visas',
+    noteScopeMonth: (month) => `Bara ${month}`,
+    noteScopeAll: 'Alla månader',
+    pickerReadyMade: 'Färdiga block',
+    ariaLimitInput: (block) => `Gräns för ${block}`,
+    targetReached: '✓ Målet nått',
+    targetToGo: (amount) => `${amount} kvar till målet`,
+    limitLeft: (amount) => `${amount} kvar av gränsen`,
+    limitOver: (amount) => `⚠ ${amount} över gränsen`,
     kindNote: 'ANTECKNING',
     addNote: 'Anteckning',
     newNoteName: 'Anteckning',
@@ -1109,6 +1272,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
+      if (action === 'resetCustom') return 'Anpassad började om från början';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -1560,6 +1724,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Expenses',
     summarySaved: 'Saved',
     summaryRemaining: 'Remaining',
+    summaryRemainingAfterSaving: 'Left after saving',
+    customStandalone: 'A separate budget – it does not change your regular budget',
+    customMonthEmpty: (month) => `${month} has not been filled in yet`,
+    customCopyFrom: (month) => `Copy ${month}`,
+    moreActions: 'More actions',
+    cfgBgPresets: {
+      'bg-brand': 'Accent colour', 'bg-income': 'Income colour', 'bg-expense': 'Expense colour',
+      'bg-savings': 'Savings colour', 'bg-remain': 'Remaining colour',
+    },
+    ariaTargetInput: (block) => `Target amount for ${block}`,
     copyLastMonth: 'Copy last month',
     copiedLastMonth: 'Copied from last month',
     clearAmounts: 'Clear amounts',
@@ -1573,19 +1747,90 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Add blocks', body: 'Tap "Add block", give it a name, and choose what it is — money In, Out, Savings, or a Note.' },
       { title: 'In / Out / Savings', body: 'The tag decides how a block counts. The Summary uses it to work out what’s left.' },
-      { title: 'Your own rows', body: 'Inside a block, add as many category rows as you like and type in the amounts.' },
+      { title: 'Your own rows', body: 'Inside a block, type in the amounts. New rows, names and colours are changed under Edit layout.' },
       { title: 'Resize', body: 'Set each block to Full, Half or ⅓ width. On phone they become tap-to-open tiles.' },
       { title: 'Colour & emoji', body: 'Give any block its own background colour and icon — make it yours.' },
       { title: 'Charts', body: 'Turn on a chart and pick the style (donut, pie, bars, treemap…), size, and where it sits.' },
-      { title: 'Targets', body: 'Set a goal amount and a progress bar fills toward it.' },
-      { title: 'Notes', body: 'Add a text block for reminders or plans, right beside your money.' },
+      { title: 'Targets', body: 'Set a goal amount and a progress bar fills toward it. On an expense block it becomes a limit that warns you when it is nearly used up.' },
+      { title: 'Notes', body: 'Add a text block for reminders or plans, right beside your money. Choose whether it is for one month or every month.' },
       { title: 'Summary', body: 'Add a Summary block — it adds up Income − Expenses automatically and shows the change vs last month.' },
       { title: 'Copy last month', body: 'One tap brings last month’s amounts into this month so you don’t retype.' },
-      { title: 'Edit layout', body: 'Drag to reorder (↑↓ on phone), ⚙ to configure, ✕ to remove, 🧹 to clear all amounts.' },
+      { title: 'Edit layout', body: 'This is where you add rows and change names and colours. Drag to reorder (↑↓ on phone), ⚙ to configure, ✕ to remove, 🧹 to clear all amounts.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Default',
     cfgTarget: 'Target',
+    cfgLimit: 'Limit',
+    pickerBuildOwn: 'Build your own',
+    kindActual: 'OUTCOME',
+    kindGoal: 'GOAL',
+    kindKpi: 'FIGURE',
+    actualNoEntries: (month) => `No transactions for ${month} yet. Import a statement under Follow-up.`,
+    actualNothingHere: (name) => `Nothing has been recorded in ${name} yet.`,
+    actualUnsorted: (amount) => `Up to ${amount} still unsorted could belong here.`,
+    actualIncomeDone: '✓ All of it has come in',
+    actualIncomeToCome: (amount) => `${amount} has not come in yet`,
+    actualOver: (amount) => `⚠ ${amount} over budget`,
+    actualLeft: (amount) => `${amount} left of the budget`,
+    actualOfBudget: (amount) => `of ${amount} budgeted`,
+    actualNoBudget: 'no budget set',
+    actualCount: (n) => (n === 1 ? '1 transaction' : `${n} transactions`),
+    goalMissing: 'This savings goal is no longer in Plan.',
+    goalOf: (amount) => `of ${amount}`,
+    goalBy: (month) => `Done by ${month}`,
+    goalThisMonth: (amount, month) => `${amount} saved in ${month}`,
+    kpiNoIncome: 'Fill in your income first.',
+    kpiLargest: 'Biggest category',
+    kpiShare: (pct) => `${pct}% of spending`,
+    kpiNothing: 'No expenses in the budget yet.',
+    pickerNewCategory: 'New category',
+    pickerOutcome: 'Outcome',
+    pickerGoals: 'Savings goals',
+    pickerFigures: 'Figures',
+    quickEntry: 'Quick entry',
+    quickEntryTitle: (month) => `Fill in ${month}`,
+    quickEntryEmpty: 'There are no rows to fill in yet. Add blocks or rows first.',
+    quickEntrySaved: 'Everything is saved as you type.',
+    customHelpLinkedIntro: 'The panel shows your regular budget your way. Same amounts, same categories – arranged how you like.',
+    customHelpLinked: [
+      { title: 'One budget', body: 'An amount you type here also changes under Follow-up, Savings, Plan and Year. There is only one figure.' },
+      { title: 'Quick entry', body: 'Fill in every amount for the month in a single list.' },
+      { title: 'Outcome', body: 'Add an outcome block for a category and see what was actually spent, from the transactions you imported under Follow-up.' },
+      { title: 'Savings goals', body: 'Show a goal from Plan right on the panel.' },
+      { title: 'Figures', body: 'The biggest category and Left to live on – the same figures as in the budget.' },
+      { title: 'New category', body: 'Creates a category in your regular budget for the month you are looking at.' },
+      { title: 'Edit layout', body: 'Choose what is shown, the order, size and colour. ✕ only removes the block from the panel – the budget does not change.' },
+      { title: 'Start over', body: 'Takes you back to the choice between linked and separate. Your regular budget is not touched.' },
+    ],
+    customLinkedNote: '🔗 Linked to your regular budget – the same amounts in both places',
+    linkedMissing: (name, month) => `${name || 'This category'} is not in the budget for ${month}`,
+    linkedRemove: 'Remove from panel',
+    ariaLinkedRemove: (name) => `Remove ${name} from the panel. The budget does not change`,
+    pickerFromBudget: 'From your budget',
+    pickerOther: 'Other',
+    linkedAllShown: 'Everything in your budget is already shown',
+    startOver: 'Start over',
+    startOverConfirmStandalone: 'Start Custom over?\n\nEvery block, amount and note in Custom is deleted, in every month. Your regular budget is not affected.\n\nTip: export a backup first. You can also undo straight afterwards.',
+    startOverConfirmLinked: 'Start Custom over?\n\nOnly the panel\'s layout is deleted: which blocks are shown, their order, colours and notes. Your regular budget and every amount stay.\n\nYou can undo straight afterwards.',
+    customChooseAgain: 'Choose another kind of panel',
+    choiceTitle: 'What should Custom be?',
+    choiceIntro: 'Show your regular budget your own way, or build a separate budget, for a trip for example.',
+    choiceLinkedTitle: '🔗 Linked to my budget',
+    choiceLinkedBody: 'Uses the categories and amounts in your regular budget. Change an amount and it changes in both places. Follow-up, Savings, Plan and Year come along.',
+    choiceLinkedCta: 'Choose linked',
+    choiceStandaloneTitle: '👛 Separate budget',
+    choiceStandaloneBody: 'Its own blocks and amounts, which do not affect your regular budget. Good for trips, projects and temporary budgets.',
+    choiceStandaloneCta: 'Choose separate',
+    choiceChangeLater: 'You can choose again later with "Start over" under Edit layout.',
+    noteScope: 'Shown',
+    noteScopeMonth: (month) => `Only ${month}`,
+    noteScopeAll: 'Every month',
+    pickerReadyMade: 'Ready-made blocks',
+    ariaLimitInput: (block) => `Limit for ${block}`,
+    targetReached: '✓ Target reached',
+    targetToGo: (amount) => `${amount} to go`,
+    limitLeft: (amount) => `${amount} left of the limit`,
+    limitOver: (amount) => `⚠ ${amount} over the limit`,
     kindNote: 'NOTE',
     addNote: 'Note',
     newNoteName: 'Note',
@@ -1666,6 +1911,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteBlock') return 'A block was removed from Custom';
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
+      if (action === 'resetCustom') return 'Custom was started over';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -2116,6 +2362,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Gastos',
     summarySaved: 'Ahorrado',
     summaryRemaining: 'Restante',
+    summaryRemainingAfterSaving: 'Queda tras ahorrar',
+    customStandalone: 'Presupuesto independiente – no cambia tu presupuesto normal',
+    customMonthEmpty: (month) => `${month} aún no está rellenado`,
+    customCopyFrom: (month) => `Copiar ${month}`,
+    moreActions: 'Más acciones',
+    cfgBgPresets: {
+      'bg-brand': 'Color de acento', 'bg-income': 'Color de ingresos', 'bg-expense': 'Color de gastos',
+      'bg-savings': 'Color de ahorro', 'bg-remain': 'Color de restante',
+    },
+    ariaTargetInput: (block) => `Importe objetivo de ${block}`,
     copyLastMonth: 'Copiar mes anterior',
     copiedLastMonth: 'Copiado del mes anterior',
     clearAmounts: 'Borrar importes',
@@ -2129,19 +2385,90 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Añadir bloques', body: 'Pulsa "Añadir bloque", ponle un nombre y elige qué es: dinero que Entra, Sale, Ahorro o una Nota.' },
       { title: 'Entrada / Salida / Ahorro', body: 'La etiqueta decide cómo cuenta el bloque. El Resumen la usa para calcular lo que queda.' },
-      { title: 'Tus propias filas', body: 'Dentro de un bloque, añade tantas filas de categoría como quieras y escribe los importes.' },
+      { title: 'Tus propias filas', body: 'Dentro de un bloque, escribe los importes. Las filas nuevas, los nombres y los colores se cambian en Editar diseño.' },
       { title: 'Cambiar tamaño', body: 'Pon cada bloque a ancho Completo, Medio o ⅓. En el móvil se convierten en fichas que se tocan.' },
       { title: 'Color y emoji', body: 'Dale a cualquier bloque su propio color de fondo e icono: hazlo tuyo.' },
       { title: 'Gráficos', body: 'Activa un gráfico y elige el estilo (dona, tarta, barras, mapa de árbol…), el tamaño y dónde se coloca.' },
-      { title: 'Objetivos', body: 'Define un importe objetivo y una barra de progreso se llena hacia él.' },
-      { title: 'Notas', body: 'Añade un bloque de texto para recordatorios o planes, junto a tu dinero.' },
+      { title: 'Objetivos', body: 'Define un importe objetivo y una barra de progreso se llena hacia él. En un bloque de gastos se convierte en un límite que avisa cuando casi se ha agotado.' },
+      { title: 'Notas', body: 'Añade un bloque de texto para recordatorios o planes, junto a tu dinero. Elige si es para un mes o para todos.' },
       { title: 'Resumen', body: 'Añade un bloque de Resumen: suma Ingresos − Gastos automáticamente y muestra el cambio respecto al mes anterior.' },
       { title: 'Copiar mes anterior', body: 'Un toque trae los importes del mes anterior a este mes para no volver a escribirlos.' },
-      { title: 'Editar diseño', body: 'Arrastra para reordenar (↑↓ en el móvil), ⚙ para configurar, ✕ para quitar, 🧹 para borrar todos los importes.' },
+      { title: 'Editar diseño', body: 'Aquí añades filas y cambias nombres y colores. Arrastra para reordenar (↑↓ en el móvil), ⚙ para configurar, ✕ para quitar, 🧹 para borrar todos los importes.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Predeterminado',
     cfgTarget: 'Objetivo',
+    cfgLimit: 'Límite',
+    pickerBuildOwn: 'Crea el tuyo',
+    kindActual: 'REAL',
+    kindGoal: 'META',
+    kindKpi: 'DATO',
+    actualNoEntries: (month) => `Aún no hay movimientos de ${month}. Importa un extracto en Seguimiento.`,
+    actualNothingHere: (name) => `Aún no se ha registrado nada en ${name}.`,
+    actualUnsorted: (amount) => `Hasta ${amount} sin clasificar podría ir aquí.`,
+    actualIncomeDone: '✓ Ha entrado todo',
+    actualIncomeToCome: (amount) => `Faltan por entrar ${amount}`,
+    actualOver: (amount) => `⚠ ${amount} por encima del presupuesto`,
+    actualLeft: (amount) => `Quedan ${amount} del presupuesto`,
+    actualOfBudget: (amount) => `de ${amount} presupuestados`,
+    actualNoBudget: 'sin presupuesto',
+    actualCount: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
+    goalMissing: 'Esta meta de ahorro ya no está en Plan.',
+    goalOf: (amount) => `de ${amount}`,
+    goalBy: (month) => `Lista para ${month}`,
+    goalThisMonth: (amount, month) => `${amount} ahorrados en ${month}`,
+    kpiNoIncome: 'Rellena primero los ingresos.',
+    kpiLargest: 'Categoría más grande',
+    kpiShare: (pct) => `${pct} % de los gastos`,
+    kpiNothing: 'Aún no hay gastos en el presupuesto.',
+    pickerNewCategory: 'Categoría nueva',
+    pickerOutcome: 'Real',
+    pickerGoals: 'Metas de ahorro',
+    pickerFigures: 'Datos',
+    quickEntry: 'Entrada rápida',
+    quickEntryTitle: (month) => `Rellenar ${month}`,
+    quickEntryEmpty: 'Aún no hay filas que rellenar. Añade bloques o filas primero.',
+    quickEntrySaved: 'Todo se guarda mientras escribes.',
+    customHelpLinkedIntro: 'El panel muestra tu presupuesto normal a tu manera. Los mismos importes y categorías, ordenados como quieras.',
+    customHelpLinked: [
+      { title: 'Un solo presupuesto', body: 'Un importe que escribes aquí cambia también en Seguimiento, Ahorro, Plan y Año. Solo hay una cifra.' },
+      { title: 'Entrada rápida', body: 'Rellena todos los importes del mes en una sola lista.' },
+      { title: 'Real', body: 'Añade un bloque de gasto real para una categoría y mira lo que se ha gastado de verdad, según los movimientos importados en Seguimiento.' },
+      { title: 'Metas de ahorro', body: 'Muestra una meta de Plan directamente en el panel.' },
+      { title: 'Datos', body: 'La categoría más grande y lo que queda para vivir, las mismas cifras que en el presupuesto.' },
+      { title: 'Categoría nueva', body: 'Crea una categoría en tu presupuesto normal para el mes que estás viendo.' },
+      { title: 'Editar diseño', body: 'Elige qué se muestra, el orden, el tamaño y el color. ✕ solo quita el bloque del panel; el presupuesto no cambia.' },
+      { title: 'Empezar de nuevo', body: 'Te devuelve a la elección entre vinculado y aparte. Tu presupuesto normal no se toca.' },
+    ],
+    customLinkedNote: '🔗 Vinculado a tu presupuesto normal – los mismos importes en ambos sitios',
+    linkedMissing: (name, month) => `${name || 'Esta categoría'} no está en el presupuesto de ${month}`,
+    linkedRemove: 'Quitar del panel',
+    ariaLinkedRemove: (name) => `Quitar ${name} del panel. El presupuesto no cambia`,
+    pickerFromBudget: 'De tu presupuesto',
+    pickerOther: 'Otros',
+    linkedAllShown: 'Todo tu presupuesto ya se muestra',
+    startOver: 'Empezar de nuevo',
+    startOverConfirmStandalone: '¿Empezar Personalizado de nuevo?\n\nSe borran todos los bloques, importes y notas de Personalizado, en todos los meses. Tu presupuesto normal no se ve afectado.\n\nConsejo: exporta una copia de seguridad antes. También puedes deshacerlo justo después.',
+    startOverConfirmLinked: '¿Empezar Personalizado de nuevo?\n\nSolo se borra el diseño del panel: qué bloques se muestran, su orden, colores y notas. Tu presupuesto normal y todos los importes se quedan.\n\nPuedes deshacerlo justo después.',
+    customChooseAgain: 'Elegir otro tipo de panel',
+    choiceTitle: '¿Qué quieres que sea Personalizado?',
+    choiceIntro: 'Muestra tu presupuesto normal a tu manera, o crea un presupuesto aparte, por ejemplo para un viaje.',
+    choiceLinkedTitle: '🔗 Vinculado a mi presupuesto',
+    choiceLinkedBody: 'Usa las categorías y los importes de tu presupuesto normal. Si cambias un importe, cambia en ambos sitios. Seguimiento, Ahorro, Plan y Año te acompañan.',
+    choiceLinkedCta: 'Elegir vinculado',
+    choiceStandaloneTitle: '👛 Presupuesto aparte',
+    choiceStandaloneBody: 'Bloques e importes propios que no afectan a tu presupuesto normal. Ideal para viajes, proyectos y presupuestos temporales.',
+    choiceStandaloneCta: 'Elegir aparte',
+    choiceChangeLater: 'Puedes volver a elegir con "Empezar de nuevo" en Editar diseño.',
+    noteScope: 'Se muestra',
+    noteScopeMonth: (month) => `Solo ${month}`,
+    noteScopeAll: 'Todos los meses',
+    pickerReadyMade: 'Bloques listos',
+    ariaLimitInput: (block) => `Límite de ${block}`,
+    targetReached: '✓ Objetivo alcanzado',
+    targetToGo: (amount) => `Faltan ${amount}`,
+    limitLeft: (amount) => `Quedan ${amount} del límite`,
+    limitOver: (amount) => `⚠ ${amount} por encima del límite`,
     kindNote: 'NOTA',
     addNote: 'Nota',
     newNoteName: 'Nota',
@@ -2222,6 +2549,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
+      if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },

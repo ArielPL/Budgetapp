@@ -18,7 +18,7 @@ const SavingsTab = lazy(() => import('./components/SavingsTab').then(m => ({ def
 const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: m.PlanTab })));
 const FollowUpTab = lazy(() => import('./components/FollowUpTab').then(m => ({ default: m.FollowUpTab })));
 const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
-const CustomV3 = lazy(() => import('./components/CustomV3').then(m => ({ default: m.CustomV3 })));
+const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
@@ -29,6 +29,7 @@ import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
 import { shortWhen, longDate } from './dateLabel';
+import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
@@ -106,6 +107,11 @@ function App({ startupRepair = null }: AppProps) {
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
+  // Which kind of Custom panel the user chose — or null before they have.
+  // Only a LINKED panel shows the other tabs: they describe the regular budget,
+  // and a standalone panel is a different budget (see customMode.ts).
+  const [customMode, setCustomMode] = useState<CustomMode | null>(() => loadCustomMode(appStorage));
+  const customTabs = customMode === 'linked';
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   // ── Theme Builder: palette family + light/dark mode + override map ──
@@ -1752,6 +1758,14 @@ function App({ startupRepair = null }: AppProps) {
             <TabNav active={activeTab} onChange={changeTab} />
           </div>
         )}
+        {/* A linked Custom panel is the regular budget laid out another way, so
+            every tab still describes what it shows. A standalone one is not,
+            and gets no tabs rather than tabs about someone else's numbers. */}
+        {layout === 'custom' && customTabs && (
+          <div className="header-bottom">
+            <TabNav active={activeTab} onChange={changeTab} variant="custom" />
+          </div>
+        )}
       </header>
 
       {introOpen && <Intro onDone={dismissIntro} />}
@@ -1941,11 +1955,24 @@ function App({ startupRepair = null }: AppProps) {
         {layout === 'custom' && (
           /* ── Custom v3: generic build-from-scratch block budget with its OWN
                separate data (never touches the shared Classic/Combined budget).
-               Tab bar hidden; the global month selector drives its per-month
-               amounts. */
-          <Suspense fallback={lazyFallback}>
-            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />
-          </Suspense>
+               Its first tab replaces Classic's Budget; the others are the same
+               shared views. The global month selector drives both. */
+          <div className="tab-enter" key={customTabs ? activeTab : 'custom'}>
+            {(!customTabs || activeTab === 'budget') && (
+              <Suspense fallback={lazyFallback}>
+                <CustomPanel year={year} month={month} mode={customMode} onModeChange={setCustomMode}
+                  data={data} onSetIncome={setIncome} onSetCategory={setExpenseCategory}
+                  onAddCategory={cat => setData(d => ({ ...d, expenses: [...d.expenses, cat] }))}
+                  goals={planData.goals} periodStartDay={periodStartDay} periodLocks={periodLocks}
+                  onCopyPrev={copyFromPrevMonth}
+                  onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />
+              </Suspense>
+            )}
+            {customTabs && activeTab === 'followup' && followUpView}
+            {customTabs && activeTab === 'savings' && savingsView}
+            {customTabs && activeTab === 'plan' && planView}
+            {customTabs && activeTab === 'year' && yearView}
+          </div>
         )}
       </main>
     </div>
