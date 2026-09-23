@@ -4913,6 +4913,139 @@ a:focus-visible,
    Sits above the table because it is work to DO, not a number to read. Closed
    by default — an open list of 34 unsorted places on every visit reads as an
    accusation. */
+/* ── "Where did the money go?" — the spending card at the top of Follow-up ──
+   One direct answer, with what is still unsorted said out loud beside it.
+   Mobile adjustments are at the end of the file. */
+.spending-card {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.spending-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.spending-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.spending-card-range {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.spending-card-list,
+.spending-card-details {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.spending-card-row,
+.spending-card-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.spending-card-row:last-child,
+.spending-card-detail:last-child {
+  border-bottom: none;
+}
+
+/* A long category name wraps rather than pushing the amount off the card. */
+.spending-card-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.spending-card-amount {
+  flex: 0 0 auto;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.spending-card-detail-meta {
+  flex: 0 1 auto;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-card-fact {
+  margin: 2px 0;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+/* The unsorted line is the point of the card, so it reads at full contrast. */
+.spending-card-unsorted {
+  color: var(--text);
+}
+
+.spending-card-status {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+/* Colour follows meaning, and the sentence carries the same meaning in words,
+   so nothing here depends on seeing the colour. */
+.spending-card-status-complete { border-left-color: var(--positive); }
+.spending-card-status-partial { border-left-color: var(--accent-brand); }
+.spending-card-status-insufficient { border-left-color: var(--negative); }
+
+.spending-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.spending-card-btn {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.spending-card-btn-primary {
+  border-color: transparent;
+  background: var(--accent-brand-strong);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .spending-card-btn:hover { border-color: var(--accent-brand); }
+  .spending-card-btn-primary:hover { filter: brightness(1.08); }
+}
+
 .triage {
   margin: 0 0 14px;
   border: 1px solid var(--border);
@@ -5293,5 +5426,27 @@ a:focus-visible,
   /* And the bar itself sits above the tab bar instead of across it. */
   .undo-bar {
     bottom: calc(var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Spending card on phones ──────────────────────────────────────────────
+   At the end for the same reason as the block above: a media query adds no
+   specificity, so an override placed before its base rule loses to it. */
+@media (max-width: 640px) {
+  .spending-card {
+    padding: 12px 14px;
+  }
+  /* Thumb-sized targets; the two buttons share the row and wrap if they must. */
+  .spending-card-btn {
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+  /* The meta line under a category in the details wraps under its name
+     instead of squeezing it to a few letters. */
+  .spending-card-detail {
+    flex-wrap: wrap;
+  }
+  .spending-card-detail-meta {
+    text-align: left;
   }
 }

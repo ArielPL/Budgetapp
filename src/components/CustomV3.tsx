@@ -700,6 +700,24 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
     blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockPrev(b), 0);
   const prevRemaining = prevSumTag('in') - prevSumTag('out');
 
+  // ── What this month, and the one before it, actually hold ──────────────
+  // An untouched month used to render as a real month of zeros, so the change
+  // against a filled September read as "−30 000 kr income" — a collapse that
+  // never happened. A row counts as recorded when its id is among the month's
+  // stored values, a deliberate 0 included: the same rule userData.ts uses to
+  // decide whether a month holds anything at all.
+  //
+  // A change is shown only when BOTH sides are recorded. Per block for a block,
+  // because a block added this month has no last month to be compared with;
+  // per month for the summary, which adds up every block.
+  const monthRecorded = Object.keys(values).length > 0;
+  const prevMonthRecorded = Object.keys(prevValues).length > 0;
+  const recordedIn = (vals: Record<string, number>, b: CustomBlock) => b.rows.some(r => r.id in vals);
+  const isRecorded = (b: CustomBlock) => (b.kind === 'summary' ? monthRecorded : recordedIn(values, b));
+  const canCompare = (b: CustomBlock) => (b.kind === 'summary'
+    ? monthRecorded && prevMonthRecorded
+    : recordedIn(values, b) && recordedIn(prevValues, b));
+
   // ── Empty state ──
   if (!started || blocks.length === 0) {
     return (
@@ -776,6 +794,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
           const total = blockTotal(b);
           // Phone: every block is a compact tile (tap → modal). Desktop: full inline.
           const asTile = isPhone && !editing;
+          const recorded = isRecorded(b);
           const headline = isSummary
             ? `${summary.remaining >= 0 ? '+' : ''}${money(summary.remaining)}`
             : money(total);
@@ -784,7 +803,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
           const curVal = isSummary ? summary.remaining : total;
           const prevVal = isSummary ? prevRemaining : blockPrev(b);
           const delta = curVal - prevVal;
-          const showDelta = prevVal !== 0;
+          const showDelta = canCompare(b);
 
           return (
             <section
@@ -843,7 +862,9 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                     <span className="custom-tile-preview">{(b.text || '').split('\n')[0] || '—'}</span>
                   ) : (
                     <>
-                      <span className={`custom-tile-headline tone-${tone}`}>{headline}</span>
+                      <span className={`custom-tile-headline tone-${recorded ? tone : 'neutral'}`}>
+                        {recorded ? headline : <span className="amount-unknown" title={t.monthNotFilledHint}>–</span>}
+                      </span>
                       {isSummary && <span className="custom-tile-sub">{t.summaryRemaining}</span>}
                       {showDelta && (
                         <span className={`custom-tile-delta tone-${delta >= 0 ? 'positive' : 'negative'}`}>
@@ -859,6 +880,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
               ) : (
                 <BlockContent
                   block={b} total={total} prevTotal={prevVal} prevRemaining={prevRemaining}
+                  recorded={recorded} showDelta={showDelta}
                   summary={summary} values={values}
                   editing={editing}
                   onRename={renameBlock} onRenameRow={renameRow} onDeleteRow={deleteRow}
@@ -903,8 +925,15 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
               <BlockContent
                 block={expandedBlock} total={blockTotal(expandedBlock)}
                 prevTotal={blockPrev(expandedBlock)} prevRemaining={prevRemaining}
+                recorded={isRecorded(expandedBlock)} showDelta={canCompare(expandedBlock)}
                 summary={summary} values={values}
-                editing
+                // The page's own mode, not a hard-coded `editing`. The bare prop
+                // put every tapped block into design mode — delete buttons on
+                // every row — while "Edit layout" was OFF and the screen looked
+                // like ordinary use. The same block on a desktop, in the same
+                // mode, offers no delete. One rule on both now: structure is
+                // deleted only in the mode that says it edits structure.
+                editing={editing}
                 onRename={renameBlock} onRenameRow={renameRow} onDeleteRow={deleteRow}
                 onRecolorRow={recolorRow}
                 onAddRow={addRow} onSetAmount={setAmount} onSetNote={setNoteText}
@@ -992,6 +1021,11 @@ interface BlockContentProps {
   prevRemaining: number;
   summary: { income: number; expenses: number; saved: number; remaining: number };
   values: Record<string, number>;
+  /** Whether this block has anything recorded this month. When not, its totals
+   *  read "–", never a 0 that looks like a real month. */
+  recorded: boolean;
+  /** Whether a change against last month means anything — both sides recorded. */
+  showDelta: boolean;
   editing: boolean;
   onRename: (id: string, name: string) => void;
   onRenameRow: (id: string, rowId: string, name: string) => void;
@@ -1006,7 +1040,7 @@ interface BlockContentProps {
 }
 
 const BlockContent = ({
-  block, total, prevTotal, prevRemaining, summary, values, editing,
+  block, total, prevTotal, prevRemaining, summary, values, recorded, showDelta, editing,
   onRename, onRenameRow, onDeleteRow, onRecolorRow, onAddRow, onSetAmount, onSetNote, money, currency, t,
 }: BlockContentProps) => {
   // Note block: a free-text block that contributes nothing to the money math.
@@ -1026,7 +1060,7 @@ const BlockContent = ({
   const cur = block.kind === 'summary' ? summary.remaining : total;
   const prev = block.kind === 'summary' ? prevRemaining : prevTotal;
   const delta = cur - prev;
-  const deltaNode = prev !== 0 ? (
+  const deltaNode = showDelta ? (
     <span className={`cv3-delta tone-${delta >= 0 ? 'positive' : 'negative'}`}>
       {delta >= 0 ? '+' : ''}{money(delta)} {t.vsPrev}
     </span>
@@ -1051,12 +1085,14 @@ const BlockContent = ({
     })() : null;
     const summaryRows = (
       <div className="cv3-summary">
-        <SummaryRow label={t.summaryIncome} value={money(summary.income)} cls="tone-positive" />
-        <SummaryRow label={t.summaryExpenses} value={money(summary.expenses)} cls="tone-negative" />
-        <SummaryRow label={t.summarySaved} value={money(summary.saved)} cls="" />
+        <SummaryRow label={t.summaryIncome} value={recorded ? money(summary.income) : '–'}
+          cls={recorded ? 'tone-positive' : ''} />
+        <SummaryRow label={t.summaryExpenses} value={recorded ? money(summary.expenses) : '–'}
+          cls={recorded ? 'tone-negative' : ''} />
+        <SummaryRow label={t.summarySaved} value={recorded ? money(summary.saved) : '–'} cls="" />
         <SummaryRow label={t.summaryRemaining}
-          value={`${summary.remaining >= 0 ? '+' : ''}${money(summary.remaining)}`}
-          cls={summary.remaining >= 0 ? 'tone-positive' : 'tone-negative'} big />
+          value={recorded ? `${summary.remaining >= 0 ? '+' : ''}${money(summary.remaining)}` : '–'}
+          cls={!recorded ? '' : summary.remaining >= 0 ? 'tone-positive' : 'tone-negative'} big />
         {deltaNode && <div className="cv3-block-delta">{deltaNode}</div>}
       </div>
     );
@@ -1133,7 +1169,7 @@ const BlockContent = ({
     <>
       <div className="cv3-block-total">
         <span>{t.blockTotal}</span>
-        <span>{money(total)}</span>
+        <span>{recorded ? money(total) : <span className="amount-unknown" title={t.monthNotFilledHint}>–</span>}</span>
       </div>
       {deltaNode && <div className="cv3-block-delta">{deltaNode}</div>}
       {block.target && block.target > 0 && (

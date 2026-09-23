@@ -29,7 +29,7 @@
 
 import type { ActualEntry } from './types';
 import type { StorageLike } from './storage';
-import { applyStorageChanges } from './storageWrite';
+import { applyStorageChanges, type StorageChange } from './storageWrite';
 import { isValidMoney } from './money';
 import { budgetMonthOf, type PeriodLocks } from './periodLabel';
 import { isValidIsoDate } from './date';
@@ -326,6 +326,81 @@ export function planRefile(
 
   const emptied = keys.map(k => k.key).filter(k => !buckets.has(k));
   return { moving, buckets, emptied, total };
+}
+
+export interface PersistPlan {
+  /** Every write needed: each month in view, plus any month an entry turned
+   *  out to belong to that is NOT in view. */
+  changes: StorageChange[];
+  /** Entries whose date could not be read. The caller must refuse to write. */
+  undated: ActualEntry[];
+  /** What the view should hold afterwards — only entries that belong in it. */
+  kept: ActualEntry[];
+  /** Months outside the view that received entries, for telling the user. */
+  movedTo: { year: number; month: number; count: number }[];
+}
+
+/**
+ * What writing `next` back should change, for a view over `inView`.
+ *
+ * The Follow-up tab edits the entries of the months on screen and writes them
+ * back PER BUDGET MONTH. It used to write only the months in view: an entry
+ * whose date belonged to a month outside the view was regrouped there, and
+ * then written nowhere at all — while the month it had been loaded from was
+ * rewritten without it.
+ *
+ * That was harmless only while every stored entry sat where the current period
+ * rule says it belongs. It did not, for anyone who imported before 2026-09-16:
+ * the rule changed that day from calendar months to pay periods, nothing moved
+ * the entries already stored, and so the first edit of any kind in Follow-up —
+ * deleting one row — deleted every entry dated after the pay day with it, with
+ * no warning. Reproduced with the real functions: delete one of three entries,
+ * zero left anywhere.
+ *
+ * Now an entry that belongs elsewhere is MERGED into that month's stored file.
+ * Nothing is ever dropped, however the stored filing and the rule came to
+ * disagree — this is the safety net; the startup repair keeps it from being
+ * needed.
+ */
+export function planPersist(
+  storage: StorageLike,
+  next: ActualEntry[],
+  inView: { year: number; month: number }[],
+  startDay: number | null,
+  locks: PeriodLocks,
+): PersistPlan {
+  const { months: byMonth, undated } = groupByMonth(next, startDay, locks);
+  const viewKeys = new Set(inView.map(m => `${m.year}_${m.month}`));
+
+  // Every month in view is written, empty ones included, or a deletion that
+  // emptied a month would appear to have been undone on the next load.
+  const changes: StorageChange[] = inView.map(m => {
+    const bucket = byMonth.get(`${m.year}_${m.month}`);
+    return {
+      key: actualsKey(m.year, m.month),
+      value: bucket?.entries.length ? JSON.stringify(bucket.entries) : null,
+    };
+  });
+
+  const kept: ActualEntry[] = [];
+  for (const m of inView) kept.push(...(byMonth.get(`${m.year}_${m.month}`)?.entries ?? []));
+
+  const movedTo: PersistPlan['movedTo'] = [];
+  for (const [key, bucket] of byMonth) {
+    if (viewKeys.has(key)) continue;
+    // Merged, not written over: that month may already hold entries of its
+    // own. By id, so an entry that somehow sat in both files is kept once.
+    const stored = loadActuals(storage, bucket.year, bucket.month);
+    const have = new Set(stored.map(e => e.id));
+    const arriving = bucket.entries.filter(e => !have.has(e.id));
+    changes.push({
+      key: actualsKey(bucket.year, bucket.month),
+      value: JSON.stringify([...stored, ...arriving]),
+    });
+    movedTo.push({ year: bucket.year, month: bucket.month, count: bucket.entries.length });
+  }
+
+  return { changes, undated, kept, movedTo };
 }
 
 /**

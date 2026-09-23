@@ -16,6 +16,41 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.4',
+    date: '2026-09-22',
+    title: {
+      sv: 'Transaktionerna stannar kvar',
+      en: 'Your transactions stay put',
+      es: 'Tus movimientos se quedan',
+    },
+    items: {
+      sv: [
+        'Importerade transaktioner kunde försvinna. Den 16 september började appen sortera dem efter löneperiod i stället för kalendermånad, men redan sparade transaktioner flyttades aldrig. Första gången du sedan ändrade något i Uppföljning — till exempel tog bort en enda rad — försvann alla transaktioner som nu hörde till nästa månad, utan varning. Nu flyttas en sådan transaktion dit den hör hemma i stället',
+        'Transaktioner som ligger i fel månad flyttas till rätt månad när appen startar. Det syns i ångra-raden längst ner, och går att ångra',
+        'Har transaktioner försvunnit för dig: importera samma kontoutdrag igen. Appen känner igen de som redan finns och lägger bara tillbaka de som saknas',
+        'Nytt överst i Uppföljning: "Vad gick pengarna till?" Dina största kategorier, vilka dagar som räknats, och hur mycket som ännu är osorterat. Kortet säger också om svaret håller trots det osorterade — och tar dig direkt till sorteringen om något väntar',
+        'En tom månad i Anpassad ser inte längre ut som en förlust. En orörd oktober visade −30 000 kr i inkomst jämfört med en ifylld september. Nu visas streck, och en jämförelse bara när båda månaderna är ifyllda. En nolla du själv skrivit räknas fortfarande som ifylld',
+        'På mobilen kunde man ta bort rader i Anpassad av misstag. Att öppna ett block visade raderingsknappar fast "Redigera layout" var avstängt. Nu gäller samma regler som på datorn',
+      ],
+      en: [
+        'Imported transactions could disappear. On 16 September the app began filing them by pay period instead of calendar month, but transactions already stored were never moved. The first time you then changed anything in Follow-up — deleting a single row, say — every transaction that now belonged to the next month went with it, without warning. Now such a transaction is moved to where it belongs instead',
+        'Transactions sitting in the wrong month are moved to the right one when the app starts. It shows in the undo bar at the bottom, and can be undone',
+        'If transactions have disappeared for you: import the same statement again. The app recognises the ones already there and only puts back the ones that are missing',
+        'New at the top of Follow-up: "Where did the money go?" Your biggest categories, which days were counted, and how much is still unsorted. The card also says whether the answer holds despite what is unsorted — and takes you straight to sorting if anything is waiting',
+        'An empty month in Custom no longer looks like a loss. An untouched October showed −30 000 kr income against a filled-in September. Now it shows dashes, and a comparison only when both months are filled in. A zero you typed yourself still counts as filled in',
+        'On a phone you could delete rows in Custom by mistake. Opening a block showed delete buttons although "Edit layout" was off. The same rules now apply as on a computer',
+      ],
+      es: [
+        'Los movimientos importados podían desaparecer. El 16 de septiembre la app empezó a archivarlos por periodo de cobro en lugar de por mes natural, pero los movimientos ya guardados nunca se movieron. La primera vez que cambiabas algo en Seguimiento — por ejemplo, borrar una sola fila — desaparecían sin aviso todos los movimientos que ahora pertenecían al mes siguiente. Ahora ese movimiento se mueve a donde corresponde',
+        'Los movimientos que están en el mes equivocado se mueven al correcto cuando se abre la app. Se ve en la barra de deshacer abajo, y se puede deshacer',
+        'Si te han desaparecido movimientos: importa el mismo extracto otra vez. La app reconoce los que ya están y solo vuelve a añadir los que faltan',
+        'Nuevo arriba en Seguimiento: "¿A dónde fue el dinero?" Tus categorías más grandes, qué días se contaron y cuánto sigue sin clasificar. La tarjeta dice también si la respuesta se mantiene pese a lo no clasificado — y te lleva directo a clasificar si hay algo pendiente',
+        'Un mes vacío en Personalizado ya no parece una pérdida. Un octubre sin tocar mostraba −30 000 kr de ingresos frente a un septiembre relleno. Ahora muestra guiones, y una comparación solo cuando ambos meses están rellenos. Un cero que escribiste tú sigue contando como relleno',
+        'En el móvil se podían borrar filas de Personalizado por error. Abrir un bloque mostraba botones de borrar aunque "Editar diseño" estuviera apagado. Ahora rigen las mismas reglas que en el ordenador',
+      ],
+    },
+  },
+  {
     version: '1.12.3',
     date: '2026-09-20',
     title: {

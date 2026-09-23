@@ -236,6 +236,22 @@ export interface Translations {
   followUpBadText: string;
   followUpBadDate: string;
   followUpExternalReloaded: string;
+  /** Entries that turned out to belong to another month and were moved there
+   *  instead of being dropped. The toast offers to go to that month. */
+  followUpMovedOut: (n: number) => string;
+  /** The spending card at the top of Follow-up — see spending.ts. */
+  spendingTitle: string;
+  spendingEmpty: string;
+  spendingCount: (n: number) => string;
+  spendingUnsorted: (amount: string, n: number) => string;
+  spendingStatusComplete: string;
+  spendingStatusPartial: (category: string) => string;
+  spendingStatusInsufficient: string;
+  spendingSort: string;
+  spendingEvidenceShow: string;
+  spendingEvidenceHide: string;
+  /** The top of a category's possible range, when some money is unsorted. */
+  spendingUpTo: (high: string) => string;
   followUpEmptyBody: string;
   followUpImport: string;
   csvTitle: string;
@@ -773,6 +789,22 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Skriv vad posten gällde.',
     followUpBadDate: 'Välj ett datum inom månaden som visas.',
     followUpExternalReloaded: 'Utfallet ändrades i en annan flik. Den senaste versionen har lästs in — gör din ändring igen om det behövs.',
+    followUpMovedOut: (n) => (n === 1
+      ? '1 post hör till en annan månad efter din löneperiod och flyttades dit.'
+      : `${n} poster hör till en annan månad efter din löneperiod och flyttades dit.`),
+    spendingTitle: 'Vad gick pengarna till?',
+    spendingEmpty: 'Inga utgifter är importerade för den här perioden.',
+    spendingCount: (n) => (n === 1 ? '1 transaktion räknades.' : `${n} transaktioner räknades.`),
+    spendingUnsorted: (amount, n) => (n === 1
+      ? `${amount} i 1 post är ännu osorterat.`
+      : `${amount} i ${n} poster är ännu osorterat.`),
+    spendingStatusComplete: 'Allt är sorterat, så svaret är exakt.',
+    spendingStatusPartial: (category) => `${category} är störst även om allt osorterat skulle höra till en annan kategori.`,
+    spendingStatusInsufficient: 'Det osorterade är stort nog att ändra ordningen. Sortera det för ett säkert svar.',
+    spendingSort: 'Sortera de här',
+    spendingEvidenceShow: 'Visa underlag',
+    spendingEvidenceHide: 'Dölj underlag',
+    spendingUpTo: (high) => `kan vara upp till ${high}`,
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
     followUpImport: 'Importera kontoutdrag',
     csvTitle: 'Importera kontoutdrag',
@@ -1076,6 +1108,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteGoal') return 'Ett sparmål togs bort';
       if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
+      if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -1312,6 +1345,22 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Say what the entry was for.',
     followUpBadDate: 'Choose a date within the month being shown.',
     followUpExternalReloaded: 'Actuals changed in another tab. The latest version has been loaded — repeat your edit if needed.',
+    followUpMovedOut: (n) => (n === 1
+      ? '1 entry belongs to another month under your pay period and was moved there.'
+      : `${n} entries belong to another month under your pay period and were moved there.`),
+    spendingTitle: 'Where did the money go?',
+    spendingEmpty: 'No spending has been imported for this period.',
+    spendingCount: (n) => (n === 1 ? '1 transaction counted.' : `${n} transactions counted.`),
+    spendingUnsorted: (amount, n) => (n === 1
+      ? `${amount} in 1 entry is not sorted yet.`
+      : `${amount} in ${n} entries is not sorted yet.`),
+    spendingStatusComplete: 'Everything is sorted, so this is exact.',
+    spendingStatusPartial: (category) => `${category} is the biggest even if everything unsorted belonged to another category.`,
+    spendingStatusInsufficient: 'What is unsorted is enough to change the order. Sort it for a sure answer.',
+    spendingSort: 'Sort these',
+    spendingEvidenceShow: 'Show details',
+    spendingEvidenceHide: 'Hide details',
+    spendingUpTo: (high) => `could be up to ${high}`,
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
     followUpImport: 'Import statement',
     csvTitle: 'Import bank statement',
@@ -1616,6 +1665,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteGoal') return 'A savings goal was removed';
       if (action === 'deleteBlock') return 'A block was removed from Custom';
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
+      if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -1851,6 +1901,22 @@ export const translations: Record<Lang, Translations> = {
     followUpBadText: 'Indica de qué se trataba.',
     followUpBadDate: 'Elige una fecha dentro del mes que se muestra.',
     followUpExternalReloaded: 'Los movimientos cambiaron en otra pestaña. Se cargó la versión más reciente; repite el cambio si hace falta.',
+    followUpMovedOut: (n) => (n === 1
+      ? '1 movimiento pertenece a otro mes según tu periodo de cobro y se movió allí.'
+      : `${n} movimientos pertenecen a otro mes según tu periodo de cobro y se movieron allí.`),
+    spendingTitle: '¿A dónde fue el dinero?',
+    spendingEmpty: 'No se ha importado ningún gasto para este periodo.',
+    spendingCount: (n) => (n === 1 ? 'Se contó 1 movimiento.' : `Se contaron ${n} movimientos.`),
+    spendingUnsorted: (amount, n) => (n === 1
+      ? `${amount} en 1 movimiento sigue sin clasificar.`
+      : `${amount} en ${n} movimientos sigue sin clasificar.`),
+    spendingStatusComplete: 'Todo está clasificado, así que es exacto.',
+    spendingStatusPartial: (category) => `${category} es la mayor aunque todo lo no clasificado perteneciera a otra categoría.`,
+    spendingStatusInsufficient: 'Lo no clasificado basta para cambiar el orden. Clasifícalo para una respuesta segura.',
+    spendingSort: 'Clasificar estos',
+    spendingEvidenceShow: 'Ver detalles',
+    spendingEvidenceHide: 'Ocultar detalles',
+    spendingUpTo: (high) => `podría llegar a ${high}`,
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
     followUpImport: 'Importar extracto',
     csvTitle: 'Importar extracto bancario',
@@ -2155,6 +2221,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteGoal') return 'Se eliminó una meta de ahorro';
       if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
+      if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
