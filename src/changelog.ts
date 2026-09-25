@@ -16,6 +16,41 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.6',
+    date: '2026-09-25',
+    title: {
+      sv: 'Sorteringen känner fler länder',
+      en: 'The sorting knows more countries',
+      es: 'La clasificación conoce más países',
+    },
+    items: {
+      sv: [
+        'Importen föreslår kategorier för butiker i Australien, Sydafrika, Mexiko, Japan och Colombia. Förslagen bygger på hur banker där faktiskt skriver butiksnamnen, och dina egna rättelser vinner alltid',
+        'Rättat: den sydafrikanska matbutiken Boxer ("BOXER SPR STA") föreslogs som prenumeration, eftersom appen trodde att det var svenska Boxer. Svenska Boxer är fortfarande en prenumeration',
+        'Kontantuttag och överföringar till egna konton i Colombia ("RETIRO ATM", "TRANSFERENCIA A NEQUI") räknas som överföringar, inte som köp. Ett uttag vid en Éxito-butik blir alltså inte "Mat & Dryck"',
+        'Japanska kontoutdrag går att importera, även filer sparade i japansk Shift-JIS-kodning, med japanska tecken i både hel- och halvbredd',
+        'En fil i en teckenkodning appen inte kan läsa stoppas nu med ett tydligt meddelande, i stället för att importeras med obegriplig text',
+        'Osäkra namn får medvetet inget förslag: en bensinstationsbutik som Coles Express, betalsätt som PSE och MercadoPago, och okända butiker. Hellre osorterat än fel',
+      ],
+      en: [
+        'The import suggests categories for shops in Australia, South Africa, Mexico, Japan and Colombia. The suggestions are based on how banks there actually write shop names, and your own corrections always win',
+        'Fixed: the South African grocer Boxer ("BOXER SPR STA") was suggested as a subscription, because the app took it for the Swedish TV service Boxer. The Swedish Boxer is still a subscription',
+        'Cash withdrawals and transfers to your own accounts in Colombia ("RETIRO ATM", "TRANSFERENCIA A NEQUI") count as transfers, not purchases. A withdrawal at an Éxito store no longer becomes "Food & Drink"',
+        'Japanese statements can be imported, including files saved in Japanese Shift-JIS encoding, with fullwidth and halfwidth Japanese characters',
+        'A file in a text encoding the app cannot read is now stopped with a clear message, instead of being imported as garbled text',
+        'Uncertain names deliberately get no suggestion: a fuel-station shop like Coles Express, payment methods such as PSE and MercadoPago, and unknown shops. Better unsorted than wrong',
+      ],
+      es: [
+        'La importación sugiere categorías para tiendas de Australia, Sudáfrica, México, Japón y Colombia. Las sugerencias se basan en cómo escriben realmente los bancos de allí los nombres, y tus correcciones siempre ganan',
+        'Corregido: el supermercado sudafricano Boxer ("BOXER SPR STA") se sugería como suscripción, porque la app lo confundía con el servicio sueco de televisión Boxer. El Boxer sueco sigue siendo una suscripción',
+        'Los retiros de efectivo y las transferencias a tus propias cuentas en Colombia ("RETIRO ATM", "TRANSFERENCIA A NEQUI") cuentan como transferencias, no como compras. Un retiro en un Éxito ya no se vuelve "Comida y bebida"',
+        'Se pueden importar extractos japoneses, incluso archivos guardados en la codificación japonesa Shift-JIS, con caracteres japoneses de ancho completo y medio',
+        'Un archivo en una codificación que la app no puede leer ahora se detiene con un mensaje claro, en lugar de importarse con texto ilegible',
+        'Los nombres dudosos no reciben sugerencia a propósito: una tienda de gasolinera como Coles Express, medios de pago como PSE y MercadoPago, y tiendas desconocidas. Mejor sin clasificar que mal clasificado',
+      ],
+    },
+  },
+  {
     version: '1.12.5',
     date: '2026-09-23',
     title: {

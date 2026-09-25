@@ -259,6 +259,8 @@ export interface Translations {
   csvDropSub: string;
   csvPick: string;
   csvUnreadable: string;
+  /** The file's text encoding is none the app can read (see decodeCsv). */
+  csvUnknownEncoding: string;
   csvNoRows: string;
   csvNoText: string;
   csvColumnsLead: string;
@@ -894,6 +896,7 @@ export const translations: Record<Lang, Translations> = {
     csvDropSub: 'CSV från din bank. Filen lämnar aldrig den här enheten.',
     csvPick: 'Välj fil',
     csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
+    csvUnknownEncoding: 'Filen är sparad i en teckenkodning appen inte kan läsa, så texten skulle bli fel. Spara den som UTF-8 (i Excel: "CSV UTF-8") och försök igen.',
     csvNoRows: 'Hittade inga transaktioner i filen.',
     csvNoText: '(utan text)',
     csvColumnsLead: 'Stämmer det här? Välj vad varje kolumn innehåller.',
@@ -1532,6 +1535,7 @@ export const translations: Record<Lang, Translations> = {
     csvDropSub: 'A CSV from your bank. The file never leaves this device.',
     csvPick: 'Choose file',
     csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
+    csvUnknownEncoding: 'The file is saved in a text encoding the app cannot read, so the text would come out wrong. Save it as UTF-8 (in Excel: "CSV UTF-8") and try again.',
     csvNoRows: 'No transactions found in the file.',
     csvNoText: '(no text)',
     csvColumnsLead: 'Is this right? Choose what each column holds.',
@@ -2170,6 +2174,7 @@ export const translations: Record<Lang, Translations> = {
     csvDropSub: 'Un CSV de tu banco. El archivo nunca sale de este dispositivo.',
     csvPick: 'Elegir archivo',
     csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
+    csvUnknownEncoding: 'El archivo está guardado en una codificación que la app no puede leer, así que el texto saldría mal. Guárdalo como UTF-8 (en Excel: "CSV UTF-8") e inténtalo de nuevo.',
     csvNoRows: 'No se encontraron movimientos en el archivo.',
     csvNoText: '(sin texto)',
     csvColumnsLead: '¿Es correcto? Elige qué contiene cada columna.',

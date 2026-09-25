@@ -88,7 +88,7 @@ export function normalise(text: string): string {
 // person Swish. Those are not places at all — see isTransfer below, which sends
 // them to their own bucket instead of guessing a category for them.
 //
-// ── Four lists, and they are NOT equally trustworthy ───────────────────────
+// ── Nine lists, and they are NOT equally trustworthy ───────────────────────
 //
 // INTERNATIONAL means the same thing anywhere in Europe and beyond.
 //
@@ -104,6 +104,15 @@ export function normalise(text: string): string {
 // So these two are a reasonable first guess for a first import, and no more.
 // The second import is where the sorter is actually good, because by then it
 // has learned from what the user corrected — and that works in any country.
+//
+// AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN and COLOMBIA (2026-09-23) mark each
+// entry as one of two kinds, and the difference is the same one as above:
+//   V — the exact form was SEEN in a published statement or card record
+//       (sources in CLAUDE_CODE_SORTER_FIVE_COUNTRIES_2026-09-23.md).
+//   K — a real, large business in that country whose bank text has NOT been
+//       seen. Kept only when the name is distinctive and collides with nothing.
+// V says how one bank wrote one shop once, not how every bank writes it, and
+// neither kind says what was bought.
 //
 // The rule for what goes in: a NAME, distinctive enough to be safe as a whole
 // word. No short or ordinary words — 'dia' is a Spanish supermarket and also
@@ -374,15 +383,139 @@ const SPAIN: Record<StandardCategoryId, string[]> = {
   ],
 };
 
-/** Everything the sorter knows. Exported so a test can hold all four lists to
- *  the same rule: no place may be claimed by two different categories. */
+const AUSTRALIA: Record<StandardCategoryId, string[]> = {
+  // K. "Coles" alone is the supermarket; "Coles Express" is a fuel-station
+  // shop, where the name cannot say fuel or food — see NO_OPINION.
+  mat: ['coles', 'harris farm', 'red rooster'],
+  transport: [],
+  boende: [
+    'bunnings',               // V: BUNNINGS 551000 WARRINGAH
+  ],
+  prenumerationer: ['telstra', 'optus'],   // K
+  // K. Priceline is also an Australian pharmacy, but in UNITED_STATES it is a
+  // travel site — one word cannot mean both, so it is left to the user.
+  personligt: ['chemist warehouse'],
+  fritid: ['qantas', 'jetstar', 'jb hi fi'],   // K
+  sparande: [],
+  lan: [],
+};
+
+const SOUTH_AFRICA: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'pnp',                    // V: PNP FAM STAND (Pick n Pay Family)
+    'boxer spr',              // V: BOXER SPR STA — a grocer, not Swedish Boxer TV;
+                              //    two words, so it beats 'boxer' alone
+    'pick n pay', 'boxer superstores', 'checkers', 'usave',   // K
+    // 'shoprite' (V: SHOPRITE SCF) is already in UNITED_STATES, same category.
+  ],
+  transport: [
+    'engen',                  // V: ENGEN TUGELA
+    'gautrain',               // K
+  ],
+  boende: ['bradlows'],       // K
+  prenumerationer: ['vodacom'],   // K
+  personligt: [
+    'clicks',                 // V: CLICKS STANDE
+    'dis chem',               // K
+  ],
+  fritid: ['flysafair', 'incredible connection'],   // K
+  sparande: [],
+  lan: [],
+};
+
+const MEXICO: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'chedraui',               // V: TDAS CHEDRAUI
+    'soriana',                // V: SORIANA573 — the store number is welded on;
+                              //    see gluedNumber below
+    'oxxo',                   // V: OXXOGLORIETA — welded to the place; see GLUED_BRANDS
+    'bodega aurrera',         // K
+  ],
+  transport: ['pemex', 'oxxo gas'],   // K; OXXO GAS is the chain's fuel brand
+  boende: [],
+  prenumerationer: ['telcel'],        // K
+  personligt: [
+    'f ahorro',               // V: F AHORRO SAVS V (Farmacias del Ahorro)
+    'farmacias del ahorro',   // K
+  ],
+  fritid: ['cinepolis', 'cinemex', 'volaris'],   // K
+  sparande: [],
+  lan: [],
+};
+
+// Japanese descriptors have no spaces, so these are matched as a run of
+// characters rather than as whole words — see JAPANESE_RULES. Latin names that
+// appear welded to Japanese text ("KDDIリョウキン") are split off first and then
+// matched as ordinary words.
+const JAPAN: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'セブンイレブン',          // V: セブン-イレブン
+    'ローソン', 'ファミリーマート',   // K
+  ],
+  transport: [
+    'イデミツ',                // V: イデミツ（アポロ シェル）, with a wide space
+    'eneos', 'エネオス',        // K
+  ],
+  boende: ['ニトリ'],          // K
+  prenumerationer: [
+    'kddi',                   // V: 6カップン KDDIリョウキン, with a wide space
+  ],
+  personligt: ['マツモトキヨシ'],   // K
+  fritid: [
+    'イオンシネマ',             // V: a cinema. There is deliberately no rule for
+                              //    イオン alone, so it cannot be read as food.
+    'ヨドバシカメラ',           // K
+  ],
+  sparande: [],
+  lan: [],
+};
+
+const COLOMBIA: Record<StandardCategoryId, string[]> = {
+  mat: [
+    // V. Éxito is never a rule by itself: the same statements show
+    // "RETIRO ATM MFM EXITO SUBA", a cash withdrawal AT an Éxito.
+    'compra nacional exito',  // V: COMPRA NACIONAL EXITO BUCARAMANGA
+    'tienda d1',              // V: COMPRA EN TIENDA D1 — "D1" alone is too short
+    'carulla',                // K
+  ],
+  transport: ['terpel'],      // K
+  boende: [],
+  prenumerationer: ['claro colombia'],   // K; "claro" alone is an ordinary word
+  personligt: ['farmatodo'],  // K
+  fritid: ['cine colombia', 'avianca'],   // K
+  sparande: [],
+  lan: [],
+};
+
+/** Every list, by name — the tests hold them all to the same rules. */
+export const SEED_LISTS = {
+  INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN, AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN, COLOMBIA,
+} as const;
+
+/** Everything the sorter knows. Exported so a test can hold every list to the
+ *  same rule: no place may be claimed by two different categories. */
 export const SEED: Record<StandardCategoryId, string[]> = Object.fromEntries(
-  STANDARD_CATEGORY_IDS.map(id => [id, [
-    ...INTERNATIONAL[id], ...SWEDEN[id], ...UNITED_STATES[id], ...SPAIN[id],
-  ]]),
+  STANDARD_CATEGORY_IDS.map(id => [id, Object.values(SEED_LISTS).flatMap(list => list[id])]),
 ) as Record<StandardCategoryId, string[]>;
 
-export { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN };
+export { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN, AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN, COLOMBIA };
+
+/**
+ * Names that must NOT get a suggestion, and must stop a shorter rule from
+ * giving one. "Coles Express" is a fuel-station shop: the receipt could be
+ * petrol or a sandwich, and 'coles' would otherwise call it groceries.
+ * Longest match wins as usual, so these only ever silence something shorter.
+ */
+const NO_OPINION = ['coles express'];
+
+/** Brands welded to the place they are in ("OXXOGLORIETA"), which no whole-
+ *  word rule can reach. Deliberately a short, named list rather than a general
+ *  prefix rule: that a word begins with a brand is no evidence on its own, so
+ *  each needs a real sighting and its exceptions spelled out. */
+const GLUED_BRANDS: { prefix: string; kind: StandardCategoryId; except: string[] }[] = [
+  // OXXO GAS, written as one word, is the chain's fuel brand — not a shop.
+  { prefix: 'oxxo', kind: 'mat', except: ['oxxogas'] },
+];
 
 /**
  * Endings, for the one thing whole-word matching cannot do: Swedish builds
@@ -408,12 +541,50 @@ const SUFFIX_RULES: { suffix: string; kind: StandardCategoryId }[] = Object
     (endings ?? []).map(suffix => ({ suffix, kind: kind as StandardCategoryId })))
   .sort((a, b) => b.suffix.length - a.suffix.length);
 
-/** The list, flattened once and ordered so the most specific rule wins. */
-const RULES: { words: string[]; kind: StandardCategoryId }[] = Object
+/** Hiragana, katakana (incl. the long-vowel mark) and kanji. */
+const JAPANESE = /[\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
+
+/** The word list, flattened once and ordered so the most specific rule wins.
+ *  A null kind is a NO_OPINION entry: it wins like any rule, and says nothing. */
+const RULES: { words: string[]; kind: StandardCategoryId | null }[] = [
+  ...Object.entries(SEED).flatMap(([kind, patterns]) => patterns
+    .filter(p => !JAPANESE.test(p))
+    .map(p => ({ words: p.split(' '), kind: kind as StandardCategoryId | null }))),
+  ...NO_OPINION.map(p => ({ words: p.split(' '), kind: null })),
+].sort((a, b) => b.words.length - a.words.length || b.words.join('').length - a.words.join('').length);
+
+/** Japanese names, matched as a run of characters, longest first. */
+const JAPANESE_RULES: { text: string; kind: StandardCategoryId }[] = Object
   .entries(SEED)
-  .flatMap(([kind, patterns]) =>
-    patterns.map(p => ({ words: p.split(' '), kind: kind as StandardCategoryId })))
-  .sort((a, b) => b.words.length - a.words.length || b.words.join('').length - a.words.join('').length);
+  .flatMap(([kind, patterns]) => patterns
+    .filter(p => JAPANESE.test(p))
+    .map(p => ({ text: p, kind: kind as StandardCategoryId })))
+  .sort((a, b) => b.text.length - a.text.length);
+
+/**
+ * The words the BUILT-IN list is matched against.
+ *
+ * Deliberately not normalise() itself. normalise() is also the key a user's
+ * correction is stored under, so changing what it returns would quietly detach
+ * every correction already made. Everything here only widens what the seed list
+ * can recognise:
+ *
+ *   · NFKC first: fullwidth ＮＥＴＦＬＩＸ and halfwidth ｾﾌﾞﾝ read as their
+ *     ordinary forms, and fullwidth brackets become punctuation.
+ *   · Accents the fold table does not carry (á í ó ú …) are dropped from LATIN
+ *     letters only — decomposing everything would strip the voicing marks off
+ *     Japanese kana and turn ブ into フ.
+ *   · A Latin run welded to Japanese text is its own word ("kddiリョウキン").
+ *   · A store number welded to a name ("soriana573") is dropped; standalone
+ *     numbers normalise() already removes.
+ */
+function matchWords(text: string): string[] {
+  const widened = text.normalize('NFKC')
+    .replace(/[\u00c0-\u024f]/g, c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  return normalise(widened).split(' ').filter(Boolean)
+    .flatMap(w => w.match(/[\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+|[^\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+/g) ?? [w])
+    .map(w => /^([a-z]{4,})\d{3,}$/.exec(w)?.[1] ?? w);
+}
 
 /**
  * Whether `needle` appears in `haystack` as a run of whole words.
@@ -448,7 +619,7 @@ function hasWordRun(haystack: string[], needle: string[], cut = false): boolean 
 /** What the built-in list thinks this place is, or undefined if it has no
  *  opinion. No opinion is a valid and common answer. */
 export function seedKind(text: string): StandardCategoryId | undefined {
-  const words = normalise(text).split(' ').filter(Boolean);
+  const words = matchWords(text);
   if (words.length === 0) return undefined;
   // Three passes, weakest last, and each finishes before the next begins.
   // Order is the whole design: a complete word beats a compound, and a compound
@@ -457,9 +628,26 @@ export function seedKind(text: string): StandardCategoryId | undefined {
   // and "FORNHOJDENS FRIS" became a gym because "fris" is a prefix of
   // "friskis". Both are exact matches on a better rule, and exact must win.
 
-  // 1. Whole words.
+  // 1. Whole words. A NO_OPINION entry ends the search with no answer.
   for (const rule of RULES) {
-    if (hasWordRun(words, rule.words)) return rule.kind;
+    if (hasWordRun(words, rule.words)) return rule.kind ?? undefined;
+  }
+
+  // 1b. Japanese names, which are written without spaces. Matched inside the
+  // text with the spaces taken out, so "セブン-イレブン" and "セブンイレブン"
+  // agree. Longest first: a cinema must not be read as its parent's grocer.
+  const joined = words.join('');
+  if (JAPANESE.test(joined)) {
+    for (const rule of JAPANESE_RULES) {
+      if (joined.includes(rule.text)) return rule.kind;
+    }
+  }
+
+  // 1c. A brand welded to where it is. Only the named ones, and never their
+  // listed exceptions — which answer nothing rather than something wrong.
+  for (const w of words) {
+    const brand = GLUED_BRANDS.find(b => w.startsWith(b.prefix) && w.length >= b.prefix.length + 4);
+    if (brand) return brand.except.some(e => w.startsWith(e)) ? undefined : brand.kind;
   }
 
   // 2. Swedish compounds, which weld the word to the name.
@@ -474,7 +662,7 @@ export function seedKind(text: string): StandardCategoryId | undefined {
   // gets no licence to match loosely.
   if (text.trim().length >= 15) {
     for (const rule of RULES) {
-      if (hasWordRun(words, rule.words, true)) return rule.kind;
+      if (hasWordRun(words, rule.words, true)) return rule.kind ?? undefined;
     }
   }
   return undefined;
@@ -502,10 +690,20 @@ const RAILS_WORDS = [
   'autogiro', 'bankgiro', 'plusgiro', 'egen', 'internetoverforing',
 ];
 
+/**
+ * Rails that need more than one word to be safe. "Retiro" alone is also a
+ * park in Madrid and a neighbourhood in Buenos Aires; "retiro atm" is a cash
+ * withdrawal, and one at an Éxito ("RETIRO ATM MFM EXITO SUBA") must never be
+ * read as groceries. Nequi is a Colombian wallet the user tops up themselves.
+ * PSE is NOT here: it names how a bill was paid, not that money only moved.
+ */
+const RAIL_PHRASES = ['retiro atm', 'retiro cajero', 'transferencia a nequi'].map(p => p.split(' '));
+
 export function isTransfer(text: string): boolean {
   const words = normalise(text).split(' ').filter(Boolean);
   if (words.length === 0) return false;
-  return RAILS_WORDS.some(w => words.includes(w));
+  return RAILS_WORDS.some(w => words.includes(w))
+    || RAIL_PHRASES.some(p => hasWordRun(words, p));
 }
 
 // ── What the user has taught it ────────────────────────────────────────────

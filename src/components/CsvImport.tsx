@@ -4,7 +4,7 @@ import { appStorage } from '../storage';
 import { useModalFocus } from '../useModalFocus';
 import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
-  decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
+  decodeCsv, CsvEncodingError, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
   parseDate,
   type ColumnRole, type TextGroup, type DateOrder,
@@ -153,8 +153,10 @@ export const CsvImport = ({
       setHeaderless(headerless);
       if (remembered) toReview(body, guess, order);
       else setStep('columns');
-    } catch {
-      setError(t.csvUnreadable);
+    } catch (e) {
+      // An encoding it cannot read is said as such — "unreadable" would send
+      // the user looking for a broken file when re-saving it as UTF-8 fixes it.
+      setError(e instanceof CsvEncodingError ? t.csvUnknownEncoding : t.csvUnreadable);
     }
   };
 

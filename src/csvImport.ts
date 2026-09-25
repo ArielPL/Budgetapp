@@ -71,20 +71,77 @@ export function detectDateOrder(values: string[]): DateOrder | 'ambiguous' {
   return 'ambiguous';
 }
 
+/** A file whose text encoding this app cannot read. Thrown instead of
+ *  returning mangled text, which the import would otherwise save as it is. */
+export class CsvEncodingError extends Error {
+  constructor() { super('unrecognised text encoding'); this.name = 'CsvEncodingError'; }
+}
+
+/** Column names a Japanese bank or card export uses. Any one of them, read
+ *  correctly, is proof the file is Japanese. */
+const JAPANESE_HEADER_WORDS = [
+  '日付', '金額', '摘要', '利用日', '利用店名', 'ご利用', '取引日', '取引内容',
+  'お支払', '入金', '出金', '残高', '明細',
+];
+
 /**
- * Read the bytes as text, trying UTF-8 first and falling back to Windows-1252.
+ * Whether bytes read as Shift-JIS (Japan's CP932) really are Japanese.
+ *
+ * Needed because Shift-JIS "succeeds" on a Swedish Windows-1252 file: Å, Ä and
+ * Ö are halfwidth katakana there, and ä or å followed by a letter is a kanji.
+ * So success alone proves nothing. What a Latin file can NOT produce is
+ * hiragana or fullwidth katakana (their lead bytes are ‚ and ƒ in
+ * Windows-1252), nor a real Japanese column name — and a Latin letter in the
+ * F0–F9 range lands in the private-use area, which Japanese text never does.
+ */
+function isJapanese(text: string): boolean {
+  if (/[\ue000-\uf8ff]/.test(text)) return false;
+  if (JAPANESE_HEADER_WORDS.some(w => text.includes(w))) return true;
+  return (text.match(/[\u3040-\u30ff]/g) ?? []).length >= 4;
+}
+
+/**
+ * Whether a Windows-1252 reading is really some other encoding in disguise.
+ * Swedish and Spanish text is letters: å, ñ, é. A multi-byte file read one byte
+ * at a time is mostly the punctuation and symbols that live in 0x80–0xBF —
+ * „ † ‰ ƒ ¶ — which no statement is made of.
+ */
+function looksMisread(latin: string): boolean {
+  const nonAscii = [...latin].filter(c => c.charCodeAt(0) > 0x7f);
+  if (nonAscii.length < 12) return false;
+  const symbols = nonAscii.filter(c => /[\u0080-\u00bf\u0152\u0153\u0160\u0161\u0178\u017d\u017e\u0192\u02c6\u02dc\u2013-\u203a\u20ac\u2122]/.test(c));
+  return symbols.length / nonAscii.length >= 0.3;
+}
+
+/**
+ * Read the bytes as text: UTF-8, then Japanese Shift-JIS, then Windows-1252.
  *
  * Swedish bank exports are very often Windows-1252, and a UTF-8 decoder does
  * not fail loudly on it — it produces replacement characters, so the import
  * "works" and every Swedish letter is quietly mangled. Decoding strictly and
  * falling back is the only way to tell the two apart.
+ *
+ * Japanese banks and card companies export Shift-JIS, which the Windows-1252
+ * fallback turned into symbols without a word. It is tried before that
+ * fallback, but only accepted when the text is demonstrably Japanese (see
+ * isJapanese). And a file that is still unreadable after all three is refused
+ * with CsvEncodingError rather than imported as noise.
  */
 export function decodeCsv(bytes: ArrayBuffer): string {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
-    return new TextDecoder('windows-1252').decode(bytes);
+    // Not UTF-8; try the others.
   }
+  try {
+    const japanese = new TextDecoder('shift_jis', { fatal: true }).decode(bytes);
+    if (isJapanese(japanese)) return japanese;
+  } catch {
+    // Not Shift-JIS either — the usual case for a Swedish file.
+  }
+  const latin = new TextDecoder('windows-1252').decode(bytes);
+  if (looksMisread(latin)) throw new CsvEncodingError();
+  return latin;
 }
 
 /** Semicolon, comma or tab — whichever appears most on the busiest line.
