@@ -4,16 +4,18 @@ import { useLang, MONTHS } from '../i18n';
 import { useIsPhone } from '../useIsPhone';
 import { useModalFocus } from '../useModalFocus';
 import { appStorage } from '../storage';
-import { safeSetItem } from '../storageWrite';
+import { safeSetItem, applyStorageChanges } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
-import { shownName, loadMonthData, generateId, createCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
-import { loadActuals, INCOME_ACTUAL_ID } from '../actuals';
+import { shownName, loadMonthData, generateId, createCategory, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
+import { loadActuals, actualsKey, INCOME_ACTUAL_ID } from '../actuals';
+import { recursNextMonth } from '../metrics';
 import type { PeriodLocks } from '../periodLabel';
 import { hasBudgetContent } from '../monthContent';
 import { sumRows } from '../metrics';
 import { CUSTOM_LINKED_KEY } from '../customMode';
 import {
-  defaultLinkedLayout, loadLinkedLayout, linkedSummary, newLinkedBlock, sameSource, isInsight, SAVINGS_CATEGORY,
+  defaultLinkedLayout, loadLinkedLayout, linkedSummary, newLinkedBlock, sameSource, isInsight, planCarryForward,
+  SAVINGS_CATEGORY, type StoredMonth,
   type LinkedBlock, type LinkedSource, type InsightSource,
 } from '../customLinked';
 import {
@@ -22,7 +24,6 @@ import {
   type CustomBlock, type BlockWidth,
 } from './CustomV3';
 import { InsightContent } from './LinkedInsights';
-import { QuickEntry } from './QuickEntry';
 
 // ── Custom, linked to the regular budget ────────────────────────────────────
 //
@@ -86,11 +87,32 @@ export const CustomLinked = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useModalFocus(menuRef, menuOpen, () => setMenuOpen(false));
-  const [quickOpen, setQuickOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  // This budget month's transactions, for outcome blocks. Read once per month:
-  // they change only in Follow-up, and leaving this tab remounts the panel.
-  const entries = useMemo(() => loadActuals(appStorage, year, month), [year, month]);
+  // This budget month's transactions, for outcome blocks. Re-read when the
+  // month changes, and when ANOTHER browser tab writes them — an import made
+  // in a second tab would otherwise leave these blocks a step behind until a
+  // reload. (Leaving for Follow-up in this tab remounts the panel anyway.)
+  const [entries, setEntries] = useState(() => loadActuals(appStorage, year, month));
+  useEffect(() => {
+    const key = actualsKey(year, month);
+    const reload = () => setEntries(loadActuals(appStorage, year, month));
+    reload();
+    const onStorage = (e: StorageEvent) => { if (e.key === key || e.key === null) reload(); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [year, month]);
+
+  // Every regular-budget month on this device, oldest first — for carrying a
+  // change forward, and for fetching a category from an earlier month.
+  const storedMonths = (): { year: number; month: number }[] => {
+    const out: { year: number; month: number }[] = [];
+    for (let i = 0; i < appStorage.length; i++) {
+      const m = /^budget_(\d{4})_(\d{1,2})$/.exec(appStorage.key(i) ?? '');
+      if (m && Number(m[2]) <= 11) out.push({ year: Number(m[1]), month: Number(m[2]) });
+    }
+    return out.sort((a, b) => a.year - b.year || a.month - b.month);
+  };
+  const isAfter = (a: { year: number; month: number }) => a.year > year || (a.year === year && a.month > month);
 
   const prevYear = month === 0 ? year - 1 : year;
   const prevMonth = month === 0 ? 11 : month - 1;
@@ -212,6 +234,67 @@ export const CustomLinked = ({
   };
 
   // ── Layout ──
+  // Desktop reordering by dragging, as on a standalone panel. The ↑ ↓ buttons
+  // stay beside it: a keyboard or a screen reader cannot drag.
+  const dragId = useRef<string | null>(null);
+  const reorderTo = (fromId: string, toId: string) => setLayout(prev => {
+    const from = prev.findIndex(b => b.id === fromId);
+    const to = prev.findIndex(b => b.id === toId);
+    if (from < 0 || to < 0 || from === to) return prev;
+    const next = [...prev];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  });
+
+  // ── Changes that should reach later months (see planCarryForward) ──
+  // The month's categories as they were when Edit layout was switched on.
+  const editStart = useRef<{ key: string; cats: BudgetCategory[] } | null>(null);
+  const carryForward = () => {
+    const start = editStart.current;
+    editStart.current = null;
+    if (!start || start.key !== `${year}_${month}`) return;
+    const later: StoredMonth[] = storedMonths().filter(isAfter)
+      .map(m => ({ ...m, data: loadMonthData(m.year, m.month, lang) }))
+      .filter(m => hasBudgetContent(m.data));
+    const plan = planCarryForward(start.cats, data.expenses, later);
+    if (plan.months.length === 0) return;
+    const first = plan.months[0];
+    const last = plan.months[plan.months.length - 1];
+    const span = (m: StoredMonth) => `${inSentence(MONTHS[lang][m.month], lang)} ${m.year}`;
+    const names = data.expenses.filter(c => plan.names.includes(c.name)).map(c => shownName(c, lang));
+    if (!window.confirm(t.linkedCarryConfirm(
+      names, monthLabel, plan.months.length, span(first), span(last),
+    ))) return;
+    const keys = plan.months.map(m => storageKey(m.year, m.month));
+    onRecordUndo({
+      at: new Date().toISOString(), action: 'copyBudget', count: plan.months.length,
+      year: first.year, month: first.month, changes: captureKeys(appStorage, keys),
+    });
+    // One write for every month, rolled back together if storage refuses one.
+    // Never the month on screen, so App's save effect cannot race it.
+    if (!applyStorageChanges(appStorage, plan.months.map(m => ({
+      key: storageKey(m.year, m.month), value: JSON.stringify(m.data),
+    })))) onSaveFailed();
+  };
+  const toggleEditing = () => {
+    setMenuOpen(false);
+    if (editing) carryForward();
+    else editStart.current = { key: `${year}_${month}`, cats: data.expenses };
+    setEditing(e => !e);
+  };
+
+  /** The nearest EARLIER month that has this category, with its monthly rows
+   *  — what "copy from last month" would bring, for one category. */
+  const earlierCategory = (id: string): { cat: BudgetCategory; year: number; month: number } | null => {
+    const before = storedMonths().filter(m => !isAfter(m) && !(m.year === year && m.month === month)).reverse();
+    for (const m of before) {
+      const cat = loadMonthData(m.year, m.month, lang).expenses.find(c => c.id === id);
+      if (cat) return { cat: { ...cat, rows: cat.rows.filter(recursNextMonth) }, ...m };
+    }
+    return null;
+  };
+
   const move = (id: string, dir: -1 | 1) => setLayout(prev => {
     const i = prev.findIndex(b => b.id === id);
     const j = i + dir;
@@ -283,7 +366,7 @@ export const CustomLinked = ({
 
   const editToggle = (
     <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
-      onClick={() => { setMenuOpen(false); setEditing(e => !e); }}>
+      onClick={toggleEditing}>
       {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
     </button>
   );
@@ -300,7 +383,6 @@ export const CustomLinked = ({
             <button className="custom-edit-btn" onClick={onCopyPrev} title={t.copyLastMonth}>
               📋 {t.copyLastMonth}
             </button>
-            <button className="custom-edit-btn" onClick={() => setQuickOpen(true)}>⚡ {t.quickEntry}</button>
             {editToggle}
             {editing && (
               <button className="custom-edit-btn custom-reset-btn" onClick={onStartOver}>↺ {t.startOver}</button>
@@ -315,10 +397,6 @@ export const CustomLinked = ({
               <div ref={menuRef} className="custom-menu-layer">
                 <div className="custom-menu-backdrop" onClick={() => setMenuOpen(false)} />
                 <div className="custom-menu" role="menu" aria-label={t.moreActions}>
-                  <button role="menuitem" className="custom-menu-item"
-                    onClick={() => { setMenuOpen(false); setQuickOpen(true); }}>
-                    ⚡ {t.quickEntry}
-                  </button>
                   <button role="menuitem" className="custom-menu-item"
                     onClick={() => { setMenuOpen(false); setHelpOpen(true); }}>
                     ❔ {t.howItWorks}
@@ -358,9 +436,18 @@ export const CustomLinked = ({
           return (
             <section key={lb.id}
               className={`custom-section w-${lb.width}${editing ? ' custom-section-editing' : ''}${asTile ? ' custom-section-tile' : ''}`}
-              style={bgStyle(lb.bg)}>
+              style={bgStyle(lb.bg)}
+              draggable={editing && !isPhone}
+              onDragStart={editing && !isPhone ? () => { dragId.current = lb.id; } : undefined}
+              onDragOver={editing && !isPhone ? (e) => e.preventDefault() : undefined}
+              onDrop={editing && !isPhone ? (e) => {
+                e.preventDefault();
+                if (dragId.current) reorderTo(dragId.current, lb.id);
+                dragId.current = null;
+              } : undefined}>
               {editing && (
                 <div className="custom-section-controls">
+                  {!isPhone && <span className="custom-grip" title={t.dragToReorder} aria-hidden="true">⠿</span>}
                   <div className="custom-width-toggle" role="group" title={t.cfgWidth}>
                     {((isPhone ? ['full', 'half'] : ['full', 'half', 'third']) as BlockWidth[]).map(w => (
                       <button key={w}
@@ -395,7 +482,24 @@ export const CustomLinked = ({
                 // In a month with no budget at all the callout above already
                 // says why, so each block only shows the unknown mark.
                 monthRecorded
-                  ? <p className="cv3-linked-missing">{t.linkedMissing(lb.name ?? '', monthLabel)}</p>
+                  ? (() => {
+                      // Offer the category back from the nearest month that has
+                      // it — one tap, the same thing "copy from last month" does
+                      // for a whole budget.
+                      const found = lb.source.kind === 'category' ? earlierCategory(lb.source.id) : null;
+                      return (
+                        <>
+                          <p className="cv3-linked-missing">{t.linkedMissing(lb.name ?? '', monthLabel)}</p>
+                          {found && (
+                            <button className="custom-secondary-btn cv3-linked-fetch"
+                              onClick={() => onAddCategory(found.cat)}>
+                              📋 {t.linkedFetchFrom(shownName(found.cat, lang),
+                                `${inSentence(MONTHS[lang][found.month], lang)} ${found.year}`)}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()
                   : <p className="cv3-linked-missing">
                       {lb.name} <span className="amount-unknown" title={t.monthNotFilledHint}>–</span>
                     </p>
@@ -434,20 +538,6 @@ export const CustomLinked = ({
       {picking && (
         <LinkedPicker data={data} goals={goals} shown={shown} onAdd={addBlock} onAddCategory={addCategory}
           onClose={() => setPicking(false)} />
-      )}
-
-      {quickOpen && (
-        // The whole month, not only the blocks on the panel: quick entry fills
-        // in the budget, and a category left off the panel is still in it.
-        <QuickEntry monthLabel={monthLabel} onSetAmount={setAmount} onClose={() => setQuickOpen(false)}
-          groups={[
-            { id: 'income', title: t.income, icon: '💵',
-              rows: data.income.map(r => ({ id: r.id, name: shownName(r, lang), amount: r.amount })) },
-            ...data.expenses.map(c => ({
-              id: c.id, title: shownName(c, lang), icon: c.icon,
-              rows: c.rows.map(r => ({ id: r.id, name: shownName(r, lang), amount: r.amount })),
-            })),
-          ]} />
       )}
 
       {helpOpen && (
@@ -489,7 +579,7 @@ export const CustomLinked = ({
   );
 };
 
-const LINKED_HELP_ICONS = ['🔗', '⚡', '🧾', '🎯', '📊', '＋', '✎', '↺'];
+const LINKED_HELP_ICONS = ['🔗', '🧾', '🎯', '📊', '＋', '✎', '↺'];
 
 // ── What can be added: the parts of the budget not on the panel yet ──
 const LinkedPicker = ({ data, goals, shown, onAdd, onAddCategory, onClose }: {

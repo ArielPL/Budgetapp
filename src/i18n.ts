@@ -512,11 +512,6 @@ export interface Translations {
   pickerOutcome: string;
   pickerGoals: string;
   pickerFigures: string;
-  /** Quick entry: every amount of the month in one list. */
-  quickEntry: string;
-  quickEntryTitle: (month: string) => string;
-  quickEntryEmpty: string;
-  quickEntrySaved: string;
   /** The guide for a linked panel. */
   customHelpLinkedIntro: string;
   customHelpLinked: { title: string; body: string }[];
@@ -524,6 +519,9 @@ export interface Translations {
   customLinkedNote: string;
   linkedMissing: (name: string, month: string) => string;
   linkedRemove: string;
+  /** Leaving Edit layout on a linked panel: carry new or renamed categories on. */
+  linkedCarryConfirm: (names: string[], month: string, count: number, first: string, last: string) => string;
+  linkedFetchFrom: (name: string, month: string) => string;
   ariaLinkedRemove: (name: string) => string;
   pickerFromBudget: string;
   pickerOther: string;
@@ -1152,14 +1150,9 @@ export const translations: Record<Lang, Translations> = {
     pickerOutcome: 'Utfall',
     pickerGoals: 'Sparmål',
     pickerFigures: 'Nyckeltal',
-    quickEntry: 'Snabbinmatning',
-    quickEntryTitle: (month) => `Fyll i ${month}`,
-    quickEntryEmpty: 'Det finns inga rader att fylla i än. Lägg till block eller rader först.',
-    quickEntrySaved: 'Allt sparas medan du skriver.',
     customHelpLinkedIntro: 'Panelen visar din vanliga budget på ditt sätt. Samma belopp, samma kategorier – bara ordnade som du vill.',
     customHelpLinked: [
       { title: 'Samma budget', body: 'Ett belopp du skriver här ändras även under Uppföljning, Sparande, Plan och År. Det finns bara en siffra.' },
-      { title: 'Snabbinmatning', body: 'Fyll i alla belopp för månaden i en enda lista.' },
       { title: 'Utfall', body: 'Lägg till ett utfallsblock för en kategori och se vad som faktiskt har gått åt, från transaktionerna du importerat under Uppföljning.' },
       { title: 'Sparmål', body: 'Visa ett mål från Plan direkt i panelen.' },
       { title: 'Nyckeltal', body: 'Största kategorin och Kvar att leva på, samma siffror som i budgeten.' },
@@ -1170,6 +1163,9 @@ export const translations: Record<Lang, Translations> = {
     customLinkedNote: '🔗 Kopplad till din vanliga budget – samma belopp på båda ställena',
     linkedMissing: (name, month) => `${name || 'Kategorin'} finns inte i budgeten för ${month}`,
     linkedRemove: 'Ta bort från panelen',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `Du ändrade ${names.join(', ')} i budgeten för ${month}.\n\nSka ändringen gälla även ${count === 1 ? `${first}, som redan har en budget` : `de ${count} senare månaderna som redan har en budget (${first}–${last})`}?\n\nNya kategorier läggs till där, och namn byts där de fortfarande heter som förut. Du kan ångra efteråt.`,
+    linkedFetchFrom: (name, month) => `Hämta ${name} från ${month}`,
     ariaLinkedRemove: (name) => `Ta bort ${name} från panelen. Budgeten ändras inte`,
     pickerFromBudget: 'Från din budget',
     pickerOther: 'Övrigt',
@@ -1791,14 +1787,9 @@ export const translations: Record<Lang, Translations> = {
     pickerOutcome: 'Outcome',
     pickerGoals: 'Savings goals',
     pickerFigures: 'Figures',
-    quickEntry: 'Quick entry',
-    quickEntryTitle: (month) => `Fill in ${month}`,
-    quickEntryEmpty: 'There are no rows to fill in yet. Add blocks or rows first.',
-    quickEntrySaved: 'Everything is saved as you type.',
     customHelpLinkedIntro: 'The panel shows your regular budget your way. Same amounts, same categories – arranged how you like.',
     customHelpLinked: [
       { title: 'One budget', body: 'An amount you type here also changes under Follow-up, Savings, Plan and Year. There is only one figure.' },
-      { title: 'Quick entry', body: 'Fill in every amount for the month in a single list.' },
       { title: 'Outcome', body: 'Add an outcome block for a category and see what was actually spent, from the transactions you imported under Follow-up.' },
       { title: 'Savings goals', body: 'Show a goal from Plan right on the panel.' },
       { title: 'Figures', body: 'The biggest category and Left to live on – the same figures as in the budget.' },
@@ -1809,6 +1800,9 @@ export const translations: Record<Lang, Translations> = {
     customLinkedNote: '🔗 Linked to your regular budget – the same amounts in both places',
     linkedMissing: (name, month) => `${name || 'This category'} is not in the budget for ${month}`,
     linkedRemove: 'Remove from panel',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `You changed ${names.join(', ')} in the budget for ${month}.\n\nShould the change also apply to ${count === 1 ? `${first}, which already has a budget` : `the ${count} later months that already have a budget (${first}–${last})`}?\n\nNew categories are added there, and names change where they still have the old name. You can undo afterwards.`,
+    linkedFetchFrom: (name, month) => `Bring ${name} from ${month}`,
     ariaLinkedRemove: (name) => `Remove ${name} from the panel. The budget does not change`,
     pickerFromBudget: 'From your budget',
     pickerOther: 'Other',
@@ -2430,14 +2424,9 @@ export const translations: Record<Lang, Translations> = {
     pickerOutcome: 'Real',
     pickerGoals: 'Metas de ahorro',
     pickerFigures: 'Datos',
-    quickEntry: 'Entrada rápida',
-    quickEntryTitle: (month) => `Rellenar ${month}`,
-    quickEntryEmpty: 'Aún no hay filas que rellenar. Añade bloques o filas primero.',
-    quickEntrySaved: 'Todo se guarda mientras escribes.',
     customHelpLinkedIntro: 'El panel muestra tu presupuesto normal a tu manera. Los mismos importes y categorías, ordenados como quieras.',
     customHelpLinked: [
       { title: 'Un solo presupuesto', body: 'Un importe que escribes aquí cambia también en Seguimiento, Ahorro, Plan y Año. Solo hay una cifra.' },
-      { title: 'Entrada rápida', body: 'Rellena todos los importes del mes en una sola lista.' },
       { title: 'Real', body: 'Añade un bloque de gasto real para una categoría y mira lo que se ha gastado de verdad, según los movimientos importados en Seguimiento.' },
       { title: 'Metas de ahorro', body: 'Muestra una meta de Plan directamente en el panel.' },
       { title: 'Datos', body: 'La categoría más grande y lo que queda para vivir, las mismas cifras que en el presupuesto.' },
@@ -2448,6 +2437,9 @@ export const translations: Record<Lang, Translations> = {
     customLinkedNote: '🔗 Vinculado a tu presupuesto normal – los mismos importes en ambos sitios',
     linkedMissing: (name, month) => `${name || 'Esta categoría'} no está en el presupuesto de ${month}`,
     linkedRemove: 'Quitar del panel',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `Cambiaste ${names.join(', ')} en el presupuesto de ${month}.\n\n¿El cambio debe aplicarse también a ${count === 1 ? `${first}, que ya tiene presupuesto` : `los ${count} meses siguientes que ya tienen presupuesto (${first}–${last})`}?\n\nLas categorías nuevas se añaden allí, y los nombres cambian donde aún tienen el nombre anterior. Puedes deshacerlo después.`,
+    linkedFetchFrom: (name, month) => `Traer ${name} de ${month}`,
     ariaLinkedRemove: (name) => `Quitar ${name} del panel. El presupuesto no cambia`,
     pickerFromBudget: 'De tu presupuesto',
     pickerOther: 'Otros',

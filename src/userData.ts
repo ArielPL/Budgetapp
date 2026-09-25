@@ -96,6 +96,31 @@ function customMetaHasContent(raw: string | null): boolean {
   return isObj(v) && isObj(v.tags) && Object.keys(v.tags).length > 0;
 }
 
+/** Words a note holds, in either place a note keeps them: `text` for one
+ *  shown every month, `monthText` for one kept per month. */
+function noteHasWords(block: Record<string, unknown>): boolean {
+  if (typeof block.text === 'string' && block.text.trim() !== '') return true;
+  return isObj(block.monthText)
+    && Object.values(block.monthText).some(v => typeof v === 'string' && v.trim() !== '');
+}
+
+/** A standalone Custom panel with something the user built: a block with its
+ *  own rows (rule 1 — the rows are the effort, amounts or not), or a note.
+ *  A panel's notes live ONLY here; before this, a device holding nothing but
+ *  Custom notes counted as empty and was never asked to back them up. */
+function customStructureHasContent(raw: string | null): boolean {
+  const blocks = parse(raw);
+  return Array.isArray(blocks) && blocks.some(b => isObj(b)
+    && ((Array.isArray(b.rows) && b.rows.length > 0) || noteHasWords(b)));
+}
+
+/** A linked panel's layout is presentation over the regular budget, and the
+ *  first one is generated, not typed — only its notes are the user's words. */
+function linkedLayoutHasContent(raw: string | null): boolean {
+  const blocks = parse(raw);
+  return Array.isArray(blocks) && blocks.some(b => isObj(b) && noteHasWords(b));
+}
+
 /** A savings goal the user created, whether or not it has money in it yet. */
 function planHasContent(raw: string | null): boolean {
   const p = parse(raw);
@@ -135,6 +160,14 @@ export function hasRestorableUserData(storage: StorageLike): boolean {
     }
     if (key === 'budget_plan' || key === 'budget_savings_plan') {
       if (planHasContent(storage.getItem(key))) return true;
+      continue;
+    }
+    if (key === 'budget_custom_v3') {
+      if (customStructureHasContent(storage.getItem(key))) return true;
+      continue;
+    }
+    if (key === 'budget_custom_linked') {
+      if (linkedLayoutHasContent(storage.getItem(key))) return true;
     }
   }
   return false;

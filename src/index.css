@@ -651,29 +651,6 @@ a:focus-visible,
    own frame so it is not a card within a card. */
 .custom-section .daily-budget { margin: 0; border: none; background: transparent; padding: 0; box-shadow: none; }
 
-/* Quick entry: the month's amounts as one list, grouped by block. */
-.quick-entry { max-width: 520px; }
-.quick-entry-group + .quick-entry-group { margin-top: 14px; }
-.quick-entry-heading {
-  margin: 0 0 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.quick-entry-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  border-bottom: 1px solid var(--border);
-}
-.quick-entry-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.quick-entry-row .cv3-amount-input { background: var(--bg); color: var(--text); }
-.quick-entry-saved, .quick-entry-empty { margin: 14px 0 0; font-size: 0.85rem; color: var(--text-muted); }
-
 /* A linked block whose category this month's budget does not have. */
 .cv3-linked-missing {
   margin: 0;
@@ -682,6 +659,8 @@ a:focus-visible,
   font-style: italic;
 }
 .custom-picker-empty { margin: 0 0 8px; color: var(--text-muted); font-size: 0.9rem; }
+/* "Bring Transport from August" under a block this month's budget lacks. */
+.cv3-linked-fetch { margin-top: 8px; }
 
 /* Headings over the two kinds of choice in the Add block picker. */
 .custom-picker-heading {

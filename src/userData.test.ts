@@ -113,3 +113,49 @@ describe('worth protecting', () => {
     expect(hasRestorableUserData(s)).toBe(false);
   });
 });
+
+// ── Custom panels' own words (2026-09-25) ──────────────────────────────────
+// A panel's notes live only in its structure: `budget_custom_v3` for a
+// standalone panel, `budget_custom_linked` for one linked to the budget. Until
+// now neither key was looked at, so a device holding nothing but Custom notes
+// — or a standalone panel built but not yet filled in — counted as empty and
+// was never asked to back up.
+describe('Custom panels', () => {
+  const chart = { show: false, type: 'bars', size: 'M', position: 'bottom' };
+
+  it('a standalone panel with rows the user built, before any amount', () => {
+    put('budget_custom_v3', [{ id: 'b', kind: 'block', name: 'Resan', chart,
+      rows: [{ id: 'r', name: 'Flyg', color: '#fff' }] }]);
+    expect(hasRestorableUserData(s)).toBe(true);
+  });
+
+  it('a standalone note shown every month', () => {
+    put('budget_custom_v3', [{ id: 'n', kind: 'note', name: 'N', chart, rows: [], text: 'Kom ihåg' }]);
+    expect(hasRestorableUserData(s)).toBe(true);
+  });
+
+  it('a note kept for one month', () => {
+    put('budget_custom_v3', [{ id: 'n', kind: 'note', name: 'N', chart, rows: [],
+      noteScope: 'month', monthText: { '2026_8': 'Tandläkaren' } }]);
+    expect(hasRestorableUserData(s)).toBe(true);
+  });
+
+  it('a note on a linked panel', () => {
+    put('budget_custom_linked', [{ id: 'n', source: { kind: 'note' }, width: 'half', bg: null, chart,
+      noteScope: 'month', monthText: { '2026_8': 'Tandläkaren' } }]);
+    expect(hasRestorableUserData(s)).toBe(true);
+  });
+
+  it('but not a linked layout the app generated, which holds no words', () => {
+    put('budget_custom_linked', [
+      { id: 'i', source: { kind: 'income' }, width: 'half', bg: null, chart },
+      { id: 'n', source: { kind: 'note' }, width: 'half', bg: null, chart, text: '   ' },
+    ]);
+    expect(hasRestorableUserData(s)).toBe(false);
+  });
+
+  it('nor an empty standalone panel, or one with only empty blocks', () => {
+    put('budget_custom_v3', [{ id: 'b', kind: 'block', name: 'Tomt', chart, rows: [] }]);
+    expect(hasRestorableUserData(s)).toBe(false);
+  });
+});

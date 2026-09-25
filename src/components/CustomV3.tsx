@@ -14,7 +14,6 @@ import {
 } from '../blockChart';
 import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
-import { QuickEntry } from './QuickEntry';
 import { appStorage } from '../storage';
 
 // ── Schema ──────────────────────────────────────────────────────────
@@ -384,7 +383,6 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useModalFocus(menuRef, menuOpen, () => setMenuOpen(false));
-  const [quickOpen, setQuickOpen] = useState(false);
 
   // Persist structure whenever it changes (after the user has started).
   //
@@ -868,7 +866,6 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
             <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
               📋 {t.copyLastMonth}
             </button>
-            <button className="custom-edit-btn" onClick={() => setQuickOpen(true)}>⚡ {t.quickEntry}</button>
             {editToggle}
             {editing && (
               <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
@@ -891,10 +888,6 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
               <div ref={menuRef} className="custom-menu-layer">
                 <div className="custom-menu-backdrop" onClick={() => setMenuOpen(false)} />
                 <div className="custom-menu" role="menu" aria-label={t.moreActions}>
-                  <button role="menuitem" className="custom-menu-item"
-                    onClick={() => { setMenuOpen(false); setQuickOpen(true); }}>
-                    ⚡ {t.quickEntry}
-                  </button>
                   <button role="menuitem" className="custom-menu-item"
                     onClick={() => { setMenuOpen(false); setHelpOpen(true); }}>
                     ❔ {t.howItWorks}
@@ -984,12 +977,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
                       </button>
                     ))}
                   </div>
-                  {isPhone && <>
-                    <button className="custom-icon-btn" onClick={() => move(b.id, -1)} disabled={index === 0}
-                      title={t.moveUp} aria-label={t.moveUp}>↑</button>
-                    <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
-                      title={t.moveDown} aria-label={t.moveDown}>↓</button>
-                  </>}
+                  {/* On every screen, not only phones: dragging is the quick
+                      way on a desktop, but a keyboard or a screen reader cannot
+                      drag, and without these it had no way to reorder at all. */}
+                  <button className="custom-icon-btn" onClick={() => move(b.id, -1)} disabled={index === 0}
+                    title={t.moveUp} aria-label={t.moveUp}>↑</button>
+                  <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
+                    title={t.moveDown} aria-label={t.moveDown}>↓</button>
                   <button className="custom-icon-btn" onClick={() => duplicateBlock(b.id)}
                     title={t.duplicateBlock}
                     aria-label={`${t.duplicateBlock}: ${resolveDisplayName(b, t)}`}>⧉</button>
@@ -1093,14 +1087,6 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
             </div>
           </div>
         </div>
-      )}
-
-      {quickOpen && (
-        <QuickEntry monthLabel={monthLabel} onSetAmount={setAmount} onClose={() => setQuickOpen(false)}
-          groups={viewBlocks.filter(b => b.kind === 'block').map(b => ({
-            id: b.id, title: b.name || t.newBlockName, icon: displayIcon(b),
-            rows: b.rows.map(r => ({ id: r.id, name: r.name || t.newRowName, amount: values[r.id] || 0 })),
-          }))} />
       )}
 
       {helpOpen && <CustomHelp t={t} onClose={() => setHelpOpen(false)} />}
@@ -1493,7 +1479,7 @@ const InlineName = ({ value, editable, onChange, className, placeholder, ariaLab
 // though the user had asked for it (main review 2026-07-30 §4). `123abc`
 // became 123 the same way. A budget app may refuse a number; it may never
 // quietly substitute a different one.
-export const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: (v: number) => void; ariaLabel?: string }) => {
+const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: (v: number) => void; ariaLabel?: string }) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();

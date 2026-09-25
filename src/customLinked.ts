@@ -5,8 +5,8 @@
 // amounts are read from budget_<year>_<month> every time. What is stored under
 // CUSTOM_LINKED_KEY is presentation only — which parts, in what order, and how.
 
-import type { MonthData } from './types';
-import { sumRows, sumCategories, categoryTotal, ratePct } from './metrics';
+import type { BudgetCategory, MonthData } from './types';
+import { sumRows, sumCategories, categoryTotal, ratePct, recursNextMonth } from './metrics';
 import { appStorage } from './storage';
 import { CUSTOM_LINKED_KEY } from './customMode';
 import { defaultChart, normalizeBlockChart, type BlockChart } from './blockChart';
@@ -140,3 +140,58 @@ export function linkedSummary(data: MonthData) {
   return { income, expenses, saved, remaining: income - expenses };
 }
 
+
+// ── Changes that should reach later months too ─────────────────────────────
+//
+// The regular budget keeps its own set of categories in every month. A
+// category added or renamed on a linked panel therefore changed ONE month, and
+// the next month's panel said "Transport is not in the budget for October" —
+// true, and confusing. Leaving Edit layout now asks whether the change should
+// also apply to the later months that already hold a budget.
+
+/** A month as it is stored, with where it belongs. */
+export interface StoredMonth { year: number; month: number; data: MonthData }
+
+/**
+ * What applying this month's category changes to later months would write.
+ *
+ * `before` is the month's categories when editing began, `now` as they are.
+ * Changed means NEW (absent before) or RENAMED. A later month:
+ *   · gets a new category it lacks — its monthly rows, amounts included, the
+ *     way "copy to next month" carries a budget forward;
+ *   · takes a rename only where it still has the OLD name, so a name the user
+ *     chose there on purpose is not overwritten;
+ *   · is otherwise left alone. A category missing there that already existed
+ *     here is not re-added — the user may have removed it from that month.
+ * Savings is never carried: its rows are tied to Plan's goals, and that link
+ * is kept by its own rules (ensureGoalLinkedBudgetRows).
+ *
+ * Returns only the months that actually change, and the names that did.
+ */
+export function planCarryForward(
+  before: BudgetCategory[], now: BudgetCategory[], later: StoredMonth[],
+): { names: string[]; months: StoredMonth[] } {
+  const was = new Map(before.map(c => [c.id, c]));
+  const changed = now.filter(c => c.id !== SAVINGS_CATEGORY
+    && (!was.has(c.id) || was.get(c.id)!.name !== c.name));
+  if (changed.length === 0) return { names: [], months: [] };
+
+  const months: StoredMonth[] = [];
+  for (const m of later) {
+    let touched = false;
+    const expenses = m.data.expenses.map(c => {
+      const next = changed.find(x => x.id === c.id);
+      const old = was.get(c.id);
+      if (!next || !old || c.name !== old.name || c.name === next.name) return c;
+      touched = true;
+      return { ...c, name: next.name, userNamed: next.userNamed };
+    });
+    for (const next of changed) {
+      if (was.has(next.id) || expenses.some(c => c.id === next.id)) continue;
+      touched = true;
+      expenses.push({ ...next, rows: next.rows.filter(recursNextMonth) });
+    }
+    if (touched) months.push({ ...m, data: { ...m.data, expenses } });
+  }
+  return { names: changed.map(c => c.name), months };
+}

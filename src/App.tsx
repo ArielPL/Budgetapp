@@ -132,6 +132,10 @@ function App({ startupRepair = null }: AppProps) {
     const v = appStorage.getItem('budget_layout');
     return v === 'combined' || v === 'custom' ? v : 'classic';
   });
+  // Whether the screen shows the REGULAR budget — Classic, Combined, or a
+  // Custom panel linked to it. Only then do the menu's copy and reset actions
+  // act on something the user can see.
+  const showsRegularBudget = layout !== 'custom' || customMode === 'linked';
 
   const t = translations[lang];
   // Format an amount with the active currency (symbol/format only — no conversion).
@@ -1660,13 +1664,14 @@ function App({ startupRepair = null }: AppProps) {
                   </div>
                   <div className="utils-hint">{t.periodStartHint}</div>
 
-                  {/* Copy budget — CLASSIC/COMBINED ONLY. These read and write
-                      budget_<year>_<month>, which the Custom layout does not
-                      use. Offered in Custom mode they copied a budget the user
-                      could not see, into a month they were not looking at, and
-                      reported success (review 2026-09-05, F2). Custom has its
-                      own "pull from last month" inside its own UI. */}
-                  {layout !== 'custom' && (
+                  {/* Copy budget — only where the regular budget is on screen.
+                      These read and write budget_<year>_<month>, which a
+                      standalone Custom panel does not use. Offered there they
+                      copied a budget the user could not see, into a month they
+                      were not looking at, and reported success (review
+                      2026-09-05, F2). A LINKED panel shows exactly that budget,
+                      so there they are the same actions on the same numbers. */}
+                  {showsRegularBudget && (
                     <>
                       <div className="utils-divider" />
 
@@ -1714,11 +1719,11 @@ function App({ startupRepair = null }: AppProps) {
                   )}
 
                   {/* Danger zone — destructive actions, visually separated.
-                      Also classic-only: resetCurrentMonth blanks the classic
-                      month whatever layout is on screen, so in Custom mode it
-                      would wipe invisible data and say it was done. Custom
-                      clears its own amounts from its own toolbar. */}
-                  {layout !== 'custom' && (
+                      Same rule: resetCurrentMonth blanks the regular month
+                      whatever layout is on screen, so beside a standalone panel
+                      it would wipe invisible data and say it was done. A
+                      standalone panel clears its own amounts from its toolbar. */}
+                  {showsRegularBudget && (
                     <>
                       <div className="utils-divider" />
 
@@ -1960,7 +1965,13 @@ function App({ startupRepair = null }: AppProps) {
           <div className="tab-enter" key={customTabs ? activeTab : 'custom'}>
             {(!customTabs || activeTab === 'budget') && (
               <Suspense fallback={lazyFallback}>
-                <CustomPanel year={year} month={month} mode={customMode} onModeChange={setCustomMode}
+                <CustomPanel year={year} month={month} mode={customMode}
+                  onModeChange={mode => {
+                    setCustomMode(mode);
+                    // A new choice made: the bar offering to undo the Start over
+                    // that led here has done its job. The step stays in the menu.
+                    if (mode) setUndoBarOpen(false);
+                  }}
                   data={data} onSetIncome={setIncome} onSetCategory={setExpenseCategory}
                   onAddCategory={cat => setData(d => ({ ...d, expenses: [...d.expenses, cat] }))}
                   goals={planData.goals} periodStartDay={periodStartDay} periodLocks={periodLocks}

@@ -1,14 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, cleanup, fireEvent, screen, waitFor, act } from '@testing-library/react';
+import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
-import { CustomV3 } from './components/CustomV3';
 import { largestCategory, sameSource, loadLinkedLayout } from './customLinked';
 import type { MonthData } from './types';
 import { splitRemaining } from './metrics';
 import { periodDays } from './periodLabel';
 
-// ── Custom, linked: outcome, goal and figure blocks; new category; quick entry
+// ── Custom, linked: outcome, goal and figure blocks; new category
 //
 // Items 1–6 of the Custom list after linked mode landed (2026-09-23):
 //   1. "+ New category" — the budget tab is not on screen in linked mode.
@@ -16,7 +15,7 @@ import { periodDays } from './periodLabel';
 //   3. An outcome block: budgeted against what the imported transactions say.
 //   4. A savings goal block from Plan.
 //   5. Figure blocks: biggest category, and Left to live on.
-//   6. Quick entry: every amount of the month in one list.
+// (Item 6, quick entry, was built and then taken out at Ariel's request.)
 // Every figure is read through the function the tab it comes from uses, so the
 // tests below check the panel against those numbers, not against new ones.
 
@@ -209,38 +208,5 @@ describe('2 — a guide for a linked panel', () => {
     const help = document.querySelector('.custom-help')!.textContent!;
     expect(help).toContain('Samma budget');
     expect(help).not.toContain('IN / UT / SPAR');
-  });
-});
-
-describe('6 — quick entry', () => {
-  it('lists every category of the month, also those not on the panel', async () => {
-    withLayout([block('i', { kind: 'income' })]);
-    await openApp();
-    fireEvent.click(buttonWith('Snabbinmatning')!);
-    const headings = [...document.querySelectorAll('.quick-entry-heading')].map(h => h.textContent!.trim());
-    expect(headings).toEqual(['💵 Inkomst', '🏠 Boende', '🍔 Mat', '🎉 Nöje', '🏦 Sparande']);
-  });
-
-  it('starts on the first amount, and writes to the regular budget', async () => {
-    withLayout([block('i', { kind: 'income' })]);
-    await openApp();
-    fireEvent.click(buttonWith('Snabbinmatning')!);
-    expect(document.activeElement?.getAttribute('aria-label')).toBe('Belopp för Inkomst – Lön');
-    act(() => { fireEvent.change(screen.getByLabelText('Belopp för Mat – Livsmedel'), { target: { value: '4800' } }); });
-    await waitFor(() => expect(month().expenses.find(c => c.id === 'mat')!.rows[0].amount).toBe(4800));
-  });
-
-  it('fills a standalone budget’s own amounts', () => {
-    localStorage.setItem('budget_custom_v3', JSON.stringify([{
-      id: 'b', name: 'Resan', userNamed: true, kind: 'block', tag: 'out', width: 'full', chart,
-      rows: [{ id: 'flyg', name: 'Flyg', color: '#fff', userNamed: true }],
-    }]));
-    render(<CustomV3 year={2026} month={8} onSaveFailed={() => {}} onRecordUndo={() => {}} />);
-    fireEvent.click(buttonWith('Snabbinmatning')!);
-    // The block's own field has the same name; this is the one in the list.
-    const field = document.querySelector('.quick-entry input[aria-label="Belopp för Resan – Flyg"]')!;
-    act(() => { fireEvent.change(field, { target: { value: '8000' } }); });
-    expect(JSON.parse(localStorage.getItem('budget_custom_v3_values_2026_8')!)).toEqual({ flyg: 8000 });
-    expect(month()).toEqual(SEPT);
   });
 });
