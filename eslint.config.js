@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // The native shells are Capacitor's, and their build folders hold its bundled
+  // JavaScript — not ours to lint.
+  globalIgnores(['dist', 'ios', 'android']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
