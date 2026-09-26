@@ -411,6 +411,10 @@ export interface Translations {
   introSkip: string;
   introDone: string;
   introStep: (n: number, of: number) => string;
+  /** The first intro page in the iOS/Android apps, where the phone's own
+   *  backup may carry the budget (Ariel's decision, 2026-09-26). */
+  introPrivacyNativeTitle: string;
+  introPrivacyNativeBody: string;
   // The letter, kept for the menu
   welcomeTitle: string;
   /** The letter shown on first run and from the menu, one string per paragraph.
@@ -595,6 +599,10 @@ export interface Translations {
     custom: string;
   };
   saveFailedTitle: string;
+  /** The app's database could not be opened at startup (iOS/Android). */
+  storageOpenFailedTitle: string;
+  storageOpenFailedBody: string;
+  storageOpenFailedRetry: string;
   saveFailedBody: string;
   saveRetry: string;
   copyBudget: string;
@@ -819,6 +827,9 @@ export interface Translations {
    *  on. The date in the menu is a promise that a file exists, so it is only
    *  written on a yes (review 2026-09-18, F5). */
   backupConfirmSaved: string;
+  /** The share sheet's title for a backup file (iOS/Android). */
+  backupShareTitle: string;
+  backupShareFailed: string;
   backupSaved: string;
   // ── The guide to the follow-up tab ──────────────────────────────────────
   // Same shape as privacyBody: a '## ' prefix makes a heading, everything else
@@ -1041,6 +1052,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Hoppa över',
     introDone: 'Kom igång',
     introStep: (n, of) => `Steg ${n} av ${of}`,
+    introPrivacyNativeTitle: 'Din budget är din',
+    introPrivacyNativeBody: 'Ingen inloggning, inget konto, ingen server. Det du skriver sparas på telefonen och skickas aldrig till oss eller någon annan. Telefonens egen säkerhetskopia (iCloud eller Google) kan ta med det, krypterat i ditt eget konto.',
     welcomeTitle: 'Välkommen till Budgetapp!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
@@ -1234,6 +1247,9 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Egen',
     },
     saveFailedTitle: 'Kunde inte spara',
+    storageOpenFailedTitle: 'Appen kunde inte öppna din budget',
+    storageOpenFailedBody: 'Lagringen på telefonen gick inte att öppna just nu. Ingenting har raderats. Försök igen, och starta om telefonen om det inte hjälper.',
+    storageOpenFailedRetry: 'Försök igen',
     saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
     saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
@@ -1333,6 +1349,10 @@ export const translations: Record<Lang, Translations> = {
       "Budgetappen är en webbsida som du öppnar i webbläsaren och kan lägga till på hemskärmen. Det finns ingen version i App Store eller på Google Play än. Den dagen det gör det uppdateras den här texten — fram till dess beskriver den en webbsida.",
       "## Allt stannar på din enhet",
       "Din budget, dina registrerade utgifter och de kontoutdrag du importerar behandlas och sparas lokalt i din webbläsare. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen databas att skicka något till.",
+      "## I appen för iPhone och Android",
+      "När Budget används som app på iPhone eller Android sparas allt i en databas på telefonen i stället för i webbläsaren, och ingenting skickas till utvecklaren eller någon tredje part.",
+      "Telefonens egen säkerhetskopia — iCloud på iPhone, Googles säkerhetskopiering på Android — kan ta med databasen, krypterad i ditt eget konto, så att budgeten följer med till en ny telefon. Utvecklaren har ingen åtkomst till den. Vill du inte det stänger du av säkerhetskopiering för appen i telefonens inställningar.",
+      "Tar du bort appen raderas databasen från telefonen. Det som finns i din egen säkerhetskopia styrs av dina inställningar för den.",
       "## Kontoutdrag läses på plats",
       "När du importerar en CSV-fil läses den där du är. Innehållet lämnar aldrig din enhet — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
       "## Ingen reklam, ingen analys, ingen spårning",
@@ -1347,7 +1367,7 @@ export const translations: Record<Lang, Translations> = {
       "## Frågor",
       "Har du en fråga om hur appen hanterar dina uppgifter kan du mejla ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Senast uppdaterad 19 september 2026.",
+    privacyUpdated: "Senast uppdaterad 27 september 2026.",
     privacyClose: "Stäng",
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
@@ -1437,6 +1457,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
     backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
+    backupShareTitle: 'Budget – säkerhetskopia',
+    backupShareFailed: 'Säkerhetskopian kunde inte skapas. Ingenting har ändrats — försök igen.',
     backupSaved: '✓ Säkerhetskopia sparad',
     followUpHelp: 'Hjälp',
     followUpHelpTitle: 'Så fungerar utfallet',
@@ -1450,7 +1472,7 @@ export const translations: Record<Lang, Translations> = {
       'Får du lön den 25:e lever du inte i kalendermånader. Ställ in startdagen, så räknas utfallet från lönedag till lönedag: 25 juli till 24 augusti.',
       'Infaller den 25:e på en helg flyttar appen till närmaste vardag före, för det är då pengarna kom. Blir det ändå fel kan du nåla fast en enskild period för hand — det gäller bara den månaden.',
       '## Sorteraren',
-      'Det är ingen AI, och ingenting laddas ner. Det är en lista på 863 namn — butiker, banker och tjänster i Sverige, USA, Spanien och internationellt — plus dina egna rättelser.',
+      'Det är ingen AI, och ingenting laddas ner. Det är en lista med namn på butiker, banker och tjänster — från Sverige, USA, Spanien, Australien, Sydafrika, Mexiko, Japan och Colombia, plus internationella — och dina egna rättelser.',
       '1. Den läser texten på raden och letar efter ett namn den känner igen. "ICA NÄRA KUNGSHOLMEN 4711" är ICA.',
       '2. Känner den inte igen något lägger den posten i Övrigt i stället för att gissa. En fel kategori kostar mer än en tom.',
       '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
@@ -1678,6 +1700,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Skip',
     introDone: 'Get started',
     introStep: (n, of) => `Step ${n} of ${of}`,
+    introPrivacyNativeTitle: 'Your budget is yours',
+    introPrivacyNativeBody: 'No sign-in, no account, no server. What you type is saved on the phone and never sent to us or anyone else. The phone\'s own backup (iCloud or Google) may include it, encrypted in your own account.',
     welcomeTitle: 'Welcome to Budgetapp!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
@@ -1871,6 +1895,9 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Custom',
     },
     saveFailedTitle: 'Could not save',
+    storageOpenFailedTitle: 'The app could not open your budget',
+    storageOpenFailedBody: 'The storage on this phone could not be opened just now. Nothing has been deleted. Try again, and restart the phone if that does not help.',
+    storageOpenFailedRetry: 'Try again',
     saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
     saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
@@ -1970,6 +1997,10 @@ export const translations: Record<Lang, Translations> = {
       "Budget is a web page you open in a browser and can add to your home screen. There is no version in the App Store or on Google Play yet. The day there is, this text will be updated — until then it describes a web page.",
       "## Everything stays on your device",
       "Your budget, the spending you record and the bank statements you import are processed and stored locally in your browser. None of it is sent to the developer or to any third party. There is no account, no sign-in and no database to send anything to.",
+      "## In the app for iPhone and Android",
+      "When Budget is used as an app on iPhone or Android, everything is saved in a database on the phone instead of in the browser, and nothing is sent to the developer or any third party.",
+      "The phone's own backup — iCloud on iPhone, Google's backup on Android — may include the database, encrypted in your own account, so your budget follows you to a new phone. The developer has no access to it. If you do not want that, turn off backup for the app in the phone's settings.",
+      "If you delete the app, the database is removed from the phone. What is in your own backup is governed by your settings for it.",
       "## Statements are read where they are",
       "When you import a CSV file it is read where you are. The contents never leave your device — not the transactions, not the amounts, not the names of the places you shopped.",
       "## No ads, no analytics, no tracking",
@@ -1984,7 +2015,7 @@ export const translations: Record<Lang, Translations> = {
       "## Questions",
       "If you have a question about how the app handles your data, you can email ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Last updated 19 September 2026.",
+    privacyUpdated: "Last updated 27 September 2026.",
     privacyClose: "Close",
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
@@ -2074,6 +2105,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
     backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
+    backupShareTitle: 'Budget – backup',
+    backupShareFailed: 'The backup could not be created. Nothing has changed — please try again.',
     backupSaved: '✓ Backup saved',
     followUpHelp: 'Help',
     followUpHelpTitle: 'How Follow-up works',
@@ -2087,7 +2120,7 @@ export const translations: Record<Lang, Translations> = {
       'If you are paid on the 25th you do not live in calendar months. Set the start day and Follow-up counts from payday to payday: 25 July to 24 August.',
       'When the 25th falls on a weekend the app moves to the nearest weekday before it, because that is when the money arrived. If it is still wrong you can pin a single period by hand — that applies to that month only.',
       '## The sorter',
-      'It is not an AI, and nothing is downloaded. It is a list of 863 names — shops, banks and services in Sweden, the United States, Spain and internationally — plus your own corrections.',
+      'It is not an AI, and nothing is downloaded. It is a list of names of shops, banks and services — from Sweden, the United States, Spain, Australia, South Africa, Mexico, Japan and Colombia, plus international ones — and your own corrections.',
       '1. It reads the text on the row and looks for a name it knows. "ICA NÄRA KUNGSHOLMEN 4711" is ICA.',
       '2. If it recognises nothing it puts the entry in Övrigt rather than guessing. A wrong category costs more than an empty one.',
       '3. When you move a place to the right category it remembers. Next time your correction outweighs the list.',
@@ -2315,6 +2348,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Omitir',
     introDone: 'Empezar',
     introStep: (n, of) => `Paso ${n} de ${of}`,
+    introPrivacyNativeTitle: 'Tu presupuesto es tuyo',
+    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta, sin servidor. Lo que escribes se guarda en el teléfono y nunca se envía a nosotros ni a nadie más. La copia de seguridad del propio teléfono (iCloud o Google) puede incluirlo, cifrado en tu propia cuenta.',
     welcomeTitle: '¡Bienvenido a Budgetapp!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
@@ -2508,6 +2543,9 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Personalizado',
     },
     saveFailedTitle: 'No se pudo guardar',
+    storageOpenFailedTitle: 'La app no pudo abrir tu presupuesto',
+    storageOpenFailedBody: 'No se pudo abrir el almacenamiento del teléfono en este momento. No se ha borrado nada. Inténtalo de nuevo y reinicia el teléfono si no funciona.',
+    storageOpenFailedRetry: 'Intentar de nuevo',
     saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
     saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
@@ -2607,6 +2645,10 @@ export const translations: Record<Lang, Translations> = {
       "Budget es una página web que abres en el navegador y puedes añadir a la pantalla de inicio. Todavía no hay versión en la App Store ni en Google Play. El día que la haya, este texto se actualizará — hasta entonces describe una página web.",
       "## Todo se queda en tu dispositivo",
       "Tu presupuesto, los gastos que registras y los extractos bancarios que importas se procesan y se guardan localmente en tu navegador. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, no hay inicio de sesión y no hay base de datos a la que enviar nada.",
+      "## En la app para iPhone y Android",
+      "Cuando Budget se usa como app en iPhone o Android, todo se guarda en una base de datos en el teléfono en lugar de en el navegador, y nada se envía al desarrollador ni a terceros.",
+      "La copia de seguridad del propio teléfono — iCloud en iPhone, la copia de Google en Android — puede incluir la base de datos, cifrada en tu propia cuenta, para que tu presupuesto te acompañe a un teléfono nuevo. El desarrollador no tiene acceso a ella. Si no lo quieres, desactiva la copia de seguridad de la app en los ajustes del teléfono.",
+      "Si borras la app, la base de datos se elimina del teléfono. Lo que haya en tu propia copia de seguridad depende de tus ajustes para ella.",
       "## Los extractos se leen donde están",
       "Cuando importas un archivo CSV se lee donde estás. El contenido nunca sale de tu dispositivo — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
       "## Sin publicidad, sin analítica, sin rastreo",
@@ -2621,7 +2663,7 @@ export const translations: Record<Lang, Translations> = {
       "## Preguntas",
       "Si tienes alguna pregunta sobre cómo la app trata tus datos, puedes escribir a ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Última actualización: 19 de septiembre de 2026.",
+    privacyUpdated: "Última actualización: 27 de septiembre de 2026.",
     privacyClose: "Cerrar",
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
@@ -2711,6 +2753,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
     backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
+    backupShareTitle: 'Budget – copia de seguridad',
+    backupShareFailed: 'No se pudo crear la copia de seguridad. No ha cambiado nada; inténtalo de nuevo.',
     backupSaved: '✓ Copia de seguridad guardada',
     followUpHelp: 'Ayuda',
     followUpHelpTitle: 'Cómo funciona Seguimiento',
@@ -2724,7 +2768,7 @@ export const translations: Record<Lang, Translations> = {
       'Si cobras el día 25 no vives en meses naturales. Fija el día de inicio y Seguimiento cuenta de cobro a cobro: del 25 de julio al 24 de agosto.',
       'Si el 25 cae en fin de semana la app se mueve al día laborable anterior, porque es cuando llegó el dinero. Si aun así falla puedes fijar un periodo a mano — vale solo para ese mes.',
       '## El clasificador',
-      'No es una IA, y no se descarga nada. Es una lista de 863 nombres — tiendas, bancos y servicios de Suecia, Estados Unidos, España e internacionales — más tus propias correcciones.',
+      'No es una IA, y no se descarga nada. Es una lista de nombres de tiendas, bancos y servicios — de Suecia, Estados Unidos, España, Australia, Sudáfrica, México, Japón y Colombia, además de internacionales — y tus propias correcciones.',
       '1. Lee el texto de la fila y busca un nombre que conozca. "ICA NÄRA KUNGSHOLMEN 4711" es ICA.',
       '2. Si no reconoce nada deja el movimiento en Övrigt en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
       '3. Cuando mueves un sitio a la categoría correcta lo recuerda. La próxima vez tu corrección pesa más que la lista.',

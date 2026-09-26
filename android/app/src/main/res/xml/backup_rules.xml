@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The same rule for Android 11 and earlier, which read this format instead:
+  back up the app's database and nothing else. See data_extraction_rules.xml.
+-->
+<full-backup-content>
+    <include domain="database" path="." />
+</full-backup-content>

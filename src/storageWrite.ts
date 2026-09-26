@@ -75,6 +75,12 @@ export function applyStorageChanges(
   storage: TransactionalStorage,
   changes: StorageChange[],
 ): boolean {
+  // A native store takes the whole set as one database transaction, which is
+  // stronger than the snapshot-and-rollback below. Its refusal cannot come back
+  // here — the write is queued — and arrives through onStorageWriteFailed.
+  const batch = (storage as { tryApplyBatch?: (c: StorageChange[]) => boolean }).tryApplyBatch;
+  if (typeof batch === 'function' && batch.call(storage, changes)) return true;
+
   const before = new Map<string, string | null>();
   try {
     for (const { key } of changes) {

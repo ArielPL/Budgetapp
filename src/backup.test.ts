@@ -104,7 +104,13 @@ describe('export', () => {
     expect(payload.data.budget_last_backup).toBe(payload.exportedAt);
   });
   it('names the file by date', () => {
-    expect(backupFilename(new Date('2026-07-16T22:00:00Z'))).toBe('budget-backup-2026-07-16.json');
+    expect(backupFilename(new Date(2026, 6, 16, 14, 0))).toBe('budget-backup-2026-07-16.json');
+  });
+
+  it('names it by the LOCAL date, just after midnight too', () => {
+    // 00:19 on 27 September is still the 26th in UTC. The file used to be
+    // named after the day before (seen on the Android emulator, 2026-09-27).
+    expect(backupFilename(new Date(2026, 8, 27, 0, 19))).toBe('budget-backup-2026-09-27.json');
   });
 });
 

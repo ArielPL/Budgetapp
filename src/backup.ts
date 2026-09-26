@@ -347,7 +347,11 @@ export function applyBackup(storage: StorageLike, payload: BackupPayload): Impor
 
 /** Filename for a downloaded backup: budget-backup-2026-07-16.json */
 export function backupFilename(now = new Date()): string {
-  return `budget-backup-${now.toISOString().slice(0, 10)}.json`;
+  // The LOCAL date. toISOString prints UTC, so a backup made at 00:19 in
+  // Stockholm was named after the day before (found on the Android emulator,
+  // 2026-09-27) — the same trap dateLabel.ts and periodLabel.ts describe.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `budget-backup-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
 }
 
 /** Human-readable, translated reason an import was refused. */

@@ -3,7 +3,7 @@ import type { BudgetCategory, BudgetRow, MonthData, SavingsGoal } from '../types
 import { useLang, MONTHS } from '../i18n';
 import { useIsPhone } from '../useIsPhone';
 import { useModalFocus } from '../useModalFocus';
-import { appStorage } from '../storage';
+import { appStorage, settleStorage, storageMark } from '../storage';
 import { safeSetItem, applyStorageChanges } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { shownName, loadMonthData, generateId, createCategory, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
@@ -267,15 +267,29 @@ export const CustomLinked = ({
       names, monthLabel, plan.months.length, span(first), span(last),
     ))) return;
     const keys = plan.months.map(m => storageKey(m.year, m.month));
-    onRecordUndo({
-      at: new Date().toISOString(), action: 'copyBudget', count: plan.months.length,
-      year: first.year, month: first.month, changes: captureKeys(appStorage, keys),
-    });
+    // The step back is CAPTURED before the write — it must hold the months as
+    // they were — but OFFERED only once the write is known to have landed. The
+    // other way round, a refused write still added a step back for a change
+    // that never happened, and in a history of ten it could push a real one out
+    // (iOS/Android review 2026-09-26, P2). In the apps the write is queued, so
+    // "landed" means the database confirmed it: settleStorage.
+    const before = captureKeys(appStorage, keys);
+    const mark = storageMark();
     // One write for every month, rolled back together if storage refuses one.
     // Never the month on screen, so App's save effect cannot race it.
     if (!applyStorageChanges(appStorage, plan.months.map(m => ({
       key: storageKey(m.year, m.month), value: JSON.stringify(m.data),
-    })))) onSaveFailed();
+    })))) {
+      onSaveFailed();
+      return;
+    }
+    void settleStorage(mark).then(ok => {
+      if (!ok) { onSaveFailed(); return; }
+      onRecordUndo({
+        at: new Date().toISOString(), action: 'copyBudget', count: plan.months.length,
+        year: first.year, month: first.month, changes: before,
+      });
+    });
   };
   const toggleEditing = () => {
     setMenuOpen(false);

@@ -1,8 +1,9 @@
 // ── storageCache — synchronous reads over an asynchronous store ────────────
 //
-// THIS IS NOT WIRED UP YET. It is the half of the native storage move that can
-// be built and tested in a browser, written now so that the half which cannot
-// be — the Capacitor driver — is small when the time comes.
+// Wired up in the iOS and Android apps (2026-09-27): main.tsx hydrates one of
+// these over the SQLite backend in nativeStorage.ts before React renders, and
+// storage.ts routes `appStorage` through it. The web app still uses
+// localStorage directly and never touches this file.
 //
 // The problem it solves:
 //
@@ -41,6 +42,7 @@
 //      already has somewhere to put: `setSaveFailed`.
 
 import type { StorageLike } from './storage';
+import type { StorageChange } from './storageWrite';
 
 /** What a native driver has to provide. Every method is async on purpose:
  *  this is the shape Capacitor Preferences and the Filesystem API both have. */
@@ -49,6 +51,9 @@ export interface AsyncBackend {
   loadAll(): Promise<Record<string, string>>;
   write(key: string, value: string): Promise<void>;
   remove(key: string): Promise<void>;
+  /** Several changes as ONE transaction: all land or none do. Optional — a
+   *  backend without it gets the changes one by one, in order. */
+  commit?(changes: StorageChange[]): Promise<void>;
 }
 
 export interface CachedStorage extends StorageLike {
@@ -69,6 +74,10 @@ export interface CachedStorage extends StorageLike {
   flush(): Promise<void>;
   /** How many writes are still waiting. */
   readonly pending: number;
+  /** Several changes at once: the cache takes all of them now, and the
+   *  backend gets them as one transaction (see AsyncBackend.commit). A refusal
+   *  reaches onWriteFailed with the first key, like any other write. */
+  applyBatch(changes: StorageChange[]): void;
 }
 
 export function createCachedStorage(backend: AsyncBackend): CachedStorage {
@@ -137,6 +146,32 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
       cache.delete(k);
       if (!ready) removedBeforeHydrate.add(k);
       enqueue(k, () => backend.remove(k));
+    },
+
+    applyBatch(changes: StorageChange[]) {
+      if (changes.length === 0) return;
+      for (const { key, value } of changes) {
+        if (value === null) {
+          cache.delete(key);
+          if (!ready) removedBeforeHydrate.add(key);
+        } else {
+          cache.set(key, value);
+          if (!ready) removedBeforeHydrate.delete(key);
+        }
+      }
+      // One job, so nothing queued later can land between its parts — and on
+      // a backend with transactions, one transaction, so a multi-month import
+      // is never half on disk.
+      enqueue(changes[0].key, async () => {
+        if (backend.commit) {
+          await backend.commit(changes);
+          return;
+        }
+        for (const { key, value } of changes) {
+          if (value === null) await backend.remove(key);
+          else await backend.write(key, value);
+        }
+      });
     },
 
     async hydrate() {

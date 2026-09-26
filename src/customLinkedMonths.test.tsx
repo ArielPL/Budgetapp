@@ -116,9 +116,34 @@ describe('leaving Edit layout carries a new category forward, if asked', () => {
     expect(String(confirm.mock.calls[0][0])).toContain('oktober 2026');
     const newId = read(2026, 8).expenses[1].id;
     expect(read(2026, 9).expenses.map(c => c.id)).toEqual(['boende', newId]);
+    // Offered only once the write has landed — see the next test.
+    await waitFor(() => expect(localStorage.getItem('budget_undo')).not.toBeNull());
     const undo = JSON.parse(localStorage.getItem('budget_undo')!)[0];
     expect(undo.action).toBe('copyBudget');
     expect(undo.changes.map((c: { key: string }) => c.key)).toEqual(['budget_2026_9']);
+  });
+
+  it('offers no step back when the write to later months is refused', async () => {
+    // Review 2026-09-26, P2: the step back was recorded BEFORE the write, so a
+    // refused write still left one — for a change that never happened.
+    await openApp();
+    fireEvent.click(buttonWith('Redigera layout')!);
+    fireEvent.click(document.querySelector('.custom-add-card')!);
+    fireEvent.click(buttonWith('Ny kategori')!);
+    await waitFor(() => expect(read(2026, 8).expenses).toHaveLength(2));
+    const real = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, k: string, v: string) {
+      if (k === 'budget_2026_9') throw new DOMException('full', 'QuotaExceededError');
+      return real.call(this, k, v);
+    });
+    fireEvent.click(buttonWith('Klar')!);
+    await new Promise(r => setTimeout(r, 0));
+    spy.mockRestore();
+    // Nothing reached October, and nothing claims it did.
+    expect(read(2026, 9).expenses.map(c => c.id)).toEqual(['boende']);
+    const undo = JSON.parse(localStorage.getItem('budget_undo') ?? '[]');
+    expect(undo.some((u: { action: string }) => u.action === 'copyBudget')).toBe(false);
+    expect(document.body.textContent).toContain('Kunde inte spara');
   });
 
   it('changes nothing in later months when the answer is no', async () => {

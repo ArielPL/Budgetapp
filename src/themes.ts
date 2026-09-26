@@ -6,6 +6,7 @@
 // whole app on every tab. 'custom' is a separate palette: the user's
 // per-var overrides layered on top of a base (Sorbet of the active mode).
 
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { appStorage } from './storage';
 
 export type PaletteId = 'sorbet' | 'ocean' | 'forest' | 'sunset' | 'custom';
@@ -347,6 +348,13 @@ export function applyVars(vars: ThemeVars, mode: Mode): void {
   // Keep data-theme honest so chart axis colors (Charts/YearTab/GrowthChart,
   // which read dataset.theme === 'light') stay legible.
   root.setAttribute('data-theme', mode);
+  // In the iOS and Android apps the page draws behind the status bar, so its
+  // clock and icons must contrast with THIS theme, not with the phone's own
+  // light or dark setting: light icons on a dark header, dark on a light one.
+  if (Capacitor.isNativePlatform()) {
+    SystemBars.setStyle({ style: mode === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light })
+      .catch(() => { /* cosmetic — never worth failing a theme change over */ });
+  }
 }
 
 /**

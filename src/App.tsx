@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -55,9 +56,9 @@ import {
   loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
 } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
-import { useModalFocus } from './useModalFocus';
+import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
-import { appStorage } from './storage';
+import { appStorage, settleStorage, storageMark, onStorageWriteFailed } from './storage';
 import { safeSetItem, safeRemoveItem, applyStorageChanges, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, applyRefile } from './actuals';
 import { hasRestorableUserData } from './userData';
@@ -583,10 +584,33 @@ function App({ startupRepair = null }: AppProps) {
    *      and records the date only on a yes.
    */
   const exportData = async () => {
+    // In the apps, the last edits may still be on their way to the database;
+    // the backup waits for them rather than leaving them out.
+    await settleStorage();
     const payload = buildBackup(appStorage);
     const text = JSON.stringify(payload, null, 2);
     const name = backupFilename();
     setMenuOpen(false);
+
+    // The iOS and Android apps: the system share sheet, see nativeShare.ts.
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { shareBackupFile } = await import('./nativeShare');
+        const outcome = await shareBackupFile(name, text, t.backupShareTitle);
+        if (outcome === 'cancelled') return;
+        if (outcome === 'saved') {
+          markBackupDone();
+          showMsg(t.backupSaved);
+          return;
+        }
+        // Sent to another app, which may or may not have kept it: ask, as the
+        // web's plain download does, and write the date only on a yes.
+        if (window.confirm(t.backupConfirmSaved)) markBackupDone();
+      } catch {
+        alert(t.backupShareFailed);
+      }
+      return;
+    }
 
     const picker = (window as unknown as {
       showSaveFilePicker?: (o: unknown) => Promise<{
@@ -654,6 +678,7 @@ function App({ startupRepair = null }: AppProps) {
       // the one entry worth its size: a restore of the wrong file is the only
       // action in the app that can lose everything at once.
       const before = captureAll(appStorage);
+      const mark = storageMark();
       const result = applyBackup(appStorage, check.payload);
       if (!result.ok) {
         alert(importErrorText(result.reason, t));
@@ -667,7 +692,13 @@ function App({ startupRepair = null }: AppProps) {
         changes: before,
         full: true,
       });
-      location.reload();
+      // A reload drops writes still queued for the app's database, so wait for
+      // them. If one was refused, the reload shows what is really stored —
+      // and the user is told first, not left to discover it.
+      void settleStorage(mark).then(ok => {
+        if (!ok) alert(t.saveFailedBody);
+        location.reload();
+      });
     };
     reader.onerror = () => alert(t.importInvalid);
     reader.readAsText(file);
@@ -691,12 +722,18 @@ function App({ startupRepair = null }: AppProps) {
    *  does: every tab, every cached month and every derived number is rebuilt
    *  from storage, which is the only way to be sure the screen matches disk. */
   const doUndo = () => {
+    const mark = storageMark();
     const done = undoLast(appStorage);
     if (!done) {
       alert(t.undoFailed);
       return;
     }
-    location.reload();
+    // Same wait as a restore: the step back must be on disk before the reload
+    // reads from it.
+    void settleStorage(mark).then(ok => {
+      if (!ok) alert(t.undoFailed);
+      location.reload();
+    });
   };
 
   // The handle is kept so a second message cancels the first one's timer.
@@ -720,6 +757,36 @@ function App({ startupRepair = null }: AppProps) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
+
+  // ── Android's Back button ─────────────────────────────────────────────
+  // What a user expects, in order: close whatever is on top (any panel, dialog
+  // or menu — see closeTopLayer), then the month picker, then go back to the
+  // Budget tab, and only from there leave — minimised, like Home, so nothing
+  // in progress is lost. Without this, Back with the menu open closed the app
+  // (iOS/Android review, 2026-09-26). iPhones have no such button.
+  const backState = useRef({ activeTab, pickerOpen, tabbed: false });
+  useEffect(() => {
+    backState.current = {
+      activeTab, pickerOpen,
+      tabbed: layout === 'classic' || (layout === 'custom' && customTabs),
+    };
+  });
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    let handle: { remove: () => Promise<void> } | undefined;
+    let gone = false;
+    void import('@capacitor/app').then(({ App: NativeApp }) => NativeApp.addListener('backButton', () => {
+      if (closeTopLayer()) return;
+      const now = backState.current;
+      if (now.pickerOpen) { setPickerOpen(false); return; }
+      if (now.tabbed && now.activeTab !== 'budget') { changeTab('budget'); return; }
+      void NativeApp.minimizeApp();
+    })).then(h => {
+      if (gone) void h.remove();
+      else handle = h;
+    });
+    return () => { gone = true; void handle?.remove(); };
+  }, [changeTab]);
 
   // Pull the PREVIOUS month's budget into this one — the mirror of "copy to next
   // month", and the Classic/Combined counterpart of Custom's "copy last month".
@@ -909,6 +976,10 @@ function App({ startupRepair = null }: AppProps) {
   // Stable identity: this sits in CustomV3's save-effect dependencies, and a
   // new function each render would re-run that effect on every render.
   const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
+  // In the apps a write is queued, so a refusal cannot throw at the caller the
+  // way localStorage's does; it arrives here instead, and shows the same
+  // "could not save" banner. On the web this subscribes to nothing.
+  useEffect(() => onStorageWriteFailed(() => setSaveFailed(true)), []);
 
   // Try the whole current state again — after the user has freed space or
   // exported. Both writes are attempted so one succeeding cannot hide the other

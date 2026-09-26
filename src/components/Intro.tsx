@@ -13,6 +13,7 @@
 // Skippable from the first card. Anyone who skips has decided, and asking again
 // on the next launch would only say the app was not listening.
 
+import { usesNativeStorage } from '../storage';
 import { useRef, useState } from 'react';
 import { useLang } from '../i18n';
 import { useModalFocus } from '../useModalFocus';
@@ -25,7 +26,13 @@ interface Props {
 
 export const Intro = ({ onDone }: Props) => {
   const { t } = useLang();
-  const pages = t.introPages;
+  // In the iOS and Android apps the first page says what is true there: the
+  // phone's own backup may carry the budget. The web page's promise holds for
+  // the web, where nothing but the user's own export leaves the browser.
+  const pages = usesNativeStorage()
+    ? t.introPages.map((p, i) => (i === 0
+      ? { ...p, title: t.introPrivacyNativeTitle, body: t.introPrivacyNativeBody } : p))
+    : t.introPages;
   const [page, setPage] = useState(0);
   const panel = useRef<HTMLDivElement>(null);
   // Review 2026-09-18, F7: this claimed aria-modal but had no focus trap, so the
