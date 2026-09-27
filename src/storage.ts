@@ -118,6 +118,10 @@ export const appStorage: StorageLike & {
    *  false when there is no such store (the web), so the caller falls back to
    *  its own snapshot-and-rollback. See applyStorageChanges. */
   tryApplyBatch(changes: StorageChange[]): boolean;
+  /** The same, but awaitable: resolves true once the database has committed.
+   *  Null on the web, where applyStorageChanges already knows the answer when
+   *  it returns. See commitStorageChanges. */
+  tryCommitBatch(changes: StorageChange[]): Promise<boolean> | null;
 } = {
   get length() { return active.length; },
   key(i: number) { return active.key(i); },
@@ -128,6 +132,9 @@ export const appStorage: StorageLike & {
     if (!native) return false;
     native.applyBatch(changes);
     return true;
+  },
+  tryCommitBatch(changes: StorageChange[]) {
+    return native ? native.commitBatch(changes) : null;
   },
 };
 
@@ -159,4 +166,41 @@ export const storageMark = (): number => refused;
  */
 export function onStorageWriteFailed(listener: (key: string) => void): () => void {
   return native ? native.onWriteFailed(listener) : () => {};
+}
+
+// ── What is not stored ──────────────────────────────────────────────────────
+//
+// On the web a refused write throws at the caller, who keeps its edit on
+// screen and shows the "could not save" banner; the banner's Try again writes
+// the screen's state again. In the apps a refusal arrives later, and the cache
+// keeps the refused changes aside (storageCache.ts, point 4). These three are
+// how the app asks about them without knowing which store it is on.
+
+/** True in the apps while a change the user made is not stored. Always false
+ *  on the web, whose refusals the caller hears at once. */
+export const hasUnsavedChanges = (): boolean => native?.hasUnsaved ?? false;
+
+/** Write the refused changes again. Resolves true when nothing is left
+ *  unsaved; on the web there is nothing kept, so true. */
+export function retryUnsavedChanges(): Promise<boolean> {
+  return native ? native.retryUnsaved() : Promise.resolve(true);
+}
+
+/**
+ * What a backup is built from: in the apps, the DATABASE, read once every
+ * earlier write has landed — never the cache, which is what the screen shows
+ * and may be ahead of what is stored (deep review 2026-09-27, P0). On the web,
+ * localStorage itself, which is what is stored.
+ */
+export async function storedSnapshot(): Promise<StorageLike> {
+  if (!native) return browserStorage;
+  const all = await native.snapshot();
+  const keys = Object.keys(all);
+  return {
+    get length() { return keys.length; },
+    key: i => keys[i] ?? null,
+    getItem: k => (Object.prototype.hasOwnProperty.call(all, k) ? all[k] : null),
+    setItem: () => { throw new Error('storedSnapshot is read-only'); },
+    removeItem: () => { throw new Error('storedSnapshot is read-only'); },
+  };
 }

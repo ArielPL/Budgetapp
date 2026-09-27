@@ -57,6 +57,8 @@ interface Props {
   periodLocks: PeriodLocks;
   /** Pin (or, with null, unpin) the day this budget month's period opens. */
   onLockPeriod: (year: number, month: number, iso: string | null) => void;
+  /** Open the Budget tab — offered while there is nothing here to follow up. */
+  onOpenBudget?: () => void;
   /** Create a category the user named, in the months given, and return its id. */
   onCreateNamedCategory: (name: string, months: { year: number; month: number }[]) => string;
   /** Remember a step back from the two actions here that destroy: clearing a
@@ -86,7 +88,7 @@ const NO_ENTRIES: ActualEntry[] = [];
 
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
-  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory, onRecordUndo,
+  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory, onRecordUndo, onOpenBudget,
 }: Props) => {
   const { t, lang, money } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
@@ -319,6 +321,8 @@ export const FollowUpTab = ({
     }
     return { perCategory, income, withoutBudget };
   }, [months, year, month, categories, totalIncome, lang]);
+  // A new start: no budget in any month of the span, and nothing recorded.
+  const nothingYet = entries.length === 0 && planned.withoutBudget === months.length;
 
   // The rows define what the plan is. A category that existed in an earlier
   // month of the span but not in this one is not shown — and so its plan is not
@@ -774,7 +778,12 @@ export const FollowUpTab = ({
         );
       })()}
 
-      {planned.withoutBudget > 0 && (
+      {/* Only once there is something to set it against. On a new device every
+          month is budget-less and nothing is recorded, and "1 month in the span
+          has no budget and does not count" was the first thing a new user read
+          here — as if they had already done something wrong (deep review
+          2026-09-27, P3). They get a first step instead, below. */}
+      {planned.withoutBudget > 0 && !nothingYet && (
         <p className="followup-note">{t.followUpSpanNoBudget(planned.withoutBudget)}</p>
       )}
 
@@ -822,6 +831,14 @@ export const FollowUpTab = ({
       {entries.length === 0 && (
         <div className="followup-empty">
           <p>{t.followUpEmptyBody}</p>
+          {nothingYet && (
+            <>
+              <p>{t.followUpStartBody}</p>
+              {onOpenBudget && (
+                <button className="followup-empty-cta" onClick={onOpenBudget}>{t.followUpStartBudget}</button>
+              )}
+            </>
+          )}
         </div>
       )}
 

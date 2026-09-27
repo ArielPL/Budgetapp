@@ -14,7 +14,7 @@ import {
 } from '../blockChart';
 import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
-import { appStorage } from '../storage';
+import { appStorage, settleStorage, storageMark, usesNativeStorage } from '../storage';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -429,6 +429,10 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // "this is what we just read".
   const savedValues = useRef(values);
   const savedBlocks = useRef(blocks);
+  // Bumped whenever those two are reset from outside the save effect (a month
+  // loaded, another tab adopted). A save confirmed late, in the apps, checks it
+  // so it cannot become the baseline of a month it was not written to.
+  const baselineEpoch = useRef(0);
 
   // Load this month's amounts when the month changes — arm the guard FIRST so
   // the save effect below (which also re-runs on this commit) skips this load
@@ -436,6 +440,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   useEffect(() => {
     skipSave.current = true;
     const fresh = loadValues(year, month);
+    baselineEpoch.current += 1;
     savedValues.current = fresh;
     setValues(fresh);
   }, [year, month]);
@@ -456,6 +461,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // Two writes, one meaning. If the amounts land but the snapshot does not,
     // the month's money is recorded with no record of how it was filed — so the
     // failure is reported even when the first half succeeded (F4).
+    const mark = storageMark();
     let ok = safeSetItem(appStorage, key, JSON.stringify(values));
     // Record WHICH block each row belonged to when these amounts were written.
     // Without it the year view had to classify every month with today's layout,
@@ -466,10 +472,20 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       customSnapshotKey(year, month),
       JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month))),
     ) && ok;
-    if (!ok) onSaveFailed();
+    if (!ok) { onSaveFailed(); return; }
     // What is on disk now. A refused write deliberately does NOT update these:
     // the next change should try again rather than assume it landed.
-    if (ok) { savedValues.current = values; savedBlocks.current = blocks; }
+    const landed = () => { savedValues.current = values; savedBlocks.current = blocks; };
+    if (!usesNativeStorage()) { landed(); return; }
+    // In the apps `ok` only means QUEUED, so the refs moved for a write the
+    // database might still refuse — and the component then believed a refused
+    // value was stored (deep review 2026-09-27, P1). They move once it says
+    // yes, and only if the screen still shows the month this was written to.
+    // A refusal is reported by App's listener; it is not repeated here.
+    const epoch = baselineEpoch.current;
+    void settleStorage(mark).then(stored => {
+      if (stored && epoch === baselineEpoch.current) landed();
+    });
   }, [values, year, month, blocks, onSaveFailed]);
 
   // ── Another tab edited this month, or the structure ──────────────────────
@@ -491,6 +507,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
         e, key, JSON.stringify(savedValues.current), isCustomValues,
       );
       if (incoming) {
+        baselineEpoch.current += 1;
         savedValues.current = incoming.data;
         setValues(incoming.data);
         return;
@@ -500,6 +517,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       );
       if (structure) {
         loadedBlocks.current = structure.data;
+        baselineEpoch.current += 1;
         savedBlocks.current = structure.data;
         setBlocks(structure.data);
       }

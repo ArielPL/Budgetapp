@@ -23,6 +23,7 @@
 import { CUSTOM_MODE_KEY, CUSTOM_LINKED_KEY, isCustomMode } from './customMode';
 import { isLang, isCurrency, type Lang } from './i18n';
 import type { StorageLike } from './storage';
+import { commitStorageChanges, type StorageChange } from './storageWrite';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
@@ -318,31 +319,37 @@ export function buildBackup(storage: StorageLike, now = new Date()): BackupPaylo
   return { app: 'budget', version: BACKUP_VERSION, exportedAt, data };
 }
 
+/** Every change a restore makes: owned keys the file lacks are removed, and
+ *  every key in the file is written. The result is exactly the file. */
+export function backupChanges(storage: StorageLike, payload: BackupPayload): StorageChange[] {
+  const current = collectBackupData(storage);
+  return [
+    ...Object.keys(current)
+      .filter(key => !Object.prototype.hasOwnProperty.call(payload.data, key))
+      .map(key => ({ key, value: null })),
+    ...Object.entries(payload.data).map(([key, value]) => ({ key, value })),
+  ];
+}
+
 /**
  * Replace all backup-owned data with `payload`'s. Assumes `checkBackup` already
  * passed — call it first and let the user confirm in between.
  *
- * Order matters: snapshot, delete, write. If any write throws (quota is the
- * realistic one), every key is put back exactly as it was and the caller is told
- * it failed — the user keeps the data they had rather than a half-restored mix.
+ * All of it or none of it, and the answer only once it is STORED. On the web
+ * that is applyStorageChanges' snapshot and rollback: if any write throws
+ * (quota is the realistic one), every key is put back exactly as it was. In
+ * the apps it is one database transaction, and this waits for the database
+ * to commit it. It used to delete and write key by key there, each one queued
+ * on its own, and report success before any of them had landed — a refusal
+ * half-way could leave the user's only copy a mixture of old and new, with the
+ * app having already said the restore worked (deep review 2026-09-27, P0).
  */
-export function applyBackup(storage: StorageLike, payload: BackupPayload): ImportCheck | { ok: true } {
-  const before = collectBackupData(storage);
-  try {
-    for (const key of Object.keys(before)) storage.removeItem(key);
-    for (const [key, value] of Object.entries(payload.data)) storage.setItem(key, value);
-    return { ok: true };
-  } catch {
-    // Roll back to the pre-import state: drop whatever landed, restore the copy.
-    try {
-      for (const key of Object.keys(collectBackupData(storage))) storage.removeItem(key);
-      for (const [key, value] of Object.entries(before)) storage.setItem(key, value);
-    } catch {
-      // Restoring failed too (storage is badly broken). Nothing more we can do
-      // here; the caller surfaces the error rather than pretending it worked.
-    }
-    return { ok: false, reason: 'write-failed' };
-  }
+export async function applyBackup(
+  storage: StorageLike, payload: BackupPayload,
+): Promise<ImportCheck | { ok: true }> {
+  return await commitStorageChanges(storage, backupChanges(storage, payload))
+    ? { ok: true }
+    : { ok: false, reason: 'write-failed' };
 }
 
 /** Filename for a downloaded backup: budget-backup-2026-07-16.json */

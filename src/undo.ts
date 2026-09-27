@@ -23,7 +23,7 @@
 
 import type { StorageLike } from './storage';
 import type { StorageChange } from './storageWrite';
-import { applyStorageChanges, safeSetItem } from './storageWrite';
+import { commitStorageChanges, safeSetItem, type TransactionalStorage } from './storageWrite';
 import { isBackupOwnedKey } from './backup';
 
 /** Where the stack lives. Excluded from backups — see NEVER_BACKED_UP in
@@ -212,21 +212,32 @@ export function undoChanges(storage: StorageLike, entry: UndoEntry): StorageChan
  * Take the newest step back.
  *
  * Returns the entry that was undone, or null when there was nothing to undo or
- * the write failed. The entry is dropped from the stack only after the write
- * succeeded, so a refused undo can be tried again once space is freed.
+ * the write failed.
+ *
+ * The step is taken and dropped from the stack in ONE all-or-nothing change,
+ * and the answer comes once it is stored (in the apps, once the database has
+ * committed it). Two ways this used to go wrong:
+ *
+ *   · Dropped first, applied later: in the apps the change was only queued
+ *     when the step left the stack, so a refusal lost the step and left the
+ *     change undone (deep review 2026-09-27, P1).
+ *   · Applied, then the drop refused: the step was still offered, and taking
+ *     it a second time wrote the same old values over anything edited in
+ *     between (finding 18). Done together, neither can happen: if either part
+ *     is refused, nothing changes and the step can be tried again.
+ *
+ * The drop goes FIRST in the change. It only makes the stack smaller, so on a
+ * device that is full it frees room for the values being put back.
  */
-export function undoLast(storage: StorageLike): UndoEntry | null {
+export async function undoLast(storage: StorageLike & TransactionalStorage): Promise<UndoEntry | null> {
   const list = readUndo(storage);
   const entry = list[0];
   if (!entry) return null;
-  if (!applyStorageChanges(storage, undoChanges(storage, entry))) return null;
-  // If the pop itself is refused, the entry has ALREADY been applied but would
-  // still be offered — and taking it a second time would write those same old
-  // values over anything edited in between. Dropping the whole stack is the
-  // honest fallback: nothing is left that could be applied twice, and the step
-  // the user asked for did happen (finding 18).
-  if (!safeSetItem(storage, UNDO_KEY, JSON.stringify(list.slice(1)))) clearUndo(storage);
-  return entry;
+  const ok = await commitStorageChanges(storage, [
+    { key: UNDO_KEY, value: JSON.stringify(list.slice(1)) },
+    ...undoChanges(storage, entry),
+  ]);
+  return ok ? entry : null;
 }
 
 /** Forget everything. Used when the user asks, and after a restore has replaced

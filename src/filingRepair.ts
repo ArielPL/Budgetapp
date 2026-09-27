@@ -22,8 +22,9 @@
 // filing already agrees with the rule, which after this ships should be always —
 // and if anything ever puts the two out of step again, the next start heals it.
 
-import type { StorageLike } from './storage';
-import { planRefile, applyRefile } from './actuals';
+import { planRefile, refileChanges } from './actuals';
+import { commitStorageChanges } from './storageWrite';
+import { settleStorage, storageMark, type StorageLike } from './storage';
 import { captureKeys, pushUndo, type UndoEntry } from './undo';
 import { loadStartDay, loadPeriodLocks } from './periodLabel';
 
@@ -34,13 +35,17 @@ import { loadStartDay, loadPeriodLocks } from './periodLabel';
  * — or when the move could not be written, in which case applyRefile has
  * already restored every touched file and the next start tries again.
  */
-export function repairFiling(storage: StorageLike, now = new Date()): UndoEntry | null {
+export async function repairFiling(storage: StorageLike, now = new Date()): Promise<UndoEntry | null> {
   const plan = planRefile(storage, loadStartDay(storage), loadPeriodLocks(storage));
   if (plan.moving === 0) return null;
 
-  // Every file applyRefile is about to write, captured before it does.
+  // Every file the move is about to write, captured before it does.
   const before = captureKeys(storage, [...plan.buckets.keys(), ...plan.emptied]);
-  if (!applyRefile(storage, plan)) return null;
+  // Waited for: in the apps the move is only queued when the write returns,
+  // and this runs before the app has anything listening for a refusal — so a
+  // refused move was reported as done, with no one ever told (deep review
+  // 2026-09-27, P1). Refused, it changes nothing and the next start tries again.
+  if (!(await commitStorageChanges(storage, refileChanges(plan)))) return null;
 
   const entry: UndoEntry = {
     at: now.toISOString(),
@@ -51,5 +56,10 @@ export function repairFiling(storage: StorageLike, now = new Date()): UndoEntry 
   // The move stands even if the step back cannot be stored: the entries are
   // now where they belong, and a full storage will surface on the next write.
   // Only a recorded step is reported, so the bar never names the wrong action.
-  return pushUndo(storage, entry) ? entry : null;
+  // The step back is an ordinary write. In the apps it is only stored once the
+  // queue says so; if it is refused, the bar does not offer it, and App shows
+  // the refusal (it starts with hasUnsavedChanges).
+  const mark = storageMark();
+  if (!pushUndo(storage, entry)) return null;
+  return await settleStorage(mark) ? entry : null;
 }

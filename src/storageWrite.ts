@@ -103,3 +103,26 @@ export function applyStorageChanges(
     return false;
   }
 }
+
+/**
+ * applyStorageChanges, for a caller that must not report success early.
+ *
+ * On the web it is the same thing — localStorage has answered by the time
+ * applyStorageChanges returns. In the apps, applyStorageChanges only QUEUES
+ * the transaction, so its `true` means "on its way", not "stored"; this waits
+ * for the database's answer instead (deep review 2026-09-27, P1). A refusal
+ * changes nothing: the database keeps what it had and the app's copy is put
+ * back to match.
+ *
+ * Anything that tells the user "done", records a step back, or reloads the
+ * page on the strength of a write belongs here.
+ */
+export async function commitStorageChanges(
+  storage: TransactionalStorage,
+  changes: StorageChange[],
+): Promise<boolean> {
+  const commit = (storage as { tryCommitBatch?: (c: StorageChange[]) => Promise<boolean> | null }).tryCommitBatch;
+  const pending = typeof commit === 'function' ? commit.call(storage, changes) : null;
+  if (pending) return pending;
+  return applyStorageChanges(storage, changes);
+}

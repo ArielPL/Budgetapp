@@ -63,7 +63,9 @@ async function start() {
   // moved home before anything is drawn — see filingRepair.ts. Before render, so
   // no tab can load the old filing first and hold it in memory. Once per page
   // load, outside React, so StrictMode's double render cannot run it twice.
-  const startupRepair = repairFiling(appStorage)
+  // Awaited: in the apps the move is written to the database, and the app
+  // must not draw — or announce the move — before it is stored.
+  const startupRepair = await repairFiling(appStorage)
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

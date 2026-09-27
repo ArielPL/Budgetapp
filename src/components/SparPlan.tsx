@@ -250,6 +250,10 @@ export const SparPlanSection = () => {
 
       <div className="sparplan-card">
         <p className="sparplan-body">{t.sparplanBody}</p>
+        {/* Until a number is changed, nothing here is the user's: the figures
+            are defaults, and "143 197 kr in 5 years" on a fresh app read like
+            a forecast built from their budget (deep review 2026-09-27, P2). */}
+        {!plan && <p className="sparplan-example-note">{t.sparplanExampleNote}</p>}
         <div className="sparplan-inputs">
           {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly,
             v => commit(v, ret, start, startYM), errFor('monthlyAmount', t.sparplanErrAmount))}
@@ -277,6 +281,7 @@ export const SparPlanSection = () => {
         )}
 
         <div className="sparplan-hero">
+          {!plan && <span className="sparplan-example-tag">{t.sparplanExampleTag}</span>}
           <span className="sparplan-hero-value">{money(Math.round(finalValue))}</span>
           <span className="sparplan-hero-sub">
             {t.sparplanIn5Years} · <span className="sparplan-growth">{t.sparplanOfWhichGrowth(money(Math.round(growthPart)))}</span>

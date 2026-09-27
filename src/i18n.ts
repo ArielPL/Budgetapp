@@ -253,6 +253,9 @@ export interface Translations {
   /** The top of a category's possible range, when some money is unsorted. */
   spendingUpTo: (high: string) => string;
   followUpEmptyBody: string;
+  /** The first step, when no month in view has a budget and nothing is recorded. */
+  followUpStartBody: string;
+  followUpStartBudget: string;
   followUpImport: string;
   csvTitle: string;
   csvDropLead: string;
@@ -604,6 +607,8 @@ export interface Translations {
   storageOpenFailedBody: string;
   storageOpenFailedRetry: string;
   saveFailedBody: string;
+  /** The same, in the iOS and Android apps, where there is no browser to free. */
+  saveFailedBodyApp: string;
   saveRetry: string;
   copyBudget: string;
   copyNextMonth: string;
@@ -642,6 +647,12 @@ export interface Translations {
   undoWhat: (action: UndoAction, where: string, count: number) => string;
   undoDone: string;
   undoFailed: string;
+  /** A restore that landed, whose step back could not be stored. */
+  restoreNoUndo: string;
+  /** An all-or-nothing change the device refused: nothing was changed. */
+  changeNotSaved: string;
+  /** Asked before a backup while some changes are not stored. */
+  backupHasUnsaved: string;
   undoDismiss: string;
   // Triage — the short list of decisions the leftover pile becomes. src/triage.ts
   triageWaiting: (n: number) => string;
@@ -737,6 +748,9 @@ export interface Translations {
   sparplanDelete: string;
   sparplanDeleteConfirm: string;
   sparplanIn5Years: string;
+  /** Shown until the user has changed a number: the figures are an example. */
+  sparplanExampleTag: string;
+  sparplanExampleNote: string;
   sparplanNow: string;
   sparplanMonth: (n: number) => string;
   sparplanOfWhichGrowth: (amount: string) => string;
@@ -899,6 +913,8 @@ export const translations: Record<Lang, Translations> = {
     spendingEvidenceHide: 'Dölj underlag',
     spendingUpTo: (high) => `kan vara upp till ${high}`,
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
+    followUpStartBody: 'Börja med att lägga in månadens budget. Sedan kan du föra in vad du betalat här, eller importera kontoutdraget från banken.',
+    followUpStartBudget: 'Till Budget',
     followUpImport: 'Importera kontoutdrag',
     csvTitle: 'Importera kontoutdrag',
     csvDropLead: 'Släpp din fil här',
@@ -1053,7 +1069,7 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Kom igång',
     introStep: (n, of) => `Steg ${n} av ${of}`,
     introPrivacyNativeTitle: 'Din budget är din',
-    introPrivacyNativeBody: 'Ingen inloggning, inget konto, ingen server. Det du skriver sparas på telefonen och skickas aldrig till oss eller någon annan. Telefonens egen säkerhetskopia (iCloud eller Google) kan ta med det, krypterat i ditt eget konto.',
+    introPrivacyNativeBody: 'Ingen inloggning, inget konto och ingen server hos oss. Det du skriver sparas i appen på telefonen, och appen skickar det inte till oss eller någon annan. Är telefonens säkerhetskopiering påslagen (iCloud eller Google) kan den kopiera budgeten till ditt eget konto där. En backupfil som du själv delar hamnar där du väljer.',
     welcomeTitle: 'Välkommen till Budgetapp!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
@@ -1251,6 +1267,7 @@ export const translations: Record<Lang, Translations> = {
     storageOpenFailedBody: 'Lagringen på telefonen gick inte att öppna just nu. Ingenting har raderats. Försök igen, och starta om telefonen om det inte hjälper.',
     storageOpenFailedRetry: 'Försök igen',
     saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
+    saveFailedBodyApp: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme på telefonen eller exportera dina data, och försök sedan igen.',
     saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
     copyNextMonth: 'Nästa månad',
@@ -1293,6 +1310,9 @@ export const translations: Record<Lang, Translations> = {
     },
     undoDone: '✓ Ångrat',
     undoFailed: 'Kunde inte ångra — enheten nekade skrivningen. Frigör utrymme och försök igen.',
+    restoreNoUndo: 'Backupen är återställd, men steget tillbaka kunde inte sparas. Återställningen går därför inte att ångra.',
+    changeNotSaved: 'Det gick inte att spara, så ingenting ändrades. Frigör utrymme på enheten och försök igen.',
+    backupHasUnsaved: 'Några av dina senaste ändringar kunde inte sparas och kommer inte med i backupen. Backupen innehåller det som faktiskt är sparat. Vill du fortsätta?',
     undoDismiss: 'Stäng',
     triageWaiting: (n) => n === 1 ? '1 post väntar på en kategori' : `${n} poster väntar på en kategori`,
     triageOpen: 'Sortera',
@@ -1350,11 +1370,11 @@ export const translations: Record<Lang, Translations> = {
       "## Allt stannar på din enhet",
       "Din budget, dina registrerade utgifter och de kontoutdrag du importerar behandlas och sparas lokalt i din webbläsare. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen databas att skicka något till.",
       "## I appen för iPhone och Android",
-      "När Budget används som app på iPhone eller Android sparas allt i en databas på telefonen i stället för i webbläsaren, och ingenting skickas till utvecklaren eller någon tredje part.",
-      "Telefonens egen säkerhetskopia — iCloud på iPhone, Googles säkerhetskopiering på Android — kan ta med databasen, krypterad i ditt eget konto, så att budgeten följer med till en ny telefon. Utvecklaren har ingen åtkomst till den. Vill du inte det stänger du av säkerhetskopiering för appen i telefonens inställningar.",
+      "När Budget används som app på iPhone eller Android sparas allt i en databas på telefonen i stället för i webbläsaren. Appen skickar ingenting till utvecklaren eller någon tredje part: det finns ingen server, inget konto, ingen analys och ingen spårning.",
+      "Telefonens egen säkerhetskopiering — iCloud på iPhone, Googles säkerhetskopiering på Android — kan, om du har den påslagen, kopiera databasen till ditt eget konto hos Apple eller Google, så att budgeten följer med till en ny telefon. Det sköts av telefonen och ditt konto, inte av appen, och utvecklaren har ingen åtkomst till det. Vill du inte det ändrar du säkerhetskopieringen i telefonens inställningar. En backupfil som du själv sparar eller delar från appen hamnar där du väljer.",
       "Tar du bort appen raderas databasen från telefonen. Det som finns i din egen säkerhetskopia styrs av dina inställningar för den.",
       "## Kontoutdrag läses på plats",
-      "När du importerar en CSV-fil läses den där du är. Innehållet lämnar aldrig din enhet — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
+      "När du importerar en CSV-fil läses den där du är, på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
       "## Ingen reklam, ingen analys, ingen spårning",
       "Det finns inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg. Inte heller några tredjepartsskript som samlar in data i bakgrunden.",
       "Sorteringen som känner igen butiker är en lista som följer med sidan, inte en tjänst den frågar. Den fungerar utan nätverk.",
@@ -1389,6 +1409,8 @@ export const translations: Record<Lang, Translations> = {
     sparplanDelete: 'Radera sparplan',
     sparplanDeleteConfirm: 'Radera sparplanen? Dina månadsdata och sparmål påverkas inte.',
     sparplanIn5Years: 'om 5 år',
+    sparplanExampleTag: 'Exempel',
+    sparplanExampleNote: 'Siffrorna nedan är ett räkneexempel, inte din budget. Ändra dem så blir det din egen plan.',
     sparplanNow: 'Nu',
     sparplanMonth: (n) => `Månad ${n}`,
     sparplanOfWhichGrowth: (amount) => `varav ${amount} är avkastning`,
@@ -1547,6 +1569,8 @@ export const translations: Record<Lang, Translations> = {
     spendingEvidenceHide: 'Hide details',
     spendingUpTo: (high) => `could be up to ${high}`,
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
+    followUpStartBody: 'Start by entering this month\'s budget. Then you can add what you paid here, or import your bank statement.',
+    followUpStartBudget: 'Go to Budget',
     followUpImport: 'Import statement',
     csvTitle: 'Import bank statement',
     csvDropLead: 'Drop your file here',
@@ -1701,7 +1725,7 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Get started',
     introStep: (n, of) => `Step ${n} of ${of}`,
     introPrivacyNativeTitle: 'Your budget is yours',
-    introPrivacyNativeBody: 'No sign-in, no account, no server. What you type is saved on the phone and never sent to us or anyone else. The phone\'s own backup (iCloud or Google) may include it, encrypted in your own account.',
+    introPrivacyNativeBody: 'No sign-in, no account, no server of ours. What you type is saved in the app on the phone, and the app does not send it to us or anyone else. If the phone\'s backup is on (iCloud or Google), it may copy your budget to your own account there. A backup file you share yourself goes where you choose.',
     welcomeTitle: 'Welcome to Budgetapp!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
@@ -1899,6 +1923,7 @@ export const translations: Record<Lang, Translations> = {
     storageOpenFailedBody: 'The storage on this phone could not be opened just now. Nothing has been deleted. Try again, and restart the phone if that does not help.',
     storageOpenFailedRetry: 'Try again',
     saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
+    saveFailedBodyApp: 'The change is on screen but has not been stored. Free up space on the phone or export your data, then try again.',
     saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
     copyNextMonth: 'Next month',
@@ -1942,6 +1967,9 @@ export const translations: Record<Lang, Translations> = {
     },
     undoDone: '✓ Undone',
     undoFailed: 'Could not undo — the device refused the write. Free some space and try again.',
+    restoreNoUndo: 'The backup has been restored, but the step back could not be stored, so the restore cannot be undone.',
+    changeNotSaved: 'It could not be saved, so nothing was changed. Free up space on the device and try again.',
+    backupHasUnsaved: 'Some of your latest changes could not be saved and will not be in the backup. The backup holds what is actually stored. Continue?',
     undoDismiss: 'Dismiss',
     triageWaiting: (n) => n === 1 ? '1 entry is waiting for a category' : `${n} entries are waiting for a category`,
     triageOpen: 'Sort them',
@@ -1998,11 +2026,11 @@ export const translations: Record<Lang, Translations> = {
       "## Everything stays on your device",
       "Your budget, the spending you record and the bank statements you import are processed and stored locally in your browser. None of it is sent to the developer or to any third party. There is no account, no sign-in and no database to send anything to.",
       "## In the app for iPhone and Android",
-      "When Budget is used as an app on iPhone or Android, everything is saved in a database on the phone instead of in the browser, and nothing is sent to the developer or any third party.",
-      "The phone's own backup — iCloud on iPhone, Google's backup on Android — may include the database, encrypted in your own account, so your budget follows you to a new phone. The developer has no access to it. If you do not want that, turn off backup for the app in the phone's settings.",
+      "When Budget is used as an app on iPhone or Android, everything is saved in a database on the phone instead of in the browser. The app sends nothing to the developer or any third party: there is no server, no account, no analytics and no tracking.",
+      "The phone's own backup — iCloud on iPhone, Google's backup on Android — may, if you have it turned on, copy the database to your own Apple or Google account, so your budget follows you to a new phone. That is done by the phone and your account, not by the app, and the developer has no access to it. If you do not want that, change the backup settings on the phone. A backup file you save or share from the app yourself goes where you choose.",
       "If you delete the app, the database is removed from the phone. What is in your own backup is governed by your settings for it.",
       "## Statements are read where they are",
-      "When you import a CSV file it is read where you are. The contents never leave your device — not the transactions, not the amounts, not the names of the places you shopped.",
+      "When you import a CSV file it is read where you are, on your device. The app never sends its contents anywhere — not the transactions, not the amounts, not the names of the places you shopped.",
       "## No ads, no analytics, no tracking",
       "There are no ad networks, no visitor statistics and no tracking tools. Nor any third-party scripts collecting data in the background.",
       "The sorting that recognises shops is a list that ships with the page, not a service it asks. It works with no network at all.",
@@ -2037,6 +2065,8 @@ export const translations: Record<Lang, Translations> = {
     sparplanDelete: 'Delete savings plan',
     sparplanDeleteConfirm: 'Delete the savings plan? Your monthly data and goals are not affected.',
     sparplanIn5Years: 'in 5 years',
+    sparplanExampleTag: 'Example',
+    sparplanExampleNote: 'The figures below are a worked example, not your budget. Change them and it becomes your own plan.',
     sparplanNow: 'Now',
     sparplanMonth: (n) => `Month ${n}`,
     sparplanOfWhichGrowth: (amount) => `of which ${amount} is growth`,
@@ -2195,6 +2225,8 @@ export const translations: Record<Lang, Translations> = {
     spendingEvidenceHide: 'Ocultar detalles',
     spendingUpTo: (high) => `podría llegar a ${high}`,
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
+    followUpStartBody: 'Empieza por introducir el presupuesto del mes. Después puedes añadir aquí lo que pagaste, o importar el extracto del banco.',
+    followUpStartBudget: 'Ir a Presupuesto',
     followUpImport: 'Importar extracto',
     csvTitle: 'Importar extracto bancario',
     csvDropLead: 'Suelta tu archivo aquí',
@@ -2349,7 +2381,7 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Empezar',
     introStep: (n, of) => `Paso ${n} de ${of}`,
     introPrivacyNativeTitle: 'Tu presupuesto es tuyo',
-    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta, sin servidor. Lo que escribes se guarda en el teléfono y nunca se envía a nosotros ni a nadie más. La copia de seguridad del propio teléfono (iCloud o Google) puede incluirlo, cifrado en tu propia cuenta.',
+    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta y sin servidor nuestro. Lo que escribes se guarda en la app del teléfono, y la app no lo envía a nosotros ni a nadie más. Si la copia de seguridad del teléfono está activada (iCloud o Google), puede copiar tu presupuesto a tu propia cuenta allí. Un archivo de copia que compartes tú va adonde tú elijas.',
     welcomeTitle: '¡Bienvenido a Budgetapp!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
@@ -2547,6 +2579,7 @@ export const translations: Record<Lang, Translations> = {
     storageOpenFailedBody: 'No se pudo abrir el almacenamiento del teléfono en este momento. No se ha borrado nada. Inténtalo de nuevo y reinicia el teléfono si no funciona.',
     storageOpenFailedRetry: 'Intentar de nuevo',
     saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
+    saveFailedBodyApp: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el teléfono o exporta tus datos, y vuelve a intentarlo.',
     saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
     copyNextMonth: 'Mes siguiente',
@@ -2590,6 +2623,9 @@ export const translations: Record<Lang, Translations> = {
     },
     undoDone: '✓ Deshecho',
     undoFailed: 'No se pudo deshacer — el dispositivo rechazó la escritura. Libera espacio e inténtalo de nuevo.',
+    restoreNoUndo: 'La copia se ha restaurado, pero el paso atrás no se pudo guardar, así que la restauración no se puede deshacer.',
+    changeNotSaved: 'No se pudo guardar, así que no se cambió nada. Libera espacio en el dispositivo e inténtalo de nuevo.',
+    backupHasUnsaved: 'Algunos de tus últimos cambios no se pudieron guardar y no estarán en la copia. La copia contiene lo que está realmente guardado. ¿Continuar?',
     undoDismiss: 'Cerrar',
     triageWaiting: (n) => n === 1 ? '1 movimiento espera una categoría' : `${n} movimientos esperan una categoría`,
     triageOpen: 'Clasificar',
@@ -2646,11 +2682,11 @@ export const translations: Record<Lang, Translations> = {
       "## Todo se queda en tu dispositivo",
       "Tu presupuesto, los gastos que registras y los extractos bancarios que importas se procesan y se guardan localmente en tu navegador. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, no hay inicio de sesión y no hay base de datos a la que enviar nada.",
       "## En la app para iPhone y Android",
-      "Cuando Budget se usa como app en iPhone o Android, todo se guarda en una base de datos en el teléfono en lugar de en el navegador, y nada se envía al desarrollador ni a terceros.",
-      "La copia de seguridad del propio teléfono — iCloud en iPhone, la copia de Google en Android — puede incluir la base de datos, cifrada en tu propia cuenta, para que tu presupuesto te acompañe a un teléfono nuevo. El desarrollador no tiene acceso a ella. Si no lo quieres, desactiva la copia de seguridad de la app en los ajustes del teléfono.",
+      "Cuando Budget se usa como app en iPhone o Android, todo se guarda en una base de datos en el teléfono en lugar de en el navegador. La app no envía nada al desarrollador ni a terceros: no hay servidor, ni cuenta, ni analítica, ni seguimiento.",
+      "La copia de seguridad del propio teléfono — iCloud en iPhone, la copia de Google en Android — puede, si la tienes activada, copiar la base de datos a tu propia cuenta de Apple o Google, para que tu presupuesto te acompañe a un teléfono nuevo. Eso lo hacen el teléfono y tu cuenta, no la app, y el desarrollador no tiene acceso. Si no lo quieres, cambia los ajustes de copia de seguridad del teléfono. Un archivo de copia que guardas o compartes tú desde la app va adonde tú elijas.",
       "Si borras la app, la base de datos se elimina del teléfono. Lo que haya en tu propia copia de seguridad depende de tus ajustes para ella.",
       "## Los extractos se leen donde están",
-      "Cuando importas un archivo CSV se lee donde estás. El contenido nunca sale de tu dispositivo — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
+      "Cuando importas un archivo CSV se lee donde estás, en tu dispositivo. La app nunca envía su contenido a ningún sitio — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
       "## Sin publicidad, sin analítica, sin rastreo",
       "No hay redes publicitarias, ni estadísticas de uso, ni herramientas de rastreo. Tampoco scripts de terceros que recojan datos en segundo plano.",
       "La clasificación que reconoce las tiendas es una lista que viaja con la página, no un servicio al que consulta. Funciona sin red.",
@@ -2685,6 +2721,8 @@ export const translations: Record<Lang, Translations> = {
     sparplanDelete: 'Eliminar plan de ahorro',
     sparplanDeleteConfirm: '¿Eliminar el plan de ahorro? Tus datos mensuales y metas no se ven afectados.',
     sparplanIn5Years: 'en 5 años',
+    sparplanExampleTag: 'Ejemplo',
+    sparplanExampleNote: 'Las cifras de abajo son un ejemplo de cálculo, no tu presupuesto. Cámbialas y será tu propio plan.',
     sparplanNow: 'Ahora',
     sparplanMonth: (n) => `Mes ${n}`,
     sparplanOfWhichGrowth: (amount) => `de los cuales ${amount} es rendimiento`,

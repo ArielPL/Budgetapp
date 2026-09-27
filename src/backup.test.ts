@@ -75,14 +75,14 @@ describe('export', () => {
     expect(payload.app).toBe('budget');
     expect(payload.version).toBe(BACKUP_VERSION);
   });
-  it('round-trips through import without data loss', () => {
+  it('round-trips through import without data loss', async () => {
     const original = { budget_2026_6: monthJSON(4500), budget_lang: 'en', budget_plan: JSON.stringify({ goals: [] }) };
     const s = new FakeStorage(original);
     const file = JSON.stringify(buildBackup(s));
     const target = new FakeStorage();
     const check = checkBackup(file);
     expect(check.ok).toBe(true);
-    if (check.ok) applyBackup(target, check.payload);
+    if (check.ok) await applyBackup(target, check.payload);
     // Everything except the backup date, which the file now stamps itself.
     const restored = target.snapshot();
     delete restored.budget_last_backup;
@@ -455,20 +455,20 @@ describe('import validation — nothing is written unless the whole file is good
 });
 
 describe('import really REPLACES — the dialog says so in all three languages', () => {
-  it('removes a month that the backup does not contain', () => {
+  it('removes a month that the backup does not contain', async () => {
     // The reported bug: restore an older backup, and August lingered on.
     const s = new FakeStorage({ budget_2026_6: monthJSON(100), budget_2026_7: monthJSON(200) });
     const check = checkBackup(backupFile({ budget_2026_6: monthJSON(100) }));
     expect(check.ok).toBe(true);
-    if (check.ok) applyBackup(s, check.payload);
+    if (check.ok) await applyBackup(s, check.payload);
     expect(s.getItem('budget_2026_7')).toBe(null);
     expect(s.getItem('budget_2026_6')).toBe(monthJSON(100));
   });
 
-  it('never touches authentication keys', () => {
+  it('never touches authentication keys', async () => {
     const s = new FakeStorage({ budget_2026_6: monthJSON(100), budget_auth_token: 'keep-me', 'sb-x-auth-token': 'keep-me-too' });
     const check = checkBackup(backupFile({ budget_2026_7: monthJSON(200) }));
-    if (check.ok) applyBackup(s, check.payload);
+    if (check.ok) await applyBackup(s, check.payload);
     expect(s.getItem('budget_auth_token')).toBe('keep-me');
     expect(s.getItem('sb-x-auth-token')).toBe('keep-me-too');
   });
@@ -482,13 +482,13 @@ describe('import really REPLACES — the dialog says so in all three languages',
     expect(s.snapshot()).toEqual(before);
   });
 
-  it('rolls back completely when a write fails part-way', () => {
+  it('rolls back completely when a write fails part-way', async () => {
     const before = { budget_2026_6: monthJSON(100), budget_lang: 'sv' };
     const s = new FakeStorage(before);
     s.failOnceOnKey = 'budget_lang'; // fails mid-import, after the deletes ran
     const check = checkBackup(backupFile({ budget_2026_5: monthJSON(999), budget_lang: 'en' }));
     expect(check.ok).toBe(true);
-    const result = check.ok ? applyBackup(s, check.payload) : null;
+    const result = check.ok ? await applyBackup(s, check.payload) : null;
     expect(result).toMatchObject({ ok: false, reason: 'write-failed' });
     // Every original key is back, and nothing from the failed import survives.
     expect(s.snapshot()).toEqual(before);

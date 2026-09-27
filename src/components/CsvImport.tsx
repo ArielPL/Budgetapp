@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { appStorage } from '../storage';
+import { appStorage, settleStorage, storageMark } from '../storage';
 import { useModalFocus } from '../useModalFocus';
 import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
@@ -19,7 +19,7 @@ import {
   actualsKey, loadActuals, newEntries, groupByMonth,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
-import { applyStorageChanges, type StorageChange } from '../storageWrite';
+import { commitStorageChanges, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
@@ -257,7 +257,12 @@ export const CsvImport = ({
   const resolve = (choice: string) =>
     (choice.startsWith(CREATE) ? choice.slice(CREATE.length) : choice);
 
-  const doImport = () => {
+  // True while an import waits for the database. The button is disabled
+  // meanwhile: a second tap would import the same file twice.
+  const [importing, setImporting] = useState(false);
+
+  const doImport = async () => {
+    if (importing) return;
     const entries: ActualEntry[] = ready.flatMap(g =>
       g.rows.map(r => {
         const categoryId = resolve(g.choice);
@@ -324,10 +329,19 @@ export const CsvImport = ({
       CATEGORY_RULES_KEY,
       CSV_MAPS_KEY,
     ]);
-    if (!applyStorageChanges(appStorage, changes)) {
-      onSaveFailed();
+    // Waited for: in the apps the transaction is only QUEUED when the write
+    // returns, and everything below — the remembered columns, new categories,
+    // learned rules, the step back, "done" — used to happen before the
+    // database had answered (deep review 2026-09-27, P1). A refusal has
+    // changed nothing, and the dialog stays open to say so.
+    setImporting(true);
+    const stored = await commitStorageChanges(appStorage, changes);
+    setImporting(false);
+    if (!stored) {
+      alert(t.importWriteFailed);
       return;
     }
+    const mark = storageMark();
 
     // Only commit secondary effects after the entries themselves landed. A
     // refused actuals write must not leave behind categories or learned rules
@@ -356,7 +370,11 @@ export const CsvImport = ({
     }
 
     // Recorded LAST, once the categories and rules have been written too, so the
-    // step back describes the whole import rather than a part of it.
+    // step back describes the whole import rather than a part of it. In the
+    // apps those writes are queued, so they are waited for; one that is refused
+    // is kept for Try again and shown in the banner. The entries themselves are
+    // stored either way, and the step back covers everything.
+    if (!(await settleStorage(mark))) onSaveFailed();
     if (added > 0) {
       onRecordUndo({
         at: new Date().toISOString(),
@@ -542,7 +560,7 @@ export const CsvImport = ({
                 ))}
               </div>
               <div className="csv-actions">
-                <button className="csv-primary" disabled={ready.length === 0} onClick={doImport}>
+                <button className="csv-primary" disabled={ready.length === 0 || importing} onClick={doImport}>
                   {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
                 </button>
                 {toCreate.length > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(toCreate.length)}</span>}

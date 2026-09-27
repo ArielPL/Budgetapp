@@ -411,11 +411,18 @@ export function planPersist(
  * retry cannot read both the old source and a new destination as two entries.
  */
 export function applyRefile(storage: StorageLike, plan: RefilePlan): boolean {
-  return applyStorageChanges(storage, [
+  return applyStorageChanges(storage, refileChanges(plan));
+}
+
+/** Every write a plan makes, for a caller that commits them together with
+ *  something else — the period rule that caused the move, say — and waits for
+ *  the answer (commitStorageChanges). */
+export function refileChanges(plan: RefilePlan): StorageChange[] {
+  return [
     ...[...plan.buckets.entries()].map(([key, bucket]) => ({
       key,
       value: JSON.stringify(bucket.entries),
     })),
     ...plan.emptied.map(key => ({ key, value: '[]' })),
-  ]);
+  ];
 }

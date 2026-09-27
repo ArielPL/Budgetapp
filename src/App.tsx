@@ -58,9 +58,12 @@ import {
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
 import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
-import { appStorage, settleStorage, storageMark, onStorageWriteFailed } from './storage';
-import { safeSetItem, safeRemoveItem, applyStorageChanges, type StorageChange } from './storageWrite';
-import { loadActuals, planRefile, applyRefile } from './actuals';
+import {
+  appStorage, settleStorage, storageMark, onStorageWriteFailed,
+  hasUnsavedChanges, retryUnsavedChanges, storedSnapshot, usesNativeStorage,
+} from './storage';
+import { safeSetItem, safeRemoveItem, commitStorageChanges, type StorageChange } from './storageWrite';
+import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 
 
@@ -163,70 +166,6 @@ function App({ startupRepair = null }: AppProps) {
   // Hand-pinned period starts, for the months no rule can predict.
   const [periodLocks, setPeriodLocks] = useState<PeriodLocks>(() => loadPeriodLocks(appStorage));
 
-  /** Apply a change to how periods are cut, moving the entries that change
-   *  month — counted out loud first, because it is real data moving. */
-  const applyPeriodChange = (
-    nextDay: number | null, nextLocks: PeriodLocks, describe: string,
-  ): boolean => {
-    const plan = planRefile(appStorage, nextDay, nextLocks);
-    if (plan.moving > 0) {
-      if (!window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
-      // Review 2026-09-18, F3: 'periodChange' existed in UndoAction but nothing
-      // ever recorded it. Refiling rewrites every month the entries move
-      // between, so the capture covers the buckets AND the files being emptied
-      // — exactly the keys applyRefile is about to write.
-      // The SETTING that moved them belongs in the capture too. Without it,
-      // undo put the entries back and left the new period rule in force, so
-      // stored filing and the rule disagreed — and the next Follow-up edit
-      // wrote only the months in view, dropping every entry whose budget month
-      // had fallen outside them (finding 3). Both keys are captured whichever
-      // caller we came from: restoring the one that never changed is a no-op.
-      const touched = [
-        ...plan.buckets.keys(), ...plan.emptied,
-        PERIOD_START_KEY, PERIOD_LOCKS_KEY,
-      ];
-      const before = captureKeys(appStorage, touched);
-      if (!applyRefile(appStorage, plan)) { setSaveFailed(true); return false; }
-      recordUndo({
-        at: new Date().toISOString(),
-        action: 'periodChange',
-        count: plan.moving,
-        changes: before,
-      });
-      showMsg(t.periodRefileDone(plan.moving));
-    }
-    return true;
-  };
-
-  /** Pin (or unpin) the day one budget month's period opens. */
-  const lockPeriod = (y: number, m: number, iso: string | null) => {
-    const next = { ...periodLocks };
-    if (iso) next[lockKey(y, m)] = iso;
-    else delete next[lockKey(y, m)];
-    if (!applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`)) return;
-    setPeriodLocks(next);
-    const ok = Object.keys(next).length === 0
-      ? safeRemoveItem(appStorage, PERIOD_LOCKS_KEY)
-      : safeSetItem(appStorage, PERIOD_LOCKS_KEY, JSON.stringify(next));
-    if (!ok) setSaveFailed(true);
-  };
-
-  const changeStartDay = (day: number | null) => {
-    // The period is no longer only a label: it decides which budget month a
-    // recorded entry belongs to, so changing it moves entries between files.
-    // Lossless — every entry carries its own date — but it is real data being
-    // moved, so it is counted out loud first and never done silently.
-    if (!applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day))) return;
-    setPeriodStartDay(day);
-    // Reported like every other write: the entries have already been moved to
-    // match this setting, so a setting that did not land leaves the two
-    // disagreeing — which is exactly the state finding 3 showed is dangerous.
-    const ok = day === null
-      ? safeRemoveItem(appStorage, PERIOD_START_KEY)
-      : safeSetItem(appStorage, PERIOD_START_KEY, String(day));
-    if (!ok) setSaveFailed(true);
-  };
-
   // Tap-to-open month picker (the 12-month strip)
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -238,7 +177,9 @@ function App({ startupRepair = null }: AppProps) {
   // A write that did not land. Not dismissable: the edit really is unsaved, and
   // a banner the user can wave away would be the same lie as saying nothing
   // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
-  const [saveFailed, setSaveFailed] = useState(false);
+  // Starts true if something was refused before App existed — the startup
+  // refiling in main.tsx writes before anything here listens for refusals.
+  const [saveFailed, setSaveFailed] = useState(() => hasUnsavedChanges());
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
@@ -587,7 +528,21 @@ function App({ startupRepair = null }: AppProps) {
     // In the apps, the last edits may still be on their way to the database;
     // the backup waits for them rather than leaving them out.
     await settleStorage();
-    const payload = buildBackup(appStorage);
+    // A change the device refused is tried once more. If it still will not
+    // store, the user hears that it is not in the file BEFORE the file is made
+    // — the backup is taken from what is stored, never from the screen.
+    if (hasUnsavedChanges() && !(await retryUnsavedChanges())
+      && !window.confirm(t.backupHasUnsaved)) return;
+    // The database itself in the apps, localStorage on the web: what is
+    // STORED. The app's in-memory copy is what the screen shows, and a value
+    // the database refused must never reach a file the user will one day
+    // restore as the truth (deep review 2026-09-27, P0).
+    const stored = await storedSnapshot().catch(() => null);
+    if (!stored) {
+      alert(t.backupShareFailed);
+      return;
+    }
+    const payload = buildBackup(stored);
     const text = JSON.stringify(payload, null, 2);
     const name = backupFilename();
     setMenuOpen(false);
@@ -667,7 +622,7 @@ function App({ startupRepair = null }: AppProps) {
     e.target.value = ''; // allow re-selecting the same file later
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const check = checkBackup(reader.result as string);
       if (!check.ok) {
         alert(importErrorText(check.reason, t));
@@ -678,14 +633,17 @@ function App({ startupRepair = null }: AppProps) {
       // the one entry worth its size: a restore of the wrong file is the only
       // action in the app that can lose everything at once.
       const before = captureAll(appStorage);
-      const mark = storageMark();
-      const result = applyBackup(appStorage, check.payload);
+      // Waits for the database in the apps: nothing below — the step back, the
+      // reload that shows the restored data — happens for a restore that did
+      // not land. A refused one has changed nothing, and the user stays here.
+      const result = await applyBackup(appStorage, check.payload);
       if (!result.ok) {
         alert(importErrorText(result.reason, t));
         return;
       }
       // pushUndo, not recordUndo: the reload below throws the bar away, so the
       // way back is offered in the menu instead.
+      const mark = storageMark();
       pushUndo(appStorage, {
         at: new Date().toISOString(),
         action: 'restoreBackup',
@@ -693,12 +651,10 @@ function App({ startupRepair = null }: AppProps) {
         full: true,
       });
       // A reload drops writes still queued for the app's database, so wait for
-      // them. If one was refused, the reload shows what is really stored —
-      // and the user is told first, not left to discover it.
-      void settleStorage(mark).then(ok => {
-        if (!ok) alert(t.saveFailedBody);
-        location.reload();
-      });
+      // the step back. The restore itself is stored either way; what the user
+      // is told is that it cannot be taken back.
+      if (!(await settleStorage(mark))) alert(t.restoreNoUndo);
+      location.reload();
     };
     reader.onerror = () => alert(t.importInvalid);
     reader.readAsText(file);
@@ -721,19 +677,15 @@ function App({ startupRepair = null }: AppProps) {
   /** Take the step back, then reload. The same reload a restored backup already
    *  does: every tab, every cached month and every derived number is rebuilt
    *  from storage, which is the only way to be sure the screen matches disk. */
-  const doUndo = () => {
-    const mark = storageMark();
-    const done = undoLast(appStorage);
-    if (!done) {
+  const doUndo = async () => {
+    // Waits for the database in the apps: the reload reads what is stored, so
+    // it must not come before the step back has landed. A refused step changed
+    // nothing and stays on offer.
+    if (!(await undoLast(appStorage))) {
       alert(t.undoFailed);
       return;
     }
-    // Same wait as a restore: the step back must be on disk before the reload
-    // reads from it.
-    void settleStorage(mark).then(ok => {
-      if (!ok) alert(t.undoFailed);
-      location.reload();
-    });
+    location.reload();
   };
 
   // The handle is kept so a second message cancels the first one's timer.
@@ -746,6 +698,80 @@ function App({ startupRepair = null }: AppProps) {
     setCopyMsg(msg);
     msgTimer.current = setTimeout(() => { setCopyMsg(''); msgTimer.current = null; }, 2200);
   };
+
+  // ── Pay period ── (after recordUndo and showMsg, which it calls once the
+  // database has answered; the React Compiler cannot follow a call made after
+  // an await to a function declared further down.)
+  /** Apply a change to how periods are cut, moving the entries that change
+   *  month — counted out loud first, because it is real data moving.
+   *
+   *  `setting` is the stored rule itself. It is written in the SAME
+   *  all-or-nothing change as the entries it moves, and the answer waits for
+   *  the database. Written separately, as it used to be, one half could land
+   *  without the other: entries filed by a rule that was never stored, or a
+   *  stored rule with the entries still where the old one put them — the state
+   *  finding 3 showed loses entries at the next Follow-up edit (deep review
+   *  2026-09-27, P1). Resolves false, having changed nothing, when the user
+   *  declines or the device refuses. */
+  const applyPeriodChange = async (
+    nextDay: number | null, nextLocks: PeriodLocks, describe: string, setting: StorageChange,
+  ): Promise<boolean> => {
+    const plan = planRefile(appStorage, nextDay, nextLocks);
+    if (plan.moving > 0 && !window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
+    // Review 2026-09-18, F3: 'periodChange' existed in UndoAction but nothing
+    // ever recorded it. Refiling rewrites every month the entries move
+    // between, so the capture covers the buckets AND the files being emptied
+    // — exactly the keys the move is about to write.
+    // The SETTING that moved them belongs in the capture too. Without it,
+    // undo put the entries back and left the new period rule in force, so
+    // stored filing and the rule disagreed — and the next Follow-up edit
+    // wrote only the months in view, dropping every entry whose budget month
+    // had fallen outside them (finding 3). Both keys are captured whichever
+    // caller we came from: restoring the one that never changed is a no-op.
+    const before = captureKeys(appStorage, [
+      ...plan.buckets.keys(), ...plan.emptied,
+      PERIOD_START_KEY, PERIOD_LOCKS_KEY,
+    ]);
+    if (!(await commitStorageChanges(appStorage, [...refileChanges(plan), setting]))) {
+      alert(t.changeNotSaved);
+      return false;
+    }
+    if (plan.moving > 0) {
+      recordUndo({
+        at: new Date().toISOString(),
+        action: 'periodChange',
+        count: plan.moving,
+        changes: before,
+      });
+      showMsg(t.periodRefileDone(plan.moving));
+    }
+    return true;
+  };
+
+  /** Pin (or unpin) the day one budget month's period opens. */
+  const lockPeriod = async (y: number, m: number, iso: string | null) => {
+    const next = { ...periodLocks };
+    if (iso) next[lockKey(y, m)] = iso;
+    else delete next[lockKey(y, m)];
+    const setting = {
+      key: PERIOD_LOCKS_KEY,
+      value: Object.keys(next).length === 0 ? null : JSON.stringify(next),
+    };
+    if (!(await applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`, setting))) return;
+    setPeriodLocks(next);
+  };
+
+  const changeStartDay = async (day: number | null) => {
+    // The period is no longer only a label: it decides which budget month a
+    // recorded entry belongs to, so changing it moves entries between files.
+    // Lossless — every entry carries its own date — but it is real data being
+    // moved, so it is counted out loud first and never done silently.
+    const setting = { key: PERIOD_START_KEY, value: day === null ? null : String(day) };
+    if (!(await applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day), setting))) return;
+    setPeriodStartDay(day);
+  };
+
+
   useEffect(() => () => { if (msgTimer.current !== null) clearTimeout(msgTimer.current); }, []);
 
   // Switching tabs always opens the new tab at the top. Without this, a long
@@ -889,14 +915,16 @@ function App({ startupRepair = null }: AppProps) {
   /**
    * Write a whole copy, or none of it, and say which happened.
    *
-   * The undo step is recorded only after the write succeeded, so it can never
-   * describe changes that were rolled back.
+   * The undo step is recorded only after the write is STORED — in the apps,
+   * once the database has committed it, not when it was queued (deep review
+   * 2026-09-27, P1) — so it can never describe changes that were rolled back.
+   * A refusal has changed nothing, and says so.
    */
-  const applyCopy = (targets: { y: number; m: number }[]): boolean => {
+  const applyCopy = async (targets: { y: number; m: number }[]): Promise<boolean> => {
     const changes = targets.map(({ y, m }) => copyBudgetChange(y, m));
     const before = captureKeys(appStorage, changes.map(c => c.key));
-    if (!applyStorageChanges(appStorage, changes)) {
-      setSaveFailed(true);
+    if (!(await commitStorageChanges(appStorage, changes))) {
+      alert(t.changeNotSaved);
       return false;
     }
     recordUndo({
@@ -913,19 +941,19 @@ function App({ startupRepair = null }: AppProps) {
   const occupiedTargets = (targets: { y: number; m: number }[]) =>
     targets.filter(({ y, m }) => hasBudgetContent(loadMonthData(y, m, lang)));
 
-  const copyToNextMonth = () => {
+  const copyToNextMonth = async () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
     // Ask before replacing a month the user has already built.
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
     )) return;
-    if (!applyCopy([{ y: nextYear, m: nextMth }])) return;
+    if (!(await applyCopy([{ y: nextYear, m: nextMth }]))) return;
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
-  const copyToAllRemaining = () => {
+  const copyToAllRemaining = async () => {
     const targets = Array.from({ length: 11 - month }, (_, i) => ({ y: year, m: month + 1 + i }));
     // Count BEFORE writing anything: a half-finished mass copy that the user
     // then declines would be the worst of both outcomes.
@@ -935,7 +963,7 @@ function App({ startupRepair = null }: AppProps) {
     // button in the app. All of them are written as ONE reversible operation:
     // a refusal partway through restores every month and reports the failure,
     // rather than leaving the year half copied and saying it worked.
-    if (!applyCopy(targets)) return;
+    if (!(await applyCopy(targets))) return;
     setMenuOpen(false);
     showMsg(t.copiedToMonths(targets.length));
   };
@@ -981,13 +1009,23 @@ function App({ startupRepair = null }: AppProps) {
   // "could not save" banner. On the web this subscribes to nothing.
   useEffect(() => onStorageWriteFailed(() => setSaveFailed(true)), []);
 
-  // Try the whole current state again — after the user has freed space or
-  // exported. Both writes are attempted so one succeeding cannot hide the other
-  // still failing.
-  const retrySave = () => {
+  // Try again — after the user has freed space or exported. Everything is
+  // attempted so one part succeeding cannot hide another still failing:
+  //   · in the apps, every change the database refused, whatever tab or
+  //     feature it came from (import, Custom, settings, a step back…), kept
+  //     aside by storageCache.ts exactly as the user made it;
+  //   · the month on screen and the plan, as the screen shows them now — on
+  //     the web this is the whole of it, since a refusal there leaves the
+  //     change on screen and nowhere else.
+  // The banner closes only once all of it is CONFIRMED stored. It used to
+  // close as soon as the two writes were queued (deep review 2026-09-27, P1).
+  const retrySave = async () => {
+    const mark = storageMark();
+    const unsavedOk = await retryUnsavedChanges();
     const monthOk = saveMonthData(year, month, data);
     const planOk = savePlanData(planData);
-    setSaveFailed(!(monthOk && planOk));
+    const landed = await settleStorage(mark);
+    setSaveFailed(!(unsavedOk && monthOk && planOk && landed) || hasUnsavedChanges());
   };
 
   // ── Month navigation ──────────────────────────────────────────────
@@ -1527,6 +1565,7 @@ function App({ startupRepair = null }: AppProps) {
         totalIncome={totalIncome}
         onSaveFailed={reportSaveFailed}
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
+        onOpenBudget={() => changeTab('budget')}
         onCreateCategories={addStandardCategories}
         periodStartDay={periodStartDay}
         periodLocks={periodLocks}
@@ -1936,7 +1975,7 @@ function App({ startupRepair = null }: AppProps) {
           <div className="save-error-banner" role="alert">
             <div className="save-error-text">
               <strong>{t.saveFailedTitle}</strong>
-              <span>{t.saveFailedBody}</span>
+              <span>{usesNativeStorage() ? t.saveFailedBodyApp : t.saveFailedBody}</span>
             </div>
             <div className="save-error-actions">
               <button className="save-error-btn" onClick={retrySave}>{t.saveRetry}</button>
