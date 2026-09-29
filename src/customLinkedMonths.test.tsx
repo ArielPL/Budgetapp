@@ -124,6 +124,8 @@ describe('leaving Edit layout carries a new category forward, if asked', () => {
   });
 
   it('offers no step back when the write to later months is refused', async () => {
+    const alerts: string[] = [];
+    vi.stubGlobal('alert', (m: string) => { alerts.push(String(m)); });
     // Review 2026-09-26, P2: the step back was recorded BEFORE the write, so a
     // refused write still left one — for a change that never happened.
     await openApp();
@@ -143,7 +145,10 @@ describe('leaving Edit layout carries a new category forward, if asked', () => {
     expect(read(2026, 9).expenses.map(c => c.id)).toEqual(['boende']);
     const undo = JSON.parse(localStorage.getItem('budget_undo') ?? '[]');
     expect(undo.some((u: { action: string }) => u.action === 'copyBudget')).toBe(false);
-    expect(document.body.textContent).toContain('Kunde inte spara');
+    // Said as what happened: nothing was changed. Not the banner, which means
+    // "on screen but not stored" — and nothing is.
+    await waitFor(() => expect(alerts).toContain('Det gick inte att spara, så ingenting ändrades. Frigör utrymme på enheten och försök igen.'));
+    expect(document.querySelector('.save-error-banner')).toBeNull();
   });
 
   it('changes nothing in later months when the answer is no', async () => {

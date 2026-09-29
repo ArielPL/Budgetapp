@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
+import { useState, useReducer, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
@@ -59,10 +59,10 @@ import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText,
 import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
 import {
-  appStorage, settleStorage, storageMark, onStorageWriteFailed,
+  appStorage, settleStorage, storageMark, onUnsavedChange,
   hasUnsavedChanges, retryUnsavedChanges, storedSnapshot, usesNativeStorage,
 } from './storage';
-import { safeSetItem, safeRemoveItem, commitStorageChanges, type StorageChange } from './storageWrite';
+import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 
@@ -176,10 +176,23 @@ function App({ startupRepair = null }: AppProps) {
   const [lastBackup, setLastBackup] = useState<BackupAge>(() => currentBackupAge());
   // A write that did not land. Not dismissable: the edit really is unsaved, and
   // a banner the user can wave away would be the same lie as saying nothing
-  // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
-  // Starts true if something was refused before App existed — the startup
-  // refiling in main.tsx writes before anything here listens for refusals.
-  const [saveFailed, setSaveFailed] = useState(() => hasUnsavedChanges());
+  // (review 2026-09-05, F4).
+  //
+  // It shows the SAVED STATE OF EVERYTHING, which storage.ts keeps: up while
+  // any change the user made is not stored, down once all of it is. A write
+  // that went fine never takes it down on its own — a budget edit that saved
+  // used to hide a refused import that had not (foundation review 2026-09-29,
+  // P1). A write that failed puts it up at once; the store's own word follows
+  // (onUnsavedChange). Starts up if something was refused before App existed
+  // — the startup refiling in main.tsx writes before anything here listens.
+  // A reducer rather than useState + a wrapper: its dispatch is as stable as a
+  // state setter, so the many effects that report a save need no new deps.
+  const [saveFailed, setSaveFailed] = useReducer(
+    (_: boolean, failed: boolean) => failed || hasUnsavedChanges(),
+    null,
+    () => hasUnsavedChanges(),
+  );
+  useEffect(() => onUnsavedChange(() => setSaveFailed(false)), []);
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
@@ -732,8 +745,9 @@ function App({ startupRepair = null }: AppProps) {
       ...plan.buckets.keys(), ...plan.emptied,
       PERIOD_START_KEY, PERIOD_LOCKS_KEY,
     ]);
-    if (!(await commitStorageChanges(appStorage, [...refileChanges(plan), setting]))) {
-      alert(t.changeNotSaved);
+    const outcome = await commitStorageChangesOutcome(appStorage, [...refileChanges(plan), setting]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
     if (plan.moving > 0) {
@@ -923,8 +937,9 @@ function App({ startupRepair = null }: AppProps) {
   const applyCopy = async (targets: { y: number; m: number }[]): Promise<boolean> => {
     const changes = targets.map(({ y, m }) => copyBudgetChange(y, m));
     const before = captureKeys(appStorage, changes.map(c => c.key));
-    if (!(await commitStorageChanges(appStorage, changes))) {
-      alert(t.changeNotSaved);
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
     recordUndo({
@@ -1004,10 +1019,6 @@ function App({ startupRepair = null }: AppProps) {
   // Stable identity: this sits in CustomV3's save-effect dependencies, and a
   // new function each render would re-run that effect on every render.
   const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
-  // In the apps a write is queued, so a refusal cannot throw at the caller the
-  // way localStorage's does; it arrives here instead, and shows the same
-  // "could not save" banner. On the web this subscribes to nothing.
-  useEffect(() => onStorageWriteFailed(() => setSaveFailed(true)), []);
 
   // Try again — after the user has freed space or exported. Everything is
   // attempted so one part succeeding cannot hide another still failing:
@@ -1157,6 +1168,30 @@ function App({ startupRepair = null }: AppProps) {
         reportSaveFailed();
       }
     }
+  };
+
+  /**
+   * addStandardCategories as WRITES, for the import to commit together with
+   * its entries in one transaction (foundation review 2026-09-29, P1), plus
+   * what to do on screen once they are stored. The month on screen is written
+   * from what the screen holds, so its edits are kept; `apply` then puts the
+   * same categories into the screen's copy.
+   */
+  const planStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
+    const changes: StorageChange[] = [];
+    let onScreen = false;
+    for (const target of months.length > 0 ? months : [{ year, month }]) {
+      const isCurrent = target.year === year && target.month === month;
+      const from = isCurrent ? data : loadMonthData(target.year, target.month, lang);
+      const merged = withStandardCategories(from, ids, lang);
+      if (merged === from) continue;
+      changes.push({ key: storageKey(target.year, target.month), value: JSON.stringify(merged) });
+      if (isCurrent) onScreen = true;
+    }
+    return {
+      changes,
+      apply: () => { if (onScreen) setData(d => withStandardCategories(d, ids, lang)); },
+    };
   };
 
   /**
@@ -1567,6 +1602,7 @@ function App({ startupRepair = null }: AppProps) {
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
         onOpenBudget={() => changeTab('budget')}
         onCreateCategories={addStandardCategories}
+        planStandardCategories={planStandardCategories}
         periodStartDay={periodStartDay}
         periodLocks={periodLocks}
         onLockPeriod={lockPeriod}

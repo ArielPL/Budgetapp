@@ -8,7 +8,7 @@ import {
   actualContribution, groupEntriesByText, isBucketId,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
-import { applyStorageChanges } from '../storageWrite';
+import { commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { triageUnsorted, movableIds } from '../triage';
 import { FollowUpHelp } from './FollowUpHelp';
@@ -19,7 +19,7 @@ import { rememberCategoryRule } from '../categorise';
 import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
 import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
-import { CsvImport, type TouchedMonth } from './CsvImport';
+import { CsvImport, type TouchedMonth, type CategoryPlan } from './CsvImport';
 import { SpendingCard } from './SpendingCard';
 import { spendingBreakdown } from '../spending';
 import type { ActualEntry, BudgetCategory } from '../types';
@@ -50,6 +50,8 @@ interface Props {
   /** Add standard categories the import offered to create, to the months that
    *  received the entries — not necessarily the month on screen. */
   onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
+  /** The same, as writes for the import to commit with its own. */
+  planStandardCategories: (ids: string[], months: TouchedMonth[]) => CategoryPlan;
   /** The pay period's start day, or null for plain calendar months. Decides
    *  which budget month an imported entry belongs to. */
   periodStartDay: number | null;
@@ -87,7 +89,7 @@ const isoLocal = (d: Date) =>
 const NO_ENTRIES: ActualEntry[] = [];
 
 export const FollowUpTab = ({
-  year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories,
+  year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories, planStandardCategories,
   periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory, onRecordUndo, onOpenBudget,
 }: Props) => {
   const { t, lang, money } = useLang();
@@ -179,18 +181,49 @@ export const FollowUpTab = ({
    * is now moved home instead of dropped, and a step back that did not cover
    * that month would restore the entry where it was AND leave it where it went.
    */
-  const persist = useCallback((
+  //
+  // It waits for the store's answer before anything on screen changes — the
+  // table, the step back, "moved to August" — because in the iOS and Android
+  // apps a write only QUEUES the change, and a refusal would otherwise leave
+  // the screen and the undo list describing a change that never happened
+  // (foundation review 2026-09-29, P1). A refusal changes nothing and says so.
+  //
+  // Waiting brings its own trap: two quick edits, the second computed from a
+  // table the first has not updated yet, would write the first one's entry
+  // straight back. So the edits run ONE AT A TIME, in the order made, and each
+  // takes an UPDATE — "remove this id" — applied to the entries as the
+  // previous edit left them, never a list captured when it was asked for.
+  const latest = useRef(entries);
+  useEffect(() => { latest.current = entries; }, [entries]);
+  const saving = useRef<Promise<unknown>>(Promise.resolve());
+  // Which months the table shows. An edit still waiting its turn when the user
+  // moves to other months is dropped rather than applied to entries it was
+  // never made against.
+  const viewKey = months.map(m => `${m.year}_${m.month}`).join(',');
+  const view = useRef(viewKey);
+  useEffect(() => { view.current = viewKey; }, [viewKey]);
+  // The CURRENT view's reload, for an edit that lands after the view moved on.
+  const reloadLatest = useRef(reloadEntries);
+  useEffect(() => { reloadLatest.current = reloadEntries; }, [reloadEntries]);
+
+  const persistNow = async (
     next: ActualEntry[],
-    undo?: { action: 'deleteEntry' | 'clearActuals'; count: number },
-  ): boolean => {
+    undo: { action: 'deleteEntry' | 'clearActuals'; count: number } | undefined,
+    madeIn: string,
+  ): Promise<boolean> => {
     // The event above is asynchronous. Compare the raw values as well, so an
     // edit can never knowingly overwrite a newer version already in storage.
-    let changedElsewhere: boolean;
+    // Only while the table still shows the months the edit was made in: once
+    // it shows others, `next` was built from what is stored (see persist), so
+    // there is nothing newer to overwrite — and the baseline is the new view's.
+    let changedElsewhere = false;
     try {
-      changedElsewhere = months.some(m => {
-        const key = actualsKey(m.year, m.month);
-        return appStorage.getItem(key) !== storageBaseline.current.get(key);
-      });
+      if (view.current === madeIn) {
+        changedElsewhere = months.some(m => {
+          const key = actualsKey(m.year, m.month);
+          return appStorage.getItem(key) !== storageBaseline.current.get(key);
+        });
+      }
     } catch {
       onSaveFailed();
       return false;
@@ -211,12 +244,24 @@ export const FollowUpTab = ({
       return false;
     }
     const before = undo ? captureKeys(appStorage, plan.changes.map(c => c.key)) : null;
-    if (!applyStorageChanges(appStorage, plan.changes)) {
-      onSaveFailed();
+    const outcome = await commitStorageChangesOutcome(appStorage, plan.changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
-    setEntries(plan.kept);
-    storageBaseline.current = new Map(plan.changes.map(change => [change.key, change.value]));
+    // The table shows these entries only if it still shows these months. The
+    // user may have moved to another month while the database answered, and
+    // setting the old month's entries then put them in the new month's table
+    // (Codex, 2026-09-29). The new view is read again instead, from storage,
+    // which now holds this change too.
+    const stillHere = view.current === madeIn;
+    if (stillHere) {
+      latest.current = plan.kept;
+      setEntries(plan.kept);
+      storageBaseline.current = new Map(plan.changes.map(change => [change.key, change.value]));
+    } else {
+      reloadLatest.current();
+    }
     if (undo && before) {
       onRecordUndo({
         at: new Date().toISOString(),
@@ -229,7 +274,7 @@ export const FollowUpTab = ({
     }
     // Said out loud: entries leaving the table without a word is exactly what
     // this fix exists to end, even when leaving is the right thing for them.
-    if (plan.movedTo.length > 0) {
+    if (stillHere && plan.movedTo.length > 0) {
       const n = plan.movedTo.reduce((sum, m) => sum + m.count, 0);
       setToast({
         text: t.followUpMovedOut(n),
@@ -237,9 +282,29 @@ export const FollowUpTab = ({
       });
     }
     return true;
-  }, [
-    months, periodStartDay, periodLocks, onSaveFailed, reloadEntries, onRecordUndo, year, month, t,
-  ]);
+  };
+
+  const persist = (
+    update: (current: ActualEntry[]) => ActualEntry[],
+    undo?: { action: 'deleteEntry' | 'clearActuals'; count: number },
+  ): Promise<boolean> => {
+    const madeIn = viewKey;
+    const madeFor = months;
+    // Normally the update applies to the table as the previous edit left it.
+    // If the user has moved to other months before this edit's turn came, it
+    // still happens — it was asked for — but on what is STORED for the months
+    // it was made in, never on the entries of the months now on screen.
+    const run = () => persistNow(
+      update(view.current === madeIn
+        ? latest.current
+        : madeFor.flatMap(m => loadActuals(appStorage, m.year, m.month))),
+      undo,
+      madeIn,
+    );
+    const done = saving.current.then(run, run);
+    saving.current = done;
+    return done;
+  };
 
   const sums = useMemo(() => sumByCategory(entries), [entries]);
 
@@ -348,10 +413,9 @@ export const FollowUpTab = ({
     return [income, ...rest.sort((a, b) => (sums[b.id] ?? 0) - (sums[a.id] ?? 0))];
   }, [rows, showPlan, sums]);
 
-  const addEntry = (categoryId: string, date: string, text: string, amount: number) => {
-    if (persist([...entries, { id: generateId(), date, text, amount, categoryId, manual: true }])) {
-      setAddingTo(null);
-    }
+  const addEntry = async (categoryId: string, date: string, text: string, amount: number) => {
+    const entry: ActualEntry = { id: generateId(), date, text, amount, categoryId, manual: true };
+    if (await persist(current => [...current, entry])) setAddingTo(null);
   };
 
   const deleteEntry = (id: string) => {
@@ -363,11 +427,11 @@ export const FollowUpTab = ({
     // Review 2026-09-18, F3. One entry is small, but it is a record of what was
     // actually spent — it has to be fetched from the bank again, not retyped.
     // persist captures the step back from the exact keys it writes.
-    persist(entries.filter(e => e.id !== id), { action: 'deleteEntry', count: 1 });
+    void persist(current => current.filter(e => e.id !== id), { action: 'deleteEntry', count: 1 });
   };
 
   const setAmount = (id: string, amount: number) => {
-    persist(entries.map(e => (e.id === id ? { ...e, amount } : e)));
+    void persist(current => current.map(e => (e.id === id ? { ...e, amount } : e)));
   };
 
   /**
@@ -380,10 +444,10 @@ export const FollowUpTab = ({
    * Learned like a correction in the import, because it IS one — the next
    * statement puts that place straight into the category you chose here.
    */
-  const movePlace = (place: string, categoryId: string): boolean => {
+  const movePlace = async (place: string, categoryId: string): Promise<boolean> => {
     if (!categoryId) return false;
     const key = place.trim().toLowerCase();
-    const saved = persist(entries.map(e => (
+    const saved = await persist(current => current.map(e => (
       e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
     )));
     if (!saved) return false;
@@ -395,11 +459,11 @@ export const FollowUpTab = ({
   /** Create the category the user is naming and file the place into it. The
    *  category is added to every month in view, so a span-wide move does not
    *  orphan the entries it moved in the months that are not on screen. */
-  const createAndMove = (place: string) => {
+  const createAndMove = async (place: string) => {
     const name = newCatName.trim();
     if (!name) return;
     const id = onCreateNamedCategory(name, months);
-    if (movePlace(place, id)) {
+    if (await movePlace(place, id)) {
       setNamingPlace(null);
       setNewCatName('');
     }
@@ -410,13 +474,13 @@ export const FollowUpTab = ({
    *  confirmation at a time was not a way back, it was a punishment. Lives here
    *  rather than in the import dialog, which is closed by the time you change
    *  your mind, and names the count and the month because it cannot be undone. */
-  const clearMonth = () => {
+  const clearMonth = async () => {
     const n = entries.length;
     if (n === 0) return;
     if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
     // persist captures the step back from the exact keys it writes, so undo
     // restores exactly what was emptied.
-    if (persist([], { action: 'clearActuals', count: n })) {
+    if (await persist(() => [], { action: 'clearActuals', count: n })) {
       setOpenRow(null);
       setToast({ text: t.followUpClearDone(n), months: [] });
     }
@@ -814,9 +878,8 @@ export const FollowUpTab = ({
           categories={categories}
           periodStartDay={periodStartDay}
           periodLocks={periodLocks}
-          onCreateCategories={onCreateCategories}
+          planStandardCategories={planStandardCategories}
           onClose={() => setImporting(false)}
-          onSaveFailed={onSaveFailed}
           onRecordUndo={onRecordUndo}
           onImported={(summary, months) => {
             setImporting(false);

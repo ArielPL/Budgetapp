@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { appStorage, settleStorage, storageMark } from '../storage';
+import { appStorage } from '../storage';
 import { useModalFocus } from '../useModalFocus';
 import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
@@ -9,17 +9,16 @@ import {
   parseDate,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
-import { loadCsvMaps, rememberCsvMap, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
+import { loadCsvMaps, csvMapChange, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
 import {
-  suggest, isTransfer, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
+  suggest, isTransfer, loadCategoryRules, learnedRulesChange, STANDARD_CATEGORY_IDS,
   CATEGORY_RULES_KEY,
-  type LearnedRules,
 } from '../categorise';
 import {
   actualsKey, loadActuals, newEntries, groupByMonth,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
-import { commitStorageChanges, type StorageChange } from '../storageWrite';
+import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
@@ -68,13 +67,20 @@ interface Props {
    *  was not enough — the screen sat unchanged and the import looked like it
    *  had done nothing. The caller can now offer to go there. */
   onImported: (summary: string, months: TouchedMonth[]) => void;
-  onSaveFailed: () => void;
-  /** Add standard categories the user accepted an offer to create, into the
-   *  months the entries are being filed in. */
-  onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
+  /** The writes that add the standard categories the user accepted an offer
+   *  to create, into the months the entries are filed in — for the import to
+   *  commit with its own — and what to do on screen once they are stored. */
+  planStandardCategories: (ids: string[], months: TouchedMonth[]) => CategoryPlan;
   /** Remember what the touched months held before the file landed, so an import
    *  of the wrong file — or into the wrong months — has a way back. */
   onRecordUndo: (entry: UndoEntry) => void;
+}
+
+/** Writes to commit together with something else, and the on-screen update to
+ *  make once they are stored. */
+export interface CategoryPlan {
+  changes: StorageChange[];
+  apply: () => void;
 }
 
 /** Prefix marking a choice that is an offer to create rather than a category
@@ -93,8 +99,8 @@ interface Group extends TextGroup {
 }
 
 export const CsvImport = ({
-  categories, periodStartDay, periodLocks, onClose, onImported, onSaveFailed,
-  onCreateCategories, onRecordUndo,
+  categories, periodStartDay, periodLocks, onClose, onImported,
+  planStandardCategories, onRecordUndo,
 }: Props) => {
   const { t, lang, money } = useLang();
 
@@ -329,52 +335,46 @@ export const CsvImport = ({
       CATEGORY_RULES_KEY,
       CSV_MAPS_KEY,
     ]);
-    // Waited for: in the apps the transaction is only QUEUED when the write
-    // returns, and everything below — the remembered columns, new categories,
-    // learned rules, the step back, "done" — used to happen before the
-    // database had answered (deep review 2026-09-27, P1). A refusal has
-    // changed nothing, and the dialog stays open to say so.
+    // Everything the import leaves behind, as ONE transaction, answered once
+    // it is stored (foundation review 2026-09-29, P1). It used to store the
+    // entries first and the rest afterwards, each on its own — so a refusal
+    // half-way left entries filed under a category that was never created, or
+    // said "done" and "could not save" at once, with a step back describing
+    // more than had landed. Now it is all of it or none:
+    //
+    //   · the entries, in every month the file reaches;
+    //   · the COLUMN LAYOUT, remembered for this bank's file — covered by the
+    //     same step back, because an import is most often undone for being the
+    //     wrong file, and its columns are exactly what should go with it;
+    //   · the standard categories the file needs, in every month it reaches,
+    //     including one whose rows were already there: those entries still
+    //     need a named home;
+    //   · what YOU decided, learned as rules. Never what the sorter guessed:
+    //     storing its own guesses would cement the first mistake that slips
+    //     past and make it look, next month, like something you had confirmed.
+    const reached = [...months.values()].map(b => ({ year: b.year, month: b.month }));
+    const newCategories = toCreate.length > 0
+      ? planStandardCategories(toCreate, reached)
+      : { changes: [], apply: () => {} };
+    const rules = learnedRulesChange(appStorage, ready
+      .filter(g => !g.auto)
+      .map(g => ({ text: g.text, categoryId: resolve(g.choice) })));
     setImporting(true);
-    const stored = await commitStorageChanges(appStorage, changes);
+    const outcome = await commitStorageChangesOutcome(appStorage, [
+      ...changes,
+      csvMapChange(appStorage, headerFingerprint(header), roles, dateOrder),
+      ...newCategories.changes,
+      ...(rules ? [rules] : []),
+    ]);
     setImporting(false);
-    if (!stored) {
-      alert(t.importWriteFailed);
+    // A refusal changes nothing — no entry, category, layout or rule — and the
+    // dialog stays open to say so. Only said like that when it is VERIFIED.
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.importWriteFailed);
       return;
     }
-    const mark = storageMark();
+    newCategories.apply();
 
-    // Only commit secondary effects after the entries themselves landed. A
-    // refused actuals write must not leave behind categories or learned rules
-    // from an import the app correctly reported as failed.
-    //
-    // Categories go into every month the file reaches, including a month whose
-    // rows were already present: those stored entries still need a named home.
-    // Remembered now, not when the columns were confirmed — so it is covered by
-    // the same step back as everything else the import leaves behind.
-    rememberCsvMap(appStorage, headerFingerprint(header), roles, dateOrder);
-
-    if (toCreate.length > 0) {
-      onCreateCategories(
-        toCreate,
-        [...months.values()].map(b => ({ year: b.year, month: b.month })),
-      );
-    }
-
-    // Learn from what YOU decided, never from what the sorter guessed. Storing
-    // its own guesses back would cement the first mistake that slips past and
-    // make it look, next month, like something you had confirmed.
-    let rules: LearnedRules | undefined;
-    for (const g of ready) {
-      if (g.auto) continue;
-      rules = rememberCategoryRule(appStorage, g.text, resolve(g.choice), rules);
-    }
-
-    // Recorded LAST, once the categories and rules have been written too, so the
-    // step back describes the whole import rather than a part of it. In the
-    // apps those writes are queued, so they are waited for; one that is refused
-    // is kept for Try again and shown in the banner. The entries themselves are
-    // stored either way, and the step back covers everything.
-    if (!(await settleStorage(mark))) onSaveFailed();
     if (added > 0) {
       onRecordUndo({
         at: new Date().toISOString(),

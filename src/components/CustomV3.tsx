@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
-import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { useIsPhone } from '../useIsPhone';
 import { adoptExternalValue } from '../crossTab';
 import { isCustomValues, isCustomStructure } from '../backup';
@@ -569,7 +569,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   };
   // Wipe every month's Custom amounts (keeps the block layout) — a clean-up for
   // data left over from the old month-bleed bug. Confirmed before running.
-  const clearAllAmounts = () => {
+  const clearAllAmounts = async () => {
     if (!window.confirm(t.clearAmountsConfirm)) return;
     // Snapshots go with the amounts they describe. A snapshot exists to say how
     // a month's MONEY was filed, so once every amount is gone it documents
@@ -588,8 +588,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // first, then removed as one reversible operation so a refusal cannot leave
     // half the years cleared.
     const before = captureKeys(appStorage, doomed);
-    if (!applyStorageChanges(appStorage, doomed.map(key => ({ key, value: null })))) {
-      onSaveFailed();
+    // Waited for: in the apps the removal only QUEUES when the write returns,
+    // and "cleared", the empty amounts and the step back used to follow at
+    // once — for a removal the database could still refuse (foundation review
+    // 2026-09-29, P1). A refusal changed nothing, and is said as that.
+    const outcome = await commitStorageChangesOutcome(appStorage, doomed.map(key => ({ key, value: null })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return;
     }
     onRecordUndo({

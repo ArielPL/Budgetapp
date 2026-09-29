@@ -2,7 +2,7 @@ import type { BudgetCategory, BudgetRow, MonthData, SavingsGoal } from '../types
 import type { PeriodLocks } from '../periodLabel';
 import { useLang } from '../i18n';
 import { appStorage } from '../storage';
-import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import {
   CUSTOM_MODE_KEY, CUSTOM_LINKED_KEY, customResetKeys, customResetChanges, type CustomMode,
@@ -57,7 +57,7 @@ export const CustomPanel = ({
    * back: every removed key is captured first and the removal is one write, so
    * a refusal leaves everything as it was rather than half of it.
    */
-  const startOver = () => {
+  const startOver = async () => {
     if (!mode) return;
     const keys = customResetKeys(appStorage, mode);
     // Nothing built yet (a panel chosen a moment ago): no question to ask and
@@ -66,8 +66,13 @@ export const CustomPanel = ({
     if (holdsAnything
       && !window.confirm(mode === 'linked' ? t.startOverConfirmLinked : t.startOverConfirmStandalone)) return;
     const before = captureKeys(appStorage, keys);
-    if (!applyStorageChanges(appStorage, customResetChanges(appStorage, mode))) {
-      onSaveFailed();
+    // Waited for, like every change that switches the view or offers a step
+    // back: in the apps the removal is only queued when the write returns
+    // (foundation review 2026-09-29, P1). A refusal changed nothing — the panel
+    // stays as it was — and is said as that.
+    const outcome = await commitStorageChangesOutcome(appStorage, customResetChanges(appStorage, mode));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return;
     }
     if (holdsAnything) onRecordUndo({ at: new Date().toISOString(), action: 'resetCustom', changes: before });

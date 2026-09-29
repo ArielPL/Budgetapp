@@ -6,7 +6,7 @@
 // is remembered just as well as a familiar one.
 
 import type { StorageLike } from './storage';
-import { safeSetItem } from './storageWrite';
+import { safeSetItem, type StorageChange } from './storageWrite';
 import type { ColumnRole, DateOrder } from './csvImport';
 
 export const CSV_MAPS_KEY = 'budget_csv_maps';
@@ -61,9 +61,22 @@ export function rememberCsvMap(
   roles: ColumnRole[],
   dateOrder: DateOrder = 'dmy',
 ): boolean {
+  const { key, value } = csvMapChange(storage, fingerprint, roles, dateOrder);
+  return safeSetItem(storage, key, value!);
+}
+
+/** The write rememberCsvMap makes, for a caller that commits it together with
+ *  other changes — the import, which stores its entries and what it learned
+ *  as one transaction. */
+export function csvMapChange(
+  storage: StorageLike,
+  fingerprint: string,
+  roles: ColumnRole[],
+  dateOrder: DateOrder = 'dmy',
+): StorageChange {
   const maps = loadCsvMaps(storage);
   maps[fingerprint] = { roles, dateOrder };
-  return safeSetItem(storage, CSV_MAPS_KEY, JSON.stringify(maps));
+  return { key: CSV_MAPS_KEY, value: JSON.stringify(maps) };
 }
 
 /**

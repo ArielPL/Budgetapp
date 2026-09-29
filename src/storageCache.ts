@@ -108,6 +108,8 @@ export interface CachedStorage extends StorageLike {
   /** Write every unsaved change again, as one transaction. Resolves true when
    *  nothing is left unsaved. */
   retryUnsaved(): Promise<boolean>;
+  /** Hear when hasUnsaved changes, either way. Returns an unsubscribe. */
+  onUnsavedChange(listener: () => void): () => void;
   /** Everything the backend holds, read after every earlier write has landed.
    *  What a backup is built from: the database, not the cache. */
   snapshot(): Promise<Record<string, string>>;
@@ -152,8 +154,19 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
     return generation;
   };
 
-  /** Refused changes nothing has replaced since, by key. */
-  const refusedChanges = new Map<string, string | null>();
+  /** Refused changes nothing has replaced since, by key — each with the
+   *  number of the change that was refused (see `stamp`). */
+  const refusedChanges = new Map<string, { value: string | null; at: number }>();
+  /** Told whenever hasUnsaved may have changed, so the banner can follow the
+   *  real state instead of whichever write answered last. */
+  const unsavedListeners = new Set<() => void>();
+  let lastUnsaved = false;
+  const unsavedChanged = () => {
+    const now = refusedChanges.size > 0 || diverged;
+    if (now === lastUnsaved) return;
+    lastUnsaved = now;
+    for (const l of unsavedListeners) l();
+  };
   /** A refusal after which the database could not be read back either: the
    *  cache may hold values that are not stored, and nothing here can say which. */
   let diverged = false;
@@ -172,6 +185,7 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
     } catch {
       diverged = true;
     }
+    unsavedChanged();
   };
 
   /**
@@ -187,11 +201,12 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
       () => {
         // Landed: whatever was refused for these keys before is superseded.
         for (const c of changes) refusedChanges.delete(c.key);
+        unsavedChanged();
         return true;
       },
       async () => {
         if (tracked) {
-          for (const c of changes) refusedChanges.set(c.key, c.value);
+          for (const c of changes) refusedChanges.set(c.key, { value: c.value, at });
           fail(changes[0].key);
         }
         await reconcile(at);
@@ -273,14 +288,26 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
     },
 
     unsaved() {
-      return [...refusedChanges].map(([key, value]) => ({ key, value }));
+      return [...refusedChanges].map(([key, r]) => ({ key, value: r.value }));
     },
 
     get hasUnsaved() { return refusedChanges.size > 0 || diverged; },
 
     async retryUnsaved() {
-      const changes = [...refusedChanges].map(([key, value]) => ({ key, value }));
+      // Only refusals nothing has changed SINCE. A key the user has changed
+      // again has a newer write of its own, queued or landed, and that write
+      // decides: it clears the refusal when it lands, or replaces it with the
+      // newer value when it is refused too. Retrying the older value would
+      // queue it BEHIND the newer one and put it back over it (foundation
+      // review 2026-09-29, P0). A second Try again pressed meanwhile skips it
+      // for the same reason: the first one's write is itself a newer change.
+      const changes = [...refusedChanges]
+        .filter(([key, r]) => (changedAt.get(key) ?? 0) <= r.at)
+        .map(([key, r]) => ({ key, value: r.value }));
       await batch(changes, true);
+      // Let every write queued before this answer too — the newer ones
+      // above, above all — so what is returned describes the disk.
+      await queue;
       if (diverged) {
         // The last read-back failed; try it again, in turn with the writes.
         const at = generation;
@@ -289,6 +316,11 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
         await again;
       }
       return refusedChanges.size === 0 && !diverged;
+    },
+
+    onUnsavedChange(listener) {
+      unsavedListeners.add(listener);
+      return () => unsavedListeners.delete(listener);
     },
 
     snapshot() {

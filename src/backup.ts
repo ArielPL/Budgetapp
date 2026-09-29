@@ -23,7 +23,7 @@
 import { CUSTOM_MODE_KEY, CUSTOM_LINKED_KEY, isCustomMode } from './customMode';
 import { isLang, isCurrency, type Lang } from './i18n';
 import type { StorageLike } from './storage';
-import { commitStorageChanges, type StorageChange } from './storageWrite';
+import { commitStorageChangesOutcome, type StorageChange } from './storageWrite';
 import { validateSavingsPlan, type SavingsPlan } from './sparplan';
 import { isValidMoney } from './money';
 import { isRowPeriod } from './metrics';
@@ -94,7 +94,8 @@ export type ImportFailure =
   | 'not-a-backup'    // valid JSON, but not one of our exports
   | 'too-new'         // written by a newer app version than this one
   | 'corrupt'         // right shape, but a value is unusable
-  | 'write-failed';   // storage rejected a write (quota) — rolled back
+  | 'write-failed'    // storage rejected a write (quota) — rolled back, verified
+  | 'write-partial';  // rejected, and not everything could be put back
 
 export type ImportCheck =
   | { ok: true; payload: BackupPayload; keyCount: number }
@@ -347,9 +348,9 @@ export function backupChanges(storage: StorageLike, payload: BackupPayload): Sto
 export async function applyBackup(
   storage: StorageLike, payload: BackupPayload,
 ): Promise<ImportCheck | { ok: true }> {
-  return await commitStorageChanges(storage, backupChanges(storage, payload))
-    ? { ok: true }
-    : { ok: false, reason: 'write-failed' };
+  const outcome = await commitStorageChangesOutcome(storage, backupChanges(storage, payload));
+  if (outcome === 'stored') return { ok: true };
+  return { ok: false, reason: outcome === 'partial' ? 'write-partial' : 'write-failed' };
 }
 
 /** Filename for a downloaded backup: budget-backup-2026-07-16.json */
@@ -364,11 +365,13 @@ export function backupFilename(now = new Date()): string {
 /** Human-readable, translated reason an import was refused. */
 export function importErrorText(reason: ImportFailure, t: {
   importInvalid: string; importTooNew: string; importCorrupt: string; importWriteFailed: string;
+  changePartlySaved: string;
 }): string {
   switch (reason) {
     case 'too-new': return t.importTooNew;
     case 'corrupt': return t.importCorrupt;
     case 'write-failed': return t.importWriteFailed;
+    case 'write-partial': return t.changePartlySaved;
     default: return t.importInvalid;
   }
 }

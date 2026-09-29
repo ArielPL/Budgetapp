@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "native:sync": "npm run build && npx cap sync && node scripts/check-native-bundles.mjs",
+    "native:check": "node scripts/check-native-bundles.mjs",
     "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview"

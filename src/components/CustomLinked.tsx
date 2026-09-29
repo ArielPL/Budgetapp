@@ -3,8 +3,8 @@ import type { BudgetCategory, BudgetRow, MonthData, SavingsGoal } from '../types
 import { useLang, MONTHS } from '../i18n';
 import { useIsPhone } from '../useIsPhone';
 import { useModalFocus } from '../useModalFocus';
-import { appStorage, settleStorage, storageMark } from '../storage';
-import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { appStorage } from '../storage';
+import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { shownName, loadMonthData, generateId, createCategory, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
 import { loadActuals, actualsKey, INCOME_ACTUAL_ID } from '../actuals';
@@ -274,17 +274,18 @@ export const CustomLinked = ({
     // (iOS/Android review 2026-09-26, P2). In the apps the write is queued, so
     // "landed" means the database confirmed it: settleStorage.
     const before = captureKeys(appStorage, keys);
-    const mark = storageMark();
-    // One write for every month, rolled back together if storage refuses one.
-    // Never the month on screen, so App's save effect cannot race it.
-    if (!applyStorageChanges(appStorage, plan.months.map(m => ({
+    // One write for every month, all of it or none, and the answer once it is
+    // STORED (in the apps, once the database has committed it). Never the
+    // month on screen, so App's save effect cannot race it. A refusal changed
+    // nothing — no month is "on screen but unsaved" — so it is said as that,
+    // not with the unsaved-changes banner (foundation review 2026-09-29).
+    void commitStorageChangesOutcome(appStorage, plan.months.map(m => ({
       key: storageKey(m.year, m.month), value: JSON.stringify(m.data),
-    })))) {
-      onSaveFailed();
-      return;
-    }
-    void settleStorage(mark).then(ok => {
-      if (!ok) { onSaveFailed(); return; }
+    }))).then(outcome => {
+      if (outcome !== 'stored') {
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return;
+      }
       onRecordUndo({
         at: new Date().toISOString(), action: 'copyBudget', count: plan.months.length,
         year: first.year, month: first.month, changes: before,

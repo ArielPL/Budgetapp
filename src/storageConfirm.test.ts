@@ -297,3 +297,105 @@ describe('the startup refiling in the apps', () => {
     expect(JSON.parse(b.disk.get(actualsKey(2026, 8))!).map((e: { id: string }) => e.id)).toEqual(['a2']);
   });
 });
+
+// ── Try again must never put back an OLDER change (foundation review
+// 2026-09-29, P0) ───────────────────────────────────────────────────────────
+//
+// The sequence the review reproduced: a write is refused, the user changes the
+// same thing again (that write still on its way), then presses Try again
+// before it lands. Try again had captured the refused, OLDER value and queued
+// it behind the newer one — so both the cache and the database ended on the
+// older value, and it reported that all was saved.
+
+/** A backend whose writes to one key wait until released. */
+const gatedBackend = () => {
+  const b = backend();
+  let release: () => void = () => {};
+  let gate: Promise<void> | null = null;
+  const hold = () => { gate = new Promise<void>(r => { release = r; }); };
+  const inner = b.write.bind(b);
+  const innerCommit = b.commit!.bind(b);
+  const g = Object.assign(b, {
+    hold,
+    release: () => { const r = release; gate = null; r(); },
+    async write(k: string, v: string) { if (gate) await gate; return inner(k, v); },
+    async commit(c: StorageChange[]) { if (gate) await gate; return innerCommit(c); },
+  });
+  return g;
+};
+
+describe('Try again after a newer change to the same key', () => {
+  const KEY = 'budget_actuals_2026_8';
+
+  it('keeps the newer change — in the cache, on disk, and after a restart', async () => {
+    const b = gatedBackend();
+    b.disk.set(KEY, 'stored');
+    const store = createCachedStorage(b);
+    await store.hydrate();
+
+    // 1. The first write is refused — and has REALLY been refused before
+    //    anything else happens.
+    b.refuse.add(KEY);
+    store.setItem(KEY, 'older');
+    await store.flush();
+    expect(store.unsaved()).toEqual([{ key: KEY, value: 'older' }]);
+
+    // 2. A newer change to the same key, held on its way to the database.
+    b.refuse.clear();
+    b.hold();
+    store.setItem(KEY, 'newer');
+
+    // 3. Try again, pressed before the newer write has landed.
+    const retried = store.retryUnsaved();
+
+    // 4. The newer write lands.
+    b.release();
+    expect(await retried).toBe(true);
+    await store.flush();
+
+    expect(store.getItem(KEY)).toBe('newer');
+    expect(b.disk.get(KEY)).toBe('newer');
+    expect(store.hasUnsaved).toBe(false);
+    const again = createCachedStorage(b);
+    await again.hydrate();
+    expect(again.getItem(KEY)).toBe('newer');
+  });
+
+  it('keeps the newer change for the next try when IT is refused too', async () => {
+    const b = gatedBackend();
+    b.disk.set(KEY, 'stored');
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    b.refuse.add(KEY);
+    store.setItem(KEY, 'older');
+    await store.flush();
+
+    b.hold();
+    store.setItem(KEY, 'newer');          // will be refused as well
+    const retried = store.retryUnsaved();
+    b.release();
+    expect(await retried).toBe(false);
+    await store.flush();
+    // What is kept to try again is the NEWER change, and nothing older landed.
+    expect(store.unsaved()).toEqual([{ key: KEY, value: 'newer' }]);
+    expect(b.disk.get(KEY)).toBe('stored');
+
+    b.refuse.clear();
+    expect(await store.retryUnsaved()).toBe(true);
+    expect(b.disk.get(KEY)).toBe('newer');
+  });
+
+  it('two Try agains at once write the refused change once, and agree', async () => {
+    const b = gatedBackend();
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    b.refuse.add(KEY);
+    store.setItem(KEY, 'v1');
+    await store.flush();
+    b.refuse.clear();
+    const [a, c] = await Promise.all([store.retryUnsaved(), store.retryUnsaved()]);
+    expect([a, c]).toEqual([true, true]);
+    expect(b.disk.get(KEY)).toBe('v1');
+    expect(store.hasUnsaved).toBe(false);
+  });
+});

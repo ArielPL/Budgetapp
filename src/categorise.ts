@@ -746,6 +746,24 @@ export function rememberCategoryRule(
   return next;
 }
 
+/**
+ * The write that teaches several corrections at once, or null when none of
+ * them has anything to learn. For the import, which stores its entries and the
+ * rules they taught as ONE transaction: a rule without its entries, or entries
+ * whose corrections were not learned, is exactly the half-state it avoids.
+ */
+export function learnedRulesChange(
+  storage: StorageLike, corrections: { text: string; categoryId: string }[],
+): { key: string; value: string } | null {
+  let rules: LearnedRules | null = null;
+  for (const { text, categoryId } of corrections) {
+    const key = normalise(text);
+    if (!key) continue;
+    rules = { ...(rules ?? loadCategoryRules(storage)), [key]: categoryId };
+  }
+  return rules ? { key: CATEGORY_RULES_KEY, value: JSON.stringify(rules) } : null;
+}
+
 // ── The answer the import asks for ─────────────────────────────────────────
 
 export interface Suggestion {

@@ -651,6 +651,8 @@ export interface Translations {
   restoreNoUndo: string;
   /** An all-or-nothing change the device refused: nothing was changed. */
   changeNotSaved: string;
+  /** A refused change the device would not let the app fully take back. */
+  changePartlySaved: string;
   /** Asked before a backup while some changes are not stored. */
   backupHasUnsaved: string;
   undoDismiss: string;
@@ -1312,6 +1314,7 @@ export const translations: Record<Lang, Translations> = {
     undoFailed: 'Kunde inte ångra — enheten nekade skrivningen. Frigör utrymme och försök igen.',
     restoreNoUndo: 'Backupen är återställd, men steget tillbaka kunde inte sparas. Återställningen går därför inte att ångra.',
     changeNotSaved: 'Det gick inte att spara, så ingenting ändrades. Frigör utrymme på enheten och försök igen.',
+    changePartlySaved: 'Det gick inte att spara, och enheten lät inte appen ta tillbaka allt: en del av ändringen kan finnas kvar. Frigör utrymme och tryck på "Försök spara igen" i rutan överst, så sparas det som var innan.',
     backupHasUnsaved: 'Några av dina senaste ändringar kunde inte sparas och kommer inte med i backupen. Backupen innehåller det som faktiskt är sparat. Vill du fortsätta?',
     undoDismiss: 'Stäng',
     triageWaiting: (n) => n === 1 ? '1 post väntar på en kategori' : `${n} poster väntar på en kategori`,
@@ -1969,6 +1972,7 @@ export const translations: Record<Lang, Translations> = {
     undoFailed: 'Could not undo — the device refused the write. Free some space and try again.',
     restoreNoUndo: 'The backup has been restored, but the step back could not be stored, so the restore cannot be undone.',
     changeNotSaved: 'It could not be saved, so nothing was changed. Free up space on the device and try again.',
+    changePartlySaved: 'It could not be saved, and the device would not let the app take all of it back: part of the change may remain. Free up space and press "Try saving again" in the box at the top to store what was there before.',
     backupHasUnsaved: 'Some of your latest changes could not be saved and will not be in the backup. The backup holds what is actually stored. Continue?',
     undoDismiss: 'Dismiss',
     triageWaiting: (n) => n === 1 ? '1 entry is waiting for a category' : `${n} entries are waiting for a category`,
@@ -2625,6 +2629,7 @@ export const translations: Record<Lang, Translations> = {
     undoFailed: 'No se pudo deshacer — el dispositivo rechazó la escritura. Libera espacio e inténtalo de nuevo.',
     restoreNoUndo: 'La copia se ha restaurado, pero el paso atrás no se pudo guardar, así que la restauración no se puede deshacer.',
     changeNotSaved: 'No se pudo guardar, así que no se cambió nada. Libera espacio en el dispositivo e inténtalo de nuevo.',
+    changePartlySaved: 'No se pudo guardar, y el dispositivo no dejó que la app lo deshiciera todo: puede quedar parte del cambio. Libera espacio y pulsa "Intentar guardar de nuevo" en el aviso de arriba para guardar lo que había antes.',
     backupHasUnsaved: 'Algunos de tus últimos cambios no se pudieron guardar y no estarán en la copia. La copia contiene lo que está realmente guardado. ¿Continuar?',
     undoDismiss: 'Cerrar',
     triageWaiting: (n) => n === 1 ? '1 movimiento espera una categoría' : `${n} movimientos esperan una categoría`,
