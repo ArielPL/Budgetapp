@@ -131,6 +131,11 @@ body {
   color: var(--text);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  /* Android's WebView flashes a translucent RECTANGLE over whatever is tapped,
+     ignoring rounded corners — a square box round the pill-shaped "Next" in
+     the intro (seen on the emulator, 2026-09-29). iOS draws nothing like it.
+     Buttons give their own feedback; keyboard focus rings are unaffected. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
@@ -5047,6 +5052,11 @@ a:focus-visible,
   padding: 18px;
 }
 
+/* Focus is moved INTO the dialog when it opens, so its title is read out; a
+   ring drawn round the whole card for that said nothing and looked like a
+   stray purple border. Everything inside keeps its own focus ring. */
+.intro-modal:focus-visible { outline: none; }
+
 .intro-skip {
   align-self: flex-end;
   min-height: 36px;
@@ -5065,11 +5075,14 @@ a:focus-visible,
   align-items: center;
   text-align: center;
   gap: 12px;
-  /* Room for the longest of the three bodies in the longest language, so the
-     footer sits still while the cards change under it. */
-  min-height: 210px;
   padding: 6px 4px 18px;
 }
+
+/* All three pages share one cell, so the card is as tall as the longest page
+   and the footer sits still while the cards change under it (Intro.tsx). */
+.intro-stack { display: grid; }
+.intro-stack > .intro-body { grid-area: 1 / 1; }
+.intro-body.is-off { visibility: hidden; }
 
 .intro-emoji { font-size: 2.6rem; line-height: 1; }
 
@@ -5692,4 +5705,23 @@ a:focus-visible,
   background: var(--accent-brand);
   color: #fff;
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  /* The intro stays a CARD on phones — a box of its own, centred, with room
+     around it — not the bottom sheet every other .theme-panel becomes here.
+     The sheet rule also left it half-converted: its own card width won on
+     equal specificity, so the "sheet" was 32px narrower than the screen and
+     stuck to the left edge (seen on Android and iPhone, 2026-09-29). Every
+     sheet property is set back to the card's, so nothing is left to chance. */
+  .theme-panel.intro-modal {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100% - 32px));
+    max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  }
 }

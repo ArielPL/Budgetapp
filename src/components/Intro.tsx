@@ -45,7 +45,6 @@ export const Intro = ({ onDone }: Props) => {
   // worth more than protecting three cards from being dismissed.
   useModalFocus(panel, true, onDone);
   const last = page === pages.length - 1;
-  const current = pages[page];
 
   return (
     <>
@@ -62,10 +61,21 @@ export const Intro = ({ onDone }: Props) => {
       >
         <button className="intro-skip" onClick={onDone}>{t.introSkip}</button>
 
-        <div className="intro-body">
-          <div className="intro-emoji" aria-hidden="true">{current.emoji}</div>
-          <h2 className="intro-title" id="intro-title">{current.title}</h2>
-          <p className="intro-text">{current.body}</p>
+        {/* Every page is laid out, stacked in one grid cell, and only the
+            current one is visible — so the card is always as tall as the
+            longest page, in whatever language and width. Centred on a phone
+            (2026-09-29), a card that changed height moved "Next" under the
+            thumb between taps, which is how a double tap skips a page nobody
+            read. The hidden pages are visibility: hidden, so they are not
+            read out either. */}
+        <div className="intro-stack">
+          {pages.map((p, i) => (
+            <div key={i} className={`intro-body${i === page ? '' : ' is-off'}`} aria-hidden={i === page ? undefined : true}>
+              <div className="intro-emoji" aria-hidden="true">{p.emoji}</div>
+              <h2 className="intro-title" id={i === page ? 'intro-title' : undefined}>{p.title}</h2>
+              <p className="intro-text">{p.body}</p>
+            </div>
+          ))}
         </div>
 
         <div className="intro-foot">
