@@ -99,3 +99,20 @@ describe('a stored override map that is not a map cannot take the app down', () 
     expect(loadThemeState().custom).toEqual({ '--accent-brand': '#38bdf8' });
   });
 });
+
+// ── A new install starts light (Ariel, 2026-10-03) ─────────────────────────
+
+describe('the theme a device starts with', () => {
+  it('is light on a new install', () => {
+    expect(loadThemeState()).toMatchObject({ palette: 'sorbet', mode: 'light' });
+  });
+  it('stays dark for someone who chose dark', () => {
+    localStorage.setItem('budget_theme_palette', 'sorbet');
+    localStorage.setItem('budget_theme_mode', 'dark');
+    expect(loadThemeState().mode).toBe('dark');
+  });
+  it('stays dark for the oldest light/dark switch set to dark', () => {
+    localStorage.setItem('budget_theme', 'dark');
+    expect(loadThemeState().mode).toBe('dark');
+  });
+});

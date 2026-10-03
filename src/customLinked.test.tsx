@@ -128,7 +128,7 @@ describe('a linked panel is the regular budget', () => {
 
   it('shows every tab, Year included, since they describe the same numbers', async () => {
     await chooseLinked();
-    expect(tabLabels()).toEqual(['Anpassad', 'Uppföljning', 'Sparande & Investeringar', 'Plan & Översikt', 'År']);
+    expect(tabLabels()).toEqual(['Anpassad', 'Uppföljning', 'Sparande & Investeringar', 'Skuld', 'Plan & Översikt', 'År']);
   });
 
   it('writes a typed amount to the regular budget, and nowhere else', async () => {

@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { DebtKind } from './debts';
 import type { UndoAction } from './undo';
 
 export type Lang = 'sv' | 'en' | 'es';
@@ -212,6 +213,62 @@ export interface Translations {
   tabPlanShort: string;
   tabYear: string;
   tabYearShort: string;
+  tabDebt: string;
+  tabDebtShort: string;
+  debtTitle: string;
+  debtIntro: string;
+  debtEmpty: string;
+  debtAdd: string;
+  debtName: string;
+  debtNamePlaceholder: string;
+  debtKindLabel: string;
+  debtKind: (kind: DebtKind) => string;
+  debtBalance: string;
+  debtBalanceDate: string;
+  debtRate: string;
+  debtPayment: string;
+  debtCsnHint: string;
+  debtAddToBudget: (month: string) => string;
+  debtCreate: string;
+  debtSave: string;
+  debtErrorName: string;
+  debtErrorNumbers: string;
+  debtLeft: string;
+  debtAsOf: (date: string) => string;
+  debtPerMonth: (amount: string) => string;
+  debtRateShort: (pct: string) => string;
+  debtPaidOff: (when: string) => string;
+  debtGrowing: string;
+  debtMortgageNote: string;
+  debtEdit: (name: string) => string;
+  debtEditShort: string;
+  debtDeleteShort: string;
+  debtDelete: (name: string) => string;
+  debtDeleteConfirm: (name: string) => string;
+  debtSummaryTotal: string;
+  debtSummaryMonthly: string;
+  debtSummaryFree: string;
+  debtWayTitle: string;
+  debtExtra: string;
+  debtAvalanche: string;
+  debtAvalancheSub: string;
+  debtSnowball: string;
+  debtSnowballSub: string;
+  debtFreeBy: (when: string) => string;
+  debtInterest: (amount: string) => string;
+  debtFirstPaid: (name: string, when: string) => string;
+  debtNotWithin: string;
+  debtMinimumLine: (when: string, interest: string) => string;
+  debtMinimumNever: string;
+  debtSameOrder: string;
+  debtFromBudget: (amount: string) => string;
+  debtFromBudgetHint: string;
+  debtComplete: string;
+  debtCompleteFor: (name: string) => string;
+  debtEstimateNote: string;
+  debtPaidThisMonth: (month: string, amount: string) => string;
+  debtOverBudget: string;
+  debtExtraOverRemaining: (amount: string) => string;
   tabFollowUp: string;
   tabFollowUpShort: string;
   followUpHeading: string;
@@ -891,6 +948,62 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'År',
     tabYearShort: 'År',
+    tabDebt: 'Skuld',
+    tabDebtShort: 'Skuld',
+    debtTitle: '💳 Skulder',
+    debtIntro: 'Lägg in dina skulder, så räknar appen ut när du blir skuldfri och vad räntan kostar på vägen. Appen räknar och jämför, men ger inga råd.',
+    debtEmpty: 'Inga skulder ännu.',
+    debtAdd: '+ Lägg till skuld',
+    debtName: 'Namn',
+    debtNamePlaceholder: 'T.ex. CSN',
+    debtKindLabel: 'Typ',
+    debtKind: (kind) => ({ csn: 'CSN (studielån)', loan: 'Privatlån', card: 'Kreditkort', installment: 'Avbetalning', mortgage: 'Bolån', other: 'Annat' })[kind],
+    debtBalance: 'Kvar att betala',
+    debtBalanceDate: 'Enligt besked den',
+    debtRate: 'Ränta (% per år)',
+    debtPayment: 'Betalning per månad',
+    debtCsnHint: 'CSN: betalningen är årsbeloppet delat med 12. Räntan för 2026 är 2,135 %. Årsbeloppet räknas om varje år och ökar med ungefär 2 %. En extra inbetalning går först till årets belopp och sedan till skulden. Räntan ger inget avdrag i deklarationen.',
+    debtAddToBudget: (month) => `Lägg betalningen som en rad under Lån & skulder i budgeten för ${month}`,
+    debtCreate: 'Lägg till',
+    debtSave: 'Spara',
+    debtErrorName: 'Skriv ett namn.',
+    debtErrorNumbers: 'Fyll i belopp, ränta och betalning med siffror.',
+    debtLeft: 'kvar, uppskattat',
+    debtAsOf: (date) => `enligt besked ${date}`,
+    debtPerMonth: (amount) => `${amount} per månad`,
+    debtRateShort: (pct) => `${pct} % ränta`,
+    debtPaidOff: (when) => `Betald ${when}`,
+    debtGrowing: 'Betalningen täcker inte räntan, så skulden växer.',
+    debtMortgageNote: 'Bolån räknas inte i vägen till skuldfri.',
+    debtEdit: (name) => `Ändra ${name}`,
+    debtEditShort: 'Ändra',
+    debtDeleteShort: 'Ta bort',
+    debtDelete: (name) => `Ta bort ${name}`,
+    debtDeleteConfirm: (name) => `Ta bort ${name}?\n\nRaden i budgeten ligger kvar. Du kan ångra direkt efteråt.`,
+    debtSummaryTotal: 'Kvar totalt',
+    debtSummaryMonthly: 'Per månad',
+    debtSummaryFree: 'Skuldfri',
+    debtWayTitle: '🏁 Vägen till skuldfri',
+    debtExtra: 'Extra per månad',
+    debtAvalanche: 'Lavinen',
+    debtAvalancheSub: 'Högst ränta först. Kostar minst.',
+    debtSnowball: 'Snöbollen',
+    debtSnowballSub: 'Minsta skulden först. Första skulden blir betald snabbast.',
+    debtFreeBy: (when) => `Skuldfri ${when}`,
+    debtInterest: (amount) => `Ränta på vägen: ${amount}`,
+    debtFirstPaid: (name, when) => `Först betald: ${name}, ${when}`,
+    debtNotWithin: 'Inte inom 50 år',
+    debtMinimumLine: (when, interest) => `Utan extra: skuldfri ${when}, ränta ${interest}.`,
+    debtMinimumNever: 'Utan extra blir skulderna inte betalda inom 50 år.',
+    debtSameOrder: 'Här blir båda vägarna samma, eftersom de minsta skulderna också har högst ränta.',
+    debtFromBudget: (amount) => `Från budgeten · ${amount} per månad`,
+    debtFromBudgetHint: 'Fyll i vad som är kvar och räntan, så räknas den med i vägen till skuldfri.',
+    debtComplete: 'Fyll i uppgifter',
+    debtCompleteFor: (name) => `Fyll i uppgifter för ${name}`,
+    debtEstimateNote: 'Siffrorna är uppskattningar. Långivaren räknar ränta per dag och kan ta avgifter. Rätta beloppet när du får ett nytt besked.',
+    debtPaidThisMonth: (month, amount) => `Betalt i ${month} enligt Utfall: ${amount}`,
+    debtOverBudget: 'Budgeten för den här månaden går inte ihop. Kommunens budget- och skuldrådgivning hjälper gratis, och Kronofogden har information om skuldsanering.',
+    debtExtraOverRemaining: (amount) => `Extrabeloppet är mer än det som blir kvar i budgeten (${amount}).`,
     tabFollowUp: 'Uppföljning',
     tabFollowUpShort: 'Utfall',
     followUpHeading: 'Plan och utfall',
@@ -1336,6 +1449,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `En rad togs bort i ${where}` : 'En rad togs bort';
       if (action === 'deleteEntry') return `En post togs bort i ${where}`;
       if (action === 'deleteGoal') return 'Ett sparmål togs bort';
+      if (action === 'deleteDebt') return 'En skuld togs bort';
       if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
@@ -1564,6 +1678,62 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Year',
     tabYearShort: 'Year',
+    tabDebt: 'Debt',
+    tabDebtShort: 'Debt',
+    debtTitle: '💳 Debts',
+    debtIntro: 'Add your debts, and the app works out when you will be debt-free and what the interest costs on the way. The app calculates and compares, but gives no advice.',
+    debtEmpty: 'No debts yet.',
+    debtAdd: '+ Add a debt',
+    debtName: 'Name',
+    debtNamePlaceholder: 'E.g. student loan',
+    debtKindLabel: 'Type',
+    debtKind: (kind) => ({ csn: 'CSN (Swedish student loan)', loan: 'Personal loan', card: 'Credit card', installment: 'Instalment plan', mortgage: 'Mortgage', other: 'Other' })[kind],
+    debtBalance: 'Left to pay',
+    debtBalanceDate: 'As of',
+    debtRate: 'Interest (% a year)',
+    debtPayment: 'Payment a month',
+    debtCsnHint: 'CSN: the payment is the yearly amount divided by 12. The 2026 rate is 2.135 %. The yearly amount is recalculated every year and rises by about 2 %. An extra payment goes to the year’s amount first, then to the debt. The interest is not tax-deductible.',
+    debtAddToBudget: (month) => `Add the payment as a row under Loans & Debts in the budget for ${month}`,
+    debtCreate: 'Add',
+    debtSave: 'Save',
+    debtErrorName: 'Type a name.',
+    debtErrorNumbers: 'Fill in the amount, interest and payment as numbers.',
+    debtLeft: 'left, estimated',
+    debtAsOf: (date) => `as of ${date}`,
+    debtPerMonth: (amount) => `${amount} a month`,
+    debtRateShort: (pct) => `${pct} % interest`,
+    debtPaidOff: (when) => `Paid ${when}`,
+    debtGrowing: 'The payment does not cover the interest, so the debt grows.',
+    debtMortgageNote: 'Mortgages are not part of the way to debt-free.',
+    debtEdit: (name) => `Edit ${name}`,
+    debtEditShort: 'Edit',
+    debtDeleteShort: 'Delete',
+    debtDelete: (name) => `Delete ${name}`,
+    debtDeleteConfirm: (name) => `Delete ${name}?\n\nIts row in the budget stays. You can undo this straight after.`,
+    debtSummaryTotal: 'Left in total',
+    debtSummaryMonthly: 'A month',
+    debtSummaryFree: 'Debt-free',
+    debtWayTitle: '🏁 The way to debt-free',
+    debtExtra: 'Extra a month',
+    debtAvalanche: 'The avalanche',
+    debtAvalancheSub: 'Highest interest first. Costs the least.',
+    debtSnowball: 'The snowball',
+    debtSnowballSub: 'Smallest debt first. Pays off the first debt soonest.',
+    debtFreeBy: (when) => `Debt-free ${when}`,
+    debtInterest: (amount) => `Interest on the way: ${amount}`,
+    debtFirstPaid: (name, when) => `First paid: ${name}, ${when}`,
+    debtNotWithin: 'Not within 50 years',
+    debtMinimumLine: (when, interest) => `Without extra: debt-free ${when}, interest ${interest}.`,
+    debtMinimumNever: 'Without extra the debts are not paid within 50 years.',
+    debtSameOrder: 'Here both ways are the same, because the smallest debts also have the highest interest.',
+    debtFromBudget: (amount) => `From the budget · ${amount} a month`,
+    debtFromBudgetHint: 'Fill in what is left and the interest, and it counts in the way to debt-free.',
+    debtComplete: 'Fill in details',
+    debtCompleteFor: (name) => `Fill in details for ${name}`,
+    debtEstimateNote: 'These are estimates. Lenders charge interest daily and may add fees. Correct the amount when you get a new statement.',
+    debtPaidThisMonth: (month, amount) => `Paid in ${month} according to Follow-up: ${amount}`,
+    debtOverBudget: 'This month’s budget does not add up. Free debt advice is often available from your local council or a debt charity.',
+    debtExtraOverRemaining: (amount) => `The extra amount is more than what is left in the budget (${amount}).`,
     tabFollowUp: 'Follow-up',
     tabFollowUpShort: 'Actual',
     followUpHeading: 'Plan and actual',
@@ -2010,6 +2180,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `A row was removed from ${where}` : 'A row was removed';
       if (action === 'deleteEntry') return `An entry was removed from ${where}`;
       if (action === 'deleteGoal') return 'A savings goal was removed';
+      if (action === 'deleteDebt') return 'A debt was removed';
       if (action === 'deleteBlock') return 'A block was removed from Custom';
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
@@ -2237,6 +2408,62 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Año',
     tabYearShort: 'Año',
+    tabDebt: 'Deuda',
+    tabDebtShort: 'Deuda',
+    debtTitle: '💳 Deudas',
+    debtIntro: 'Añade tus deudas y la app calcula cuándo quedarás libre de deudas y cuánto cuestan los intereses por el camino. La app calcula y compara, pero no da consejos.',
+    debtEmpty: 'Todavía no hay deudas.',
+    debtAdd: '+ Añadir deuda',
+    debtName: 'Nombre',
+    debtNamePlaceholder: 'Ej. préstamo de estudios',
+    debtKindLabel: 'Tipo',
+    debtKind: (kind) => ({ csn: 'CSN (préstamo estudiantil sueco)', loan: 'Préstamo personal', card: 'Tarjeta de crédito', installment: 'Pago a plazos', mortgage: 'Hipoteca', other: 'Otra' })[kind],
+    debtBalance: 'Pendiente de pago',
+    debtBalanceDate: 'Según el extracto del',
+    debtRate: 'Interés (% anual)',
+    debtPayment: 'Pago al mes',
+    debtCsnHint: 'CSN: el pago es la cuota anual dividida entre 12. El interés de 2026 es del 2,135 %. La cuota anual se recalcula cada año y sube un 2 % aproximadamente. Un pago extra va primero a la cuota del año y después a la deuda. El interés no es deducible.',
+    debtAddToBudget: (month) => `Añadir el pago como fila en Préstamos y deudas del presupuesto de ${month}`,
+    debtCreate: 'Añadir',
+    debtSave: 'Guardar',
+    debtErrorName: 'Escribe un nombre.',
+    debtErrorNumbers: 'Rellena el importe, el interés y el pago con números.',
+    debtLeft: 'pendiente, estimado',
+    debtAsOf: (date) => `según el extracto del ${date}`,
+    debtPerMonth: (amount) => `${amount} al mes`,
+    debtRateShort: (pct) => `${pct} % de interés`,
+    debtPaidOff: (when) => `Pagada en ${when}`,
+    debtGrowing: 'El pago no cubre los intereses, así que la deuda crece.',
+    debtMortgageNote: 'La hipoteca no cuenta en el camino para quedar libre de deudas.',
+    debtEdit: (name) => `Editar ${name}`,
+    debtEditShort: 'Editar',
+    debtDeleteShort: 'Eliminar',
+    debtDelete: (name) => `Eliminar ${name}`,
+    debtDeleteConfirm: (name) => `¿Eliminar ${name}?\n\nSu fila en el presupuesto se queda. Puedes deshacerlo justo después.`,
+    debtSummaryTotal: 'Pendiente en total',
+    debtSummaryMonthly: 'Al mes',
+    debtSummaryFree: 'Sin deudas',
+    debtWayTitle: '🏁 El camino para quedar sin deudas',
+    debtExtra: 'Extra al mes',
+    debtAvalanche: 'La avalancha',
+    debtAvalancheSub: 'Primero el interés más alto. Cuesta menos.',
+    debtSnowball: 'La bola de nieve',
+    debtSnowballSub: 'Primero la deuda más pequeña. Liquida la primera deuda antes.',
+    debtFreeBy: (when) => `Sin deudas en ${when}`,
+    debtInterest: (amount) => `Intereses por el camino: ${amount}`,
+    debtFirstPaid: (name, when) => `Primera pagada: ${name}, ${when}`,
+    debtNotWithin: 'No en 50 años',
+    debtMinimumLine: (when, interest) => `Sin extra: sin deudas en ${when}, intereses ${interest}.`,
+    debtMinimumNever: 'Sin extra las deudas no se pagan en 50 años.',
+    debtSameOrder: 'Aquí los dos caminos coinciden, porque las deudas más pequeñas también tienen el interés más alto.',
+    debtFromBudget: (amount) => `Del presupuesto · ${amount} al mes`,
+    debtFromBudgetHint: 'Rellena lo que queda y el interés, y contará en el camino para quedar sin deudas.',
+    debtComplete: 'Rellenar datos',
+    debtCompleteFor: (name) => `Rellenar datos de ${name}`,
+    debtEstimateNote: 'Las cifras son estimaciones. El prestamista calcula intereses a diario y puede cobrar comisiones. Corrige el importe cuando recibas un nuevo extracto.',
+    debtPaidThisMonth: (month, amount) => `Pagado en ${month} según Seguimiento: ${amount}`,
+    debtOverBudget: 'El presupuesto de este mes no cuadra. Muchos ayuntamientos y asociaciones de consumidores ofrecen asesoramiento gratuito sobre deudas.',
+    debtExtraOverRemaining: (amount) => `El importe extra es mayor que lo que queda en el presupuesto (${amount}).`,
     tabFollowUp: 'Seguimiento',
     tabFollowUpShort: 'Real',
     followUpHeading: 'Plan y realidad',
@@ -2683,6 +2910,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `Se eliminó una fila de ${where}` : 'Se eliminó una fila';
       if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;
       if (action === 'deleteGoal') return 'Se eliminó una meta de ahorro';
+      if (action === 'deleteDebt') return 'Se eliminó una deuda';
       if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;

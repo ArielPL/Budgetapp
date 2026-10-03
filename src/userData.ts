@@ -28,6 +28,7 @@
 // those before the user has typed anything.
 
 import type { StorageLike } from './storage';
+import { DEBTS_KEY, debtsHaveContent } from './debtStore';
 import type { PlanData } from './types';
 
 /** `budget_<year>_<month>` — a classic budget month. */
@@ -168,6 +169,10 @@ export function hasRestorableUserData(storage: StorageLike): boolean {
     }
     if (key === 'budget_custom_linked') {
       if (linkedLayoutHasContent(storage.getItem(key))) return true;
+      continue;
+    }
+    if (key === DEBTS_KEY) {
+      if (debtsHaveContent(storage.getItem(key))) return true;
     }
   }
   return false;

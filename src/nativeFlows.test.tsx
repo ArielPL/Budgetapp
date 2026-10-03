@@ -654,3 +654,118 @@ describe('the spending card: not counting a place', () => {
     expect(b.disk.has('budget_spending_hidden')).toBe(false);
   });
 });
+
+// ── The Debt tab (Ariel, 2026-10-03) ────────────────────────────────────────
+
+describe('the Debt tab', () => {
+  const openDebts = async () => {
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabDebt)!);
+    await waitFor(() => expect(buttonWith(sv.debtAdd)).toBeTruthy());
+  };
+  const fill = (label: string, value: string) => {
+    const el = [...document.querySelectorAll('label')].find(l => l.textContent === label);
+    fireEvent.change(document.getElementById(el!.htmlFor)!, { target: { value } });
+  };
+  const addSynthetic = () => {
+    fireEvent.click(buttonWith(sv.debtAdd)!);
+    fill(sv.debtName, 'SYNT LÅN');
+    fill(sv.debtBalance, '12000');
+    fill(sv.debtRate, '6');
+    fill(sv.debtPayment, '500');
+    fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(b => b.textContent === sv.debtCreate)!);
+  };
+  const storedDebts = () => JSON.parse(b.disk.get('budget_debts') ?? '{"debts":[]}').debts as { name: string; budgetRowId?: string }[];
+  const lanRows = () => (JSON.parse(b.disk.get('budget_2026_8')!).expenses as { id: string; rows: { id: string; amount: number }[] }[])
+    .find(c => c.id === 'lan')?.rows ?? [];
+
+  it('stores the debt and its budget row together, and shows the way out', async () => {
+    await openDebts();
+    addSynthetic();
+    await waitFor(() => expect(storedDebts().map(d => d.name)).toEqual(['SYNT LÅN']));
+    const [debt] = storedDebts();
+    expect(lanRows()).toEqual([expect.objectContaining({ id: debt.budgetRowId, amount: 500 })]);
+    expect(document.querySelector('.debt-card')?.textContent).toContain('SYNT LÅN');
+    expect(document.querySelector('.debt-way-grid')).not.toBeNull();
+    expect(alerts).toEqual([]);
+  });
+
+  it.each(['budget_debts', 'budget_2026_8'])('stores neither, keeps the form and says so when %s is refused', async refused => {
+    await openDebts();
+    const month = b.disk.get('budget_2026_8');
+    b.refuse.add(refused);
+    addSynthetic();
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    expect(b.disk.has('budget_debts')).toBe(false);
+    expect(b.disk.get('budget_2026_8')).toBe(month);
+    expect(document.querySelector('.debt-card')).toBeNull();
+    expect(document.querySelector('.debt-form')).not.toBeNull();
+  });
+
+  it('removes a debt with a step back, and leaves its budget row', async () => {
+    await openDebts();
+    addSynthetic();
+    await waitFor(() => expect(storedDebts()).toHaveLength(1));
+    fireEvent.click(document.querySelector(`[aria-label="${sv.debtDelete('SYNT LÅN')}"]`)!);
+    await waitFor(() => expect(storedDebts()).toEqual([]));
+    await waitFor(() => expect(undoOnDisk().map(u => u.action)).toContain('deleteDebt'));
+    expect(lanRows()).toHaveLength(1);
+  });
+
+  describe('a row added under "Lån & skulder" in the budget', () => {
+    const MONTH_WITH_ROW = JSON.stringify({
+      ...JSON.parse(SEPT),
+      expenses: [...JSON.parse(SEPT).expenses, {
+        id: 'lan', name: 'Lån & Krediter', icon: '🏦', color: '#f43f5e',
+        rows: [{ id: 'syntrow', label: 'SYNT BILLÅN', amount: 900, userNamed: true }, { id: 'zero', label: 'Studielån (CSN)', amount: 0 }],
+      }],
+    });
+    const openWithRow = async () => {
+      b.disk.set('budget_2026_8', MONTH_WITH_ROW);
+      const store = createCachedStorage(b);
+      await store.hydrate();
+      installStorage(store);
+      await openDebts();
+    };
+    const pending = () => [...document.querySelectorAll('.debt-card-pending')].map(c => c.textContent ?? '');
+
+    it('shows up waiting for its details — a row at 0 kr does not', async () => {
+      await openWithRow();
+      expect(pending()).toHaveLength(1);
+      expect(pending()[0]).toContain('SYNT BILLÅN');
+      expect(pending()[0]).toContain(sv.debtFromBudgetHint);
+      expect(document.querySelector('.plan-empty')).toBeNull();
+    });
+
+    it('becomes a debt linked to that row, with the row’s name and payment filled in', async () => {
+      await openWithRow();
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtCompleteFor('SYNT BILLÅN')}"]`)!);
+      const value = (label: string) => {
+        const el = [...document.querySelectorAll('label')].find(l => l.textContent === label);
+        return (document.getElementById(el!.htmlFor) as HTMLInputElement).value;
+      };
+      expect(value(sv.debtName)).toBe('SYNT BILLÅN');
+      expect(value(sv.debtPayment)).toBe('900');
+      fill(sv.debtBalance, '40000');
+      fill(sv.debtRate, '5,5');
+      fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(x => x.textContent === sv.debtCreate)!);
+      await waitFor(() => expect(storedDebts()).toEqual([expect.objectContaining({ name: 'SYNT BILLÅN', budgetRowId: 'syntrow', ratePct: 5.5 })]));
+      expect(pending()).toEqual([]);
+      // Still the one row — linked, not duplicated.
+      expect(lanRows().filter(r => r.id === 'syntrow')).toHaveLength(1);
+      expect(lanRows()).toHaveLength(2);
+    });
+
+    it('stays waiting, and says so, when the database refuses', async () => {
+      await openWithRow();
+      b.refuse.add('budget_debts');
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtCompleteFor('SYNT BILLÅN')}"]`)!);
+      fill(sv.debtBalance, '40000');
+      fill(sv.debtRate, '5');
+      fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(x => x.textContent === sv.debtCreate)!);
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(b.disk.has('budget_debts')).toBe(false);
+      expect(document.querySelector('.debt-form')).not.toBeNull();
+    });
+  });
+});

@@ -56,6 +56,8 @@ export type UndoAction =
   | 'deleteEntry'
   /** A savings goal, which also sweeps its linked row out of every month. */
   | 'deleteGoal'
+  /** A debt in the Debt tab. Its budget row is budget history and stays. */
+  | 'deleteDebt'
   /** A Custom block, whose removal also hides the historic amounts filed
    *  under it — the money stays stored but becomes unreachable. */
   | 'deleteBlock'
@@ -113,6 +115,7 @@ const ACTIONS: Record<UndoAction, true> = {
   deleteRow: true,
   deleteEntry: true,
   deleteGoal: true,
+  deleteDebt: true,
   deleteBlock: true,
   clearCustom: true,
   refileRepair: true,

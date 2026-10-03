@@ -19,6 +19,7 @@ const SavingsTab = lazy(() => import('./components/SavingsTab').then(m => ({ def
 const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: m.PlanTab })));
 const FollowUpTab = lazy(() => import('./components/FollowUpTab').then(m => ({ default: m.FollowUpTab })));
 const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
+const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: m.DebtTab })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
@@ -34,7 +35,8 @@ import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
 import type { CategoryPlan } from './components/CsvImport';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -119,6 +121,7 @@ function App({ startupRepair = null }: AppProps) {
   const customTabs = customMode === 'linked';
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
+  const [debtState, setDebtState] = useState<DebtState>(() => loadDebts(appStorage));
   // ── Theme Builder: palette family + light/dark mode + override map ──
   // Loaded once via a lazy useState (never re-read; reading a ref during render
   // is disallowed by react-hooks/refs).
@@ -1221,6 +1224,42 @@ function App({ startupRepair = null }: AppProps) {
     };
   };
 
+  // ── Skuld — the debts, and the row each one carries in the budget ─────
+  /**
+   * Store the Debt tab's state, and with `row`, put that row in the month on
+   * screen's "Lån & skulder" — in ONE write, so a debt never exists without
+   * the budget row it was promised, nor the row without the debt. Nothing on
+   * screen changes until it is stored; a refusal says so and changes nothing.
+   */
+  const commitDebts = async (
+    next: DebtState, row?: { id: string; label: string; amount: number },
+  ): Promise<boolean> => {
+    const changes: StorageChange[] = [debtsChange(next)];
+    const atYear = year;
+    const atMonth = month;
+    const withRow = row ? withLoanRow(data, row, lang) : data;
+    if (withRow !== data) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    setDebtState(next);
+    // Into the screen's copy only if it still shows that month — see stillShows.
+    if (row && withRow !== data && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
+    return true;
+  };
+
+  /** Remove a debt, with a step back. Its budget row is budget history: it
+   *  stays, as a goal's row with money in it does. */
+  const deleteDebt = async (id: string) => {
+    const before = captureKeys(appStorage, [DEBTS_KEY]);
+    const next = { ...debtState, debts: debtState.debts.filter(d => d.id !== id) };
+    if (await commitDebts(next)) {
+      recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+    }
+  };
+
   /**
    * Remember the month on screen before a destructive edit to it.
    *
@@ -1616,6 +1655,21 @@ function App({ startupRepair = null }: AppProps) {
   const yearView = (
     <Suspense fallback={lazyFallback}>
       <YearTab year={year} />
+    </Suspense>
+  );
+
+  const debtView = (
+    <Suspense fallback={lazyFallback}>
+      <DebtTab
+        state={debtState}
+        year={year}
+        month={month}
+        canAddRow={!isHistoricMonth(year, month)}
+        remaining={calculateBudgetMetrics(data).remaining}
+        loanRows={data.expenses.find(c => c.id === 'lan')?.rows ?? []}
+        onSave={commitDebts}
+        onDelete={deleteDebt}
+      />
     </Suspense>
   );
 
@@ -2036,6 +2090,7 @@ function App({ startupRepair = null }: AppProps) {
             {activeTab === 'budget' && budgetView}
             {activeTab === 'followup' && followUpView}
             {activeTab === 'savings' && savingsView}
+            {activeTab === 'debt' && debtView}
             {activeTab === 'plan' && planView}
             {activeTab === 'year' && yearView}
           </div>
@@ -2057,6 +2112,7 @@ function App({ startupRepair = null }: AppProps) {
                 ['combined-budget', '📋', t.tabBudget, t.tabBudget],
                 ['combined-followup', '🧾', t.tabFollowUpShort, t.tabFollowUp],
                 ['combined-savings', '📈', t.tabSavingsShort, t.tabSavings],
+                ['combined-debt', '💳', t.tabDebtShort, t.tabDebt],
                 ['combined-year', '🗓️', t.tabYearShort, t.tabYear],
                 ['combined-plan', '🎯', t.tabPlanShort, t.tabPlan],
               ] as const).map(([id, icon, label, fullName]) => (
@@ -2094,6 +2150,10 @@ function App({ startupRepair = null }: AppProps) {
               {savingsView}
             </section>
             <section className="combined-section">
+              <h2 className="combined-section-title" id="combined-debt" tabIndex={-1}>{t.tabDebt}</h2>
+              {debtView}
+            </section>
+            <section className="combined-section">
               <h2 className="combined-section-title" id="combined-year" tabIndex={-1}>{t.tabYear}</h2>
               {yearView}
             </section>
@@ -2128,6 +2188,7 @@ function App({ startupRepair = null }: AppProps) {
             )}
             {customTabs && activeTab === 'followup' && followUpView}
             {customTabs && activeTab === 'savings' && savingsView}
+            {customTabs && activeTab === 'debt' && debtView}
             {customTabs && activeTab === 'plan' && planView}
             {customTabs && activeTab === 'year' && yearView}
           </div>

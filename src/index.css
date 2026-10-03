@@ -3187,6 +3187,177 @@ a:focus-visible,
   color: var(--negative);
 }
 
+/* ─── Skuld — the Debt tab ─────────────────────────────────────────────
+   Built from the Plan tab's parts (sections, stat tiles, the goal form) so
+   the two tabs that look ahead read as one family. */
+.debt-intro {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.debt-summary { margin-bottom: 16px; }
+.debt-summary .overview-stat { background: var(--surface2); }
+
+.debt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+/* Room to breathe (Ariel, 2026-10-03): the text sat tight against the edges,
+   and the buttons sit at the bottom, level across a row of cards. */
+.debt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.debt-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 2px;
+}
+.debt-card-name {
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.debt-card-kind {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--chip-text);
+  background: var(--chip-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.debt-card-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.debt-card-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.debt-card-status {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--positive);
+}
+.debt-card-status.is-warning { color: var(--negative); }
+/* A row from the budget, waiting for its details: dashed, like the other
+   "not filled in yet" states in the app. */
+.debt-list-pending { margin-bottom: 16px; }
+.debt-card-pending { border-style: dashed; }
+.debt-card-hint {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.debt-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.debt-extra { max-width: 220px; margin-bottom: 12px; }
+.debt-way-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.debt-way-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  text-align: left;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+}
+.debt-way-card.is-on {
+  border-color: var(--accent-brand);
+  background: var(--surface2);
+}
+.debt-way-name { font-weight: 700; font-size: 1rem; }
+.debt-way-sub { font-size: 0.8rem; color: var(--text-dim); }
+.debt-way-free { margin-top: 6px; font-weight: 700; color: var(--chip-text); }
+.debt-way-fact { font-size: 0.82rem; color: var(--text-dim); }
+
+.debt-order {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+.debt-order li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.debt-order li:last-child { border-bottom: none; }
+
+.debt-note {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.debt-note-help {
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent-brand);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+  color: var(--text);
+}
+.debt-form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+/* The form also opens INSIDE a debt card, which can be narrow. Plain 1fr
+   columns never shrink below their field's own minimum width — a date field
+   or a select is wide — so the right-hand column ran off the card (Ariel,
+   2026-10-03). Columns may shrink to nothing, wrap to one when there is no
+   room for two, and every field fills its column. */
+.debt-form .goal-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+}
+/* A form opened in the list takes the whole row, not one card's column. */
+.debt-list-form { grid-column: 1 / -1; }
+.debt-form .label-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 36px;
+}
+
+@media (hover: hover) {
+  .debt-way-card:hover { border-color: var(--accent-brand); }
+}
+
 /* Suspense placeholder while a lazy view's chunk loads — reserves space so
    the swap-in doesn't shift the page; invisible on purpose (loads are fast,
    a spinner would just flash). */
@@ -5813,4 +5984,22 @@ a:focus-visible,
     border-radius: var(--radius-lg);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* The Debt tab on phones: one column, thumb-sized buttons. */
+@media (max-width: 640px) {
+  .debt-way-grid {
+    grid-template-columns: 1fr;
+  }
+  .debt-form .goal-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .debt-form .label-input {
+    min-height: 44px;
+  }
+  .debt-card-actions .custom-secondary-btn {
+    flex: 1;
+    min-height: 44px;
+  }
+  .debt-extra { max-width: none; }
 }

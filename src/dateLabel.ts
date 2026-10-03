@@ -33,6 +33,12 @@ export function shortDay(iso: string, lang: Lang): string {
   return `${d} ${lower(MONTHS_SHORT[lang][m - 1], lang)}`;
 }
 
+/** "maj 2031", "May 2031", "mayo de 2031": a month in a sentence. */
+export function monthYear(at: { year: number; month: number }, lang: Lang): string {
+  const name = lower(MONTHS[lang][at.month], lang);
+  return lang === 'es' ? `${name} de ${at.year}` : `${name} ${at.year}`;
+}
+
 /** "17 sep 13:40" — one line, exact enough to answer "when did I do that?". */
 export function shortWhen(iso: string, lang: Lang): string {
   const at = new Date(iso);
