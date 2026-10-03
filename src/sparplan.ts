@@ -30,6 +30,19 @@ export interface SavingsPlan {
   annualReturnPct: number; // expected growth per year, e.g. 7 (= 7%)
   startAmount: number;     // pot at plan start (may be 0)
   startYM: string;         // "YYYY-MM" — month the plan started
+  /** How far ahead the projection looks. Absent in plans saved before it
+   *  could be chosen, which keep their 5 years (Ariel, 2026-10-03). */
+  years?: number;
+}
+
+/** The horizons offered, in years. */
+export const PLAN_YEARS = [5, 10, 15, 20, 30, 40] as const;
+export const DEFAULT_PLAN_YEARS = 5;
+
+/** A plan's horizon in years: its own if valid, otherwise five. */
+export function planYears(p: Pick<SavingsPlan, 'years'> | null | undefined): number {
+  const y = p?.years;
+  return typeof y === 'number' && Number.isInteger(y) && y >= 1 && y <= 50 ? y : DEFAULT_PLAN_YEARS;
 }
 
 export const SPARPLAN_KEY = 'budget_savings_plan';
@@ -133,7 +146,7 @@ export const PLAN_LIMITS = {
   maxYear: 2200,
 } as const;
 
-export type PlanField = 'monthlyAmount' | 'annualReturnPct' | 'startAmount' | 'startYM';
+export type PlanField = 'monthlyAmount' | 'annualReturnPct' | 'startAmount' | 'startYM' | 'years';
 
 /** A real calendar month within the product's year range — "2026-13" and
  *  "2026-00" both match the loose \d{4}-\d{2} pattern that used to pass. */
@@ -155,6 +168,7 @@ export function validateSavingsPlan(p: SavingsPlan): PlanField[] {
   }
   if (!amountOk(p.startAmount)) bad.push('startAmount');
   if (typeof p.startYM !== 'string' || !isValidYM(p.startYM)) bad.push('startYM');
+  if (p.years !== undefined && planYears(p) !== p.years) bad.push('years');
   return bad;
 }
 

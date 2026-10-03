@@ -9,7 +9,7 @@ import { useLang, MONTHS_SHORT, formatAxisTick, type Translations } from '../i18
 import { chartColors } from '../themes';
 import {
   loadSavingsPlan, saveSavingsPlan, deleteSavingsPlan, validateSavingsPlan,
-  projectPlan, monthsBetween, toYM, earliestSavingsYM,
+  projectPlan, monthsBetween, toYM, earliestSavingsYM, planYears, PLAN_YEARS,
   planVsActual, type SavingsPlan, type PlanVsActualPoint, type PlanField,
 } from '../sparplan';
 
@@ -19,7 +19,6 @@ import { appStorage } from '../storage';
 
 const TEAL = '#14b8a6';
 const GRAY = '#888780';
-const HORIZON_MONTHS = 60; // fixed 5-year projection window (v1)
 
 interface TooltipProps {
   active?: boolean;
@@ -102,6 +101,9 @@ export const SparPlanSection = () => {
   const [ret, setRet] = useState(() => (plan ? String(plan.annualReturnPct) : '7'));
   const [start, setStart] = useState(() => (plan && plan.startAmount > 0 ? String(plan.startAmount) : ''));
   const [startYM, setStartYM] = useState(() => plan?.startYM ?? autoStartYM);
+  // How far ahead to look — 5 years by default, longer by choice (Ariel,
+  // 2026-10-03). Saved with the plan; for the example, only shown.
+  const [years, setYears] = useState(() => planYears(plan));
 
   // Persist on every VALID edit; an invalid one shows a field error, keeps the
   // draft so it can be fixed, and touches neither storage nor the chart. The
@@ -110,12 +112,13 @@ export const SparPlanSection = () => {
   // JSON.stringify wrote as null and the loader then rejected: the plan
   // silently vanished on the next reload.
   const [fieldErrors, setFieldErrors] = useState<PlanField[]>([]);
-  const commit = (m: string, r: string, s: string, sy: string) => {
+  const commit = (m: string, r: string, s: string, sy: string, yrs = years) => {
     const next: SavingsPlan = {
       monthlyAmount: parseAmount(m),
       annualReturnPct: parseAmount(r),
       startAmount: s.trim() === '' ? 0 : parseAmount(s),
       startYM: sy,
+      years: yrs,
     };
     const errors = validateSavingsPlan(next);
     setFieldErrors(errors);
@@ -133,6 +136,13 @@ export const SparPlanSection = () => {
     setRet('7');
     setStart('');
     setStartYM(autoStartYM);
+    setYears(planYears(null));
+  };
+
+  /** A horizon chosen: stored with a plan that exists; the example only shows it. */
+  const chooseYears = (n: number) => {
+    setYears(n);
+    if (plan) commit(monthly, ret, start, startYM, n);
   };
 
   // Projection uses the saved plan, or a preview from the current drafts so the
@@ -145,6 +155,7 @@ export const SparPlanSection = () => {
     annualReturnPct: parseAmount(ret) || 0,
     startAmount: start.trim() === '' ? 0 : parseAmount(start) || 0,
     startYM,
+    years,
   };
   const draftValid = validateSavingsPlan(draftPreview).length === 0;
 
@@ -161,14 +172,19 @@ export const SparPlanSection = () => {
   const previewPlan: SavingsPlan = plan
     ?? (draftValid ? draftPreview : lastValidDraft
       ?? { monthlyAmount: 0, annualReturnPct: 0, startAmount: 0, startYM });
-  const series = projectPlan(previewPlan, HORIZON_MONTHS);
+  const horizon = years * 12;
+  // Whole-year ticks up to ten years; every fifth year beyond, so a 40-year
+  // axis still reads on a phone.
+  const tickStep = years <= 10 ? 12 : 60;
+  const ticks = Array.from({ length: Math.floor(horizon / tickStep) + 1 }, (_, i) => i * tickStep);
+  const series = projectPlan(previewPlan, horizon);
   const projData = series.map((v, k) => ({
     k,
     growth: v,
     flat: previewPlan.startAmount + previewPlan.monthlyAmount * k,
   }));
-  const finalValue = series[HORIZON_MONTHS];
-  const deposits = previewPlan.startAmount + previewPlan.monthlyAmount * HORIZON_MONTHS;
+  const finalValue = series[horizon];
+  const deposits = previewPlan.startAmount + previewPlan.monthlyAmount * horizon;
   const growthPart = Math.max(0, finalValue - deposits);
   // Axis ticks land only on whole years (0, 12, 24 … months); the TOOLTIP can
   // hit any month, so it gets its own months-based label ("Månad 37"), never a
@@ -280,11 +296,27 @@ export const SparPlanSection = () => {
           </button>
         )}
 
+        <div className="sparplan-horizon" role="group" aria-label={t.sparplanHorizon}>
+          <span className="sparplan-horizon-label">{t.sparplanHorizon}</span>
+          <div className="utils-seg sparplan-horizon-seg">
+            {PLAN_YEARS.map(n => (
+              <button
+                key={n}
+                className={`seg-btn${years === n ? ' seg-active' : ''}`}
+                aria-pressed={years === n}
+                onClick={() => chooseYears(n)}
+              >
+                {t.sparplanYearsShort(n)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="sparplan-hero">
           {!plan && <span className="sparplan-example-tag">{t.sparplanExampleTag}</span>}
           <span className="sparplan-hero-value">{money(Math.round(finalValue))}</span>
           <span className="sparplan-hero-sub">
-            {t.sparplanIn5Years} · <span className="sparplan-growth">{t.sparplanOfWhichGrowth(money(Math.round(growthPart)))}</span>
+            {t.sparplanInYears(years)} · <span className="sparplan-growth">{t.sparplanOfWhichGrowth(money(Math.round(growthPart)))}</span>
           </span>
         </div>
 
@@ -306,7 +338,7 @@ export const SparPlanSection = () => {
             </tr>
           </thead>
           <tbody>
-            {[0, 12, 24, 36, 48, 60].map(k => (
+            {ticks.map(k => (
               <tr key={k}>
                 <th scope="row">{yearLabel(k)}</th>
                 <td>{money(Math.round(projData[k].growth))}</td>
@@ -320,8 +352,8 @@ export const SparPlanSection = () => {
           <AreaChart data={projData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
             <XAxis
-              dataKey="k" type="number" domain={[0, HORIZON_MONTHS]}
-              ticks={[0, 12, 24, 36, 48, 60]} tickFormatter={yearLabel}
+              dataKey="k" type="number" domain={[0, horizon]}
+              ticks={ticks} tickFormatter={yearLabel}
               tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false}
             />
             <YAxis

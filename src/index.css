@@ -2987,9 +2987,8 @@ a:focus-visible,
 
 /* ─── Plan tab ────────────────────────────────────────────────────── */
 
-.plan-tab {
-  max-width: 900px;
-}
+/* No width cap: on a wide screen the tab used to stop at 900 px and leave a
+   third of the window empty, unlike every other tab (Ariel, 2026-10-03). */
 
 .plan-section {
   display: flex;
@@ -3511,6 +3510,26 @@ a:focus-visible,
   gap: 10px;
   margin-bottom: 14px;
 }
+.sparplan-horizon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+.sparplan-horizon-seg {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.sparplan-horizon-label {
+  margin-right: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
 .sparplan-hero {
   display: flex;
   align-items: baseline;
@@ -6077,4 +6096,16 @@ a:focus-visible,
     min-height: 44px;
   }
   .debt-extra { max-width: none; }
+}
+
+/* The savings plan's horizon on phones: six choices in two even rows of
+   three, rather than a pill that wraps unevenly. */
+@media (max-width: 640px) {
+  .sparplan-horizon-seg {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    border-radius: var(--radius-md);
+  }
+  .sparplan-horizon-seg .seg-btn { min-height: 40px; }
 }

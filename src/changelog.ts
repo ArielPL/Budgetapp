@@ -70,6 +70,8 @@ export const CHANGELOG: Release[] = [
         'Appen startar i ljust läge för nya användare. Har du redan valt mörkt behåller du det',
         'Importera en budget du redan har i Excel, Google Kalkylark eller Numbers: välj filen (.xlsx eller CSV) eller klistra in cellerna. Appen känner igen en lista med belopp och en tabell med en kolumn per månad, föreslår en kategori för varje rad och hoppar över summarader. Du ser allt och kan ändra innan något sparas, och det går att ångra',
         'Ny valuta: japanska yen (¥)',
+        'Plan & Översikt fyller hela skärmen på datorn, i stället för att stanna vid två tredjedelar',
+        'Sparplanen kan visa 5, 10, 15, 20, 30 eller 40 år framåt. Valet sparas med planen, och en plan du redan har visar 5 år som förut',
       ],
       en: [
         'The top of Custom says which kind of panel it is: linked to your regular budget, or separate so that what you type does not affect it',
@@ -117,6 +119,8 @@ export const CHANGELOG: Release[] = [
         'The app starts in light mode for new users. If you have already chosen dark, you keep it',
         'Import a budget you already keep in Excel, Google Sheets or Numbers: choose the file (.xlsx or CSV) or paste the cells. The app understands a list of amounts and a table with one column per month, proposes a category for every row and leaves out totals. You see it all and can change it before anything is saved, and it can be undone',
         'New currency: Japanese yen (¥)',
+        'Plan & Overview fills the whole screen on a computer, instead of stopping two thirds of the way',
+        'The savings plan can look 5, 10, 15, 20, 30 or 40 years ahead. The choice is saved with the plan, and a plan you already have shows 5 years as before',
       ],
       es: [
         'Arriba en Personalizado se indica qué tipo de panel es: vinculado a tu presupuesto normal, o aparte para que lo que escribas no lo afecte',
@@ -164,6 +168,8 @@ export const CHANGELOG: Release[] = [
         'La app empieza en modo claro para los nuevos usuarios. Si ya elegiste el oscuro, lo conservas',
         'Importa un presupuesto que ya tienes en Excel, Hojas de cálculo de Google o Numbers: elige el archivo (.xlsx o CSV) o pega las celdas. La app entiende una lista de importes y una tabla con una columna por mes, propone una categoría para cada fila y omite los totales. Lo ves todo y puedes cambiarlo antes de guardar, y se puede deshacer',
         'Nueva moneda: yen japonés (¥)',
+        'Plan y Resumen ocupa toda la pantalla en el ordenador, en lugar de quedarse en dos tercios',
+        'El plan de ahorro puede mirar 5, 10, 15, 20, 30 o 40 años adelante. La elección se guarda con el plan, y un plan que ya tienes muestra 5 años como antes',
       ],
     },
   },

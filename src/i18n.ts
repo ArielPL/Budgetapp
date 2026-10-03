@@ -863,7 +863,9 @@ export interface Translations {
   sparplanErrMonth: string;
   sparplanDelete: string;
   sparplanDeleteConfirm: string;
-  sparplanIn5Years: string;
+  sparplanInYears: (n: number) => string;
+  sparplanHorizon: string;
+  sparplanYearsShort: (n: number) => string;
   /** Shown until the user has changed a number: the figures are an example. */
   sparplanExampleTag: string;
   sparplanExampleNote: string;
@@ -1632,7 +1634,9 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Ange en riktig månad mellan 1900 och 2200',
     sparplanDelete: 'Radera sparplan',
     sparplanDeleteConfirm: 'Radera sparplanen? Dina månadsdata och sparmål påverkas inte.',
-    sparplanIn5Years: 'om 5 år',
+    sparplanInYears: (n) => `om ${n} år`,
+    sparplanHorizon: 'Hur långt fram',
+    sparplanYearsShort: (n) => `${n} år`,
     sparplanExampleTag: 'Exempel',
     sparplanExampleNote: 'Siffrorna nedan är ett räkneexempel, inte din budget. Ändra dem så blir det din egen plan.',
     sparplanNow: 'Nu',
@@ -2396,7 +2400,9 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Enter a real month between 1900 and 2200',
     sparplanDelete: 'Delete savings plan',
     sparplanDeleteConfirm: 'Delete the savings plan? Your monthly data and goals are not affected.',
-    sparplanIn5Years: 'in 5 years',
+    sparplanInYears: (n) => (n === 1 ? 'in 1 year' : `in ${n} years`),
+    sparplanHorizon: 'How far ahead',
+    sparplanYearsShort: (n) => (n === 1 ? '1 year' : `${n} years`),
     sparplanExampleTag: 'Example',
     sparplanExampleNote: 'The figures below are a worked example, not your budget. Change them and it becomes your own plan.',
     sparplanNow: 'Now',
@@ -3160,7 +3166,9 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Introduce un mes real entre 1900 y 2200',
     sparplanDelete: 'Eliminar plan de ahorro',
     sparplanDeleteConfirm: '¿Eliminar el plan de ahorro? Tus datos mensuales y metas no se ven afectados.',
-    sparplanIn5Years: 'en 5 años',
+    sparplanInYears: (n) => (n === 1 ? 'en 1 año' : `en ${n} años`),
+    sparplanHorizon: 'Cuánto tiempo',
+    sparplanYearsShort: (n) => (n === 1 ? '1 año' : `${n} años`),
     sparplanExampleTag: 'Ejemplo',
     sparplanExampleNote: 'Las cifras de abajo son un ejemplo de cálculo, no tu presupuesto. Cámbialas y será tu propio plan.',
     sparplanNow: 'Ahora',
