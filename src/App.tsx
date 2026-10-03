@@ -33,6 +33,7 @@ import { shortWhen, longDate } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
+import type { CategoryPlan } from './components/CsvImport';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
@@ -268,6 +269,12 @@ function App({ startupRepair = null }: AppProps) {
   // any goal-linked rows offered for it). While `data` still equals this, the
   // user hasn't changed anything and the month must not be written back.
   const loadedSnapshot = useRef<string | null>(null);
+  // The month on screen, for a change that lands after the database answers:
+  // by then the user may have moved on, and putting the change into the screen's
+  // copy would put it into ANOTHER month's — which the save would then write.
+  const shownMonth = useRef({ year, month });
+  useEffect(() => { shownMonth.current = { year, month }; }, [year, month]);
+  const stillShows = (y: number, m: number) => shownMonth.current.year === y && shownMonth.current.month === m;
 
   // ── Theme ─────────────────────────────────────────────────────────
   // Apply the active theme (palette family + mode + any custom overrides) to
@@ -1146,36 +1153,19 @@ function App({ startupRepair = null }: AppProps) {
     setData(d => ({ ...d, expenses: [...d.expenses, newCat] }));
   };
 
-  // Categories the import offered to create, added with their STANDARD ids so an
-  // entry filed under `mat` in August meets the same `mat` in September.
-  //
-  // Added to the months that RECEIVED THE ENTRIES, which are routinely not the
-  // month on screen — a statement is usually last month's. Creating them here
-  // instead would leave the entries where they landed with no row to appear on,
-  // which is the "outside the budget" hole in another disguise.
-  const addStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
-    for (const target of months.length > 0 ? months : [{ year, month }]) {
-      if (target.year === year && target.month === month) {
-        setData(d => withStandardCategories(d, ids, lang));
-        continue;
-      }
-      // Another month: read, merge, write. Safe to touch storage directly
-      // precisely BECAUSE it is not the current month — the save effect only
-      // ever writes the month on screen, so the two cannot race.
-      const stored = loadMonthData(target.year, target.month, lang);
-      const merged = withStandardCategories(stored, ids, lang);
-      if (merged !== stored && !saveMonthData(target.year, target.month, merged)) {
-        reportSaveFailed();
-      }
-    }
-  };
-
   /**
-   * addStandardCategories as WRITES, for the import to commit together with
-   * its entries in one transaction (foundation review 2026-09-29, P1), plus
-   * what to do on screen once they are stored. The month on screen is written
-   * from what the screen holds, so its edits are kept; `apply` then puts the
-   * same categories into the screen's copy.
+   * Categories the import offered to create, as WRITES, added with their
+   * STANDARD ids so an entry filed under `mat` in August meets the same `mat`
+   * in September — and added to the months that RECEIVED THE ENTRIES, which
+   * are routinely not the month on screen (a statement is usually last
+   * month's). Creating them only on screen would leave the entries where they
+   * landed with no row to appear on.
+   *
+   * Writes, not a save, so the caller commits them together with its entries
+   * in one transaction (foundation review 2026-09-29, P1), plus what to do on
+   * screen once they are stored. The month on screen is written from what the
+   * screen holds, so its edits are kept; `apply` then puts the same categories
+   * into the screen's copy — if it still shows that month.
    */
   const planStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
     const changes: StorageChange[] = [];
@@ -1190,33 +1180,45 @@ function App({ startupRepair = null }: AppProps) {
     }
     return {
       changes,
-      apply: () => { if (onScreen) setData(d => withStandardCategories(d, ids, lang)); },
+      apply: () => { if (onScreen && stillShows(year, month)) setData(d => withStandardCategories(d, ids, lang)); },
     };
   };
 
   /**
-   * Create a category the user named, and return its id so the caller can file
-   * something into it straight away.
+   * A category the user named, and the writes that add it to the months given
+   * — for the caller to commit together with the entries it files into it
+   * (Codex, 2026-10-03). It used to be added there and then, the month on
+   * screen through its save and the others one by one, before the entries were
+   * moved: a refusal of either half left entries pointing at a category their
+   * month did not have after a restart, or an empty category behind a "nothing
+   * was changed".
    *
-   * Added to every month given, with ONE id, for the same reason the standard
-   * ones are: a category that exists only in the month you happened to be
-   * looking at leaves the entries in every other month orphaned under an id
-   * nothing can name.
+   * One id in every month, for the same reason the standard ones have one: a
+   * category that exists only in the month you happened to be looking at
+   * leaves the entries in every other month under an id nothing can name.
    */
-  const createNamedCategory = (name: string, months: { year: number; month: number }[]): string => {
+  const planNamedCategory = (name: string) => {
     const color = CATEGORY_PALETTE[data.expenses.length % CATEGORY_PALETTE.length];
     const icon = CATEGORY_ICONS[data.expenses.length % CATEGORY_ICONS.length];
     const cat = createCategory(name, icon, color, t.newRow);
-    for (const target of months.length > 0 ? months : [{ year, month }]) {
-      if (target.year === year && target.month === month) {
-        setData(d => ({ ...d, expenses: [...d.expenses, cat] }));
-        continue;
-      }
-      const stored = loadMonthData(target.year, target.month, lang);
-      if (!saveMonthData(target.year, target.month,
-        { ...stored, expenses: [...stored.expenses, cat] })) reportSaveFailed();
-    }
-    return cat.id;
+    const withCat = (d: MonthData): MonthData => ({ ...d, expenses: [...d.expenses, cat] });
+    return {
+      id: cat.id,
+      in: (months: { year: number; month: number }[]): CategoryPlan => {
+        const changes: StorageChange[] = [];
+        let onScreen = false;
+        for (const target of months.length > 0 ? months : [{ year, month }]) {
+          const isCurrent = target.year === year && target.month === month;
+          const from = isCurrent ? data : loadMonthData(target.year, target.month, lang);
+          changes.push({ key: storageKey(target.year, target.month), value: JSON.stringify(withCat(from)) });
+          if (isCurrent) onScreen = true;
+        }
+        return {
+          changes,
+          apply: () => { if (onScreen && stillShows(year, month)) setData(withCat); },
+        };
+      },
+    };
   };
 
   /**
@@ -1601,12 +1603,11 @@ function App({ startupRepair = null }: AppProps) {
         onSaveFailed={reportSaveFailed}
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
         onOpenBudget={() => changeTab('budget')}
-        onCreateCategories={addStandardCategories}
         planStandardCategories={planStandardCategories}
         periodStartDay={periodStartDay}
         periodLocks={periodLocks}
         onLockPeriod={lockPeriod}
-        onCreateNamedCategory={createNamedCategory}
+        planNamedCategory={planNamedCategory}
         onRecordUndo={recordUndo}
       />
     </Suspense>

@@ -62,6 +62,7 @@ export const CHANGELOG: Release[] = [
         'En import av kontoutdrag sparar posterna, kolumnerna, nya kategorier och det den lärt sig på en gång. Går det inte sparas ingenting, och appen säger det',
         'Uppföljning och Anpassad visar en ändring, eller erbjuder att ångra den, först när den är sparad. Två snabba ändringar efter varandra går inte längre förlorade',
         'Välkomstrutan är en ruta även på mobilen, och Nästa står still mellan sidorna',
+        '"+ Ny kategori…" i Uppföljning, och förslag under Sortera som skapar en kategori, sparar kategorin, de flyttade posterna och det appen lärt sig på en gång. Förut kunde posterna sparas men inte kategorin, och efter en omstart pekade de på en kategori som inte fanns. Går det inte att spara ändras ingenting, och namnet du skrev står kvar',
       ],
       en: [
         'The top of Custom says which kind of panel it is: linked to your regular budget, or separate so that what you type does not affect it',
@@ -101,6 +102,7 @@ export const CHANGELOG: Release[] = [
         'A statement import stores its entries, columns, new categories and what it learned in one go. If that fails nothing is stored, and the app says so',
         'Follow-up and Custom show a change, or offer to undo it, only once it is saved. Two quick changes in a row are no longer lost',
         'The welcome box is a box on phones too, and Next stays put between pages',
+        '"+ New category…" in Follow-up, and suggestions under "Sort them" that create a category, store the category, the moved entries and what the app learned in one go. The entries used to be stored without the category, and after a restart they pointed at a category that did not exist. If it cannot be saved nothing changes, and the name you typed stays',
       ],
       es: [
         'Arriba en Personalizado se indica qué tipo de panel es: vinculado a tu presupuesto normal, o aparte para que lo que escribas no lo afecte',
@@ -140,6 +142,7 @@ export const CHANGELOG: Release[] = [
         'Importar un extracto guarda los movimientos, las columnas, las categorías nuevas y lo aprendido de una vez. Si falla no se guarda nada, y la app lo dice',
         'Seguimiento y Personalizado muestran un cambio, u ofrecen deshacerlo, solo cuando está guardado. Dos cambios rápidos seguidos ya no se pierden',
         'La bienvenida es una tarjeta también en el móvil, y Siguiente no se mueve entre páginas',
+        '"+ Categoría nueva…" en Seguimiento, y las sugerencias de Clasificar que crean una categoría, guardan la categoría, los movimientos trasladados y lo que la app aprendió de una sola vez. Antes los movimientos podían guardarse sin la categoría, y tras reiniciar apuntaban a una categoría que no existía. Si no se puede guardar no cambia nada, y el nombre que escribiste se queda',
       ],
     },
   },

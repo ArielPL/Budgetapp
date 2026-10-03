@@ -404,3 +404,213 @@ describe('Follow-up, moving to another month while a change is saving (Codex, 20
     await waitFor(() => expect(shownEntries()).toEqual(['SYNT B', 'SYNT C']));
   });
 });
+
+// ── "+ New category…" in Follow-up is one change (Codex, 2026-10-03) ────────
+//
+// Naming a new category for an unsorted place is ONE thing to the user: the
+// category, the place's entries moved into it, and the rule that remembers it.
+// Stored together or not at all — never entries pointing at a category that
+// their budget month does not have after a restart, never an empty category
+// left behind as though it worked. Synthetic places and names only.
+
+const KIOSK = (id: string, date: string) =>
+  ({ id, date, text: 'SYNT KIOSK', amount: 40, direction: 'out', categoryId: '__unsorted__' });
+const NEW_NAME = 'Testkategori';
+
+/** Seed, open Follow-up (optionally over three months), open Övrigt and start
+ *  naming a new category for the kiosk. */
+const startNaming = async (seed: Record<string, string>, span3 = false) => {
+  for (const [k, v] of Object.entries(seed)) b.disk.set(k, v);
+  const store = createCachedStorage(b);
+  await store.hydrate();
+  installStorage(store);
+  await openApp();
+  fireEvent.click(buttonWith(sv.tabFollowUp)!);
+  if (span3) fireEvent.click(buttonWith(sv.followUpSpan(3))!);
+  const unsorted = await waitFor(() => {
+    const el = [...document.querySelectorAll('button.followup-row')].find(x => x.textContent?.includes(sv.followUpUnsorted));
+    expect(el).toBeTruthy();
+    return el!;
+  });
+  fireEvent.click(unsorted);
+  const move = await waitFor(() => {
+    const el = document.querySelector<HTMLSelectElement>(`select[aria-label="${sv.followUpMoveTo('SYNT KIOSK')}"]`);
+    expect(el).not.toBeNull();
+    return el!;
+  });
+  fireEvent.change(move, { target: { value: '__new_category__' } });
+  const name = document.querySelector<HTMLInputElement>(`input[aria-label="${sv.followUpNewCategoryName}"]`)!;
+  fireEvent.change(name, { target: { value: NEW_NAME } });
+};
+const saveNew = () => fireEvent.click(document.querySelector('.followup-newcat-save')!);
+const nameInput = () => document.querySelector<HTMLInputElement>(`input[aria-label="${sv.followUpNewCategoryName}"]`);
+const rowLabels = () => [...document.querySelectorAll('button.followup-row')].map(el => el.textContent ?? '');
+
+/** After a restart: every entry filed under a category its own budget month
+ *  does not have. A bucket (Övrigt, income…) is not a category. */
+const orphansAfterRestart = async () => {
+  const again = createCachedStorage(b);
+  await again.hydrate();
+  const orphans: string[] = [];
+  for (let m = 0; m < 12; m++) {
+    const raw = again.getItem(`budget_actuals_2026_${m}`);
+    if (!raw) continue;
+    const month = again.getItem(`budget_2026_${m}`);
+    const ids = new Set<string>(month ? JSON.parse(month).expenses.map((c: { id: string }) => c.id) : []);
+    for (const e of JSON.parse(raw) as { id: string; categoryId: string }[]) {
+      if (!e.categoryId.startsWith('__') && !ids.has(e.categoryId)) orphans.push(`${e.id}@${m}`);
+    }
+  }
+  return orphans;
+};
+const newCategoryIn = (key: string) =>
+  (JSON.parse(b.disk.get(key) ?? '{"expenses":[]}').expenses as { id: string; name: string }[])
+    .filter(c => c.name === NEW_NAME);
+
+describe('Follow-up: "+ New category…" for an unsorted place (Codex, 2026-10-03)', () => {
+  const ONE = { budget_actuals_2026_8: JSON.stringify([KIOSK('k1', '2026-09-06'), KIOSK('k2', '2026-09-07')]) };
+  const SPAN = {
+    budget_2026_7: SEPT,
+    budget_actuals_2026_7: JSON.stringify([KIOSK('a1', '2026-08-10')]),
+    budget_actuals_2026_8: JSON.stringify([KIOSK('k1', '2026-09-06')]),
+  };
+
+  it('stores the category, the moved entries and the rule together, and survives a restart', async () => {
+    await startNaming(ONE);
+    saveNew();
+    await waitFor(() => expect(nameInput()).toBeNull());
+    const [cat] = newCategoryIn('budget_2026_8');
+    expect(cat).toBeTruthy();
+    expect(JSON.parse(b.disk.get('budget_actuals_2026_8')!).map((e: { categoryId: string }) => e.categoryId))
+      .toEqual([cat.id, cat.id]);
+    expect(JSON.parse(b.disk.get('budget_category_rules')!)['synt kiosk']).toBe(cat.id);
+    expect(rowLabels().some(l => l.includes(NEW_NAME))).toBe(true);
+    expect(alerts).toEqual([]);
+    expect(await orphansAfterRestart()).toEqual([]);
+  });
+
+  it('over a span: the same id in every month that receives entries', async () => {
+    await startNaming(SPAN, true);
+    saveNew();
+    await waitFor(() => expect(nameInput()).toBeNull());
+    const [aug] = newCategoryIn('budget_2026_7');
+    const [sep] = newCategoryIn('budget_2026_8');
+    expect(aug?.id).toBeTruthy();
+    expect(sep?.id).toBe(aug.id);
+    expect(await orphansAfterRestart()).toEqual([]);
+  });
+
+  it.each([
+    ['the month on screen', ONE, false, 'budget_2026_8'],
+    ['the actuals', ONE, false, 'budget_actuals_2026_8'],
+    ['the rule', ONE, false, 'budget_category_rules'],
+    ['another month of the span', SPAN, true, 'budget_2026_7'],
+    ['another month’s actuals', SPAN, true, 'budget_actuals_2026_7'],
+  ] as const)('changes nothing, keeps the name and says so when %s is refused', async (_, seed, span3, refused) => {
+    await startNaming(seed, span3);
+    const disk = new Map(b.disk);
+    b.refuse.add(refused);
+    saveNew();
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    await settle();
+    expect(new Map(b.disk)).toEqual(disk);
+    expect(nameInput()?.value).toBe(NEW_NAME);
+    expect(rowLabels().some(l => l.includes(NEW_NAME))).toBe(false);
+    expect(document.querySelector('.save-error-banner')).toBeNull();
+    // And nothing the screen still holds gets written later by the budget's
+    // own save: an edit to the month on screen does not bring it back.
+    expect(await orphansAfterRestart()).toEqual([]);
+    expect(newCategoryIn('budget_2026_8')).toEqual([]);
+  });
+
+  it.each([
+    ['two taps on Save', () => { saveNew(); saveNew(); }],
+    ['a tap and then Enter', () => { saveNew(); fireEvent.keyDown(nameInput()!, { key: 'Enter' }); }],
+  ])('%s create one category', async (_, twice) => {
+    await startNaming(ONE);
+    b.hold();
+    twice();
+    await settle();
+    b.release();
+    await waitFor(() => expect(nameInput()).toBeNull());
+    await settle();
+    expect(newCategoryIn('budget_2026_8')).toHaveLength(1);
+    expect(JSON.parse(b.disk.get('budget_actuals_2026_8')!)).toHaveLength(2);
+    expect(rowLabels().filter(l => l.includes(NEW_NAME))).toHaveLength(1);
+  });
+
+  it('moving to another month while it saves shows only the new month', async () => {
+    b.disk.set('budget_2026_9', SEPT);
+    b.disk.set('budget_actuals_2026_9', JSON.stringify([
+      { id: 'o1', date: '2026-10-02', text: 'SYNT OKT', amount: 50, direction: 'out', categoryId: '__unsorted__' },
+    ]));
+    await startNaming(ONE);
+    b.hold();
+    saveNew();
+    await settle();
+    fireEvent.click(document.querySelector(`[aria-label="${sv.nextMonth}"]`)!);
+    await settle();
+    b.release();
+    await settle();
+    await settle();
+    // October: its own entry in Övrigt, and no September category on its budget.
+    expect(rowLabels().some(l => l.includes(NEW_NAME))).toBe(false);
+    const unsorted = [...document.querySelectorAll('button.followup-row')].find(x => x.textContent?.includes(sv.followUpUnsorted))!;
+    if (unsorted.getAttribute('aria-expanded') === 'false') fireEvent.click(unsorted);
+    await waitFor(() => expect(document.querySelector('.followup-place-text')?.textContent).toContain('SYNT OKT'));
+    expect([...document.querySelectorAll('.followup-place-text')].map(e => e.textContent).join()).not.toContain('SYNT KIOSK');
+    await settle();
+    expect(newCategoryIn('budget_2026_9')).toEqual([]);
+    // September's change itself is stored, whole.
+    const [cat] = newCategoryIn('budget_2026_8');
+    expect(cat).toBeTruthy();
+    expect(await orphansAfterRestart()).toEqual([]);
+  });
+});
+
+describe('Follow-up: "Create Mat" in the sorting list is one change too', () => {
+  // A remembered rule naming a standard category the budget lacks becomes an
+  // offer to create it.
+  const SEED = {
+    budget_category_rules: JSON.stringify({ 'synt kiosk': 'mat' }),
+    budget_actuals_2026_8: JSON.stringify([KIOSK('k1', '2026-09-06')]),
+  };
+  const openSorting = async () => {
+    // Opening the list scrolls to it; jsdom has no scrolling.
+    Element.prototype.scrollIntoView = () => {};
+    for (const [k, v] of Object.entries(SEED)) b.disk.set(k, v);
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(buttonWith(sv.triageOpen)).toBeTruthy());
+    fireEvent.click(buttonWith(sv.triageOpen)!);
+    return await waitFor(() => {
+      const el = document.querySelector<HTMLButtonElement>('.triage-accept-new');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+  };
+  const hasMat = () => (JSON.parse(b.disk.get('budget_2026_8')!).expenses as { id: string }[]).some(c => c.id === 'mat');
+
+  it('stores the category and the entries together', async () => {
+    fireEvent.click(await openSorting());
+    await waitFor(() => expect(hasMat()).toBe(true));
+    await waitFor(() => expect(JSON.parse(b.disk.get('budget_actuals_2026_8')!)[0].categoryId).toBe('mat'));
+    expect(alerts).toEqual([]);
+    expect(await orphansAfterRestart()).toEqual([]);
+  });
+
+  it.each(['budget_2026_8', 'budget_actuals_2026_8'])('changes nothing and says so when %s is refused', async refused => {
+    const create = await openSorting();
+    const disk = new Map(b.disk);
+    b.refuse.add(refused);
+    fireEvent.click(create);
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    await settle();
+    expect(new Map(b.disk)).toEqual(disk);
+    expect(document.querySelector('.save-error-banner')).toBeNull();
+    expect(await orphansAfterRestart()).toEqual([]);
+  });
+});

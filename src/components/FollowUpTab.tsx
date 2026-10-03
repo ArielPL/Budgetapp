@@ -4,7 +4,7 @@ import { generateId, shownName, loadMonthData } from '../defaults';
 import { categoryTotal, calculateBudgetMetrics } from '../metrics';
 import { parseMoneyOrZero } from '../money';
 import {
-  actualsKey, loadActuals, sumByCategory, planPersist,
+  actualsKey, loadActuals, sumByCategory, planPersist, groupByMonth,
   actualContribution, groupEntriesByText, isBucketId,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
@@ -15,7 +15,7 @@ import { FollowUpHelp } from './FollowUpHelp';
 import { loadCategoryRules } from '../categorise';
 import { standardExpenseCategory } from '../defaults';
 import { spanMonths, SPANS, isSpan, type Span } from '../span';
-import { rememberCategoryRule } from '../categorise';
+import { rememberCategoryRule, learnedRulesChange } from '../categorise';
 import { periodRange, lockKey, type PeriodLocks } from '../periodLabel';
 import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
@@ -47,10 +47,9 @@ interface Props {
   /** Move the whole app to another month. An imported statement is usually last
    *  month's, so the months it writes to are routinely not this one. */
   onGoToMonth: (year: number, month: number) => void;
-  /** Add standard categories the import offered to create, to the months that
-   *  received the entries — not necessarily the month on screen. */
-  onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
-  /** The same, as writes for the import to commit with its own. */
+  /** Standard categories to add to the months given — not necessarily the
+   *  month on screen — as writes to commit together with the entries filed
+   *  into them. */
   planStandardCategories: (ids: string[], months: TouchedMonth[]) => CategoryPlan;
   /** The pay period's start day, or null for plain calendar months. Decides
    *  which budget month an imported entry belongs to. */
@@ -61,8 +60,9 @@ interface Props {
   onLockPeriod: (year: number, month: number, iso: string | null) => void;
   /** Open the Budget tab — offered while there is nothing here to follow up. */
   onOpenBudget?: () => void;
-  /** Create a category the user named, in the months given, and return its id. */
-  onCreateNamedCategory: (name: string, months: { year: number; month: number }[]) => string;
+  /** A new category the user named: its id now, and the writes that add it
+   *  to the months given, to commit together with the entries moved into it. */
+  planNamedCategory: (name: string) => { id: string; in: (months: TouchedMonth[]) => CategoryPlan };
   /** Remember a step back from the two actions here that destroy: clearing a
    *  month's record, and an import that lands in the wrong one. */
   onRecordUndo: (entry: UndoEntry) => void;
@@ -89,8 +89,8 @@ const isoLocal = (d: Date) =>
 const NO_ENTRIES: ActualEntry[] = [];
 
 export const FollowUpTab = ({
-  year, month, categories, totalIncome, onSaveFailed, onGoToMonth, onCreateCategories, planStandardCategories,
-  periodStartDay, periodLocks, onLockPeriod, onCreateNamedCategory, onRecordUndo, onOpenBudget,
+  year, month, categories, totalIncome, onSaveFailed, onGoToMonth, planStandardCategories,
+  periodStartDay, periodLocks, onLockPeriod, planNamedCategory, onRecordUndo, onOpenBudget,
 }: Props) => {
   const { t, lang, money } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
@@ -123,6 +123,10 @@ export const FollowUpTab = ({
    *  writing to the user's storage. */
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
   const [newCatName, setNewCatName] = useState('');
+  /** A new category on its way to the database. One at a time: a second tap
+   *  on Save while the first is saving would make a second category. */
+  const creating = useRef(false);
+  const [creatingNow, setCreatingNow] = useState(false);
   // How an opened category lists what is in it. "place" answers "where does it
   // go"; "date" answers "what happened when". Both are real questions, so this
   // is a choice rather than a rule about how many months are in view.
@@ -210,6 +214,7 @@ export const FollowUpTab = ({
     next: ActualEntry[],
     undo: { action: 'deleteEntry' | 'clearActuals'; count: number } | undefined,
     madeIn: string,
+    also?: (next: ActualEntry[]) => CategoryPlan,
   ): Promise<boolean> => {
     // The event above is asynchronous. Compare the raw values as well, so an
     // edit can never knowingly overwrite a newer version already in storage.
@@ -244,11 +249,16 @@ export const FollowUpTab = ({
       return false;
     }
     const before = undo ? captureKeys(appStorage, plan.changes.map(c => c.key)) : null;
-    const outcome = await commitStorageChangesOutcome(appStorage, plan.changes);
+    // What the move needs besides the entries — a category for them to land
+    // in — goes into the SAME transaction, planned from `next` so it covers
+    // every month the entries go home to.
+    const extra = also?.(next);
+    const outcome = await commitStorageChangesOutcome(appStorage, [...plan.changes, ...(extra?.changes ?? [])]);
     if (outcome !== 'stored') {
       alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
+    extra?.apply();
     // The table shows these entries only if it still shows these months. The
     // user may have moved to another month while the database answered, and
     // setting the old month's entries then put them in the new month's table
@@ -287,6 +297,7 @@ export const FollowUpTab = ({
   const persist = (
     update: (current: ActualEntry[]) => ActualEntry[],
     undo?: { action: 'deleteEntry' | 'clearActuals'; count: number },
+    also?: (next: ActualEntry[]) => CategoryPlan,
   ): Promise<boolean> => {
     const madeIn = viewKey;
     const madeFor = months;
@@ -300,6 +311,7 @@ export const FollowUpTab = ({
         : madeFor.flatMap(m => loadActuals(appStorage, m.year, m.month))),
       undo,
       madeIn,
+      also,
     );
     const done = saving.current.then(run, run);
     saving.current = done;
@@ -336,12 +348,9 @@ export const FollowUpTab = ({
   };
 
   /** Accept a proposal for a standard category the budget does not hold: make
-   *  it first, in every month the view writes back, then move the place into
-   *  it. Same order as the import — the home exists before anything moves in. */
-  const createStandardAndMove = (place: string, id: string) => {
-    onCreateCategories([id], months.map(m => ({ year: m.year, month: m.month })));
-    movePlace(place, id);
-  };
+   *  it, and move the place into it, as one change — like the import. */
+  const createStandardAndMove = (place: string, id: string) =>
+    createAndFile(place, id, homes => planStandardCategories([id], homes));
 
   // Each entry is indexed once. The old render path scanned the full list once
   // per category, which became noticeable after large statement imports.
@@ -446,24 +455,66 @@ export const FollowUpTab = ({
    */
   const movePlace = async (place: string, categoryId: string): Promise<boolean> => {
     if (!categoryId) return false;
-    const key = place.trim().toLowerCase();
-    const saved = await persist(current => current.map(e => (
-      e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
-    )));
+    const saved = await persist(moving(place, categoryId));
     if (!saved) return false;
     rememberCategoryRule(appStorage, place, categoryId);
     setOpenPlace(null);
     return true;
   };
 
+  /** Every entry of `place` filed under `categoryId`. */
+  const moving = (place: string, categoryId: string) => {
+    const key = place.trim().toLowerCase();
+    return (current: ActualEntry[]) => current.map(e => (
+      e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
+    ));
+  };
+
+  /**
+   * Move a place into a category that does not exist yet, and create it — as
+   * ONE change (Codex, 2026-10-03). The category, the moved entries and the
+   * learned rule are stored together or not at all, and nothing on screen
+   * changes until they are: no entry can point at a category its month lacks
+   * after a restart, no rule at a category that was never stored, and a
+   * refusal leaves no empty category behind.
+   *
+   * The category goes into every month in view, and into any month outside it
+   * that one of the moved entries goes home to.
+   */
+  const createAndFile = async (
+    place: string, categoryId: string, plan: (homes: TouchedMonth[]) => CategoryPlan,
+  ): Promise<boolean> => {
+    if (creating.current) return false;
+    creating.current = true;
+    setCreatingNow(true);
+    const key = place.trim().toLowerCase();
+    const view = months;
+    try {
+      const saved = await persist(moving(place, categoryId), undefined, next => {
+        const homes = new Map(view.map(m => [`${m.year}_${m.month}`, { year: m.year, month: m.month }]));
+        const mine = next.filter(e => e.text.trim().toLowerCase() === key);
+        for (const [k, at] of groupByMonth(mine, periodStartDay, periodLocks).months) {
+          homes.set(k, { year: at.year, month: at.month });
+        }
+        const category = plan([...homes.values()]);
+        const rule = learnedRulesChange(appStorage, [{ text: place, categoryId }]);
+        return { changes: [...category.changes, ...(rule ? [rule] : [])], apply: category.apply };
+      });
+      if (saved) setOpenPlace(null);
+      return saved;
+    } finally {
+      creating.current = false;
+      setCreatingNow(false);
+    }
+  };
+
   /** Create the category the user is naming and file the place into it. The
-   *  category is added to every month in view, so a span-wide move does not
-   *  orphan the entries it moved in the months that are not on screen. */
+   *  name stays in the box until it is stored, so a refusal loses nothing. */
   const createAndMove = async (place: string) => {
     const name = newCatName.trim();
-    if (!name) return;
-    const id = onCreateNamedCategory(name, months);
-    if (await movePlace(place, id)) {
+    if (!name || creating.current) return;
+    const cat = planNamedCategory(name);
+    if (await createAndFile(place, cat.id, cat.in)) {
       setNamingPlace(null);
       setNewCatName('');
     }
@@ -692,7 +743,7 @@ export const FollowUpTab = ({
                         onChange={ev => setNewCatName(ev.target.value)}
                         onKeyDown={ev => { if (ev.key === 'Enter') createAndMove(g.text); }}
                       />
-                      <button className="followup-newcat-save" onClick={() => createAndMove(g.text)}>
+                      <button className="followup-newcat-save" disabled={creatingNow} onClick={() => createAndMove(g.text)}>
                         {t.followUpSave}
                       </button>
                       <button className="followup-newcat-cancel" onClick={() => setNamingPlace(null)}>
@@ -949,6 +1000,7 @@ export const FollowUpTab = ({
                     {d.create && (
                       <button
                         className="triage-accept triage-accept-new"
+                        disabled={creatingNow}
                         onClick={() => createStandardAndMove(d.text, d.create!)}
                       >
                         {t.triageCreate(standardName(d.create))}
