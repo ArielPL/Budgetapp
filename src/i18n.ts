@@ -57,6 +57,7 @@ export function pickCurrency(tags: readonly string[]): Currency {
     if (base === 'sv') return 'sek';
     if (base === 'es') return 'eur';
     if (base === 'en') return region === 'gb' ? 'gbp' : 'usd';
+    if (base === 'ja') return 'jpy';
     // Somebody else's European locale: the euro is the better guess than kronor.
     if (['de', 'fr', 'it', 'pt', 'nl', 'fi', 'el', 'ga', 'et', 'lv', 'lt', 'sk', 'sl'].includes(base)) {
       return 'eur';
@@ -99,12 +100,14 @@ export const MONTHS_SHORT: Record<Lang, string[]> = {
 // ── Currency ────────────────────────────────────────────────────────
 // Switching currency changes the SYMBOL/FORMAT ONLY — amounts are never
 // converted (no exchange rates). The user's numbers stay the same.
-export type Currency = 'sek' | 'eur' | 'usd' | 'gbp';
+export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy';
 
 interface CurrencyConfig {
-  code: 'SEK' | 'EUR' | 'USD' | 'GBP';
+  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY';
   locale: string;
   symbol: string;
+  /** The yen has no smaller unit: its amounts are always shown whole. */
+  wholeOnly?: boolean;
 }
 
 export const CURRENCIES: Record<Currency, CurrencyConfig> = {
@@ -112,6 +115,9 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   eur: { code: 'EUR', locale: 'de-DE', symbol: '€' },
   usd: { code: 'USD', locale: 'en-US', symbol: '$' },
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
+  // en-US rather than ja-JP: Japanese formatting writes the full-width "￥",
+  // and the symbol asked for is the ordinary ¥ (Ariel, 2026-10-03).
+  jpy: { code: 'JPY', locale: 'en-US', symbol: '¥', wholeOnly: true },
 };
 
 /** Runtime check for a stored/imported currency — same story as isLang: an
@@ -148,6 +154,7 @@ function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat
 /** Format an amount with the given currency's symbol/grouping (no conversion).
  *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
+  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount));
   const rounded = Math.round(amount * 100) / 100;
   const hasCents = !Number.isInteger(rounded);
   return getFormatter(currency, hasCents).format(rounded);
@@ -198,8 +205,8 @@ export function formatAxisTick(value: number, lang: Lang): string {
  */
 export function formatMoneyCompact(amount: number, currency: Currency, lang: Lang): string {
   const compact = formatAxisTick(amount, lang);
-  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£' };
-  return currency === 'usd' || currency === 'gbp'
+  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£', jpy: '¥' };
+  return currency === 'usd' || currency === 'gbp' || currency === 'jpy'
     ? `${symbol[currency]}${compact}`
     : `${compact} ${symbol[currency]}`;
 }
@@ -262,6 +269,32 @@ export interface Translations {
   debtMinimumNever: string;
   debtSameOrder: string;
   debtFromBudget: (amount: string) => string;
+  bimTitle: string;
+  bimMenu: string;
+  bimHeroButton: string;
+  bimLead: string;
+  bimPick: string;
+  bimPasteLabel: string;
+  bimPastePlaceholder: string;
+  bimRead: string;
+  bimSheet: string;
+  bimIntoMonth: (month: string) => string;
+  bimIntoMonths: (n: number, from: string, to: string) => string;
+  bimAmountColumn: string;
+  bimColumn: (n: number) => string;
+  bimNote: string;
+  bimSkip: string;
+  bimOther: string;
+  bimNewGroup: string;
+  bimStandardGroup: string;
+  bimImportN: (n: number) => string;
+  bimMonthsN: (n: number) => string;
+  bimDone: (rows: number, months: number) => string;
+  bimErrTooBig: string;
+  bimErrUnreadable: string;
+  bimErrEmpty: string;
+  bimErrNoAmounts: string;
+  bimBack: string;
   debtFromBudgetHint: string;
   debtComplete: string;
   debtCompleteFor: (name: string) => string;
@@ -997,6 +1030,32 @@ export const translations: Record<Lang, Translations> = {
     debtMinimumNever: 'Utan extra blir skulderna inte betalda inom 50 år.',
     debtSameOrder: 'Här blir båda vägarna samma, eftersom de minsta skulderna också har högst ränta.',
     debtFromBudget: (amount) => `Från budgeten · ${amount} per månad`,
+    bimTitle: 'Importera budget',
+    bimMenu: '📥 Importera budget från Excel',
+    bimHeroButton: '📥 Importera från Excel',
+    bimLead: 'Har du redan en budget i Excel, Google Kalkylark eller Numbers? Välj filen (.xlsx eller CSV), eller markera cellerna där och klistra in dem här.',
+    bimPick: 'Välj fil',
+    bimPasteLabel: 'Eller klistra in cellerna',
+    bimPastePlaceholder: 'Hyra\t9500\nMat\t4000',
+    bimRead: 'Läs in',
+    bimSheet: 'Blad',
+    bimIntoMonth: (month) => `Läggs in i ${month}.`,
+    bimIntoMonths: (n, from, to) => `Läggs in i ${n} månader: ${from} – ${to}.`,
+    bimAmountColumn: 'Belopp från kolumnen',
+    bimColumn: (n) => `Kolumn ${n}`,
+    bimNote: 'Finns raden redan i budgeten får den det nya beloppet. Inget tas bort, och du kan ångra efteråt.',
+    bimSkip: 'Hoppa över',
+    bimOther: 'Övrigt',
+    bimNewGroup: 'Ny kategori',
+    bimStandardGroup: 'Kategorier',
+    bimImportN: (n) => (n === 1 ? 'Importera 1 rad' : `Importera ${n} rader`),
+    bimMonthsN: (n) => (n === 1 ? '1 månad' : `${n} månader`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
+    bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
+    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx eller CSV och försök igen.',
+    bimErrEmpty: 'Hittade inga rader att importera.',
+    bimErrNoAmounts: 'Hittade inga belopp. Se till att en kolumn innehåller siffror.',
+    bimBack: 'Välj en annan fil',
     debtFromBudgetHint: 'Fyll i vad som är kvar och räntan, så räknas den med i vägen till skuldfri.',
     debtComplete: 'Fyll i uppgifter',
     debtCompleteFor: (name) => `Fyll i uppgifter för ${name}`,
@@ -1450,6 +1509,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteEntry') return `En post togs bort i ${where}`;
       if (action === 'deleteGoal') return 'Ett sparmål togs bort';
       if (action === 'deleteDebt') return 'En skuld togs bort';
+      if (action === 'importBudget') return count > 1 ? `En budget importerades till ${count} månader` : `En budget importerades till ${where}`;
       if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
@@ -1727,6 +1787,32 @@ export const translations: Record<Lang, Translations> = {
     debtMinimumNever: 'Without extra the debts are not paid within 50 years.',
     debtSameOrder: 'Here both ways are the same, because the smallest debts also have the highest interest.',
     debtFromBudget: (amount) => `From the budget · ${amount} a month`,
+    bimTitle: 'Import a budget',
+    bimMenu: '📥 Import a budget from Excel',
+    bimHeroButton: '📥 Import from Excel',
+    bimLead: 'Already have a budget in Excel, Google Sheets or Numbers? Choose the file (.xlsx or CSV), or select the cells there and paste them here.',
+    bimPick: 'Choose file',
+    bimPasteLabel: 'Or paste the cells',
+    bimPastePlaceholder: 'Rent\t1200\nFood\t400',
+    bimRead: 'Read',
+    bimSheet: 'Sheet',
+    bimIntoMonth: (month) => `Goes into ${month}.`,
+    bimIntoMonths: (n, from, to) => `Goes into ${n} months: ${from} – ${to}.`,
+    bimAmountColumn: 'Amounts from the column',
+    bimColumn: (n) => `Column ${n}`,
+    bimNote: 'A row already in the budget gets the new amount. Nothing is removed, and you can undo it afterwards.',
+    bimSkip: 'Leave out',
+    bimOther: 'Other',
+    bimNewGroup: 'New category',
+    bimStandardGroup: 'Categories',
+    bimImportN: (n) => (n === 1 ? 'Import 1 row' : `Import ${n} rows`),
+    bimMonthsN: (n) => (n === 1 ? '1 month' : `${n} months`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
+    bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
+    bimErrUnreadable: 'The file could not be read. Save it as .xlsx or CSV and try again.',
+    bimErrEmpty: 'Found no rows to import.',
+    bimErrNoAmounts: 'Found no amounts. Make sure one column holds numbers.',
+    bimBack: 'Choose another file',
     debtFromBudgetHint: 'Fill in what is left and the interest, and it counts in the way to debt-free.',
     debtComplete: 'Fill in details',
     debtCompleteFor: (name) => `Fill in details for ${name}`,
@@ -2181,6 +2267,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteEntry') return `An entry was removed from ${where}`;
       if (action === 'deleteGoal') return 'A savings goal was removed';
       if (action === 'deleteDebt') return 'A debt was removed';
+      if (action === 'importBudget') return count > 1 ? `A budget was imported into ${count} months` : `A budget was imported into ${where}`;
       if (action === 'deleteBlock') return 'A block was removed from Custom';
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
@@ -2457,6 +2544,32 @@ export const translations: Record<Lang, Translations> = {
     debtMinimumNever: 'Sin extra las deudas no se pagan en 50 años.',
     debtSameOrder: 'Aquí los dos caminos coinciden, porque las deudas más pequeñas también tienen el interés más alto.',
     debtFromBudget: (amount) => `Del presupuesto · ${amount} al mes`,
+    bimTitle: 'Importar presupuesto',
+    bimMenu: '📥 Importar presupuesto de Excel',
+    bimHeroButton: '📥 Importar de Excel',
+    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google o Numbers? Elige el archivo (.xlsx o CSV), o selecciona las celdas allí y pégalas aquí.',
+    bimPick: 'Elegir archivo',
+    bimPasteLabel: 'O pega las celdas',
+    bimPastePlaceholder: 'Alquiler\t800\nComida\t300',
+    bimRead: 'Leer',
+    bimSheet: 'Hoja',
+    bimIntoMonth: (month) => `Se añade a ${month}.`,
+    bimIntoMonths: (n, from, to) => `Se añade a ${n} meses: ${from} – ${to}.`,
+    bimAmountColumn: 'Importes de la columna',
+    bimColumn: (n) => `Columna ${n}`,
+    bimNote: 'Una fila que ya está en el presupuesto recibe el nuevo importe. No se elimina nada y puedes deshacerlo después.',
+    bimSkip: 'Omitir',
+    bimOther: 'Otros',
+    bimNewGroup: 'Categoría nueva',
+    bimStandardGroup: 'Categorías',
+    bimImportN: (n) => (n === 1 ? 'Importar 1 fila' : `Importar ${n} filas`),
+    bimMonthsN: (n) => (n === 1 ? '1 mes' : `${n} meses`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
+    bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
+    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx o CSV e inténtalo de nuevo.',
+    bimErrEmpty: 'No se encontraron filas para importar.',
+    bimErrNoAmounts: 'No se encontraron importes. Asegúrate de que una columna tenga números.',
+    bimBack: 'Elegir otro archivo',
     debtFromBudgetHint: 'Rellena lo que queda y el interés, y contará en el camino para quedar sin deudas.',
     debtComplete: 'Rellenar datos',
     debtCompleteFor: (name) => `Rellenar datos de ${name}`,
@@ -2911,6 +3024,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;
       if (action === 'deleteGoal') return 'Se eliminó una meta de ahorro';
       if (action === 'deleteDebt') return 'Se eliminó una deuda';
+      if (action === 'importBudget') return count > 1 ? `Se importó un presupuesto a ${count} meses` : `Se importó un presupuesto a ${where}`;
       if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;

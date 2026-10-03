@@ -28,7 +28,7 @@ No accounts, no backend, no analytics: everything stays on the device.
 - **Three layouts** — Classic (tabs), Combined (everything on one page), and
   **Custom**: a block dashboard, either linked to the regular budget or as a
   separate budget of its own.
-- **Theme builder**, **i18n & currency** (kr / € / $ / £ — format only, never
+- **Theme builder**, **i18n & currency** (kr / € / $ / £ / ¥ — format only, never
   converted), **undo** for the destructive actions, and **backup** to a file.
 
 ## Where the data lives

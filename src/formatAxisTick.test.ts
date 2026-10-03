@@ -72,5 +72,6 @@ describe('formatMoneyCompact (summary cards at ≥ 1e9)', () => {
     expect(formatMoneyCompact(10_000_000_000, 'usd', 'en')).toBe('$10B');
     expect(formatMoneyCompact(2_500_000_000, 'eur', 'es')).toBe('2,5mil M €');
     expect(formatMoneyCompact(1_500_000_000, 'gbp', 'en')).toBe('£1.5B');
+    expect(formatMoneyCompact(1_500_000_000, 'jpy', 'en')).toBe('¥1.5B');
   });
 });

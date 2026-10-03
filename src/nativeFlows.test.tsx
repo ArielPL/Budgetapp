@@ -769,3 +769,79 @@ describe('the Debt tab', () => {
     });
   });
 });
+
+// ── A budget imported from a spreadsheet (Ariel, 2026-10-03) ────────────────
+
+describe('importing a budget', () => {
+  const openImport = async () => {
+    await openApp();
+    openMenu();
+    fireEvent.click(buttonWith(sv.bimMenu)!);
+    await waitFor(() => expect(document.querySelector('.bim-panel')).not.toBeNull());
+  };
+  const pasteAndRead = (text: string) => {
+    const box = document.querySelector<HTMLTextAreaElement>('.bim-paste textarea')!;
+    fireEvent.change(box, { target: { value: text } });
+    fireEvent.click(buttonWith(sv.bimRead)!);
+  };
+  const importButton = () => [...document.querySelectorAll('.bim-panel button.csv-primary')][0] as HTMLButtonElement;
+  const month = (k: string) => JSON.parse(b.disk.get(k) ?? '{"income":[],"expenses":[]}') as {
+    income: { label: string; amount: number }[]; expenses: { id: string; name: string; rows: { label: string; amount: number }[] }[];
+  };
+
+  it('stores pasted cells in the month on screen, with a step back', async () => {
+    await openImport();
+    pasteAndRead('Inkomster\nSYNT LÖN\t31000\nMatvaror\t3500\nSYNT OKÄND\t250\nTotalt\t34750\n');
+    await waitFor(() => expect(importButton().textContent).toBe(sv.bimImportN(3)));
+    fireEvent.click(importButton());
+    await waitFor(() => expect(document.querySelector('.bim-panel')).toBeNull());
+    const sept = month('budget_2026_8');
+    expect(sept.income.map(r => [r.label, r.amount])).toContainEqual(['SYNT LÖN', 31000]);
+    expect(sept.expenses.find(c => c.id === 'mat')!.rows.map(r => r.label)).toEqual(['Matvaror']);
+    expect(sept.expenses.find(c => c.name === sv.bimOther)!.rows.map(r => r.label)).toEqual(['SYNT OKÄND']);
+    // The existing month's own rows are still there.
+    expect(sept.expenses.find(c => c.id === 'boende')!.rows.map(r => r.label)).toEqual(['Hyra']);
+    await waitFor(() => expect(undoOnDisk().map(u => u.action)).toContain('importBudget'));
+  });
+
+  it('stores every month of a months-as-columns sheet in one write', async () => {
+    await openImport();
+    pasteAndRead('Post\tJan\tFeb\tMar\nHyra\t9000\t9000\t9100\n');
+    await waitFor(() => expect(document.querySelector('.bim-panel .csv-lead')?.textContent).toContain(sv.bimIntoMonths(3, 'januari 2026', 'mars 2026')));
+    fireEvent.click(importButton());
+    await waitFor(() => expect(b.disk.has('budget_2026_2')).toBe(true));
+    expect(['budget_2026_0', 'budget_2026_1', 'budget_2026_2'].map(k => month(k).expenses.find(c => c.id === 'boende')!.rows[0].amount))
+      .toEqual([9000, 9000, 9100]);
+  });
+
+  it('changes nothing, keeps the dialog and says so when the database refuses', async () => {
+    await openImport();
+    b.refuse.add('budget_2026_1');
+    pasteAndRead('Post\tJan\tFeb\nHyra\t9000\t9000\n');
+    await waitFor(() => expect(importButton()).toBeTruthy());
+    fireEvent.click(importButton());
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    expect(b.disk.has('budget_2026_0')).toBe(false);
+    expect(b.disk.has('budget_2026_1')).toBe(false);
+    expect(document.querySelector('.bim-panel')).not.toBeNull();
+    expect(undoOnDisk()).toEqual([]);
+  });
+
+  it('lets a row be changed or left out before anything is stored', async () => {
+    await openImport();
+    pasteAndRead('SYNT HOBBY\t400\nSYNT BORT\t100\n');
+    const select = await waitFor(() => {
+      const el = document.querySelector<HTMLSelectElement>('select[aria-label="SYNT HOBBY"]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(select, { target: { value: 'std:fritid' } });
+    fireEvent.change(document.querySelector<HTMLSelectElement>('select[aria-label="SYNT BORT"]')!, { target: { value: 'skip' } });
+    expect(importButton().textContent).toBe(sv.bimImportN(1));
+    fireEvent.click(importButton());
+    await waitFor(() => expect(document.querySelector('.bim-panel')).toBeNull());
+    const sept = month('budget_2026_8');
+    expect(sept.expenses.find(c => c.id === 'fritid')!.rows.map(r => r.label)).toEqual(['SYNT HOBBY']);
+    expect(JSON.stringify(sept)).not.toContain('SYNT BORT');
+  });
+});

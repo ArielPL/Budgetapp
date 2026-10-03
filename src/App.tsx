@@ -20,6 +20,9 @@ const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: 
 const FollowUpTab = lazy(() => import('./components/FollowUpTab').then(m => ({ default: m.FollowUpTab })));
 const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
 const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: m.DebtTab })));
+// Lazy: it carries the spreadsheet reader, which nobody who never imports
+// should have to download.
+const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
@@ -36,7 +39,8 @@ import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -122,6 +126,7 @@ function App({ startupRepair = null }: AppProps) {
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   const [debtState, setDebtState] = useState<DebtState>(() => loadDebts(appStorage));
+  const [budgetImportOpen, setBudgetImportOpen] = useState(false);
   // ── Theme Builder: palette family + light/dark mode + override map ──
   // Loaded once via a lazy useState (never re-read; reading a ref during render
   // is disallowed by react-hooks/refs).
@@ -1224,6 +1229,49 @@ function App({ startupRepair = null }: AppProps) {
     };
   };
 
+  // ── A budget imported from a spreadsheet ───────────────────────────
+  /**
+   * Every month the draft reaches, merged and stored in ONE write, with a step
+   * back covering all of them. Nothing on screen changes until it is stored;
+   * a refusal says so and changes nothing. Ids are minted once, so a row or a
+   * new category of the user's own is the same thing in every month.
+   */
+  const importBudget = async (draft: Draft): Promise<boolean> => {
+    const months = rowsByMonth(draft);
+    if (months.length === 0) return false;
+    const rowIds = new Map<string, string>();
+    const catIds = new Map<string, string>();
+    const mint = (map: Map<string, string>, key: string) => {
+      if (!map.has(key)) map.set(key, generateId());
+      return map.get(key)!;
+    };
+    const ids: ImportIds = { row: k => mint(rowIds, k), category: n => mint(catIds, n.toLowerCase()) };
+    const atYear = year;
+    const atMonth = month;
+    const keys = months.map(m => storageKey(m.year, m.month));
+    const before = captureKeys(appStorage, keys);
+    const changes: StorageChange[] = months.map(m => {
+      const from = m.year === atYear && m.month === atMonth ? data : loadMonthData(m.year, m.month, lang);
+      return { key: storageKey(m.year, m.month), value: JSON.stringify(mergeInto(from, m.rows, ids, lang)) };
+    });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    const here = months.find(m => m.year === atYear && m.month === atMonth);
+    if (here && stillShows(atYear, atMonth)) setData(d => mergeInto(d, here.rows, ids, lang));
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'importBudget',
+      ...(months.length === 1 ? { year: months[0].year, month: months[0].month } : {}),
+      count: months.length,
+      changes: before,
+    });
+    showMsg(t.bimDone(new Set(months.flatMap(m => m.rows.map(r => r.row.key))).size, months.length));
+    return true;
+  };
+
   // ── Skuld — the debts, and the row each one carries in the budget ─────
   /**
    * Store the Debt tab's state, and with `row`, put that row in the month on
@@ -1514,6 +1562,7 @@ function App({ startupRepair = null }: AppProps) {
       <div className="onboard-actions">
         <button className="custom-primary-btn" onClick={addStarterBudget}>✨ {t.useBudgetTemplate}</button>
         <button className="custom-secondary-btn" onClick={dismissBudgetHero}>{t.startFromEmpty}</button>
+        <button className="custom-secondary-btn" onClick={() => setBudgetImportOpen(true)}>{t.bimHeroButton}</button>
       </div>
       <p className="onboard-hint">{t.templateIncludes}</p>
     </section>
@@ -1808,6 +1857,13 @@ function App({ startupRepair = null }: AppProps) {
                       >
                         £
                       </button>
+                      <button
+                        className={`seg-btn${currency === 'jpy' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('jpy')}
+                        title="Japanese yen"
+                      >
+                        ¥
+                      </button>
                     </div>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
@@ -1882,6 +1938,9 @@ function App({ startupRepair = null }: AppProps) {
                       </button>
                       <button className="utils-action" onClick={copyToNextMonth}>
                         → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                      </button>
+                      <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
+                        {t.bimMenu}
                       </button>
                       {month < 11 && (
                         <button className="utils-action" onClick={copyToAllRemaining}>
@@ -2192,6 +2251,12 @@ function App({ startupRepair = null }: AppProps) {
             {customTabs && activeTab === 'plan' && planView}
             {customTabs && activeTab === 'year' && yearView}
           </div>
+        )}
+        {budgetImportOpen && (
+          <Suspense fallback={null}>
+            <BudgetImport year={year} month={month}
+              onClose={() => setBudgetImportOpen(false)} onImport={importBudget} />
+          </Suspense>
         )}
       </main>
     </div>

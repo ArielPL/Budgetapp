@@ -230,12 +230,17 @@ export function purchaseHighlights(
   };
 }
 
-/** Where the small-purchase limit starts: 200 kronor, or 20 of the others. */
+/** Where the small-purchase limit starts: 200 kronor, 3 000 yen, or 20 of
+ *  the others — roughly the same coffee-and-a-bun in each. */
 export function defaultSmallLimit(currency: string): number {
-  return currency === 'sek' ? 200 : 20;
+  if (currency === 'sek') return 200;
+  if (currency === 'jpy') return 3000;
+  return 20;
 }
 
 /** The limits offered, around the default. */
 export function smallLimitChoices(currency: string): number[] {
-  return currency === 'sek' ? [50, 100, 200, 300, 500] : [5, 10, 20, 30, 50];
+  if (currency === 'sek') return [50, 100, 200, 300, 500];
+  if (currency === 'jpy') return [500, 1000, 2000, 3000, 5000];
+  return [5, 10, 20, 30, 50];
 }

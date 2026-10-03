@@ -3358,6 +3358,43 @@ a:focus-visible,
   .debt-way-card:hover { border-color: var(--accent-brand); }
 }
 
+/* ─── Import a budget from a spreadsheet ─────────────────────────────────
+   Built on the bank import's dialog (csv-*), with a paste box under the file
+   picker and the sheet / amount-column choices above the rows. */
+.bim-paste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+.bim-paste label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.bim-paste textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+.bim-paste .csv-secondary { align-self: flex-start; }
+.bim-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+.bim-options select { min-height: 32px; }
+.bim-section {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* Suspense placeholder while a lazy view's chunk loads — reserves space so
    the swap-in doesn't shift the page; invisible on purpose (loads are fast,
    a spinner would just flash). */
