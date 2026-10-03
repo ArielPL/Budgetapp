@@ -251,7 +251,13 @@ export interface Translations {
   debtEditShort: string;
   debtDeleteShort: string;
   debtDelete: (name: string) => string;
-  debtDeleteConfirm: (name: string) => string;
+  debtDeleteAsk: (name: string) => string;
+  debtDeleteRowInfo: (month: string) => string;
+  debtDeleteBoth: string;
+  debtDeleteOnly: string;
+  debtDeletedBoth: (name: string) => string;
+  debtDeletedKept: (name: string) => string;
+  debtDeleted: (name: string) => string;
   debtSummaryTotal: string;
   debtSummaryMonthly: string;
   debtSummaryFree: string;
@@ -291,6 +297,7 @@ export interface Translations {
   bimMonthsN: (n: number) => string;
   bimDone: (rows: number, months: number) => string;
   bimErrTooBig: string;
+  bimErrTooLarge: string;
   bimErrUnreadable: string;
   bimErrEmpty: string;
   bimErrNoAmounts: string;
@@ -995,7 +1002,7 @@ export const translations: Record<Lang, Translations> = {
     debtBalanceDate: 'Enligt besked den',
     debtRate: 'Ränta (% per år)',
     debtPayment: 'Betalning per månad',
-    debtCsnHint: 'CSN: betalningen är årsbeloppet delat med 12. Räntan för 2026 är 2,135 %. Årsbeloppet räknas om varje år och ökar med ungefär 2 %. En extra inbetalning går först till årets belopp och sedan till skulden. Räntan ger inget avdrag i deklarationen.',
+    debtCsnHint: 'CSN: betalningen är årsbeloppet delat med 12. Skriv in räntan från ditt senaste besked från CSN, eftersom regeringen bestämmer den varje år. Årsbeloppet räknas om varje år och ökar med ungefär 2 %. En extra inbetalning går först till årets belopp och sedan till skulden. Räntan ger inget avdrag i deklarationen.',
     debtAddToBudget: (month) => `Lägg betalningen som en rad under Lån & skulder i budgeten för ${month}`,
     debtCreate: 'Lägg till',
     debtSave: 'Spara',
@@ -1012,7 +1019,13 @@ export const translations: Record<Lang, Translations> = {
     debtEditShort: 'Ändra',
     debtDeleteShort: 'Ta bort',
     debtDelete: (name) => `Ta bort ${name}`,
-    debtDeleteConfirm: (name) => `Ta bort ${name}?\n\nRaden i budgeten ligger kvar. Du kan ångra direkt efteråt.`,
+    debtDeleteAsk: (name) => `Ta bort ${name}?`,
+    debtDeleteRowInfo: (month) => `Betalningen är en rad under Lån & skulder i budgeten för ${month}. Utfall du redan har registrerat påverkas inte.`,
+    debtDeleteBoth: 'Ta bort skuld och budgetrad',
+    debtDeleteOnly: 'Ta bort bara skulden',
+    debtDeletedBoth: (name) => `${name} och dess rad i budgeten togs bort.`,
+    debtDeletedKept: (name) => `${name} togs bort. Raden ligger kvar i budgeten som en vanlig rad.`,
+    debtDeleted: (name) => `${name} togs bort.`,
     debtSummaryTotal: 'Kvar totalt',
     debtSummaryMonthly: 'Per månad',
     debtSummaryFree: 'Skuldfri',
@@ -1052,6 +1065,7 @@ export const translations: Record<Lang, Translations> = {
     bimMonthsN: (n) => (n === 1 ? '1 månad' : `${n} månader`),
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
     bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
+    bimErrTooLarge: 'Tabellen är för stor för att vara en budget (högst 5 000 rader, 200 kolumner och 50 blad).',
     bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx eller CSV och försök igen.',
     bimErrEmpty: 'Hittade inga rader att importera.',
     bimErrNoAmounts: 'Hittade inga belopp. Se till att en kolumn innehåller siffror.',
@@ -1752,7 +1766,7 @@ export const translations: Record<Lang, Translations> = {
     debtBalanceDate: 'As of',
     debtRate: 'Interest (% a year)',
     debtPayment: 'Payment a month',
-    debtCsnHint: 'CSN: the payment is the yearly amount divided by 12. The 2026 rate is 2.135 %. The yearly amount is recalculated every year and rises by about 2 %. An extra payment goes to the year’s amount first, then to the debt. The interest is not tax-deductible.',
+    debtCsnHint: 'CSN: the payment is the yearly amount divided by 12. Type the interest rate from your latest CSN statement; the government sets it every year. The yearly amount is recalculated every year and rises by about 2 %. An extra payment goes to the year’s amount first, then to the debt. The interest is not tax-deductible.',
     debtAddToBudget: (month) => `Add the payment as a row under Loans & Debts in the budget for ${month}`,
     debtCreate: 'Add',
     debtSave: 'Save',
@@ -1769,7 +1783,13 @@ export const translations: Record<Lang, Translations> = {
     debtEditShort: 'Edit',
     debtDeleteShort: 'Delete',
     debtDelete: (name) => `Delete ${name}`,
-    debtDeleteConfirm: (name) => `Delete ${name}?\n\nIts row in the budget stays. You can undo this straight after.`,
+    debtDeleteAsk: (name) => `Delete ${name}?`,
+    debtDeleteRowInfo: (month) => `Its payment is a row under Loans & Debts in the budget for ${month}. Follow-up entries you have already recorded are not affected.`,
+    debtDeleteBoth: 'Delete the debt and its budget row',
+    debtDeleteOnly: 'Delete only the debt',
+    debtDeletedBoth: (name) => `${name} and its budget row were deleted.`,
+    debtDeletedKept: (name) => `${name} was deleted. Its row stays in the budget as an ordinary row.`,
+    debtDeleted: (name) => `${name} was deleted.`,
     debtSummaryTotal: 'Left in total',
     debtSummaryMonthly: 'A month',
     debtSummaryFree: 'Debt-free',
@@ -1809,6 +1829,7 @@ export const translations: Record<Lang, Translations> = {
     bimMonthsN: (n) => (n === 1 ? '1 month' : `${n} months`),
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
     bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
+    bimErrTooLarge: 'The table is too big to be a budget (at most 5,000 rows, 200 columns and 50 sheets).',
     bimErrUnreadable: 'The file could not be read. Save it as .xlsx or CSV and try again.',
     bimErrEmpty: 'Found no rows to import.',
     bimErrNoAmounts: 'Found no amounts. Make sure one column holds numbers.',
@@ -2509,7 +2530,7 @@ export const translations: Record<Lang, Translations> = {
     debtBalanceDate: 'Según el extracto del',
     debtRate: 'Interés (% anual)',
     debtPayment: 'Pago al mes',
-    debtCsnHint: 'CSN: el pago es la cuota anual dividida entre 12. El interés de 2026 es del 2,135 %. La cuota anual se recalcula cada año y sube un 2 % aproximadamente. Un pago extra va primero a la cuota del año y después a la deuda. El interés no es deducible.',
+    debtCsnHint: 'CSN: el pago es la cuota anual dividida entre 12. Escribe el interés de tu último extracto de CSN, porque el gobierno lo fija cada año. La cuota anual se recalcula cada año y sube un 2 % aproximadamente. Un pago extra va primero a la cuota del año y después a la deuda. El interés no es deducible.',
     debtAddToBudget: (month) => `Añadir el pago como fila en Préstamos y deudas del presupuesto de ${month}`,
     debtCreate: 'Añadir',
     debtSave: 'Guardar',
@@ -2526,7 +2547,13 @@ export const translations: Record<Lang, Translations> = {
     debtEditShort: 'Editar',
     debtDeleteShort: 'Eliminar',
     debtDelete: (name) => `Eliminar ${name}`,
-    debtDeleteConfirm: (name) => `¿Eliminar ${name}?\n\nSu fila en el presupuesto se queda. Puedes deshacerlo justo después.`,
+    debtDeleteAsk: (name) => `¿Eliminar ${name}?`,
+    debtDeleteRowInfo: (month) => `Su pago es una fila en Préstamos y deudas del presupuesto de ${month}. Los movimientos que ya registraste no se ven afectados.`,
+    debtDeleteBoth: 'Eliminar la deuda y su fila',
+    debtDeleteOnly: 'Eliminar solo la deuda',
+    debtDeletedBoth: (name) => `${name} y su fila del presupuesto se eliminaron.`,
+    debtDeletedKept: (name) => `${name} se eliminó. Su fila se queda en el presupuesto como una fila normal.`,
+    debtDeleted: (name) => `${name} se eliminó.`,
     debtSummaryTotal: 'Pendiente en total',
     debtSummaryMonthly: 'Al mes',
     debtSummaryFree: 'Sin deudas',
@@ -2566,6 +2593,7 @@ export const translations: Record<Lang, Translations> = {
     bimMonthsN: (n) => (n === 1 ? '1 mes' : `${n} meses`),
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
     bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
+    bimErrTooLarge: 'La tabla es demasiado grande para ser un presupuesto (como máximo 5000 filas, 200 columnas y 50 hojas).',
     bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx o CSV e inténtalo de nuevo.',
     bimErrEmpty: 'No se encontraron filas para importar.',
     bimErrNoAmounts: 'No se encontraron importes. Asegúrate de que una columna tenga números.',

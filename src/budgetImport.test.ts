@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
 import {
   readSpreadsheet, readText, analyse, monthOfHeader, classifyLabel, proposeFor, mergeInto, rowsByMonth,
-  SpreadsheetError, MAX_FILE_BYTES, type ImportIds,
+  SpreadsheetError, MAX_FILE_BYTES, MAX_ROWS, type ImportIds,
 } from './budgetImport';
 import type { MonthData } from './types';
 
@@ -61,6 +61,64 @@ describe('reading a spreadsheet', () => {
     const broken = new Uint8Array([0x50, 0x4b, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8]);
     expect(() => readSpreadsheet(broken.buffer, 'x.xlsx')).toThrow(/unreadable/);
     expect(() => readSpreadsheet(new TextEncoder().encode(' \n ;; \n').buffer as ArrayBuffer, 'x.csv')).toThrow(/empty/);
+  });
+});
+
+// ── Files built to be too big (Codex, 2026-10-03) ───────────────────────────
+
+const reasonOf = (f: () => unknown) => {
+  try { f(); } catch (e) { return e instanceof SpreadsheetError ? e.reason : 'other'; }
+  return 'none';
+};
+const zip = (files: Record<string, string>) => {
+  const u8 = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])));
+  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+};
+const WORKBOOK = '<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="B" sheetId="1" r:id="rId1"/></sheets></workbook>';
+const RELS = '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>';
+
+describe('limits', () => {
+  it('refuses a small file that would unpack to 20 MB — before unpacking it, and quickly', () => {
+    const bomb = zip({
+      'xl/workbook.xml': WORKBOOK, 'xl/_rels/workbook.xml.rels': RELS,
+      'xl/worksheets/sheet1.xml': `<worksheet>${' '.repeat(20 * 1024 * 1024)}</worksheet>`,
+    });
+    expect(bomb.byteLength).toBeLessThan(200 * 1024);
+    const started = performance.now();
+    expect(reasonOf(() => readSpreadsheet(bomb, 'x.xlsx'))).toBe('too-big');
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it('refuses a cell far out to the right instead of padding the row', () => {
+    const wide = zip({
+      'xl/workbook.xml': WORKBOOK, 'xl/_rels/workbook.xml.rels': RELS,
+      'xl/worksheets/sheet1.xml': '<worksheet><sheetData><row r="1"><c r="XFD1"><v>1</v></c></row></sheetData></worksheet>',
+    });
+    expect(reasonOf(() => readSpreadsheet(wide, 'x.xlsx'))).toBe('too-large-table');
+  });
+
+  it('refuses more rows than a budget has, in an .xlsx, a CSV and pasted cells', () => {
+    const many = Array.from({ length: MAX_ROWS + 1 }, (_, i) => `<row r="${i + 1}"><c r="B${i + 1}"><v>1</v></c></row>`).join('');
+    const tall = zip({ 'xl/workbook.xml': WORKBOOK, 'xl/_rels/workbook.xml.rels': RELS, 'xl/worksheets/sheet1.xml': `<worksheet><sheetData>${many}</sheetData></worksheet>` });
+    expect(reasonOf(() => readSpreadsheet(tall, 'x.xlsx'))).toBe('too-large-table');
+    const csv = Array.from({ length: MAX_ROWS + 1 }, (_, i) => `SYNT ${i};1`).join('\n');
+    expect(reasonOf(() => readSpreadsheet(new TextEncoder().encode(csv).buffer as ArrayBuffer, 'x.csv'))).toBe('too-large-table');
+    expect(reasonOf(() => readText(csv.replace(/;/g, '\t')))).toBe('too-large-table');
+  });
+
+  it('refuses more sheets than a budget has', () => {
+    const sheets = Array.from({ length: 51 }, (_, i) => i + 1);
+    const files: Record<string, string> = {
+      'xl/workbook.xml': `<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map(n => `<sheet name="S${n}" sheetId="${n}" r:id="rId${n}"/>`).join('')}</sheets></workbook>`,
+      'xl/_rels/workbook.xml.rels': `<Relationships>${sheets.map(n => `<Relationship Id="rId${n}" Target="worksheets/sheet${n}.xml"/>`).join('')}</Relationships>`,
+    };
+    for (const n of sheets) files[`xl/worksheets/sheet${n}.xml`] = '<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>X</t></is></c><c r="B1"><v>1</v></c></row></sheetData></worksheet>';
+    expect(reasonOf(() => readSpreadsheet(zip(files), 'x.xlsx'))).toBe('too-large-table');
+  });
+
+  it('still reads an ordinary budget at the edges of the limits', () => {
+    const rows = Array.from({ length: MAX_ROWS }, (_, i) => `SYNT ${i}\t${i}`).join('\n');
+    expect(readText(rows)).toHaveLength(MAX_ROWS);
   });
 });
 

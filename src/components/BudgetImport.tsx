@@ -77,11 +77,21 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
       start(readSpreadsheet(await file.arrayBuffer(), file.name));
     } catch (e) {
       const reason = e instanceof SpreadsheetError ? e.reason : 'unreadable';
-      setError(reason === 'too-big' ? t.bimErrTooBig : reason === 'empty' ? t.bimErrEmpty : t.bimErrUnreadable);
+      setError(failureText(reason));
     }
   };
+  const failureText = (reason: string) => (
+    reason === 'too-big' ? t.bimErrTooBig
+      : reason === 'too-large-table' ? t.bimErrTooLarge
+        : reason === 'empty' ? t.bimErrEmpty : t.bimErrUnreadable);
   const readPaste = () => {
-    const rows = readText(paste);
+    let rows;
+    try {
+      rows = readText(paste);
+    } catch (e) {
+      setError(failureText(e instanceof SpreadsheetError ? e.reason : 'unreadable'));
+      return;
+    }
     if (rows.length === 0) { setError(t.bimErrEmpty); return; }
     start([{ name: '', rows }]);
   };

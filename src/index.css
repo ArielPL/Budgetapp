@@ -3275,6 +3275,44 @@ a:focus-visible,
   margin-top: auto;
   padding-top: 12px;
 }
+/* Deleting asks on the card itself: what happens to the budget row is part
+   of the question, so it is answered here with the row named. */
+.debt-delete {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.debt-delete-ask { margin: 0; font-weight: 700; color: var(--text); }
+.debt-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.debt-delete-btn { border-color: var(--negative); }
+.debt-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--positive);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+  font-size: 0.86rem;
+  color: var(--text);
+}
+.debt-notice-close {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  min-width: 32px;
+  min-height: 32px;
+}
 
 .debt-extra { max-width: 220px; margin-bottom: 12px; }
 .debt-way-grid {

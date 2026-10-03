@@ -6,7 +6,7 @@ import { parseMoneyInput } from '../money';
 import { longDate, monthYear } from '../dateLabel';
 import { loadActuals, actualContribution } from '../actuals';
 import {
-  compareStrategies, estimatedBalance, inPlan, monthlyTotal, kindFromLabel, CSN_RATE_2026, DEBT_KINDS,
+  compareStrategies, estimatedBalance, inPlan, monthlyTotal, kindFromLabel, DEBT_KINDS,
   type Debt, type DebtKind, type Strategy, type YearMonth,
 } from '../debts';
 import type { DebtState } from '../debtStore';
@@ -39,7 +39,9 @@ interface Props {
   /** Store `next`; with `row`, also put that row in the month on screen.
    *  Resolves to whether it was stored. */
   onSave: (next: DebtState, row?: { id: string; label: string; amount: number }) => Promise<boolean>;
-  onDelete: (id: string) => void;
+  /** Remove a debt; with `removeRow`, its row in the month on screen too.
+   *  Resolves to what to tell the user, or null when nothing was stored. */
+  onDelete: (id: string, removeRow: boolean) => Promise<string | null>;
 }
 
 const todayIso = () => {
@@ -53,6 +55,15 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
   const [editing, setEditing] = useState<string | null>(null);
   /** The budget row whose details are being filled in. */
   const [completing, setCompleting] = useState<string | null>(null);
+  /** The debt whose card is asking how to delete it. */
+  const [deleting, setDeleting] = useState<string | null>(null);
+  /** What the last deletion did, until it is dismissed. */
+  const [notice, setNotice] = useState<string | null>(null);
+  const remove = async (id: string, removeRow: boolean) => {
+    setDeleting(null);
+    const said = await onDelete(id, removeRow);
+    if (said) setNotice(said);
+  };
   const [extraText, setExtraText] = useState(String(state.extraPerMonth || ''));
 
   // Plans start this calendar month, whatever month the app is showing: a
@@ -73,9 +84,14 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
   // Rows added in the budget, not here: they cost something each month but
   // the tab knows nothing else about them yet (Ariel, 2026-10-03).
   const linked = new Set(state.debts.map(d => d.budgetRowId).filter(Boolean));
-  const fromBudget = loanRows.filter(r => !linked.has(r.id) && r.amount > 0);
+  // Not a row the user turned back into an ordinary budget row by deleting
+  // only its debt: offering it again made Delete look as if it had failed.
+  const plain = new Set(state.plainRows);
+  const fromBudget = loanRows.filter(r => !linked.has(r.id) && !plain.has(r.id) && r.amount > 0);
   const when = (at: YearMonth | null) => (at ? monthYear(at, lang) : t.debtNotWithin);
   const pct = (n: number) => (lang === 'en' ? String(n) : String(n).replace('.', ','));
+  /** Whether a debt's payment is a row in the month on screen. */
+  const hasRow = (d: Debt) => d.budgetRowId !== undefined && loanRows.some(r => r.id === d.budgetRowId);
 
   // What Follow-up recorded under "Lån & skulder" in the month on screen.
   const paidThisMonth = useMemo(
@@ -125,6 +141,12 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
           )}
         </div>
         <p className="debt-intro">{t.debtIntro}</p>
+        {notice && (
+          <p className="debt-notice" role="status">
+            <span>{notice}</span>
+            <button className="debt-notice-close" aria-label={t.themeClose} onClick={() => setNotice(null)}>✕</button>
+          </p>
+        )}
 
         {inWay.length > 0 && (
           <div className="overview-highlights debt-summary">
@@ -177,7 +199,6 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
                       draft={{
                         name: label, kind,
                         monthlyPayment: !r.period || r.period === 'month' ? r.amount : undefined,
-                        ratePct: kind === 'csn' ? CSN_RATE_2026 : undefined,
                       }}
                       canAddRow={false}
                       rowMonth={monthYear({ year, month }, lang)}
@@ -261,16 +282,39 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
                     : growing ? t.debtGrowing
                       : payoff ? t.debtPaidOff(when(payoff.at)) : t.debtNotWithin}
                 </p>
-                <div className="debt-card-actions">
-                  <button className="custom-secondary-btn" aria-label={t.debtEdit(d.name)}
-                    onClick={() => { setEditing(d.id); setAdding(false); }}>
-                    {t.debtEditShort}
-                  </button>
-                  <button className="custom-secondary-btn" aria-label={t.debtDelete(d.name)}
-                    onClick={() => { if (window.confirm(t.debtDeleteConfirm(d.name))) onDelete(d.id); }}>
-                    {t.debtDeleteShort}
-                  </button>
-                </div>
+                {deleting === d.id ? (
+                  // Asked on the card, not in a system dialog: the choice has
+                  // three answers, and the row's fate is part of the question.
+                  <div className="debt-delete" role="group" aria-label={t.debtDeleteAsk(d.name)}>
+                    <p className="debt-delete-ask">{t.debtDeleteAsk(d.name)}</p>
+                    {hasRow(d) && <p className="debt-card-meta">{t.debtDeleteRowInfo(monthYear({ year, month }, lang))}</p>}
+                    <div className="debt-delete-actions">
+                      {hasRow(d) ? (
+                        <>
+                          <button className="custom-secondary-btn debt-delete-btn"
+                            onClick={() => void remove(d.id, true)}>{t.debtDeleteBoth}</button>
+                          <button className="custom-secondary-btn debt-delete-btn"
+                            onClick={() => void remove(d.id, false)}>{t.debtDeleteOnly}</button>
+                        </>
+                      ) : (
+                        <button className="custom-secondary-btn debt-delete-btn"
+                          onClick={() => void remove(d.id, false)}>{t.debtDeleteShort}</button>
+                      )}
+                      <button className="custom-secondary-btn" onClick={() => setDeleting(null)}>{t.cancel}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="debt-card-actions">
+                    <button className="custom-secondary-btn" aria-label={t.debtEdit(d.name)}
+                      onClick={() => { setEditing(d.id); setAdding(false); setDeleting(null); }}>
+                      {t.debtEditShort}
+                    </button>
+                    <button className="custom-secondary-btn" aria-label={t.debtDelete(d.name)}
+                      onClick={() => setDeleting(d.id)}>
+                      {t.debtDeleteShort}
+                    </button>
+                  </div>
+                )}
               </li>
             );
           })}
@@ -366,11 +410,11 @@ const DebtForm = ({ initial, draft, canAddRow, rowMonth, onCancel, onSubmit }: F
 
   const pickKind = (k: DebtKind) => {
     setKind(k);
-    // A CSN loan starts from what is true of every CSN loan this year.
-    if (k === 'csn') {
-      if (!rate) setRate(dec(CSN_RATE_2026));
-      if (!name) setName('CSN');
-    }
+    // A CSN loan gets its name, never a rate: the rate is set by the
+    // government every year, and one built into the app goes stale the next
+    // January without anyone noticing (Codex, 2026-10-03; Ariel's call). The
+    // user types the rate from their own statement.
+    if (k === 'csn' && !name) setName('CSN');
   };
 
   const submit = async () => {

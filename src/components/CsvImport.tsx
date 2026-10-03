@@ -81,6 +81,11 @@ interface Props {
 export interface CategoryPlan {
   changes: StorageChange[];
   apply: () => void;
+  /** The categories that are NEW to at least one month the writes reach,
+   *  each once — what an import may honestly say it created. An offer made
+   *  because the month on screen lacks a category is not this: the months the
+   *  file reaches may all have it already (Codex, 2026-10-03). */
+  created?: string[];
 }
 
 /** Prefix marking a choice that is an offer to create rather than a category
@@ -263,6 +268,21 @@ export const CsvImport = ({
   const resolve = (choice: string) =>
     (choice.startsWith(CREATE) ? choice.slice(CREATE.length) : choice);
 
+  /** The budget months the chosen rows go to — by the same rule the import
+   *  files them by — so the preview can say what the import will really do. */
+  const reachedMonths = [...groupByMonth(
+    ready.flatMap(g => g.rows.map(r => ({
+      id: '', date: r.date, text: '', amount: 0, direction: 'out' as const, categoryId: '',
+    }))),
+    periodStartDay, periodLocks,
+  ).months.values()].map(b => ({ year: b.year, month: b.month }));
+
+  /** How many categories the import would really add, counted the way the
+   *  receipt counts them. */
+  const willCreate = toCreate.length > 0
+    ? planStandardCategories(toCreate, reachedMonths).created?.length ?? 0
+    : 0;
+
   // True while an import waits for the database. The button is disabled
   // meanwhile: a second tap would import the same file twice.
   const [importing, setImporting] = useState(false);
@@ -355,7 +375,7 @@ export const CsvImport = ({
     const reached = [...months.values()].map(b => ({ year: b.year, month: b.month }));
     const newCategories = toCreate.length > 0
       ? planStandardCategories(toCreate, reached)
-      : { changes: [], apply: () => {} };
+      : { changes: [], apply: () => {}, created: [] };
     const rules = learnedRulesChange(appStorage, ready
       .filter(g => !g.auto)
       .map(g => ({ text: g.text, categoryId: resolve(g.choice) })));
@@ -389,7 +409,10 @@ export const CsvImport = ({
     // user cannot see.
     const parts = [t.csvDoneAdded(added)];
     if (touched.length) parts.push(touched.join(', '));
-    if (toCreate.length) parts.push(t.csvDoneCreated(toCreate.length));
+    // What was really added, not what was offered: a re-import into months
+    // that already have the category creates nothing and must not say so.
+    const created = newCategories.created?.length ?? 0;
+    if (created) parts.push(t.csvDoneCreated(created));
     if (duplicates) parts.push(t.csvDoneDuplicates(duplicates));
     if (unassigned) parts.push(t.csvDoneUnassigned(unassigned));
     onImported(parts.join(' · '), written);
@@ -563,7 +586,7 @@ export const CsvImport = ({
                 <button className="csv-primary" disabled={ready.length === 0 || importing} onClick={doImport}>
                   {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
                 </button>
-                {toCreate.length > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(toCreate.length)}</span>}
+                {willCreate > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(willCreate)}</span>}
                 {toUnsorted > 0 && <span className="csv-hint">{t.csvToUnsorted(toUnsorted)}</span>}
                 {toTransfer > 0 && <span className="csv-hint">{t.csvToTransfer(toTransfer)}</span>}
                 {unassigned > 0 && <span className="csv-hint">{t.csvUnassigned(unassigned)}</span>}

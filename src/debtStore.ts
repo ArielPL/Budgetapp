@@ -19,9 +19,13 @@ export interface DebtState {
   /** Paid on top of the debts' own payments, each month. */
   extraPerMonth: number;
   strategy: Strategy;
+  /** Rows under "Lån & skulder" the user said are ordinary budget rows: the
+   *  rows of debts removed with "remove only the debt". Never offered again
+   *  as a debt waiting for its details (Codex, 2026-10-03). */
+  plainRows: string[];
 }
 
-export const EMPTY_DEBTS: DebtState = { debts: [], extraPerMonth: 0, strategy: 'avalanche' };
+export const EMPTY_DEBTS: DebtState = { debts: [], extraPerMonth: 0, strategy: 'avalanche', plainRows: [] };
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -50,6 +54,7 @@ export function loadDebts(storage: StorageLike): DebtState {
       debts: Array.isArray(v.debts) ? v.debts.filter(isDebt) : [],
       extraPerMonth: isNum(v.extraPerMonth) && v.extraPerMonth >= 0 ? v.extraPerMonth : 0,
       strategy: v.strategy === 'snowball' ? 'snowball' : 'avalanche',
+      plainRows: Array.isArray(v.plainRows) ? v.plainRows.filter((x): x is string => typeof x === 'string') : [],
     };
   } catch {
     return EMPTY_DEBTS;

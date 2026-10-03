@@ -13,7 +13,7 @@ const DEBT = { id: 'd1', name: 'SYNT LÅN', kind: 'loan', balance: 1000, balance
 
 describe('loadDebts', () => {
   it('reads what debtsChange wrote', () => {
-    const state = { debts: [DEBT as never], extraPerMonth: 250, strategy: 'snowball' as const };
+    const state = { debts: [DEBT as never], extraPerMonth: 250, strategy: 'snowball' as const, plainRows: ['r9'] };
     expect(loadDebts(mem(debtsChange(state).value))).toEqual(state);
   });
   it('is empty for nothing, nonsense and the wrong shape', () => {
@@ -21,7 +21,11 @@ describe('loadDebts', () => {
   });
   it('drops a debt that does not hold up, keeps the rest', () => {
     const raw = JSON.stringify({ debts: [DEBT, { ...DEBT, id: 'x', balance: -5 }, { ...DEBT, id: 'y', kind: 'boat' }], extraPerMonth: -1, strategy: 'odd' });
-    expect(loadDebts(mem(raw))).toEqual({ debts: [DEBT], extraPerMonth: 0, strategy: 'avalanche' });
+    expect(loadDebts(mem(raw))).toEqual({ debts: [DEBT], extraPerMonth: 0, strategy: 'avalanche', plainRows: [] });
+  });
+  it('reads a stored state from before plain rows existed, and drops what is not a row id', () => {
+    expect(loadDebts(mem(JSON.stringify({ debts: [], extraPerMonth: 0, strategy: 'avalanche' }))).plainRows).toEqual([]);
+    expect(loadDebts(mem(JSON.stringify({ debts: [], plainRows: ['a', 3, null, 'b'] }))).plainRows).toEqual(['a', 'b']);
   });
   it('counts as data worth a backup only with a debt in it', () => {
     expect(debtsHaveContent(JSON.stringify({ debts: [DEBT] }))).toBe(true);

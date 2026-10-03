@@ -41,9 +41,23 @@ export interface Sheet {
  *  would only make the phone wait. */
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
+/** An .xlsx is a zip, and a small zip can unpack to hundreds of megabytes.
+ *  The sizes are checked from the zip's own directory BEFORE anything is
+ *  unpacked — fflate unpacks into a buffer of exactly the stated size, so a
+ *  file that lies about its size cannot grow past it either (Codex,
+ *  2026-10-03). A real budget's sheet is a few kilobytes. */
+export const MAX_PART_BYTES = 8 * 1024 * 1024;
+export const MAX_UNPACKED_BYTES = 25 * 1024 * 1024;
+
+/** The largest table a household budget plausibly is. Also stops a single
+ *  cell far out ("XFD1") from padding every row with thousands of blanks. */
+export const MAX_ROWS = 5000;
+export const MAX_COLUMNS = 200;
+export const MAX_SHEETS = 50;
+
 // ── Reading ────────────────────────────────────────────────────────────────
 
-export type SpreadsheetFailure = 'too-big' | 'unreadable' | 'empty';
+export type SpreadsheetFailure = 'too-big' | 'too-large-table' | 'unreadable' | 'empty';
 
 export class SpreadsheetError extends Error {
   readonly reason: SpreadsheetFailure;
@@ -60,6 +74,7 @@ export function readSpreadsheet(bytes: ArrayBuffer, fileName: string): Sheet[] {
   // A zip file starts "PK": an .xlsx whatever it is called.
   const isZip = u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b;
   const sheets = isZip ? readXlsx(u8) : [{ name: fileName, rows: readText(decodeCsv(bytes)) }];
+  if (sheets.length > MAX_SHEETS) throw new SpreadsheetError('too-large-table');
   const kept = sheets.filter(s => s.rows.some(r => r.some(c => c.trim() !== '')));
   if (kept.length === 0) throw new SpreadsheetError('empty');
   return kept;
@@ -70,7 +85,15 @@ export function readSpreadsheet(bytes: ArrayBuffer, fileName: string): Sheet[] {
 export function readText(text: string): Grid {
   const clean = text.replace(/^\ufeff/, '');
   const delimiter = clean.includes('\t') ? '\t' : detectDelimiter(clean);
-  return parseCsv(clean, delimiter).map(r => r.map(c => c.trim()));
+  return checkTable(parseCsv(clean, delimiter).map(r => r.map(c => c.trim())));
+}
+
+/** The grid, or a clear refusal when it is larger than any budget. */
+function checkTable(grid: Grid): Grid {
+  if (grid.length > MAX_ROWS || grid.some(r => r.length > MAX_COLUMNS)) {
+    throw new SpreadsheetError('too-large-table');
+  }
+  return grid;
 }
 
 const colIndex = (ref: string) => {
@@ -90,15 +113,30 @@ const numberCell = (raw: string) => {
 
 function readXlsx(u8: Uint8Array): Sheet[] {
   let files: Record<string, Uint8Array>;
+  let unpacked = 0;
+  let sheetFiles = 0;
+  let tooBig = false;
+  let tooMany = false;
   try {
     files = unzipSync(u8, {
       // Only the parts a budget lives in; images and the like are left packed.
-      filter: f => f.name === 'xl/workbook.xml' || f.name === 'xl/sharedStrings.xml'
-        || f.name === 'xl/_rels/workbook.xml.rels' || f.name.startsWith('xl/worksheets/sheet'),
+      // Sizes are judged here, from the zip's directory, before unpacking.
+      filter: f => {
+        const wanted = f.name === 'xl/workbook.xml' || f.name === 'xl/sharedStrings.xml'
+          || f.name === 'xl/_rels/workbook.xml.rels' || f.name.startsWith('xl/worksheets/sheet');
+        if (!wanted || tooBig || tooMany) return false;
+        unpacked += f.originalSize;
+        if (f.name.startsWith('xl/worksheets/sheet')) sheetFiles += 1;
+        if (sheetFiles > MAX_SHEETS) { tooMany = true; return false; }
+        if (f.originalSize > MAX_PART_BYTES || unpacked > MAX_UNPACKED_BYTES) { tooBig = true; return false; }
+        return true;
+      },
     });
   } catch {
     throw new SpreadsheetError('unreadable');
   }
+  if (tooBig) throw new SpreadsheetError('too-big');
+  if (tooMany) throw new SpreadsheetError('too-large-table');
   const xml = (name: string) => {
     const f = files[name];
     return f ? new DOMParser().parseFromString(strFromU8(f), 'application/xml') : null;
@@ -124,9 +162,11 @@ function readXlsx(u8: Uint8Array): Sheet[] {
     if (!doc) continue;
     const rows: Grid = [];
     for (const row of doc.getElementsByTagName('row')) {
+      if (rows.length >= MAX_ROWS) throw new SpreadsheetError('too-large-table');
       const cells: string[] = [];
       for (const c of row.getElementsByTagName('c')) {
         const i = colIndex(c.getAttribute('r') ?? '');
+        if (i >= MAX_COLUMNS) throw new SpreadsheetError('too-large-table');
         const type = c.getAttribute('t');
         const v = c.getElementsByTagName('v')[0]?.textContent ?? '';
         let text: string;

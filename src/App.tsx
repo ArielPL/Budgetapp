@@ -1177,17 +1177,20 @@ function App({ startupRepair = null }: AppProps) {
    */
   const planStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
     const changes: StorageChange[] = [];
+    const created = new Set<string>();
     let onScreen = false;
     for (const target of months.length > 0 ? months : [{ year, month }]) {
       const isCurrent = target.year === year && target.month === month;
       const from = isCurrent ? data : loadMonthData(target.year, target.month, lang);
       const merged = withStandardCategories(from, ids, lang);
       if (merged === from) continue;
+      for (const c of merged.expenses) if (!from.expenses.some(x => x.id === c.id)) created.add(c.id);
       changes.push({ key: storageKey(target.year, target.month), value: JSON.stringify(merged) });
       if (isCurrent) onScreen = true;
     }
     return {
       changes,
+      created: [...created],
       apply: () => { if (onScreen && stillShows(year, month)) setData(d => withStandardCategories(d, ids, lang)); },
     };
   };
@@ -1298,14 +1301,52 @@ function App({ startupRepair = null }: AppProps) {
     return true;
   };
 
-  /** Remove a debt, with a step back. Its budget row is budget history: it
-   *  stays, as a goal's row with money in it does. */
-  const deleteDebt = async (id: string) => {
-    const before = captureKeys(appStorage, [DEBTS_KEY]);
-    const next = { ...debtState, debts: debtState.debts.filter(d => d.id !== id) };
-    if (await commitDebts(next)) {
-      recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+  /**
+   * Remove a debt, with a step back, and say what became of its budget row
+   * (Codex, 2026-10-03). The user chose on the card:
+   *
+   *   · removeRow — the row goes too, from the month on screen, in the SAME
+   *     write as the debt;
+   *   · otherwise the row stays as an ordinary budget row, remembered as one
+   *     so the tab never offers it back as a debt to fill in — which made
+   *     Delete look as if it had not worked.
+   *
+   * Either way the row is remembered as plain, so a copy of it in another
+   * month is not offered back either. Recorded follow-up entries are never
+   * touched. One step back covers the debt and the month.
+   */
+  const deleteDebt = async (id: string, removeRow: boolean): Promise<string | null> => {
+    const debt = debtState.debts.find(d => d.id === id);
+    if (!debt) return null;
+    const atYear = year;
+    const atMonth = month;
+    const rowId = debt.budgetRowId;
+    const next: DebtState = {
+      ...debtState,
+      debts: debtState.debts.filter(d => d.id !== id),
+      plainRows: rowId && !debtState.plainRows.includes(rowId) ? [...debtState.plainRows, rowId] : debtState.plainRows,
+    };
+    const withoutRow = (d: MonthData): MonthData => ({
+      ...d,
+      expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
+    });
+    const rowHere = rowId !== undefined && data.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
+    const dropRow = removeRow && rowHere;
+    const monthKey = storageKey(atYear, atMonth);
+    const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
+    const changes: StorageChange[] = [debtsChange(next)];
+    if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(data)) });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return null;
     }
+    setDebtState(next);
+    if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
+    recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+    // What became of the row, said on the tab where it was asked — the brief
+    // header message is gone in two seconds and too narrow for it on a phone.
+    return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
   };
 
   /**

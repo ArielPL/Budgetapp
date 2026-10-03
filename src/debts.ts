@@ -51,9 +51,6 @@ export interface YearMonth {
 /** CSN's annuity is built to rise about 2 % a year at an unchanged rate. */
 export const CSN_YEARLY_RISE = 0.02;
 
-/** The 2026 CSN rate, offered when a CSN loan is added. Set by the
- *  government each year; the user can change it. */
-export const CSN_RATE_2026 = 2.135;
 
 /** Fifty years. A plan that is not done by then is reported as never done,
  *  not given a date nobody should plan a life around. */

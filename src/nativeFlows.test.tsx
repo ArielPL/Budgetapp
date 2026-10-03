@@ -702,14 +702,121 @@ describe('the Debt tab', () => {
     expect(document.querySelector('.debt-form')).not.toBeNull();
   });
 
-  it('removes a debt with a step back, and leaves its budget row', async () => {
-    await openDebts();
-    addSynthetic();
-    await waitFor(() => expect(storedDebts()).toHaveLength(1));
-    fireEvent.click(document.querySelector(`[aria-label="${sv.debtDelete('SYNT LÅN')}"]`)!);
-    await waitFor(() => expect(storedDebts()).toEqual([]));
-    await waitFor(() => expect(undoOnDisk().map(u => u.action)).toContain('deleteDebt'));
-    expect(lanRows()).toHaveLength(1);
+  describe('a CSN loan never gets a rate the app made up (Codex, 2026-10-03)', () => {
+    const fieldValue = (label: string) => {
+      const el = [...document.querySelectorAll('label')].find(l => l.textContent === label);
+      return (document.getElementById(el!.htmlFor) as HTMLInputElement).value;
+    };
+    it.each([[2026, 8], [2027, 1]])('in %i: choosing CSN fills in the name, never the rate', async (y, m) => {
+      vi.setSystemTime(new Date(y, m, 15));
+      await openDebts();
+      fireEvent.click(buttonWith(sv.debtAdd)!);
+      const kind = [...document.querySelectorAll('label')].find(l => l.textContent === sv.debtKindLabel)!;
+      fireEvent.change(document.getElementById(kind.htmlFor)!, { target: { value: 'csn' } });
+      expect(fieldValue(sv.debtName)).toBe('CSN');
+      expect(fieldValue(sv.debtRate)).toBe('');
+      expect(document.querySelector('.debt-form')?.textContent).toContain(sv.debtCsnHint);
+      expect(sv.debtCsnHint).not.toMatch(/\d,\d{3} %/);
+      // Typed by hand, it is kept as typed.
+      fill(sv.debtRate, '1,9');
+      expect(fieldValue(sv.debtRate)).toBe('1,9');
+    });
+    it('a CSN row from the budget is filled in without a rate', async () => {
+      b.disk.set('budget_2026_8', JSON.stringify({
+        ...JSON.parse(SEPT),
+        expenses: [...JSON.parse(SEPT).expenses, { id: 'lan', name: 'Lån & Krediter', icon: '🏦', color: '#f43f5e',
+          rows: [{ id: 'csnrow', label: 'Studielån (CSN)', amount: 900 }] }],
+      }));
+      const store = createCachedStorage(b);
+      await store.hydrate();
+      installStorage(store);
+      await openDebts();
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtCompleteFor('Studielån (CSN)')}"]`)!);
+      expect(fieldValue(sv.debtPayment)).toBe('900');
+      expect(fieldValue(sv.debtRate)).toBe('');
+    });
+  });
+
+  describe('deleting a debt (Codex, 2026-10-03)', () => {
+    const askDelete = async () => {
+      await openDebts();
+      addSynthetic();
+      await waitFor(() => expect(storedDebts()).toHaveLength(1));
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtDelete('SYNT LÅN')}"]`)!);
+    };
+    const pending = () => document.querySelectorAll('.debt-card-pending').length;
+    const plainRows = () => JSON.parse(b.disk.get('budget_debts')!).plainRows as string[];
+    const undoKeys = () => (JSON.parse(b.disk.get('budget_undo') ?? '[]') as { action: string; changes: { key: string }[] }[])
+      .find(u => u.action === 'deleteDebt')?.changes.map(c => c.key).sort();
+
+    it('asks on the card, naming the budget row, before anything changes', async () => {
+      await askDelete();
+      expect(document.querySelector('.debt-delete')?.textContent).toContain(sv.debtDeleteRowInfo('september 2026'));
+      expect(buttonWith(sv.debtDeleteBoth)).toBeTruthy();
+      expect(buttonWith(sv.debtDeleteOnly)).toBeTruthy();
+      expect(storedDebts()).toHaveLength(1);
+      fireEvent.click([...document.querySelectorAll('.debt-delete button')].find(x => x.textContent === sv.cancel)!);
+      expect(document.querySelector('.debt-delete')).toBeNull();
+      expect(storedDebts()).toHaveLength(1);
+    });
+
+    it('"only the debt": the row stays as an ordinary row and is not offered back as a debt — after a restart too', async () => {
+      await askDelete();
+      const [debt] = storedDebts();
+      fireEvent.click(buttonWith(sv.debtDeleteOnly)!);
+      await waitFor(() => expect(storedDebts()).toEqual([]));
+      expect(lanRows().map(r => r.id)).toEqual([debt.budgetRowId]);
+      expect(plainRows()).toEqual([debt.budgetRowId]);
+      await settle();
+      expect(pending()).toBe(0);
+      await waitFor(() => expect(document.querySelector('.debt-notice')?.textContent).toContain(sv.debtDeletedKept('SYNT LÅN')));
+      await waitFor(() => expect(undoKeys()).toEqual(['budget_debts']));
+      cleanup();
+      const store = createCachedStorage(b);
+      await store.hydrate();
+      installStorage(store);
+      await openDebts();
+      expect(pending()).toBe(0);
+    });
+
+    it('"the debt and its row": both go in one write, and one step back covers both', async () => {
+      await askDelete();
+      fireEvent.click(buttonWith(sv.debtDeleteBoth)!);
+      await waitFor(() => expect(storedDebts()).toEqual([]));
+      expect(lanRows()).toEqual([]);
+      await waitFor(() => expect(document.querySelector('.debt-notice')?.textContent).toContain(sv.debtDeletedBoth('SYNT LÅN')));
+      await waitFor(() => expect(undoKeys()).toEqual(['budget_2026_8', 'budget_debts']));
+    });
+
+    it('changes neither the debt nor the row, and says so, when the database refuses', async () => {
+      await askDelete();
+      const debts = b.disk.get('budget_debts');
+      const month = b.disk.get('budget_2026_8');
+      b.refuse.add('budget_2026_8');
+      fireEvent.click(buttonWith(sv.debtDeleteBoth)!);
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(b.disk.get('budget_debts')).toBe(debts);
+      expect(b.disk.get('budget_2026_8')).toBe(month);
+      expect(document.querySelector('.debt-card')?.textContent).toContain('SYNT LÅN');
+      expect(undoOnDisk().map(u => u.action)).not.toContain('deleteDebt');
+    });
+
+    it('a debt without a row asks only whether to delete it', async () => {
+      await openDebts();
+      fireEvent.click(buttonWith(sv.debtAdd)!);
+      fill(sv.debtName, 'SYNT UTAN RAD');
+      fill(sv.debtBalance, '1000');
+      fill(sv.debtRate, '5');
+      fill(sv.debtPayment, '100');
+      fireEvent.click(document.querySelector<HTMLInputElement>('.debt-form-check input')!);
+      fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(x => x.textContent === sv.debtCreate)!);
+      await waitFor(() => expect(storedDebts()).toHaveLength(1));
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtDelete('SYNT UTAN RAD')}"]`)!);
+      expect(buttonWith(sv.debtDeleteBoth)).toBeUndefined();
+      fireEvent.click([...document.querySelectorAll('.debt-delete button')].find(x => x.textContent === sv.debtDeleteShort)!);
+      await waitFor(() => expect(storedDebts()).toEqual([]));
+      await waitFor(() => expect(document.querySelector('.debt-notice')?.textContent).toContain(sv.debtDeleted('SYNT UTAN RAD')));
+    });
   });
 
   describe('a row added under "Lån & skulder" in the budget', () => {
@@ -843,5 +950,102 @@ describe('importing a budget', () => {
     const sept = month('budget_2026_8');
     expect(sept.expenses.find(c => c.id === 'fritid')!.rows.map(r => r.label)).toEqual(['SYNT HOBBY']);
     expect(JSON.stringify(sept)).not.toContain('SYNT BORT');
+  });
+});
+
+// ── The import's receipt says what was really created (Codex, 2026-10-03) ──
+
+describe('a CSV import’s receipt and preview', () => {
+  const toast = () => document.querySelector('.followup-toast')?.textContent ?? '';
+  const preview = () => document.querySelector('.csv-hint-new')?.textContent ?? '';
+  const MAT = { id: 'mat', name: 'Mat', icon: '🛒', color: '#4a4', rows: [] };
+  const withMat = (raw: string) => JSON.stringify({ ...JSON.parse(raw), expenses: [...JSON.parse(raw).expenses, MAT] });
+  /** Seed, then read the store again — the app reads its copy, not the disk. */
+  const seed = async (key: string, value: string) => {
+    b.disk.set(key, value);
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+  };
+
+  it('says one new category once, though it lands in two months', async () => {
+    await importSynthetic();
+    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(2)));
+    expect(toast().split(sv.csvDoneCreated(1)).length - 1).toBe(1);
+  });
+
+  it('says no new category, and nothing added, when the same file comes again', async () => {
+    await importSynthetic();
+    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(2)));
+    alerts = [];
+    // The month on screen now has Mat — so make it lack it again, as in the
+    // review: the offer comes from the screen, the months reached have it.
+    fireEvent.click(buttonWith(sv.followUpImport)!);
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('input[type=file][accept*=csv]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(input, { target: { files: [new File([CSV], 'synt.csv', { type: 'text/csv' })] } });
+    await waitFor(() => expect(document.querySelector('.csv-groups')).not.toBeNull());
+    fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
+    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(0)));
+    expect(toast()).not.toContain(sv.csvDoneCreated(1));
+    expect(toast()).toContain(sv.csvDoneDuplicates(2));
+  });
+
+  it('offers to create, but neither previews nor reports a category every month reached already has', async () => {
+    // August has Mat; September (on screen) does not; the file only reaches August.
+    await seed('budget_2026_7', withMat(SEPT));
+    const AUG_ONLY = 'Datum;Text;Belopp\n2026-08-28;ICA NARA SYNT;-120,00\n';
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(buttonWith(sv.followUpImport)).toBeTruthy());
+    fireEvent.click(buttonWith(sv.followUpImport)!);
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('input[type=file][accept*=csv]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(input, { target: { files: [new File([AUG_ONLY], 'aug.csv', { type: 'text/csv' })] } });
+    await waitFor(() => expect(document.querySelector('.csv-cols, .csv-groups')).not.toBeNull());
+    if (document.querySelector('.csv-cols')) fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
+    const place = await waitFor(() => {
+      const el = document.querySelector<HTMLSelectElement>('select.csv-group-cat');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(place, { target: { value: 'new:mat' } });
+    expect(preview()).toBe('');
+    fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
+    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(1)));
+    expect(toast()).not.toContain(sv.csvDoneCreated(1));
+    // And nothing was added to September, which the file did not reach.
+    expect(JSON.parse(b.disk.get('budget_2026_8')!).expenses.map((c: { id: string }) => c.id)).not.toContain('mat');
+  });
+
+  it('previews a category new to some of the months reached', async () => {
+    await seed('budget_2026_7', withMat(SEPT)); // August has it, September does not
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(buttonWith(sv.followUpImport)).toBeTruthy());
+    fireEvent.click(buttonWith(sv.followUpImport)!);
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('input[type=file][accept*=csv]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(input, { target: { files: [new File([CSV], 'synt.csv', { type: 'text/csv' })] } });
+    await waitFor(() => expect(document.querySelector('.csv-cols, .csv-groups')).not.toBeNull());
+    if (document.querySelector('.csv-cols')) fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
+    const place = await waitFor(() => {
+      const el = document.querySelector<HTMLSelectElement>('select.csv-group-cat');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(place, { target: { value: 'new:mat' } });
+    expect(preview()).toBe(sv.csvWillCreate(1));
+    fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
+    await waitFor(() => expect(toast()).toContain(sv.csvDoneCreated(1)));
   });
 });
