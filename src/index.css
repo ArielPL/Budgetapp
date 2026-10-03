@@ -5266,6 +5266,87 @@ a:focus-visible,
   .spending-card-btn-primary:hover { filter: brightness(1.08); }
 }
 
+/* The two lists: biggest purchases, then the small ones. Each row is the
+   place (with its date or count under it), the amount, and a quiet ✕. */
+.spending-card-section {
+  margin: 4px 0 10px;
+}
+
+/* In the theme's accent, so the two headings stand apart from the purchases
+   listed under them (Ariel, 2026-10-03). On a light card --accent-brand is too
+   pale to read (2.8:1 in light Ocean), so light modes take --chip-text: the
+   same hue, darker, ≥ 6.7:1 in every palette. Dark modes keep the brighter
+   accent, ≥ 5.3:1 in every palette, which stands further apart from --text. */
+.spending-card-subtitle {
+  margin: 10px 0 2px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-brand);
+}
+
+:root[data-theme="light"] .spending-card-subtitle {
+  color: var(--chip-text);
+}
+
+.spending-card-row .spending-card-name {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.spending-card-meta {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.spending-card-tag {
+  color: var(--negative);
+}
+
+.spending-card-hide {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.spending-card-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-brand);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.spending-card-limit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 4px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.spending-card-limit select {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.84rem;
+}
+
+@media (hover: hover) {
+  .spending-card-hide:hover { color: var(--text); background: var(--surface2); }
+}
+
 .triage {
   margin: 0 0 14px;
   border: 1px solid var(--border);
@@ -5668,6 +5749,14 @@ a:focus-visible,
   }
   .spending-card-detail-meta {
     text-align: left;
+  }
+  /* A thumb-sized ✕ and limit picker. */
+  .spending-card-hide {
+    width: 40px;
+    height: 40px;
+  }
+  .spending-card-limit select {
+    min-height: 40px;
   }
 }
 

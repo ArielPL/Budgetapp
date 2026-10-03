@@ -614,3 +614,43 @@ describe('Follow-up: "Create Mat" in the sorting list is one change too', () => 
     expect(await orphansAfterRestart()).toEqual([]);
   });
 });
+
+describe('the spending card: not counting a place', () => {
+  const SEED = {
+    budget_actuals_2026_8: JSON.stringify([
+      { id: 't1', date: '2026-09-03', text: 'SYNT TÅG', amount: 1245, direction: 'out', categoryId: 'fritid' },
+      { id: 't2', date: '2026-09-04', text: 'SYNT BOK', amount: 600, direction: 'out', categoryId: 'fritid' },
+    ]),
+  };
+  const openCard = async (waitFor_ = 'SYNT TÅG') => {
+    for (const [k, v] of Object.entries(SEED)) b.disk.set(k, v);
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(document.querySelector('.spending-card')?.textContent).toContain(waitFor_));
+  };
+  const hideTrain = () => fireEvent.click(document.querySelector(`[aria-label="${sv.spendingHide('SYNT TÅG')}"]`)!);
+  const cardText = () => document.querySelector('.spending-card')?.textContent ?? '';
+
+  it('stops counting it once stored, and still after a restart', async () => {
+    await openCard();
+    hideTrain();
+    await waitFor(() => expect(cardText()).not.toContain('SYNT TÅG'));
+    expect(cardText()).toContain(sv.spendingHiddenCount(1));
+    expect(JSON.parse(b.disk.get('budget_spending_hidden')!)).toEqual({ 'synt tag': 'SYNT TÅG' });
+    cleanup();
+    await openCard('SYNT BOK');
+    expect([...document.querySelectorAll('.spending-card-row')].map(r => r.textContent).join()).not.toContain('SYNT TÅG');
+  });
+
+  it('keeps counting it, and says so, when the database refuses', async () => {
+    await openCard();
+    b.refuse.add('budget_spending_hidden');
+    hideTrain();
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    expect([...document.querySelectorAll('.spending-card-row')].map(r => r.textContent).join()).toContain('SYNT TÅG');
+    expect(b.disk.has('budget_spending_hidden')).toBe(false);
+  });
+});

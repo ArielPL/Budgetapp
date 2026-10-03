@@ -8,11 +8,11 @@ import {
   actualContribution, groupEntriesByText, isBucketId,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
-import { commitStorageChangesOutcome } from '../storageWrite';
+import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { triageUnsorted, movableIds } from '../triage';
 import { FollowUpHelp } from './FollowUpHelp';
-import { loadCategoryRules } from '../categorise';
+import { loadCategoryRules, normalise } from '../categorise';
 import { standardExpenseCategory } from '../defaults';
 import { spanMonths, SPANS, isSpan, type Span } from '../span';
 import { rememberCategoryRule, learnedRulesChange } from '../categorise';
@@ -21,7 +21,10 @@ import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth, type CategoryPlan } from './CsvImport';
 import { SpendingCard } from './SpendingCard';
-import { spendingBreakdown } from '../spending';
+import { spendingBreakdown, purchaseHighlights, smallLimitChoices } from '../spending';
+import {
+  loadHiddenPlaces, hiddenPlacesChange, loadSmallLimit, SMALL_LIMIT_KEY, type HiddenPlaces,
+} from '../spendingPrefs';
 import type { ActualEntry, BudgetCategory } from '../types';
 import { isValidIsoDate } from '../date';
 
@@ -92,7 +95,7 @@ export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, planStandardCategories,
   periodStartDay, periodLocks, onLockPeriod, planNamedCategory, onRecordUndo, onOpenBudget,
 }: Props) => {
-  const { t, lang, money } = useLang();
+  const { t, lang, money, currency } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
   // single month this tab began as and stays the default: a span is for asking
   // "how much do I actually spend on food", which is a different question from
@@ -566,6 +569,38 @@ export const FollowUpTab = ({
     )));
   }, [entries, categories]);
 
+  // What the user told the card: places not to count, and where small ends.
+  const [hiddenPlaces, setHiddenPlaces] = useState<HiddenPlaces>(() => loadHiddenPlaces(appStorage));
+  const [smallLimit, setSmallLimit] = useState(() => loadSmallLimit(appStorage, currency));
+  // A currency switch moves the default with it, unless one was chosen.
+  useEffect(() => { setSmallLimit(loadSmallLimit(appStorage, currency)); }, [currency]);
+  const highlights = useMemo(
+    () => purchaseHighlights(entries, smallLimit, new Set(Object.keys(hiddenPlaces)), normalise),
+    [entries, smallLimit, hiddenPlaces],
+  );
+
+  /** Store a change to the card's choices, and show it only once stored. */
+  const saveCardChoice = async (change: StorageChange, apply: () => void) => {
+    const outcome = await commitStorageChangesOutcome(appStorage, [change]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return;
+    }
+    apply();
+  };
+  const hidePlace = (key: string, text: string) => {
+    const next = { ...hiddenPlaces, [key]: text };
+    void saveCardChoice(hiddenPlacesChange(next), () => setHiddenPlaces(next));
+  };
+  const unhidePlace = (key: string) => {
+    const next = { ...hiddenPlaces };
+    delete next[key];
+    void saveCardChoice(hiddenPlacesChange(next), () => setHiddenPlaces(next));
+  };
+  const chooseLimit = (limit: number) => {
+    void saveCardChoice({ key: SMALL_LIMIT_KEY, value: String(limit) }, () => setSmallLimit(limit));
+  };
+
   /** The days in view: from the first month's period to the last one's. */
   const viewRange = useMemo(() => ({
     from: periodRange(months[0].year, months[0].month, periodStartDay ?? 1, periodLocks).from,
@@ -957,7 +992,12 @@ export const FollowUpTab = ({
       )}
 
       {entries.length > 0 && (
-        <SpendingCard breakdown={breakdown} range={viewRange} nameOf={nameOf} onSort={openTriage} />
+        <SpendingCard
+          breakdown={breakdown} highlights={highlights} range={viewRange} nameOf={nameOf}
+          onSort={openTriage}
+          smallLimit={smallLimit} limitChoices={smallLimitChoices(currency)} onLimit={chooseLimit}
+          hidden={hiddenPlaces} onHide={hidePlace} onUnhide={unhidePlace}
+        />
       )}
 
       {/* ── The leftover pile, as a short list of decisions ──────────────

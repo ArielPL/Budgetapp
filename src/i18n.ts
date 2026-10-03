@@ -252,6 +252,23 @@ export interface Translations {
   spendingEvidenceHide: string;
   /** The top of a category's possible range, when some money is unsorted. */
   spendingUpTo: (high: string) => string;
+  /** The card's two lists: the biggest purchases, and the small ones summed. */
+  spendingBiggest: string;
+  spendingSmall: (total: string) => string;
+  spendingSmallSub: (n: number, limit: string) => string;
+  spendingTimes: (n: number) => string;
+  spendingFixedNote: string;
+  spendingNoPurchases: string;
+  spendingUnsortedTag: string;
+  spendingHide: (place: string) => string;
+  spendingHiddenCount: (n: number) => string;
+  spendingHiddenShow: string;
+  spendingHiddenHide: string;
+  spendingUnhide: (place: string) => string;
+  spendingUnhideShort: string;
+  spendingLimitLabel: string;
+  spendingShowMore: string;
+  spendingShowFewer: string;
   followUpEmptyBody: string;
   /** The first step, when no month in view has a budget and nothing is recorded. */
   followUpStartBody: string;
@@ -911,9 +928,25 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} är störst även om allt osorterat skulle höra till en annan kategori.`,
     spendingStatusInsufficient: 'Det osorterade är stort nog att ändra ordningen. Sortera det för ett säkert svar.',
     spendingSort: 'Sortera de här',
-    spendingEvidenceShow: 'Visa underlag',
-    spendingEvidenceHide: 'Dölj underlag',
+    spendingEvidenceShow: 'Visa per kategori',
+    spendingEvidenceHide: 'Dölj per kategori',
     spendingUpTo: (high) => `kan vara upp till ${high}`,
+    spendingBiggest: 'Största köpen',
+    spendingSmall: (total) => `Småköpen: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 köp under ${limit}` : `${n} köp under ${limit}`),
+    spendingTimes: (n) => (n === 1 ? '1 gång' : `${n} gånger`),
+    spendingFixedNote: 'Boende, prenumerationer, lån och sparande räknas inte här, eftersom de är fasta kostnader.',
+    spendingNoPurchases: 'Inga köp utöver de fasta kostnaderna.',
+    spendingUnsortedTag: 'osorterad',
+    spendingHide: (place) => `Räkna inte med ${place} här`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 ställe räknas inte här' : `${n} ställen räknas inte här`),
+    spendingHiddenShow: 'Visa',
+    spendingHiddenHide: 'Dölj',
+    spendingUnhide: (place) => `Räkna med ${place} igen`,
+    spendingUnhideShort: 'Räkna med igen',
+    spendingLimitLabel: 'Småköp är under',
+    spendingShowMore: 'Visa fler',
+    spendingShowFewer: 'Visa färre',
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
     followUpStartBody: 'Börja med att lägga in månadens budget. Sedan kan du föra in vad du betalat här, eller importera kontoutdraget från banken.',
     followUpStartBudget: 'Till Budget',
@@ -1568,9 +1601,25 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} is the biggest even if everything unsorted belonged to another category.`,
     spendingStatusInsufficient: 'What is unsorted is enough to change the order. Sort it for a sure answer.',
     spendingSort: 'Sort these',
-    spendingEvidenceShow: 'Show details',
-    spendingEvidenceHide: 'Hide details',
+    spendingEvidenceShow: 'Show by category',
+    spendingEvidenceHide: 'Hide by category',
     spendingUpTo: (high) => `could be up to ${high}`,
+    spendingBiggest: 'Biggest purchases',
+    spendingSmall: (total) => `Small purchases: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 purchase under ${limit}` : `${n} purchases under ${limit}`),
+    spendingTimes: (n) => (n === 1 ? 'once' : `${n} times`),
+    spendingFixedNote: 'Housing, subscriptions, loans and savings are not counted here, as they are fixed costs.',
+    spendingNoPurchases: 'No purchases besides the fixed costs.',
+    spendingUnsortedTag: 'unsorted',
+    spendingHide: (place) => `Don't count ${place} here`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 place is not counted here' : `${n} places are not counted here`),
+    spendingHiddenShow: 'Show',
+    spendingHiddenHide: 'Hide',
+    spendingUnhide: (place) => `Count ${place} again`,
+    spendingUnhideShort: 'Count again',
+    spendingLimitLabel: 'Small means under',
+    spendingShowMore: 'Show more',
+    spendingShowFewer: 'Show fewer',
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
     followUpStartBody: 'Start by entering this month\'s budget. Then you can add what you paid here, or import your bank statement.',
     followUpStartBudget: 'Go to Budget',
@@ -2225,9 +2274,25 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} es la mayor aunque todo lo no clasificado perteneciera a otra categoría.`,
     spendingStatusInsufficient: 'Lo no clasificado basta para cambiar el orden. Clasifícalo para una respuesta segura.',
     spendingSort: 'Clasificar estos',
-    spendingEvidenceShow: 'Ver detalles',
-    spendingEvidenceHide: 'Ocultar detalles',
+    spendingEvidenceShow: 'Ver por categoría',
+    spendingEvidenceHide: 'Ocultar por categoría',
     spendingUpTo: (high) => `podría llegar a ${high}`,
+    spendingBiggest: 'Las compras más grandes',
+    spendingSmall: (total) => `Compras pequeñas: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 compra de menos de ${limit}` : `${n} compras de menos de ${limit}`),
+    spendingTimes: (n) => (n === 1 ? '1 vez' : `${n} veces`),
+    spendingFixedNote: 'Vivienda, suscripciones, préstamos y ahorro no cuentan aquí, porque son gastos fijos.',
+    spendingNoPurchases: 'Ninguna compra aparte de los gastos fijos.',
+    spendingUnsortedTag: 'sin clasificar',
+    spendingHide: (place) => `No contar ${place} aquí`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 lugar no cuenta aquí' : `${n} lugares no cuentan aquí`),
+    spendingHiddenShow: 'Mostrar',
+    spendingHiddenHide: 'Ocultar',
+    spendingUnhide: (place) => `Volver a contar ${place}`,
+    spendingUnhideShort: 'Volver a contar',
+    spendingLimitLabel: 'Pequeña es menos de',
+    spendingShowMore: 'Ver más',
+    spendingShowFewer: 'Ver menos',
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
     followUpStartBody: 'Empieza por introducir el presupuesto del mes. Después puedes añadir aquí lo que pagaste, o importar el extracto del banco.',
     followUpStartBudget: 'Ir a Presupuesto',

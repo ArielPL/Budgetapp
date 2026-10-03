@@ -63,6 +63,7 @@ export const CHANGELOG: Release[] = [
         'Uppföljning och Anpassad visar en ändring, eller erbjuder att ångra den, först när den är sparad. Två snabba ändringar efter varandra går inte längre förlorade',
         'Välkomstrutan är en ruta även på mobilen, och Nästa står still mellan sidorna',
         '"+ Ny kategori…" i Uppföljning, och förslag under Sortera som skapar en kategori, sparar kategorin, de flyttade posterna och det appen lärt sig på en gång. Förut kunde posterna sparas men inte kategorin, och efter en omstart pekade de på en kategori som inte fanns. Går det inte att spara ändras ingenting, och namnet du skrev står kvar',
+        '"Vad gick pengarna till?" visar nu dina största köp och dina småköp, oavsett kategori. Småköpen summeras per ställe, till exempel "Kafé 14 gånger". Hyra, prenumerationer, lån och sparande räknas inte, eftersom de är fasta kostnader. Med ✕ slutar ett ställe räknas här, och det går att ångra. Gränsen för småköp går att ändra. Kategorierna finns kvar under "Visa per kategori"',
       ],
       en: [
         'The top of Custom says which kind of panel it is: linked to your regular budget, or separate so that what you type does not affect it',
@@ -103,6 +104,7 @@ export const CHANGELOG: Release[] = [
         'Follow-up and Custom show a change, or offer to undo it, only once it is saved. Two quick changes in a row are no longer lost',
         'The welcome box is a box on phones too, and Next stays put between pages',
         '"+ New category…" in Follow-up, and suggestions under "Sort them" that create a category, store the category, the moved entries and what the app learned in one go. The entries used to be stored without the category, and after a restart they pointed at a category that did not exist. If it cannot be saved nothing changes, and the name you typed stays',
+        '"Where did the money go?" now shows your biggest purchases and your small ones, whatever their category. Small purchases are added up per place, such as "Café 14 times". Rent, subscriptions, loans and savings are not counted, as they are fixed costs. ✕ stops a place being counted here, and it can be undone. The limit for small purchases can be changed. The categories are still under "Show by category"',
       ],
       es: [
         'Arriba en Personalizado se indica qué tipo de panel es: vinculado a tu presupuesto normal, o aparte para que lo que escribas no lo afecte',
@@ -143,6 +145,7 @@ export const CHANGELOG: Release[] = [
         'Seguimiento y Personalizado muestran un cambio, u ofrecen deshacerlo, solo cuando está guardado. Dos cambios rápidos seguidos ya no se pierden',
         'La bienvenida es una tarjeta también en el móvil, y Siguiente no se mueve entre páginas',
         '"+ Categoría nueva…" en Seguimiento, y las sugerencias de Clasificar que crean una categoría, guardan la categoría, los movimientos trasladados y lo que la app aprendió de una sola vez. Antes los movimientos podían guardarse sin la categoría, y tras reiniciar apuntaban a una categoría que no existía. Si no se puede guardar no cambia nada, y el nombre que escribiste se queda',
+        '"¿A dónde fue el dinero?" muestra ahora tus compras más grandes y las pequeñas, sea cual sea su categoría. Las pequeñas se suman por lugar, por ejemplo "Café 14 veces". El alquiler, las suscripciones, los préstamos y el ahorro no cuentan, porque son gastos fijos. Con ✕ un lugar deja de contar aquí, y se puede deshacer. El límite de compra pequeña se puede cambiar. Las categorías siguen en "Ver por categoría"',
       ],
     },
   },
