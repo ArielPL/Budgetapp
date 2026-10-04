@@ -1241,6 +1241,23 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     expect(document.querySelector('.wallet-expenses')).toBeNull();
   });
 
+  it('opens from the menu in the regular layout, and "My budget" goes back', async () => {
+    await openApp();
+    openMenu();
+    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    // No wallets yet: straight to a new one.
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain(sv.wNew));
+    fill(sv.wName, 'SYNT RESA');
+    fill(sv.wTotal, '10000');
+    fireEvent.click(buttonWith(sv.wCreate)!);
+    await waitFor(() => expect(document.querySelector('.wallet-hero')).not.toBeNull());
+    expect(stored().map(w => w.name)).toEqual(['SYNT RESA']);
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    fireEvent.click([...document.querySelectorAll('.wallet-switch-row')].find(x => x.textContent?.includes(sv.wMyBudget))!);
+    expect(document.querySelector('.wallet-switch')).toBeNull();
+    expect(b.disk.get('budget_layout')).toBe('classic');
+  });
+
   it('deleting the wallet asks first, and leaves a step back', async () => {
     await openCustom();
     await createTrip();

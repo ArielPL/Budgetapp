@@ -24,6 +24,7 @@ const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: 
 // should have to download.
 const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
+const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ default: m.WalletArea })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
@@ -136,6 +137,8 @@ function App({ startupRepair = null }: AppProps) {
   const [themeMode, setThemeMode] = useState<Mode>(initialTheme.mode);
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
+  /** The wallets as a screen of their own, opened from the menu in any layout. */
+  const [walletsScreen, setWalletsScreen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
     return isCurrency(stored) ? stored : deviceCurrency();
@@ -810,6 +813,7 @@ function App({ startupRepair = null }: AppProps) {
   // jump instantly instead of smooth-scrolling when the user asked for less motion.
   const changeTab = useCallback((tab: ActiveTab) => {
     setActiveTab(tab);
+    setWalletsScreen(false);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
@@ -1926,6 +1930,11 @@ function App({ startupRepair = null }: AppProps) {
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
 
+                  {/* Wallets — a trip's own budget, reachable from every layout */}
+                  <button className="utils-action" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
+                    ✈️ {t.wMenu}
+                  </button>
+
                   {/* Theme — opens the Theme Builder panel */}
                   <button
                     className="utils-action"
@@ -2200,7 +2209,15 @@ function App({ startupRepair = null }: AppProps) {
             onDismiss={dismissBackupReminder}
           />
         )}
-        {layout === 'classic' && (
+        {walletsScreen && (
+          <div className="tab-enter">
+            <Suspense fallback={lazyFallback}>
+              <WalletArea budget={null} budgetTag={null} onRecordUndo={recordUndo}
+                onLeave={() => setWalletsScreen(false)} />
+            </Suspense>
+          </div>
+        )}
+        {!walletsScreen && layout === 'classic' && (
           /* ── Classic: tabbed. key={activeTab} remounts on every switch so the
                lightweight CSS entrance animation (.tab-enter) replays each time. */
           <div className="tab-enter" key={activeTab}>
@@ -2213,7 +2230,7 @@ function App({ startupRepair = null }: AppProps) {
           </div>
         )}
 
-        {layout === 'combined' && (
+        {!walletsScreen && layout === 'combined' && (
           /* ── Combined: tab bar hidden (see header), all four views stacked on
                one scrollable page. Same components/data/handlers as classic.
                On phones the page runs ~10 000px tall, so a sticky mini-nav
@@ -2281,7 +2298,7 @@ function App({ startupRepair = null }: AppProps) {
           </div>
         )}
 
-        {layout === 'custom' && (
+        {!walletsScreen && layout === 'custom' && (
           /* ── Custom v3: generic build-from-scratch block budget with its OWN
                separate data (never touches the shared Classic/Combined budget).
                Its first tab replaces Classic's Budget; the others are the same

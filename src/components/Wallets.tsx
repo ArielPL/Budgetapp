@@ -1,9 +1,15 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useLang } from '../i18n';
 import { parseMoneyInput } from '../money';
 import { generateId } from '../defaults';
 import { shortDay } from '../dateLabel';
-import { newTrip, walletSummary, type Wallet, type WalletExpense, type WalletPot } from '../wallets';
+import { appStorage } from '../storage';
+import { commitStorageChangesOutcome } from '../storageWrite';
+import { captureKeys, type UndoEntry } from '../undo';
+import {
+  newTrip, walletSummary, loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY,
+  type Wallet, type WalletExpense, type WalletPot,
+} from '../wallets';
 
 // ── Wallets: the panel switcher, a new trip, and the wallet itself ─────────
 //
@@ -77,6 +83,88 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
         </div>
       )}
     </div>
+  );
+};
+
+// ── The area: switcher plus whatever is open ───────────────────────────────
+//
+// Used twice: at the top of Custom, where "My budget" is the Custom panel, and
+// as a screen of its own from the menu (any layout), where "My budget" goes
+// back to the budget (`onLeave`).
+
+export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
+  /** Shown when no wallet is open; null on the menu's own screen. */
+  budget: ReactNode | null;
+  budgetTag: string | null;
+  /** Back to the budget, for the menu's own screen. */
+  onLeave?: () => void;
+  onRecordUndo: (entry: UndoEntry) => void;
+}) => {
+  const { t } = useLang();
+  const [wallets, setWallets] = useState<Wallet[]>(() => loadWallets(appStorage));
+  const [openId, setOpenId] = useState<string | null>(() => {
+    const all = loadWallets(appStorage);
+    const v = appStorage.getItem(OPEN_PANEL_KEY);
+    if (v && all.some(w => w.id === v)) return v;
+    // From the menu there is no budget to show: open a wallet if there is one.
+    return budget === null ? (all.find(w => !w.archived) ?? all[0])?.id ?? null : null;
+  });
+  const [creating, setCreating] = useState(() => budget === null && loadWallets(appStorage).length === 0);
+
+  const open = (id: string | null) => {
+    setCreating(false);
+    if (id === null && onLeave) { onLeave(); return; }
+    setOpenId(id);
+    // Where the panel opens next time: a convenience, so a failure is not news.
+    try {
+      if (id) appStorage.setItem(OPEN_PANEL_KEY, id); else appStorage.removeItem(OPEN_PANEL_KEY);
+    } catch { /* opens on the budget next time */ }
+  };
+  /** Store every wallet as `next`; the screen changes only once that is
+   *  stored. `undo` records the step back for a removal. */
+  const save = async (next: Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense'): Promise<boolean> => {
+    const before = undo ? captureKeys(appStorage, [WALLETS_KEY]) : null;
+    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange(next)]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    setWallets(next);
+    if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, changes: before });
+    return true;
+  };
+  const current = wallets.find(w => w.id === openId) ?? null;
+
+  let content: ReactNode;
+  if (creating) {
+    content = (
+      <NewWallet
+        onCancel={() => { setCreating(false); if (!current && budget === null) onLeave?.(); }}
+        onCreate={async w => {
+          if (!(await save([...wallets, w]))) return false;
+          open(w.id);
+          return true;
+        }} />
+    );
+  } else if (current) {
+    content = (
+      <WalletView key={current.id} wallet={current}
+        onSave={(next, removedExpense) =>
+          save(wallets.map(w => (w.id === next.id ? next : w)), removedExpense ? 'deleteWalletExpense' : undefined)}
+        onDelete={async () => {
+          if (!window.confirm(t.wDeleteConfirm(current.name))) return;
+          if (await save(wallets.filter(w => w.id !== current.id), 'deleteWallet')) open(null);
+        }} />
+    );
+  } else {
+    content = budget;
+  }
+  return (
+    <>
+      <PanelSwitcher wallets={wallets} openId={creating ? null : openId} budgetTag={budgetTag}
+        onOpen={open} onNew={() => setCreating(true)} />
+      {content}
+    </>
   );
 };
 

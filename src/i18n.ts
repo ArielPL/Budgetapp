@@ -992,6 +992,7 @@ export interface Translations {
   qNothing: string;
   // Wallets (in Custom): a separate budget for one thing, like a trip
   wPanels: string;
+  wMenu: string;
   wMyBudget: string;
   wTagLinked: string;
   wTagStandalone: string;
@@ -1855,6 +1856,7 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Behöver minst ${need} månader med importerade poster. Du har ${have}.`,
     qNothing: 'Inga importerade poster under perioden.',
     wPanels: 'Mina paneler',
+    wMenu: 'Plånböcker',
     wMyBudget: 'Min budget',
     wTagLinked: 'Kopplad',
     wTagStandalone: 'Fristående',
@@ -2727,6 +2729,7 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Needs at least ${need} months with imported entries. You have ${have}.`,
     qNothing: 'Nothing imported in this period.',
     wPanels: 'My panels',
+    wMenu: 'Wallets',
     wMyBudget: 'My budget',
     wTagLinked: 'Linked',
     wTagStandalone: 'Separate',
@@ -3599,6 +3602,7 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Hacen falta al menos ${need} meses con movimientos importados. Tienes ${have}.`,
     qNothing: 'Nada importado en este periodo.',
     wPanels: 'Mis paneles',
+    wMenu: 'Carteras',
     wMyBudget: 'Mi presupuesto',
     wTagLinked: 'Vinculado',
     wTagStandalone: 'Independiente',
