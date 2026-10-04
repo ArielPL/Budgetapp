@@ -1007,6 +1007,14 @@ export interface Translations {
   wTo: string;
   wDatesOptional: string;
   wTripNote: string;
+  wStartFrom: string;
+  wKindBlank: string;
+  wKindTrip: string;
+  wBlankNote: string;
+  wNamePlaceholderBlank: string;
+  wNoPart: string;
+  wNoPots: string;
+  wUnassigned: string;
   wCreate: string;
   wPotTravel: string;
   wPotStay: string;
@@ -1863,14 +1871,22 @@ export const translations: Record<Lang, Translations> = {
     wTagWallet: 'Plånbok',
     wTagSeparate: 'Fristående plånbok',
     wNew: 'Ny plånbok',
-    wNewLead: 'En resa med egna belopp. Påverkar inte din budget.',
+    wNewLead: 'Egna belopp. Påverkar inte din budget.',
     wName: 'Namn',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
     wFrom: 'Från',
     wTo: 'Till',
     wDatesOptional: 'Datum (valfritt)',
-    wTripNote: 'Resan får delarna Resor, Boende, Mat och Upplevelser. Allt går att ändra.',
+    wTripNote: 'Resan får delarna Resor, Boende, Mat och Upplevelser, med totalen fördelad på dem. Allt går att ändra.',
+    wStartFrom: 'Börja från',
+    wKindBlank: 'Tom',
+    wKindTrip: 'Resa',
+    wBlankNote: 'En tom plånbok. Du lägger själv till delar, till exempel Mat eller Material, och utgifter.',
+    wNamePlaceholderBlank: 'Renoveringen',
+    wNoPart: 'Ingen del',
+    wNoPots: 'Inga delar än. Vill du dela upp budgeten, till exempel i Mat och Resor, lägger du till dem här.',
+    wUnassigned: 'Utan del',
     wCreate: 'Skapa plånbok',
     wPotTravel: 'Resor',
     wPotStay: 'Boende',
@@ -2736,14 +2752,22 @@ export const translations: Record<Lang, Translations> = {
     wTagWallet: 'Wallet',
     wTagSeparate: 'Separate wallet',
     wNew: 'New wallet',
-    wNewLead: 'A trip with its own amounts. Does not affect your budget.',
+    wNewLead: 'Its own amounts. Does not affect your budget.',
     wName: 'Name',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
     wFrom: 'From',
     wTo: 'To',
     wDatesOptional: 'Dates (optional)',
-    wTripNote: 'The trip gets the parts Travel, Stay, Food and Experiences. Everything can be changed.',
+    wTripNote: 'The trip gets the parts Travel, Stay, Food and Experiences, with the total shared over them. Everything can be changed.',
+    wStartFrom: 'Start from',
+    wKindBlank: 'Empty',
+    wKindTrip: 'Trip',
+    wBlankNote: 'An empty wallet. You add the parts yourself, such as Food or Materials, and the expenses.',
+    wNamePlaceholderBlank: 'The renovation',
+    wNoPart: 'No part',
+    wNoPots: 'No parts yet. To split the budget, for example into Food and Travel, add them here.',
+    wUnassigned: 'No part',
     wCreate: 'Create wallet',
     wPotTravel: 'Travel',
     wPotStay: 'Stay',
@@ -3609,14 +3633,22 @@ export const translations: Record<Lang, Translations> = {
     wTagWallet: 'Cartera',
     wTagSeparate: 'Cartera independiente',
     wNew: 'Nueva cartera',
-    wNewLead: 'Un viaje con sus propios importes. No afecta a tu presupuesto.',
+    wNewLead: 'Sus propios importes. No afecta a tu presupuesto.',
     wName: 'Nombre',
     wNamePlaceholder: 'Japón 2027',
     wTotal: 'Presupuesto total',
     wFrom: 'Desde',
     wTo: 'Hasta',
     wDatesOptional: 'Fechas (opcional)',
-    wTripNote: 'El viaje tiene las partes Transporte, Alojamiento, Comida y Experiencias. Todo se puede cambiar.',
+    wTripNote: 'El viaje tiene las partes Transporte, Alojamiento, Comida y Experiencias, con el total repartido entre ellas. Todo se puede cambiar.',
+    wStartFrom: 'Empezar con',
+    wKindBlank: 'Vacía',
+    wKindTrip: 'Viaje',
+    wBlankNote: 'Una cartera vacía. Tú añades las partes, como Comida o Materiales, y los gastos.',
+    wNamePlaceholderBlank: 'La reforma',
+    wNoPart: 'Sin parte',
+    wNoPots: 'Aún no hay partes. Para dividir el presupuesto, por ejemplo en Comida y Transporte, añádelas aquí.',
+    wUnassigned: 'Sin parte',
     wCreate: 'Crear cartera',
     wPotTravel: 'Transporte',
     wPotStay: 'Alojamiento',

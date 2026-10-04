@@ -80,7 +80,7 @@ export const CHANGELOG: Release[] = [
         'Når du ett sparmål eller betalar av en skuld säger appen det, och i mobilappen vibrerar telefonen kort',
         'Mobilappen startar med en ljus skärm, som appen själv',
         'Nytt i Uppföljning: Fråga om din ekonomi. Sex färdiga frågor, till exempel "Vilka abonnemang betalar jag?", "Höll jag budgeten förra månaden?" och "När når jag mitt sparmål?". Appen räknar fram svaret själv på enheten, och inget skickas iväg. Varje svar säger vad det bygger på: hur många månader och hur mycket som är osorterat. Finns det för lite underlag säger den det i stället för att gissa',
-        'Plånböcker för resor: överst i Anpassad finns nu en väljare med din budget och dina plånböcker. En plånbok har en egen total, delarna Resor, Boende, Mat och Upplevelser, och utgifterna du skriver in under resan. Den visar vad som är kvar, per del och totalt, och under resan hur mycket du kan lägga per dag. Plånboken är helt separat och räknas inte i budgeten. Plånböckerna nås också från menyn ⚙️, oavsett layout',
+        'Plånböcker: en egen budget för något särskilt, till exempel en resa eller en renovering. Överst i Anpassad, och i menyn ⚙️ oavsett layout, finns en väljare med din budget och dina plånböcker. En ny plånbok börjar tom: du ger den ett namn och en total, och lägger själv till delar och utgifter. Mallen Resa börjar med delarna Resor, Boende, Mat och Upplevelser. Plånboken visar vad som är kvar, per del och totalt, och under en resa hur mycket du kan lägga per dag. Den är helt separat och räknas inte i budgeten',
       ],
       en: [
         'The top of Custom says which kind of panel it is: linked to your regular budget, or separate so that what you type does not affect it',
@@ -138,7 +138,7 @@ export const CHANGELOG: Release[] = [
         'Reach a savings goal or pay off a debt and the app says so, and in the phone app the phone gives a short buzz',
         'The phone app opens on a light screen, like the app itself',
         'New in Follow-up: Ask about your money. Six ready-made questions, such as "Which subscriptions do I pay?", "Did I keep to my budget last month?" and "When will I reach my savings goal?". The app works out the answer itself on your device, and nothing is sent anywhere. Every answer says what it is based on: how many months, and how much is unsorted. If there is too little to go on, it says so instead of guessing',
-        'Wallets for trips: the top of Custom now has a switcher with your budget and your wallets. A wallet has its own total, the parts Travel, Stay, Food and Experiences, and the expenses you type in during the trip. It shows what is left, per part and in total, and during the trip how much you can spend per day. A wallet is completely separate and is not counted in the budget. Wallets can also be opened from the ⚙️ menu, whatever the layout',
+        'Wallets: a budget of its own for something in particular, such as a trip or a renovation. At the top of Custom, and in the ⚙️ menu whatever the layout, a switcher lists your budget and your wallets. A new wallet starts empty: you give it a name and a total, and add its parts and expenses yourself. The Trip template starts with the parts Travel, Stay, Food and Experiences. A wallet shows what is left, per part and in total, and during a trip how much you can spend per day. It is completely separate and is not counted in the budget',
       ],
       es: [
         'Arriba en Personalizado se indica qué tipo de panel es: vinculado a tu presupuesto normal, o aparte para que lo que escribas no lo afecte',
@@ -196,7 +196,7 @@ export const CHANGELOG: Release[] = [
         'Si alcanzas una meta de ahorro o terminas de pagar una deuda, la app te lo dice, y en la app del móvil el teléfono vibra brevemente',
         'La app del móvil se abre con una pantalla clara, como la propia app',
         'Nuevo en Seguimiento: Pregunta sobre tu economía. Seis preguntas preparadas, como "¿Qué suscripciones pago?", "¿Cumplí el presupuesto el mes pasado?" y "¿Cuándo alcanzaré mi meta de ahorro?". La app calcula la respuesta por sí misma en tu dispositivo, y no se envía nada. Cada respuesta dice en qué se basa: cuántos meses y cuánto está sin ordenar. Si hay demasiado poco, lo dice en vez de adivinar',
-        'Carteras para viajes: arriba en Personalizado hay ahora un selector con tu presupuesto y tus carteras. Una cartera tiene su propio total, las partes Transporte, Alojamiento, Comida y Experiencias, y los gastos que anotas durante el viaje. Muestra lo que queda, por parte y en total, y durante el viaje cuánto puedes gastar al día. La cartera es totalmente independiente y no cuenta en el presupuesto. Las carteras también se abren desde el menú ⚙️, sea cual sea el diseño',
+        'Carteras: un presupuesto propio para algo concreto, como un viaje o una reforma. Arriba en Personalizado, y en el menú ⚙️ con cualquier diseño, un selector muestra tu presupuesto y tus carteras. Una cartera nueva empieza vacía: le das un nombre y un total, y añades tú las partes y los gastos. La plantilla Viaje empieza con las partes Transporte, Alojamiento, Comida y Experiencias. La cartera muestra lo que queda, por parte y en total, y durante un viaje cuánto puedes gastar al día. Es totalmente independiente y no cuenta en el presupuesto',
       ],
     },
   },

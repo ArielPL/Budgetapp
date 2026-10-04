@@ -1198,6 +1198,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   const createTrip = async () => {
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
     fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fireEvent.click(buttonWith(sv.wKindTrip)!);
     fill(sv.wName, 'SYNT RESA');
     fill(sv.wTotal, '10000');
     fireEvent.click(buttonWith(sv.wCreate)!);
@@ -1221,6 +1222,38 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     expect(document.querySelector('.wallet-hero-value')?.textContent?.replace(/\s/g, ' ')).toBe('7 500 kr');
     expect(b.disk.get('budget_2026_8')).toBe(month);
     expect(b.disk.has('budget_actuals_2026_8')).toBe(false);
+  });
+
+  it('starts empty unless the trip template is chosen: the user makes the parts', async () => {
+    await openCustom();
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fill(sv.wName, 'SYNT RENOVERING');
+    fill(sv.wTotal, '25000');
+    fireEvent.click(buttonWith(sv.wCreate)!);
+    await waitFor(() => expect(document.querySelector('.wallet-hero')).not.toBeNull());
+    expect(stored()[0].pots).toEqual([]);
+    expect(document.querySelector('.wallet')?.textContent).toContain(sv.wNoPots);
+    // An expense needs no part…
+    addExpense('300', 'SYNT FÄRG');
+    await waitFor(() => expect(stored()[0].expenses).toEqual([expect.objectContaining({ amount: 300 })]));
+    // …and a part is made in place.
+    fireEvent.click(buttonWith(sv.wAddPot)!);
+    fill(sv.wPotName, 'SYNT MATERIAL');
+    fill(sv.wPotPlanned, '10000');
+    fireEvent.click([...document.querySelectorAll('.wallet button[type=submit]')].find(x => x.textContent === sv.wAdd)!);
+    await waitFor(() => expect(stored()[0].pots).toEqual([expect.objectContaining({ name: 'SYNT MATERIAL', planned: 10000 })]));
+  });
+
+  it('the panel list closes on a tap outside it, and on Escape', async () => {
+    await openCustom();
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    expect(document.querySelector('.wallet-switch-panel')).not.toBeNull();
+    fireEvent.pointerDown(document.body);
+    expect(document.querySelector('.wallet-switch-panel')).toBeNull();
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.querySelector('.wallet-switch-panel')).toBeNull();
   });
 
   it('opens on the wallet again after a restart', async () => {

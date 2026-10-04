@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLang } from '../i18n';
 import { parseMoneyInput } from '../money';
 import { generateId } from '../defaults';
@@ -7,17 +7,19 @@ import { appStorage } from '../storage';
 import { commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import {
-  newTrip, walletSummary, loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY,
-  type Wallet, type WalletExpense, type WalletPot,
+  newTrip, newBlank, walletSummary, loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY,
+  type Wallet, type WalletExpense, type WalletKind, type WalletPot,
 } from '../wallets';
 
 // ── Wallets: the panel switcher, a new trip, and the wallet itself ─────────
 //
 // Sketched with Ariel on 2026-10-04: a switcher at the top of Custom lists the
-// budget and every wallet; a wallet is a trip with a total, four parts and the
-// expenses typed in as they happen. Separate from the budget — nothing here is
-// counted in a month. Writes go through `onSave`, which resolves once stored;
-// the screen changes only then.
+// budget and every wallet. A wallet starts empty — the user names it, gives it
+// a total and makes its own parts — or from the trip template's four parts.
+// Separate from the budget: nothing here is counted in a month. Writes go
+// through `onSave`, which resolves once stored; the screen changes only then.
+
+const ICON: Record<WalletKind, string> = { blank: '👛', trip: '✈️' };
 
 const todayIso = () => {
   const d = new Date();
@@ -38,6 +40,21 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
   const { t, money } = useLang();
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
+  const box = useRef<HTMLDivElement>(null);
+  // Closes like any menu: a tap anywhere else, or Escape (Ariel, 2026-10-04).
+  useEffect(() => {
+    if (!expanded) return;
+    const away = (e: PointerEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setExpanded(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [expanded]);
   const current = wallets.find(w => w.id === openId);
   const today = todayIso();
   const pick = (id: string | null) => { setExpanded(false); onOpen(id); };
@@ -47,7 +64,7 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
       <li key={w.id}>
         <button className={`wallet-switch-row${w.id === openId ? ' is-current' : ''}`} onClick={() => pick(w.id)}
           aria-current={w.id === openId ? 'true' : undefined}>
-          <span className="wallet-switch-icon" aria-hidden="true">✈️</span>
+          <span className="wallet-switch-icon" aria-hidden="true">{ICON[w.kind]}</span>
           <span className="wallet-switch-text">
             <span className="wallet-switch-name">{w.name}{w.archived ? ` · ${t.wArchived}` : ''}</span>
             <span className="wallet-switch-sub">{t.wLeftList(money(Math.round(s.left)), money(w.total))}</span>
@@ -58,10 +75,10 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
     );
   };
   return (
-    <div className="wallet-switch">
+    <div className="wallet-switch" ref={box}>
       <button className="wallet-switch-toggle" aria-expanded={expanded} aria-controls={listId}
         onClick={() => setExpanded(e => !e)}>
-        <span aria-hidden="true">{current ? '✈️' : '📊'}</span> {current ? current.name : t.wMyBudget}
+        <span aria-hidden="true">{current ? ICON[current.kind] : '📊'}</span> {current ? current.name : t.wMyBudget}
         <span className="wallet-switch-caret" aria-hidden="true">▾</span>
       </button>
       {expanded && (
@@ -168,7 +185,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
   );
 };
 
-// ── A new trip ─────────────────────────────────────────────────────────────
+// ── A new wallet: empty, or from the trip template ───────────────────────
 
 export const NewWallet = ({ onCreate, onCancel }: {
   onCreate: (w: Wallet) => Promise<boolean>;
@@ -176,6 +193,7 @@ export const NewWallet = ({ onCreate, onCancel }: {
 }) => {
   const { t } = useLang();
   const fid = useId();
+  const [kind, setKind] = useState<WalletKind>('blank');
   const [name, setName] = useState('');
   const [total, setTotal] = useState('');
   const [from, setFrom] = useState('');
@@ -191,11 +209,14 @@ export const NewWallet = ({ onCreate, onCancel }: {
     if (from && to && to < from) { setError(t.wErrDates); return; }
     setBusy(true);
     try {
-      await onCreate(newTrip({
-        id: generateId(), name, total: amount.value, from: from || undefined, to: to || undefined,
-        potNames: { travel: t.wPotTravel, stay: t.wPotStay, food: t.wPotFood, fun: t.wPotFun },
-        newId: generateId,
-      }));
+      const base = { id: generateId(), name, total: amount.value, from: from || undefined, to: to || undefined };
+      await onCreate(kind === 'trip'
+        ? newTrip({
+          ...base,
+          potNames: { travel: t.wPotTravel, stay: t.wPotStay, food: t.wPotFood, fun: t.wPotFun },
+          newId: generateId,
+        })
+        : newBlank(base));
     } finally {
       setBusy(false);
     }
@@ -203,13 +224,23 @@ export const NewWallet = ({ onCreate, onCancel }: {
 
   return (
     <div className="wallet">
-      <h2 className="wallet-title">✈️ {t.wNew}</h2>
+      <h2 className="wallet-title">{ICON[kind]} {t.wNew}</h2>
       <p className="wallet-lead">{t.wNewLead}</p>
+      <div className="wallet-kind" role="group" aria-label={t.wStartFrom}>
+        <span className="wallet-kind-label">{t.wStartFrom}</span>
+        {(['blank', 'trip'] as const).map(k => (
+          <button key={k} type="button" className={`seg-btn${kind === k ? ' seg-active' : ''}`}
+            aria-pressed={kind === k} onClick={() => setKind(k)}>
+            {ICON[k]} {k === 'blank' ? t.wKindBlank : t.wKindTrip}
+          </button>
+        ))}
+      </div>
       <form className="goal-form" onSubmit={e => { e.preventDefault(); void submit(); }}>
         <div className="goal-form-grid">
           <div className="goal-form-field">
             <label htmlFor={`${fid}-name`}>{t.wName}</label>
-            <input id={`${fid}-name`} className="label-input" value={name} placeholder={t.wNamePlaceholder}
+            <input id={`${fid}-name`} className="label-input" value={name}
+              placeholder={kind === 'trip' ? t.wNamePlaceholder : t.wNamePlaceholderBlank}
               onChange={e => { setName(e.target.value); setError(null); }} />
           </div>
           <div className="goal-form-field">
@@ -231,7 +262,7 @@ export const NewWallet = ({ onCreate, onCancel }: {
               onChange={e => { setTo(e.target.value); setError(null); }} />
           </div>
         </div>
-        <p className="debt-note">{t.wTripNote}</p>
+        <p className="debt-note">{kind === 'trip' ? t.wTripNote : t.wBlankNote}</p>
         {error && <p className="goal-form-error" role="alert">{error}</p>}
         <div className="goal-form-actions">
           <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
@@ -253,10 +284,11 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
 }) => {
   const { t, lang, money } = useLang();
   const [adding, setAdding] = useState(false);
+  const [addingPot, setAddingPot] = useState(false);
   const [editing, setEditing] = useState(false);
   const today = todayIso();
   const s = walletSummary(wallet, today);
-  const potName = (id: string) => wallet.pots.find(p => p.id === id)?.name ?? '';
+  const potName = (id: string) => wallet.pots.find(p => p.id === id)?.name ?? t.wUnassigned;
   const pct = wallet.total > 0 ? Math.min(100, Math.max(0, (s.spent / wallet.total) * 100)) : 0;
   const r = (n: number) => money(Math.round(n));
 
@@ -288,7 +320,9 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
         )}
       </div>
 
-      {s.plannedInPots !== wallet.total && (
+      {/* Only when the parts promise more than there is: parts that leave some
+          of the total unplanned are an ordinary way to build a wallet. */}
+      {s.plannedInPots > wallet.total && (
         <p className="debt-note">{t.wPotsDiffer(r(s.plannedInPots), r(wallet.total))}</p>
       )}
 
@@ -307,7 +341,24 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
             </div>
           </li>
         ))}
+        {wallet.pots.length > 0 && s.unassigned > 0 && (
+          <li className="wallet-pot">
+            <div className="wallet-pot-head">
+              <span className="wallet-pot-name">{t.wUnassigned}</span>
+              <span className="wallet-pot-amount">{r(s.unassigned)}</span>
+            </div>
+          </li>
+        )}
       </ul>
+      {wallet.pots.length === 0 && !addingPot && <p className="wallet-sub">{t.wNoPots}</p>}
+      {addingPot ? (
+        <PotForm onCancel={() => setAddingPot(false)}
+          onAdd={async pot => {
+            if (await onSave({ ...wallet, pots: [...wallet.pots, pot] })) setAddingPot(false);
+          }} />
+      ) : (
+        <button className="wallet-add-pot" onClick={() => setAddingPot(true)}>{t.wAddPot}</button>
+      )}
 
       {adding ? (
         <ExpenseForm pots={wallet.pots} onCancel={() => setAdding(false)}
@@ -389,11 +440,56 @@ const ExpenseForm = ({ pots, onAdd, onCancel }: {
           <label htmlFor={`${fid}-pot`}>{t.wPot}</label>
           <select id={`${fid}-pot`} className="label-input" value={potId} onChange={e => setPotId(e.target.value)}>
             {pots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            <option value="">{t.wNoPart}</option>
           </select>
         </div>
         <div className="goal-form-field">
           <label htmlFor={`${fid}-date`}>{t.wDate}</label>
           <input id={`${fid}-date`} className="label-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </div>
+      </div>
+      {error && <p className="goal-form-error" role="alert">{error}</p>}
+      <div className="goal-form-actions">
+        <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
+        <button type="submit" className="custom-primary-btn" disabled={busy}>{t.wAdd}</button>
+      </div>
+    </form>
+  );
+};
+
+const PotForm = ({ onAdd, onCancel }: {
+  onAdd: (pot: WalletPot) => Promise<void>;
+  onCancel: () => void;
+}) => {
+  const { t } = useLang();
+  const fid = useId();
+  const [name, setName] = useState('');
+  const [planned, setPlanned] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    const amount = parseMoneyInput(planned || '0');
+    if (!name.trim() || !amount.ok || amount.value < 0) { setError(t.wErrPot); return; }
+    setBusy(true);
+    try {
+      await onAdd({ id: generateId(), name: name.trim(), planned: amount.value });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="goal-form wallet-expense-form" onSubmit={e => { e.preventDefault(); void submit(); }}>
+      <div className="goal-form-grid">
+        <div className="goal-form-field">
+          <label htmlFor={`${fid}-name`}>{t.wPotName}</label>
+          <input id={`${fid}-name`} className="label-input" value={name} autoFocus
+            onChange={e => { setName(e.target.value); setError(null); }} />
+        </div>
+        <div className="goal-form-field">
+          <label htmlFor={`${fid}-planned`}>{t.wPotPlanned}</label>
+          <input id={`${fid}-planned`} className="label-input" inputMode="decimal" placeholder="0" value={planned}
+            onChange={e => { setPlanned(e.target.value); setError(null); }} />
         </div>
       </div>
       {error && <p className="goal-form-error" role="alert">{error}</p>}
@@ -434,7 +530,6 @@ const WalletEdit = ({ wallet, onSave, onCancel }: {
       if (!p.name.trim() || !planned.ok || planned.value < 0) { setError(t.wErrPot); return; }
       parsed.push({ id: p.id, name: p.name.trim(), planned: planned.value });
     }
-    if (parsed.length === 0) { setError(t.wErrPot); return; }
     setBusy(true);
     try {
       await onSave({

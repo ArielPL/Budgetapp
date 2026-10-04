@@ -3,7 +3,8 @@
 // A wallet has its own total, its own parts ("pots": travel, stay, food…) and
 // its own expenses, typed in as they happen. It is SEPARATE from the regular
 // budget by design (Ariel, 2026-10-04): nothing in it is counted in a month,
-// and nothing in a month is counted in it. One template for now: a trip.
+// and nothing in a month is counted in it. A wallet starts empty and the user
+// makes its parts; a trip is a template that starts with four.
 //
 // Everything lives in one key, `budget_wallets`, so every change is one write
 // and a backup carries it like any other key. Read defensively, like the debt
@@ -16,6 +17,9 @@ export const WALLETS_KEY = 'budget_wallets';
 /** Which panel Custom opens on: a wallet's id, or absent for the budget. A
  *  per-device convenience, so the trip you are on is where the app opens. */
 export const OPEN_PANEL_KEY = 'budget_panel_open';
+
+export type WalletKind = 'blank' | 'trip';
+export const WALLET_KINDS: readonly WalletKind[] = ['blank', 'trip'];
 
 export interface WalletPot {
   id: string;
@@ -31,13 +35,15 @@ export interface WalletExpense {
   text: string;
   /** Positive. */
   amount: number;
+  /** The part it belongs to; '' for none — a wallet need not have parts. */
   potId: string;
 }
 
 export interface Wallet {
   id: string;
   name: string;
-  kind: 'trip';
+  /** How it started. Only the icon differs afterwards. */
+  kind: WalletKind;
   /** The whole budget for the wallet. */
   total: number;
   /** Optional dates, "YYYY-MM-DD". */
@@ -75,15 +81,16 @@ function isExpense(v: unknown): v is WalletExpense {
 
 export function isWallet(v: unknown): v is Wallet {
   if (!isObj(v)) return false;
-  if (!(typeof v.id === 'string' && v.id !== '' && typeof v.name === 'string' && v.kind === 'trip'
+  if (!(typeof v.id === 'string' && v.id !== '' && typeof v.name === 'string'
+    && (WALLET_KINDS as readonly unknown[]).includes(v.kind)
     && isNum(v.total) && v.total >= 0
     && (v.from === undefined || isDate(v.from)) && (v.to === undefined || isDate(v.to))
     && Array.isArray(v.pots) && v.pots.every(isPot)
     && Array.isArray(v.expenses) && v.expenses.every(isExpense)
     && (v.archived === undefined || typeof v.archived === 'boolean'))) return false;
-  // Every expense belongs to a part the wallet has.
+  // Every expense belongs to a part the wallet has, or to none.
   const pots = new Set((v.pots as WalletPot[]).map(p => p.id));
-  return (v.expenses as WalletExpense[]).every(e => pots.has(e.potId));
+  return (v.expenses as WalletExpense[]).every(e => e.potId === '' || pots.has(e.potId));
 }
 
 /** For the backup check: the whole stored value. */
@@ -120,6 +127,14 @@ export function walletsHaveContent(raw: string | null): boolean {
   }
 }
 
+/** A new empty wallet: a name and a total, and nothing else until the user
+ *  adds it. */
+export function newBlank(
+  { id, name, total, from, to }: { id: string; name: string; total: number; from?: string; to?: string },
+): Wallet {
+  return { id, name: name.trim(), kind: 'blank', total, from, to, pots: [], expenses: [] };
+}
+
 /**
  * A new trip wallet. The total is shared out over the template's parts in
  * whole units, the last part taking what rounding left, so the parts always
@@ -152,6 +167,8 @@ export interface WalletSummary {
   pots: PotSummary[];
   /** Planned over the parts — may differ from the total if the user changed one. */
   plannedInPots: number;
+  /** Spent on expenses that belong to no part. */
+  unassigned: number;
   /** Where today sits in the dates, when there are dates. */
   timing:
     | { kind: 'none' }
@@ -181,7 +198,7 @@ export function walletSummary(w: Wallet, today: string): WalletSummary {
   else if (w.to && t > dayNumber(w.to)) timing = { kind: 'after' };
   else if (w.to) timing = { kind: 'during', daysLeft: dayNumber(w.to) - t + 1 };
   return {
-    spent, left: w.total - spent, plannedInPots, timing,
+    spent, left: w.total - spent, plannedInPots, timing, unassigned: byPot.get('') ?? 0,
     pots: w.pots.map(pot => ({ pot, spent: byPot.get(pot.id) ?? 0 })),
   };
 }

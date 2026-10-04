@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  loadWallets, walletsChange, walletsHaveContent, isWalletStore, newTrip, walletSummary,
+  loadWallets, walletsChange, walletsHaveContent, isWalletStore, newTrip, newBlank, walletSummary,
   WALLETS_KEY, type Wallet,
 } from './wallets';
 import type { StorageLike } from './storage';
@@ -32,6 +32,22 @@ describe('newTrip', () => {
       ['Resor', 12000], ['Boende', 14000], ['Mat', 8000], ['Upplevelser', 6001],
     ]);
     expect(w.expenses).toEqual([]);
+  });
+});
+
+describe('newBlank', () => {
+  it('is a name and a total, with no parts until the user adds them', () => {
+    expect(newBlank({ id: 'b', name: ' SYNT RENOVERING ', total: 25000 })).toEqual({
+      id: 'b', name: 'SYNT RENOVERING', kind: 'blank', total: 25000, from: undefined, to: undefined, pots: [], expenses: [],
+    });
+  });
+
+  it('takes an expense that belongs to no part, and counts it as such', () => {
+    const w = { ...newBlank({ id: 'b', name: 'SYNT', total: 1000 }),
+      expenses: [{ id: 'e', date: '2026-10-04', text: 'SYNT FÄRG', amount: 300, potId: '' }] };
+    expect(isWalletStore({ wallets: [w] })).toBe(true);
+    const s = walletSummary(w, '2026-10-04');
+    expect([s.spent, s.left, s.unassigned, s.pots]).toEqual([300, 700, 300, []]);
   });
 });
 
