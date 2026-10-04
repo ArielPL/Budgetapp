@@ -6109,3 +6109,44 @@ a:focus-visible,
   }
   .sparplan-horizon-seg .seg-btn { min-height: 40px; }
 }
+
+/* iOS zooms the whole page into any text field whose text is under 16 px the
+   moment it gets focus — and leaves it zoomed, cut off at the right. Seen in
+   the iPhone app on the budget import's paste box (2026-10-03), and true of
+   every small field: amounts, names, the debt form. 16 px is exactly the size
+   at which it stops. Not done with maximum-scale in the viewport, which would
+   also take pinch-zoom away from people who need it. The Custom title field is
+   already larger and keeps its size. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.cv3-name-input),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* While something is being typed on a phone, the bottom tab bar steps aside.
+   On iOS it otherwise rides up on top of the keyboard and sits in the middle
+   of the screen, over the very form being filled in (seen in the iPhone
+   simulator, 2026-10-03). It comes back as soon as the field loses focus. */
+@media (max-width: 640px) {
+  body:has(:is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select):focus) .header-bottom {
+    display: none;
+  }
+}
+
+/* iOS draws a date field with a minimum width of its own, wider than a narrow
+   column: in the debt form it stuck out past the fields beside it. Without
+   the native look it takes the column's width like every other field, and
+   tapping it still opens the system date picker. iOS only — the touch-callout
+   property exists nowhere else. */
+@supports (-webkit-touch-callout: none) {
+  .label-input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+}

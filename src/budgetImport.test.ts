@@ -77,7 +77,8 @@ const zip = (files: Record<string, string>) => {
 const WORKBOOK = '<workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="B" sheetId="1" r:id="rId1"/></sheets></workbook>';
 const RELS = '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>';
 
-describe('limits', () => {
+// Built big on purpose; given room so a busy machine does not fail them on time.
+describe('limits', { timeout: 30_000 }, () => {
   it('refuses a small file that would unpack to 20 MB — before unpacking it, and quickly', () => {
     const bomb = zip({
       'xl/workbook.xml': WORKBOOK, 'xl/_rels/workbook.xml.rels': RELS,

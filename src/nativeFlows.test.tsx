@@ -934,6 +934,15 @@ describe('importing a budget', () => {
     expect(undoOnDisk()).toEqual([]);
   });
 
+  it('counts a row the sheet repeats once — as it lands in the budget', async () => {
+    await openImport();
+    pasteAndRead('Hyra\t9000\nHyra\t9000\nMatvaror\t3500\n');
+    await waitFor(() => expect(importButton()).toBeTruthy());
+    fireEvent.click(importButton());
+    await waitFor(() => expect(document.querySelector('.copy-msg')?.textContent).toBe(sv.bimDone(2, 1)));
+    expect(month('budget_2026_8').expenses.find(c => c.id === 'boende')!.rows.filter(r => r.label === 'Hyra')).toHaveLength(1);
+  });
+
   it('lets a row be changed or left out before anything is stored', async () => {
     await openImport();
     pasteAndRead('SYNT HOBBY\t400\nSYNT BORT\t100\n');

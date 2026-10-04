@@ -1271,7 +1271,11 @@ function App({ startupRepair = null }: AppProps) {
       count: months.length,
       changes: before,
     });
-    showMsg(t.bimDone(new Set(months.flatMap(m => m.rows.map(r => r.row.key))).size, months.length));
+    // Rows as they landed in the budget: the same name under the same heading
+    // is one row there, however many times the sheet repeats it.
+    const landed = new Set(months.flatMap(m => m.rows.map(({ row }) => (
+      `${JSON.stringify(row.target)}|${row.label.trim().toLowerCase()}`))));
+    showMsg(t.bimDone(landed.size, months.length));
     return true;
   };
 
