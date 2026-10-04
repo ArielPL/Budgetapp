@@ -11,6 +11,7 @@ import {
 } from '../debts';
 import type { DebtState } from '../debtStore';
 import type { BudgetRow } from '../types';
+import { justPaidOff, celebrate } from '../rewards';
 
 // ── Skuld — the way out of debt ────────────────────────────────────────────
 //
@@ -256,7 +257,12 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
                           ? { id: d.budgetRowId, label: updated.name, amount: updated.monthlyPayment }
                           : undefined,
                       );
-                      if (ok) setEditing(null);
+                      if (!ok) return;
+                      setEditing(null);
+                      if (justPaidOff(d, updated)) {
+                        setNotice(t.debtCleared(updated.name));
+                        celebrate();
+                      }
                     }}
                   />
                 </li>

@@ -4,9 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.arielpl.budget',
   appName: 'Budget',
   webDir: 'dist',
-  // Behind the page while it loads: the splash's colour and the default dark
-  // theme's, so there is no white flash between the splash and the budget.
-  backgroundColor: '#0f172a',
+  // Behind the page while it loads: the splash's colour and the default light
+  // theme's, so nothing flashes between the splash and the budget.
+  backgroundColor: '#fbfaff',
   plugins: {
     // Android: follow the page's viewport-fit=cover, so the app draws behind
     // the status bar and CSS env(safe-area-inset-*) holds the real sizes (the
@@ -16,9 +16,9 @@ const config: CapacitorConfig = {
     SystemBars: {
       insetsHandling: 'native',
       initialViewportFitValueHint: 'cover',
-      // Light icons for the first frame, matching the default dark theme;
-      // themes.ts then sets them to fit whichever theme the user chose.
-      style: 'DARK',
+      // Dark icons for the first frame, matching the light splash and the
+      // default light theme; themes.ts then sets them to fit the user's theme.
+      style: 'LIGHT',
     },
     // The app's data store on iOS and Android — see src/nativeStorage.ts.
     CapacitorSQLite: {

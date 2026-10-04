@@ -36,7 +36,8 @@ import { undoWhere } from './undoLabel';
 import { shortWhen, longDate } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
-import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
+import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
+import { goalsJustReached, celebrate } from './rewards';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
@@ -1142,7 +1143,10 @@ function App({ startupRepair = null }: AppProps) {
 
           return updated;
         });
-        if (goalsChanged) setPlanData(pd => ({ ...pd, goals: updatedGoals }));
+        if (goalsChanged) {
+          setPlanData(pd => ({ ...pd, goals: updatedGoals }));
+          rewardReachedGoals(planData.goals, updatedGoals);
+        }
         // Say so out loud — an unlink is invisible otherwise, and the row not
         // coming back is exactly the behaviour change worth explaining.
         if (unlinkedName) showMsg(t.goalUnlinkedFromBudget(unlinkedName));
@@ -1561,6 +1565,15 @@ function App({ startupRepair = null }: AppProps) {
     }
 
     setPlanData(newPlan);
+    rewardReachedGoals(oldGoals, newGoals);
+  };
+
+  /** A goal the user's own change just completed: say so, and buzz a phone. */
+  const rewardReachedGoals = (before: SavingsGoal[], after: SavingsGoal[]) => {
+    const reached = goalsJustReached(before, after);
+    if (reached.length === 0) return;
+    showMsg(t.goalReached(reached.map(g => shownName(g, lang)).join(', ')));
+    celebrate();
   };
 
   // (Linked budget-row backfill is handled in the month-load effect above,

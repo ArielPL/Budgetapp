@@ -819,6 +819,44 @@ describe('the Debt tab', () => {
     });
   });
 
+  describe('paying a debt off (Ariel, 2026-10-04)', () => {
+    const editTo = async (balance: string) => {
+      await openDebts();
+      addSynthetic();
+      await waitFor(() => expect(storedDebts()).toHaveLength(1));
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtEdit('SYNT LÅN')}"]`)!);
+      fill(sv.debtBalance, balance);
+      fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(x => x.textContent === sv.debtSave)!);
+    };
+    const balance = () => (JSON.parse(b.disk.get('budget_debts')!).debts as { balance: number }[])[0].balance;
+
+    it('says so once the balance of 0 is stored', async () => {
+      await editTo('0');
+      await waitFor(() => expect(balance()).toBe(0));
+      await waitFor(() => expect(document.querySelector('.debt-notice')?.textContent).toContain(sv.debtCleared('SYNT LÅN')));
+    });
+
+    it('says nothing for an ordinary edit', async () => {
+      await editTo('9000');
+      await waitFor(() => expect(balance()).toBe(9000));
+      await settle();
+      expect(document.querySelector('.debt-notice')).toBeNull();
+    });
+
+    it('says nothing when the database refuses', async () => {
+      await openDebts();
+      addSynthetic();
+      await waitFor(() => expect(storedDebts()).toHaveLength(1));
+      b.refuse.add('budget_debts');
+      fireEvent.click(document.querySelector(`[aria-label="${sv.debtEdit('SYNT LÅN')}"]`)!);
+      fill(sv.debtBalance, '0');
+      fireEvent.click([...document.querySelectorAll('button[type=submit]')].find(x => x.textContent === sv.debtSave)!);
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(balance()).toBe(12000);
+      expect(document.querySelector('.debt-notice')).toBeNull();
+    });
+  });
+
   describe('a row added under "Lån & skulder" in the budget', () => {
     const MONTH_WITH_ROW = JSON.stringify({
       ...JSON.parse(SEPT),
@@ -1056,5 +1094,40 @@ describe('a CSV import’s receipt and preview', () => {
     expect(preview()).toBe(sv.csvWillCreate(1));
     fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
     await waitFor(() => expect(toast()).toContain(sv.csvDoneCreated(1)));
+  });
+});
+
+describe('reaching a savings goal (Ariel, 2026-10-04)', () => {
+  const openPlan = async (current: number) => {
+    b.disk.set('budget_plan', JSON.stringify({ goals: [
+      { id: 'g1', name: 'SYNT BUFFERT', targetAmount: 10000, currentAmount: current, deadline: '', color: '#888', userNamed: true },
+    ] }));
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabPlan)!);
+    await waitFor(() => expect(document.querySelector('.goal-card')).not.toBeNull());
+  };
+  const setSaved = (value: string) => {
+    fireEvent.click([...document.querySelectorAll('.goal-card button')]
+      .find(x => x.getAttribute('aria-label')?.includes(`${sv.saved} — SYNT BUFFERT`))!);
+    const input = document.querySelector<HTMLInputElement>('.goal-card input')!;
+    fireEvent.change(input, { target: { value } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  };
+  const said = () => document.querySelector('.copy-msg')?.textContent ?? '';
+
+  it('says so when the saved amount reaches the target', async () => {
+    await openPlan(9000);
+    setSaved('10000');
+    await waitFor(() => expect(said()).toBe(sv.goalReached('SYNT BUFFERT')));
+  });
+
+  it('says nothing while it is still short', async () => {
+    await openPlan(9000);
+    setSaved('9500');
+    await settle();
+    expect(said()).not.toContain('SYNT BUFFERT');
   });
 });

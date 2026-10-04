@@ -20,6 +20,6 @@
         <item name="android:background">@drawable/splash</item>
         <!-- Android 12+ draws its own splash from the app icon on this colour:
              the web app's background, so opening looks the same everywhere. -->
-        <item name="windowSplashScreenBackground">#0F172A</item>
+        <item name="windowSplashScreenBackground">#FBFAFF</item>
     </style>
 </resources>

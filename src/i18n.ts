@@ -250,6 +250,8 @@ export interface Translations {
   debtEdit: (name: string) => string;
   debtEditShort: string;
   debtDeleteShort: string;
+  /** Said when a debt's balance is set to nothing — with haptics on a phone. */
+  debtCleared: (debt: string) => string;
   debtDelete: (name: string) => string;
   debtDeleteAsk: (name: string) => string;
   debtDeleteRowInfo: (month: string) => string;
@@ -940,6 +942,8 @@ export interface Translations {
   /** Confirmation that removing a goal's budget row unlinked the goal — the row
    *  will not reappear, and the goal keeps the progress it already has. */
   goalUnlinkedFromBudget: (goal: string) => string;
+  /** Said when a savings goal is reached — with a tap of haptics on a phone. */
+  goalReached: (goal: string) => string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -1020,6 +1024,7 @@ export const translations: Record<Lang, Translations> = {
     debtEdit: (name) => `Ändra ${name}`,
     debtEditShort: 'Ändra',
     debtDeleteShort: 'Ta bort',
+    debtCleared: (debt) => `🎉 ${debt} är betald!`,
     debtDelete: (name) => `Ta bort ${name}`,
     debtDeleteAsk: (name) => `Ta bort ${name}?`,
     debtDeleteRowInfo: (month) => `Betalningen är en rad under Lån & skulder i budgeten för ${month}. Utfall du redan har registrerat påverkas inte.`,
@@ -1697,6 +1702,7 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Välj färg',
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
     goalUnlinkedFromBudget: (goal) => `"${goal}" är inte längre kopplat till budgeten. Målet behåller det du sparat.`,
+    goalReached: (goal) => `🎉 Du har nått målet "${goal}"!`,
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -1786,6 +1792,7 @@ export const translations: Record<Lang, Translations> = {
     debtEdit: (name) => `Edit ${name}`,
     debtEditShort: 'Edit',
     debtDeleteShort: 'Delete',
+    debtCleared: (debt) => `🎉 ${debt} is paid off!`,
     debtDelete: (name) => `Delete ${name}`,
     debtDeleteAsk: (name) => `Delete ${name}?`,
     debtDeleteRowInfo: (month) => `Its payment is a row under Loans & Debts in the budget for ${month}. Follow-up entries you have already recorded are not affected.`,
@@ -2463,6 +2470,7 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Choose color',
     protectedCategory: 'Linked to Plan — cannot be deleted',
     goalUnlinkedFromBudget: (goal) => `"${goal}" is no longer linked to your budget. The goal keeps what you've saved.`,
+    goalReached: (goal) => `🎉 You've reached your goal "${goal}"!`,
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -2552,6 +2560,7 @@ export const translations: Record<Lang, Translations> = {
     debtEdit: (name) => `Editar ${name}`,
     debtEditShort: 'Editar',
     debtDeleteShort: 'Eliminar',
+    debtCleared: (debt) => `🎉 ¡${debt} está pagada!`,
     debtDelete: (name) => `Eliminar ${name}`,
     debtDeleteAsk: (name) => `¿Eliminar ${name}?`,
     debtDeleteRowInfo: (month) => `Su pago es una fila en Préstamos y deudas del presupuesto de ${month}. Los movimientos que ya registraste no se ven afectados.`,
@@ -3229,6 +3238,7 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Elegir color',
     protectedCategory: 'Vinculada al Plan — no se puede eliminar',
     goalUnlinkedFromBudget: (goal) => `"${goal}" ya no está vinculada a tu presupuesto. La meta conserva lo que has ahorrado.`,
+    goalReached: (goal) => `🎉 ¡Has alcanzado tu meta "${goal}"!`,
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

@@ -13,8 +13,9 @@
 // is a little soft. When a 1024 original exists, put it at public/icon-1024.png
 // and run this again; it is then used everywhere instead.
 //
-// The splash background is the web app's own (manifest background_color), so
-// the moment the app opens looks like the moment the web app opens.
+// The splash background is the web app's own (manifest background_color, the
+// light theme's --bg, which new users start in), so the moment the app opens
+// looks like the moment the web app opens.
 
 import AppKit
 import CoreGraphics
@@ -22,7 +23,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 let fm = FileManager.default
-let splashBackground = CGColor(red: 0x0f / 255, green: 0x17 / 255, blue: 0x2a / 255, alpha: 1)
+let splashBackground = CGColor(red: 0xfb / 255, green: 0xfa / 255, blue: 0xff / 255, alpha: 1)
 
 func load(_ path: String) -> CGImage {
   guard let src = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
