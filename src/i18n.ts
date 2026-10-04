@@ -990,6 +990,64 @@ export interface Translations {
   qBasisUnsorted: (amount: string, count: number) => string;
   qTooLittle: (need: number, have: number) => string;
   qNothing: string;
+  // Wallets (in Custom): a separate budget for one thing, like a trip
+  wPanels: string;
+  wMyBudget: string;
+  wTagLinked: string;
+  wTagStandalone: string;
+  wTagWallet: string;
+  wTagSeparate: string;
+  wNew: string;
+  wNewLead: string;
+  wName: string;
+  wNamePlaceholder: string;
+  wTotal: string;
+  wFrom: string;
+  wTo: string;
+  wDatesOptional: string;
+  wTripNote: string;
+  wCreate: string;
+  wPotTravel: string;
+  wPotStay: string;
+  wPotFood: string;
+  wPotFun: string;
+  wLeft: string;
+  wUsed: (spent: string, total: string) => string;
+  wLeftList: (left: string, total: string) => string;
+  wDaysLeft: (days: number) => string;
+  wStartsIn: (days: number) => string;
+  wEnded: string;
+  wPerDay: (amount: string) => string;
+  wOver: (over: string) => string;
+  wAddExpense: string;
+  wAmount: string;
+  wWhat: string;
+  wWhatPlaceholder: string;
+  wPot: string;
+  wDate: string;
+  wAdd: string;
+  wExpenses: string;
+  wNoExpenses: string;
+  wDeleteExpense: (text: string) => string;
+  wEdit: string;
+  wSave: string;
+  wArchive: string;
+  wUnarchive: string;
+  wArchived: string;
+  wDelete: string;
+  wDeleteConfirm: (name: string) => string;
+  wPots: string;
+  wAddPot: string;
+  wNewPot: string;
+  wPotName: string;
+  wPotPlanned: string;
+  wRemovePot: (name: string) => string;
+  wPotHasExpenses: (name: string) => string;
+  wPotsDiffer: (planned: string, total: string) => string;
+  wErrName: string;
+  wErrAmount: string;
+  wErrDates: string;
+  wErrPot: string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -1581,6 +1639,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (action === 'resetCustom') return 'Anpassad började om från början';
+      if (action === 'deleteWallet') return 'En plånbok togs bort';
+      if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -1794,6 +1854,63 @@ export const translations: Record<Lang, Translations> = {
     qBasisUnsorted: (amount, count) => `${amount} i ${count} ${count === 1 ? 'osorterad post' : 'osorterade poster'} kan ändra svaret.`,
     qTooLittle: (need, have) => `Behöver minst ${need} månader med importerade poster. Du har ${have}.`,
     qNothing: 'Inga importerade poster under perioden.',
+    wPanels: 'Mina paneler',
+    wMyBudget: 'Min budget',
+    wTagLinked: 'Kopplad',
+    wTagStandalone: 'Fristående',
+    wTagWallet: 'Plånbok',
+    wTagSeparate: 'Fristående plånbok',
+    wNew: 'Ny plånbok',
+    wNewLead: 'En resa med egna belopp. Påverkar inte din budget.',
+    wName: 'Namn',
+    wNamePlaceholder: 'Japan 2027',
+    wTotal: 'Total budget',
+    wFrom: 'Från',
+    wTo: 'Till',
+    wDatesOptional: 'Datum (valfritt)',
+    wTripNote: 'Resan får delarna Resor, Boende, Mat och Upplevelser. Allt går att ändra.',
+    wCreate: 'Skapa plånbok',
+    wPotTravel: 'Resor',
+    wPotStay: 'Boende',
+    wPotFood: 'Mat',
+    wPotFun: 'Upplevelser',
+    wLeft: 'Kvar',
+    wUsed: (spent, total) => `${spent} av ${total} använt`,
+    wLeftList: (left, total) => `${left} av ${total} kvar`,
+    wDaysLeft: (days) => `${days} ${days === 1 ? 'dag' : 'dagar'} kvar`,
+    wStartsIn: (days) => `Börjar om ${days} ${days === 1 ? 'dag' : 'dagar'}`,
+    wEnded: 'Resan är slut',
+    wPerDay: (amount) => `${amount} per dag resten av resan`,
+    wOver: (over) => `${over} över budgeten`,
+    wAddExpense: '+ Lägg till utgift',
+    wAmount: 'Belopp',
+    wWhat: 'Vad',
+    wWhatPlaceholder: 'Tåg till Kyoto',
+    wPot: 'Del',
+    wDate: 'Datum',
+    wAdd: 'Lägg till',
+    wExpenses: 'Utgifter',
+    wNoExpenses: 'Inga utgifter än. Lägg till dem allt eftersom.',
+    wDeleteExpense: (text) => `Ta bort ${text}`,
+    wEdit: 'Ändra plånboken',
+    wSave: 'Spara',
+    wArchive: 'Arkivera',
+    wUnarchive: 'Plocka fram',
+    wArchived: 'arkiverad',
+    wDelete: 'Ta bort plånboken',
+    wDeleteConfirm: (name) => `Ta bort "${name}" med alla utgifter?\n\nDu kan ångra det direkt efteråt.`,
+    wPots: 'Delar',
+    wAddPot: '+ Lägg till del',
+    wNewPot: 'Ny del',
+    wPotName: 'Namn på delen',
+    wPotPlanned: 'Planerat',
+    wRemovePot: (name) => `Ta bort delen ${name}`,
+    wPotHasExpenses: (name) => `${name} har utgifter. Ta bort dem först.`,
+    wPotsDiffer: (planned, total) => `Delarna är planerade till ${planned}, men totalen är ${total}.`,
+    wErrName: 'Skriv ett namn.',
+    wErrAmount: 'Skriv ett belopp.',
+    wErrDates: 'Slutdatum kan inte vara före startdatum.',
+    wErrPot: 'Delen måste ha ett namn och ett belopp.',
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -2395,6 +2512,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (action === 'resetCustom') return 'Custom was started over';
+      if (action === 'deleteWallet') return 'A wallet was removed';
+      if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -2607,6 +2726,63 @@ export const translations: Record<Lang, Translations> = {
     qBasisUnsorted: (amount, count) => `${amount} in ${count} unsorted ${count === 1 ? 'entry' : 'entries'} could change the answer.`,
     qTooLittle: (need, have) => `Needs at least ${need} months with imported entries. You have ${have}.`,
     qNothing: 'Nothing imported in this period.',
+    wPanels: 'My panels',
+    wMyBudget: 'My budget',
+    wTagLinked: 'Linked',
+    wTagStandalone: 'Separate',
+    wTagWallet: 'Wallet',
+    wTagSeparate: 'Separate wallet',
+    wNew: 'New wallet',
+    wNewLead: 'A trip with its own amounts. Does not affect your budget.',
+    wName: 'Name',
+    wNamePlaceholder: 'Japan 2027',
+    wTotal: 'Total budget',
+    wFrom: 'From',
+    wTo: 'To',
+    wDatesOptional: 'Dates (optional)',
+    wTripNote: 'The trip gets the parts Travel, Stay, Food and Experiences. Everything can be changed.',
+    wCreate: 'Create wallet',
+    wPotTravel: 'Travel',
+    wPotStay: 'Stay',
+    wPotFood: 'Food',
+    wPotFun: 'Experiences',
+    wLeft: 'Left',
+    wUsed: (spent, total) => `${spent} of ${total} used`,
+    wLeftList: (left, total) => `${left} of ${total} left`,
+    wDaysLeft: (days) => `${days} ${days === 1 ? 'day' : 'days'} left`,
+    wStartsIn: (days) => `Starts in ${days} ${days === 1 ? 'day' : 'days'}`,
+    wEnded: 'The trip is over',
+    wPerDay: (amount) => `${amount} a day for the rest of the trip`,
+    wOver: (over) => `${over} over budget`,
+    wAddExpense: '+ Add expense',
+    wAmount: 'Amount',
+    wWhat: 'What',
+    wWhatPlaceholder: 'Train to Kyoto',
+    wPot: 'Part',
+    wDate: 'Date',
+    wAdd: 'Add',
+    wExpenses: 'Expenses',
+    wNoExpenses: 'No expenses yet. Add them as you go.',
+    wDeleteExpense: (text) => `Delete ${text}`,
+    wEdit: 'Edit wallet',
+    wSave: 'Save',
+    wArchive: 'Archive',
+    wUnarchive: 'Bring back',
+    wArchived: 'archived',
+    wDelete: 'Delete wallet',
+    wDeleteConfirm: (name) => `Delete "${name}" and all its expenses?\n\nYou can undo it straight after.`,
+    wPots: 'Parts',
+    wAddPot: '+ Add part',
+    wNewPot: 'New part',
+    wPotName: 'Name of the part',
+    wPotPlanned: 'Planned',
+    wRemovePot: (name) => `Remove the part ${name}`,
+    wPotHasExpenses: (name) => `${name} has expenses. Delete them first.`,
+    wPotsDiffer: (planned, total) => `The parts are planned at ${planned}, but the total is ${total}.`,
+    wErrName: 'Enter a name.',
+    wErrAmount: 'Enter an amount.',
+    wErrDates: 'The end date cannot be before the start date.',
+    wErrPot: 'A part needs a name and an amount.',
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -3208,6 +3384,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
+      if (action === 'deleteWallet') return 'Se eliminó una cartera';
+      if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
@@ -3420,6 +3598,63 @@ export const translations: Record<Lang, Translations> = {
     qBasisUnsorted: (amount, count) => `${amount} en ${count} ${count === 1 ? 'movimiento' : 'movimientos'} sin ordenar podrían cambiar la respuesta.`,
     qTooLittle: (need, have) => `Hacen falta al menos ${need} meses con movimientos importados. Tienes ${have}.`,
     qNothing: 'Nada importado en este periodo.',
+    wPanels: 'Mis paneles',
+    wMyBudget: 'Mi presupuesto',
+    wTagLinked: 'Vinculado',
+    wTagStandalone: 'Independiente',
+    wTagWallet: 'Cartera',
+    wTagSeparate: 'Cartera independiente',
+    wNew: 'Nueva cartera',
+    wNewLead: 'Un viaje con sus propios importes. No afecta a tu presupuesto.',
+    wName: 'Nombre',
+    wNamePlaceholder: 'Japón 2027',
+    wTotal: 'Presupuesto total',
+    wFrom: 'Desde',
+    wTo: 'Hasta',
+    wDatesOptional: 'Fechas (opcional)',
+    wTripNote: 'El viaje tiene las partes Transporte, Alojamiento, Comida y Experiencias. Todo se puede cambiar.',
+    wCreate: 'Crear cartera',
+    wPotTravel: 'Transporte',
+    wPotStay: 'Alojamiento',
+    wPotFood: 'Comida',
+    wPotFun: 'Experiencias',
+    wLeft: 'Queda',
+    wUsed: (spent, total) => `${spent} de ${total} usado`,
+    wLeftList: (left, total) => `Quedan ${left} de ${total}`,
+    wDaysLeft: (days) => `${days === 1 ? 'Queda 1 día' : `Quedan ${days} días`}`,
+    wStartsIn: (days) => `Empieza en ${days} ${days === 1 ? 'día' : 'días'}`,
+    wEnded: 'El viaje ha terminado',
+    wPerDay: (amount) => `${amount} al día el resto del viaje`,
+    wOver: (over) => `${over} por encima del presupuesto`,
+    wAddExpense: '+ Añadir gasto',
+    wAmount: 'Importe',
+    wWhat: 'Qué',
+    wWhatPlaceholder: 'Tren a Kioto',
+    wPot: 'Parte',
+    wDate: 'Fecha',
+    wAdd: 'Añadir',
+    wExpenses: 'Gastos',
+    wNoExpenses: 'Aún no hay gastos. Añádelos sobre la marcha.',
+    wDeleteExpense: (text) => `Eliminar ${text}`,
+    wEdit: 'Editar cartera',
+    wSave: 'Guardar',
+    wArchive: 'Archivar',
+    wUnarchive: 'Recuperar',
+    wArchived: 'archivada',
+    wDelete: 'Eliminar cartera',
+    wDeleteConfirm: (name) => `¿Eliminar "${name}" con todos sus gastos?\n\nPuedes deshacerlo justo después.`,
+    wPots: 'Partes',
+    wAddPot: '+ Añadir parte',
+    wNewPot: 'Nueva parte',
+    wPotName: 'Nombre de la parte',
+    wPotPlanned: 'Previsto',
+    wRemovePot: (name) => `Quitar la parte ${name}`,
+    wPotHasExpenses: (name) => `${name} tiene gastos. Elimínalos primero.`,
+    wPotsDiffer: (planned, total) => `Las partes suman ${planned}, pero el total es ${total}.`,
+    wErrName: 'Escribe un nombre.',
+    wErrAmount: 'Escribe un importe.',
+    wErrDates: 'La fecha final no puede ser anterior a la inicial.',
+    wErrPot: 'Una parte necesita un nombre y un importe.',
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

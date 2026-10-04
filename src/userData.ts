@@ -29,6 +29,7 @@
 
 import type { StorageLike } from './storage';
 import { DEBTS_KEY, debtsHaveContent } from './debtStore';
+import { WALLETS_KEY, walletsHaveContent } from './wallets';
 import type { PlanData } from './types';
 
 /** `budget_<year>_<month>` — a classic budget month. */
@@ -173,6 +174,10 @@ export function hasRestorableUserData(storage: StorageLike): boolean {
     }
     if (key === DEBTS_KEY) {
       if (debtsHaveContent(storage.getItem(key))) return true;
+      continue;
+    }
+    if (key === WALLETS_KEY) {
+      if (walletsHaveContent(storage.getItem(key))) return true;
     }
   }
   return false;

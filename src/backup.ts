@@ -32,6 +32,7 @@ import { isMonthSnapshot } from './customYear';
 import { isActualEntry } from './actuals';
 import { CSV_MAPS_KEY } from './csvMaps';
 import { PERIOD_LABEL_MAX } from './periodLabel';
+import { WALLETS_KEY, isWalletStore } from './wallets';
 
 /** Bumped only when the payload SHAPE changes in a way older apps can't read. */
 export const BACKUP_VERSION = 1;
@@ -250,6 +251,9 @@ function isValidValue(key: string, raw: string): boolean {
     return parseThen(v => Array.isArray(v) && v.every(b => isPlainObject(b) && isPlainObject(b.source)));
   }
   if (/^budget_custom_v3_values_/.test(key)) return parseThen(isCustomValues);
+  // Wallets: an expense pointing at a part the wallet does not have would be
+  // money counted nowhere, so a bad store is refused rather than half-read.
+  if (key === WALLETS_KEY) return parseThen(isWalletStore);
   // The per-month structure snapshot the year view reads. Rejecting a bad one
   // matters: a wrong tag would refile a month's money into the wrong column.
   if (/^budget_custom_v3_meta_/.test(key)) return parseThen(isMonthSnapshot);

@@ -1177,3 +1177,76 @@ describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
     expect(document.querySelectorAll('.q-ask')).toHaveLength(6);
   });
 });
+
+describe('wallets in Custom (Ariel, 2026-10-04)', () => {
+  const stored = () => JSON.parse(b.disk.get('budget_wallets') ?? '{"wallets":[]}').wallets as
+    { name: string; total: number; pots: { name: string; planned: number }[]; expenses: { text: string; amount: number }[] }[];
+  const fill = (label: string, value: string) => {
+    const el = [...document.querySelectorAll<HTMLLabelElement>('.wallet label')].find(l => l.textContent === label);
+    fireEvent.change(document.getElementById(el!.htmlFor)!, { target: { value } });
+  };
+  const openCustom = async () => {
+    b.disk.set('budget_layout', 'custom');
+    b.disk.set('budget_custom_mode', 'linked');
+    b.disk.set('budget_custom_help_seen', '1');
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    await waitFor(() => expect(document.querySelector('.wallet-switch-toggle')).not.toBeNull(), { timeout: 4000 });
+  };
+  const createTrip = async () => {
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fill(sv.wName, 'SYNT RESA');
+    fill(sv.wTotal, '10000');
+    fireEvent.click(buttonWith(sv.wCreate)!);
+    await waitFor(() => expect(document.querySelector('.wallet-hero')).not.toBeNull());
+  };
+  const addExpense = (amount: string, what: string) => {
+    fireEvent.click(buttonWith(sv.wAddExpense)!);
+    fill(sv.wAmount, amount);
+    fill(sv.wWhat, what);
+    fireEvent.click([...document.querySelectorAll('.wallet button[type=submit]')].find(x => x.textContent === sv.wAdd)!);
+  };
+
+  it('a trip is created with its four parts, and an expense lands in it — not in the budget', async () => {
+    await openCustom();
+    const month = b.disk.get('budget_2026_8');
+    await createTrip();
+    expect(stored()[0]).toMatchObject({ name: 'SYNT RESA', total: 10000 });
+    expect(stored()[0].pots.map(p => p.name)).toEqual([sv.wPotTravel, sv.wPotStay, sv.wPotFood, sv.wPotFun]);
+    addExpense('2500', 'SYNT FLYG');
+    await waitFor(() => expect(stored()[0].expenses).toEqual([expect.objectContaining({ text: 'SYNT FLYG', amount: 2500 })]));
+    expect(document.querySelector('.wallet-hero-value')?.textContent?.replace(/\s/g, ' ')).toBe('7 500 kr');
+    expect(b.disk.get('budget_2026_8')).toBe(month);
+    expect(b.disk.has('budget_actuals_2026_8')).toBe(false);
+  });
+
+  it('opens on the wallet again after a restart', async () => {
+    await openCustom();
+    await createTrip();
+    cleanup();
+    await openCustom();
+    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain('SYNT RESA');
+  });
+
+  it('keeps the expense off the screen, and says so, when the database refuses', async () => {
+    await openCustom();
+    await createTrip();
+    b.refuse.add('budget_wallets');
+    addExpense('300', 'SYNT TÅG');
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    expect(stored()[0].expenses).toEqual([]);
+    expect(document.querySelector('.wallet-expenses')).toBeNull();
+  });
+
+  it('deleting the wallet asks first, and leaves a step back', async () => {
+    await openCustom();
+    await createTrip();
+    fireEvent.click(buttonWith(sv.wDelete)!);
+    await waitFor(() => expect(stored()).toEqual([]));
+    expect(undoOnDisk().map(u => u.action)).toContain('deleteWallet');
+    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain(sv.wMyBudget);
+  });
+});

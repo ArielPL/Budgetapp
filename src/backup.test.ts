@@ -131,6 +131,16 @@ describe('import validation — nothing is written unless the whole file is good
     const file = JSON.stringify({ app: 'budget', version: 1, data: { budget_lang: { nested: true } } });
     expect(checkBackup(file)).toMatchObject({ ok: false, reason: 'corrupt' });
   });
+  it('takes wallets, and refuses an expense pointing at a part the wallet does not have', () => {
+    const wallet = {
+      id: 'w', name: 'SYNT RESA', kind: 'trip', total: 1000,
+      pots: [{ id: 'p', name: 'Resor', planned: 1000 }],
+      expenses: [{ id: 'e', date: '2026-10-04', text: 'SYNT', amount: 10, potId: 'p' }],
+    };
+    expect(checkBackup(backupFile({ budget_wallets: JSON.stringify({ wallets: [wallet] }) }))).toMatchObject({ ok: true });
+    const broken = { ...wallet, expenses: [{ ...wallet.expenses[0], potId: 'gone' }] };
+    expect(checkBackup(backupFile({ budget_wallets: JSON.stringify({ wallets: [broken] }) }))).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
   it('rejects a key outside the backup policy', () => {
     expect(checkBackup(backupFile({ evil_key: 'x' }))).toMatchObject({ ok: false, reason: 'corrupt' });
     expect(checkBackup(backupFile({ budget_auth_token: 'stolen' }))).toMatchObject({ ok: false, reason: 'corrupt' });

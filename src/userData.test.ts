@@ -59,6 +59,14 @@ describe('worth protecting', () => {
     expect(hasRestorableUserData(s)).toBe(true);
   });
 
+  it('a wallet alone (2026-10-04)', () => {
+    put('budget_wallets', { wallets: [{
+      id: 'w', name: 'SYNT RESA', kind: 'trip', total: 1000,
+      pots: [{ id: 'p', name: 'Resor', planned: 1000 }], expenses: [],
+    }] });
+    expect(hasRestorableUserData(s)).toBe(true);
+  });
+
   it('Custom amounts alone', () => {
     put('budget_custom_v3_values_2026_8', { r1: 4200 });
     expect(hasRestorableUserData(s)).toBe(true);

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { BudgetCategory, BudgetRow, MonthData, SavingsGoal } from '../types';
 import type { PeriodLocks } from '../periodLabel';
 import { useLang } from '../i18n';
@@ -10,6 +11,8 @@ import {
 import { CustomV3 } from './CustomV3';
 import { CustomLinked } from './CustomLinked';
 import { defaultLinkedLayout } from '../customLinked';
+import { loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY, type Wallet } from '../wallets';
+import { PanelSwitcher, NewWallet, WalletView } from './Wallets';
 
 // ── The Custom layout: choose what it is, then show that ──────────────────
 //
@@ -40,6 +43,36 @@ export const CustomPanel = ({
   periodStartDay, periodLocks, onCopyPrev, onSaveFailed, onRecordUndo,
 }: Props) => {
   const { t } = useLang();
+
+  // ── Wallets: separate budgets for one thing, listed beside the budget ──
+  const [wallets, setWallets] = useState<Wallet[]>(() => loadWallets(appStorage));
+  const [openId, setOpenId] = useState<string | null>(() => {
+    const v = appStorage.getItem(OPEN_PANEL_KEY);
+    return v && loadWallets(appStorage).some(w => w.id === v) ? v : null;
+  });
+  const [creating, setCreating] = useState(false);
+  const open = (id: string | null) => {
+    setOpenId(id);
+    setCreating(false);
+    // Where Custom opens next time — a convenience, so a failure is not news.
+    try {
+      if (id) appStorage.setItem(OPEN_PANEL_KEY, id); else appStorage.removeItem(OPEN_PANEL_KEY);
+    } catch { /* stays on the budget next time */ }
+  };
+  /** Store every wallet as `next`; the screen changes only once that is
+   *  stored. `undo` records the step back for a removal. */
+  const saveWallets = async (next: Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense'): Promise<boolean> => {
+    const before = undo ? captureKeys(appStorage, [WALLETS_KEY]) : null;
+    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange(next)]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    setWallets(next);
+    if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, changes: before });
+    return true;
+  };
+  const current = wallets.find(w => w.id === openId) ?? null;
 
   const choose = (next: CustomMode) => {
     // The linked layout is written with the choice, from the budget as it is
@@ -79,19 +112,48 @@ export const CustomPanel = ({
     onModeChange(null);
   };
 
-  if (mode === null) return <CustomChoice onChoose={choose} />;
-  if (mode === 'linked') {
-    return (
+  const switcher = (
+    <PanelSwitcher wallets={wallets} openId={creating ? null : openId}
+      budgetTag={mode === 'linked' ? t.wTagLinked : mode === 'standalone' ? t.wTagStandalone : null}
+      onOpen={open} onNew={() => setCreating(true)} />
+  );
+
+  let panel;
+  if (creating) {
+    panel = (
+      <NewWallet onCancel={() => setCreating(false)}
+        onCreate={async w => {
+          if (!(await saveWallets([...wallets, w]))) return false;
+          open(w.id);
+          return true;
+        }} />
+    );
+  } else if (current) {
+    panel = (
+      <WalletView key={current.id} wallet={current}
+        onSave={(next, removedExpense) =>
+          saveWallets(wallets.map(w => (w.id === next.id ? next : w)), removedExpense ? 'deleteWalletExpense' : undefined)}
+        onDelete={async () => {
+          if (!window.confirm(t.wDeleteConfirm(current.name))) return;
+          if (await saveWallets(wallets.filter(w => w.id !== current.id), 'deleteWallet')) open(null);
+        }} />
+    );
+  } else if (mode === null) {
+    panel = <CustomChoice onChoose={choose} />;
+  } else if (mode === 'linked') {
+    panel = (
       <CustomLinked year={year} month={month} data={data}
         onSetIncome={onSetIncome} onSetCategory={onSetCategory} onAddCategory={onAddCategory}
         goals={goals} periodStartDay={periodStartDay} periodLocks={periodLocks} onCopyPrev={onCopyPrev}
         onStartOver={startOver} onSaveFailed={onSaveFailed} onRecordUndo={onRecordUndo} />
     );
+  } else {
+    panel = (
+      <CustomV3 year={year} month={month} onSaveFailed={onSaveFailed} onRecordUndo={onRecordUndo}
+        onStartOver={startOver} />
+    );
   }
-  return (
-    <CustomV3 year={year} month={month} onSaveFailed={onSaveFailed} onRecordUndo={onRecordUndo}
-      onStartOver={startOver} />
-  );
+  return <>{switcher}{panel}</>;
 };
 
 const CustomChoice = ({ onChoose }: { onChoose: (mode: CustomMode) => void }) => {

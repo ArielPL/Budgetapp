@@ -69,7 +69,11 @@ export type UndoAction =
    *  belong to, because they were stored somewhere else — see filingRepair.ts. */
   | 'refileRepair'
   /** Custom started over: its keys removed and the choice offered again. */
-  | 'resetCustom';
+  | 'resetCustom'
+  /** A wallet, with every expense in it. */
+  | 'deleteWallet'
+  /** One expense in a wallet. */
+  | 'deleteWalletExpense';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -123,6 +127,8 @@ const ACTIONS: Record<UndoAction, true> = {
   clearCustom: true,
   refileRepair: true,
   resetCustom: true,
+  deleteWallet: true,
+  deleteWalletExpense: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than
