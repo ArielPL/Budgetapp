@@ -5401,6 +5401,111 @@ a:focus-visible,
 /* ── "Where did the money go?" — the spending card at the top of Follow-up ──
    One direct answer, with what is still unsorted said out loud beside it.
    Mobile adjustments are at the end of the file. */
+/* ── Question cards (Follow-up): answers the app works out itself ──────────
+   Same card as "Where did the money go?" above it. Questions are full-width
+   rows a thumb can hit; an answer replaces the list, with a way back. */
+.q-card {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.q-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-brand-strong);
+}
+.q-lead {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.q-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q-ask {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.q-ask:hover { border-color: var(--border-strong); }
+.q-back {
+  margin: 0 0 8px;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.q-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.q-pick select { width: auto; min-width: 0; }
+.q-headline {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+}
+.q-headline-main {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.q-headline-sub {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.q-lines {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.q-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.q-lines li:last-child { border-bottom: none; }
+.q-line-label { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+.q-line-value {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.q-line-sub { font-weight: 400; font-size: 0.8rem; color: var(--text-muted); }
+.q-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.q-note-warn { color: var(--caution); }
+
 .spending-card {
   margin: 0 0 14px;
   padding: 14px 16px;

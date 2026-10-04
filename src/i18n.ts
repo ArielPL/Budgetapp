@@ -944,6 +944,52 @@ export interface Translations {
   goalUnlinkedFromBudget: (goal: string) => string;
   /** Said when a savings goal is reached — with a tap of haptics on a phone. */
   goalReached: (goal: string) => string;
+  // Question cards (Follow-up): answers the app works out itself
+  qTitle: string;
+  qLead: string;
+  qBack: string;
+  qCategoryYear: (category: string) => string;
+  qCategoryPick: string;
+  qCategoryTotal: (amount: string, year: number) => string;
+  qCategoryAverage: (amount: string) => string;
+  qUnknownMonth: string;
+  qRecurring: string;
+  qRecurringAnswer: (count: number, perMonth: string) => string;
+  qRecurringYear: (perYear: string) => string;
+  qRecurringNone: string;
+  qRecurringSeen: (months: number) => string;
+  qRecurringRule: string;
+  qRises: string;
+  qRisesWindows: (recent: string, earlier: string) => string;
+  qRisesNone: string;
+  qRisesPerMonth: string;
+  qPerDay: string;
+  qPerDayAnswer: (perDay: string) => string;
+  qPerDayLeft: (left: string, days: number) => string;
+  qPerDayOver: (over: string) => string;
+  qPerDayRule: string;
+  qPerDayThrough: (date: string) => string;
+  qPerDayNothingYet: (month: string) => string;
+  qNoBudget: (month: string) => string;
+  qKept: string;
+  qKeptYes: (under: string, month: string) => string;
+  qKeptNo: (over: string, month: string) => string;
+  qKeptRow: (actual: string, planned: string) => string;
+  qKeptRule: string;
+  qKeptNothing: (month: string) => string;
+  qGoal: string;
+  qGoalAt: (when: string) => string;
+  qGoalMonthly: (monthly: string) => string;
+  qGoalInTime: string;
+  qGoalLate: (months: number) => string;
+  qGoalReached: string;
+  qGoalNoMonthly: (month: string) => string;
+  qGoalRule: string;
+  qGoalNone: string;
+  qBasisMonths: (covered: number, asked: number) => string;
+  qBasisUnsorted: (amount: string, count: number) => string;
+  qTooLittle: (need: number, have: number) => string;
+  qNothing: string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -1703,6 +1749,51 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
     goalUnlinkedFromBudget: (goal) => `"${goal}" är inte längre kopplat till budgeten. Målet behåller det du sparat.`,
     goalReached: (goal) => `🎉 Du har nått målet "${goal}"!`,
+    qTitle: 'Fråga om din ekonomi',
+    qLead: 'Appen räknar fram svaret själv, här på enheten. Inget skickas iväg.',
+    qBack: 'Frågor',
+    qCategoryYear: (category) => `Vad har jag lagt på ${category.toLowerCase()} i år?`,
+    qCategoryPick: 'Kategori',
+    qCategoryTotal: (amount, year) => `${amount} hittills ${year}`,
+    qCategoryAverage: (amount) => `I snitt ${amount} per månad`,
+    qUnknownMonth: '– = inga importerade poster',
+    qRecurring: 'Vilka abonnemang betalar jag?',
+    qRecurringAnswer: (count, perMonth) => `${count} st · ${perMonth} per månad`,
+    qRecurringYear: (perYear) => `${perYear} per år`,
+    qRecurringNone: 'Hittade inga betalningar med samma belopp varje månad.',
+    qRecurringSeen: (months) => `${months} mån`,
+    qRecurringRule: 'Räknar betalningar som kommer en gång i månaden, minst tre av de senaste sex månaderna, med nästan samma belopp. Hyra, lån och sparande räknas inte.',
+    qRises: 'Vad har ökat mest på sistone?',
+    qRisesWindows: (recent, earlier) => `Snitt per månad ${recent}, jämfört med ${earlier}`,
+    qRisesNone: 'Ingen kategori har ökat.',
+    qRisesPerMonth: 'per månad',
+    qPerDay: 'Hur mycket kan jag lägga per dag resten av månaden?',
+    qPerDayAnswer: (perDay) => `${perDay} per dag`,
+    qPerDayLeft: (left, days) => `${left} kvar till köp, ${days} ${days === 1 ? 'dag' : 'dagar'} kvar`,
+    qPerDayOver: (over) => `Du har lagt ${over} mer än budgeten för köp.`,
+    qPerDayRule: 'Räknar med det du budgeterat för köp: allt utom boende, abonnemang, lån och sparande. Osorterade poster räknas som köp.',
+    qPerDayThrough: (date) => `Bygger på poster fram till ${date}.`,
+    qPerDayNothingYet: (month) => `Inga poster importerade för ${month} än, så svaret är hela budgeten.`,
+    qNoBudget: (month) => `${month} har ingen budget än.`,
+    qKept: 'Höll jag budgeten förra månaden?',
+    qKeptYes: (under, month) => `Ja, ${under} under budgeten i ${month}`,
+    qKeptNo: (over, month) => `Nej, ${over} över budgeten i ${month}`,
+    qKeptRow: (actual, planned) => `${actual} av ${planned}`,
+    qKeptRule: 'Jämför det som gick åt med budgeten. Sparande räknas inte, osorterade poster räknas som utgifter.',
+    qKeptNothing: (month) => `${month} har ingen budget eller inga importerade poster.`,
+    qGoal: 'När når jag mitt sparmål?',
+    qGoalAt: (when) => `Når målet i ${when}`,
+    qGoalMonthly: (monthly) => `med ${monthly} i månaden`,
+    qGoalInTime: 'I tid till deadline',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'månad' : 'månader'} efter deadline`,
+    qGoalReached: 'Redan nått 🎉',
+    qGoalNoMonthly: (month) => `Inget sparbelopp för målet i budgeten för ${month}.`,
+    qGoalRule: 'Räknar med att du sparar samma belopp varje månad, utan ränta eller avkastning.',
+    qGoalNone: 'Du har inga sparmål än. Lägg till ett under Plan.',
+    qBasisMonths: (covered, asked) => `Bygger på ${covered} av ${asked} månader. De andra har inga importerade poster.`,
+    qBasisUnsorted: (amount, count) => `${amount} i ${count} ${count === 1 ? 'osorterad post' : 'osorterade poster'} kan ändra svaret.`,
+    qTooLittle: (need, have) => `Behöver minst ${need} månader med importerade poster. Du har ${have}.`,
+    qNothing: 'Inga importerade poster under perioden.',
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -2471,6 +2562,51 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Linked to Plan — cannot be deleted',
     goalUnlinkedFromBudget: (goal) => `"${goal}" is no longer linked to your budget. The goal keeps what you've saved.`,
     goalReached: (goal) => `🎉 You've reached your goal "${goal}"!`,
+    qTitle: 'Ask about your money',
+    qLead: 'The app works the answer out itself, here on this device. Nothing is sent anywhere.',
+    qBack: 'Questions',
+    qCategoryYear: (category) => `What have I spent on ${category.toLowerCase()} this year?`,
+    qCategoryPick: 'Category',
+    qCategoryTotal: (amount, year) => `${amount} so far in ${year}`,
+    qCategoryAverage: (amount) => `${amount} a month on average`,
+    qUnknownMonth: '– = nothing imported',
+    qRecurring: 'Which subscriptions do I pay?',
+    qRecurringAnswer: (count, perMonth) => `${count} · ${perMonth} a month`,
+    qRecurringYear: (perYear) => `${perYear} a year`,
+    qRecurringNone: 'No payments of the same amount every month were found.',
+    qRecurringSeen: (months) => `${months} mo`,
+    qRecurringRule: 'Counts payments made once a month, in at least three of the last six months, for nearly the same amount. Rent, loans and savings are not counted.',
+    qRises: 'What has gone up most lately?',
+    qRisesWindows: (recent, earlier) => `Average per month ${recent}, compared with ${earlier}`,
+    qRisesNone: 'No category has gone up.',
+    qRisesPerMonth: 'a month',
+    qPerDay: 'How much can I spend per day for the rest of the month?',
+    qPerDayAnswer: (perDay) => `${perDay} a day`,
+    qPerDayLeft: (left, days) => `${left} left for spending, ${days} ${days === 1 ? 'day' : 'days'} to go`,
+    qPerDayOver: (over) => `You have spent ${over} more than your spending budget.`,
+    qPerDayRule: 'Uses what you budgeted for spending: everything except housing, subscriptions, loans and savings. Unsorted entries count as spending.',
+    qPerDayThrough: (date) => `Based on entries up to ${date}.`,
+    qPerDayNothingYet: (month) => `Nothing imported for ${month} yet, so the answer is the whole budget.`,
+    qNoBudget: (month) => `${month} has no budget yet.`,
+    qKept: 'Did I keep to my budget last month?',
+    qKeptYes: (under, month) => `Yes, ${under} under budget in ${month}`,
+    qKeptNo: (over, month) => `No, ${over} over budget in ${month}`,
+    qKeptRow: (actual, planned) => `${actual} of ${planned}`,
+    qKeptRule: 'Compares what went out with the budget. Savings are not counted; unsorted entries count as spending.',
+    qKeptNothing: (month) => `${month} has no budget or nothing imported.`,
+    qGoal: 'When will I reach my savings goal?',
+    qGoalAt: (when) => `Reached in ${when}`,
+    qGoalMonthly: (monthly) => `at ${monthly} a month`,
+    qGoalInTime: 'In time for the deadline',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'month' : 'months'} after the deadline`,
+    qGoalReached: 'Already reached 🎉',
+    qGoalNoMonthly: (month) => `No amount saved towards it in the budget for ${month}.`,
+    qGoalRule: 'Assumes you save the same amount every month, with no interest or returns.',
+    qGoalNone: 'You have no savings goals yet. Add one under Plan.',
+    qBasisMonths: (covered, asked) => `Based on ${covered} of ${asked} months. The others have nothing imported.`,
+    qBasisUnsorted: (amount, count) => `${amount} in ${count} unsorted ${count === 1 ? 'entry' : 'entries'} could change the answer.`,
+    qTooLittle: (need, have) => `Needs at least ${need} months with imported entries. You have ${have}.`,
+    qNothing: 'Nothing imported in this period.',
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -3239,6 +3375,51 @@ export const translations: Record<Lang, Translations> = {
     protectedCategory: 'Vinculada al Plan — no se puede eliminar',
     goalUnlinkedFromBudget: (goal) => `"${goal}" ya no está vinculada a tu presupuesto. La meta conserva lo que has ahorrado.`,
     goalReached: (goal) => `🎉 ¡Has alcanzado tu meta "${goal}"!`,
+    qTitle: 'Pregunta sobre tu economía',
+    qLead: 'La app calcula la respuesta por sí misma, aquí en el dispositivo. No se envía nada.',
+    qBack: 'Preguntas',
+    qCategoryYear: (category) => `¿Cuánto he gastado en ${category.toLowerCase()} este año?`,
+    qCategoryPick: 'Categoría',
+    qCategoryTotal: (amount, year) => `${amount} en lo que va de ${year}`,
+    qCategoryAverage: (amount) => `${amount} al mes de media`,
+    qUnknownMonth: '– = nada importado',
+    qRecurring: '¿Qué suscripciones pago?',
+    qRecurringAnswer: (count, perMonth) => `${count} · ${perMonth} al mes`,
+    qRecurringYear: (perYear) => `${perYear} al año`,
+    qRecurringNone: 'No se encontraron pagos del mismo importe cada mes.',
+    qRecurringSeen: (months) => `${months} meses`,
+    qRecurringRule: 'Cuenta pagos que llegan una vez al mes, en al menos tres de los últimos seis meses, por casi el mismo importe. No cuenta alquiler, préstamos ni ahorro.',
+    qRises: '¿Qué ha subido más últimamente?',
+    qRisesWindows: (recent, earlier) => `Media al mes ${recent}, comparada con ${earlier}`,
+    qRisesNone: 'Ninguna categoría ha subido.',
+    qRisesPerMonth: 'al mes',
+    qPerDay: '¿Cuánto puedo gastar al día el resto del mes?',
+    qPerDayAnswer: (perDay) => `${perDay} al día`,
+    qPerDayLeft: (left, days) => `Quedan ${left} para compras y ${days} ${days === 1 ? 'día' : 'días'}`,
+    qPerDayOver: (over) => `Has gastado ${over} más que tu presupuesto para compras.`,
+    qPerDayRule: 'Usa lo que presupuestaste para compras: todo menos vivienda, suscripciones, préstamos y ahorro. Los movimientos sin ordenar cuentan como compras.',
+    qPerDayThrough: (date) => `Basado en movimientos hasta el ${date}.`,
+    qPerDayNothingYet: (month) => `Aún no hay nada importado de ${month}, así que la respuesta es todo el presupuesto.`,
+    qNoBudget: (month) => `${month} aún no tiene presupuesto.`,
+    qKept: '¿Cumplí el presupuesto el mes pasado?',
+    qKeptYes: (under, month) => `Sí, ${under} por debajo del presupuesto en ${month}`,
+    qKeptNo: (over, month) => `No, ${over} por encima del presupuesto en ${month}`,
+    qKeptRow: (actual, planned) => `${actual} de ${planned}`,
+    qKeptRule: 'Compara lo que salió con el presupuesto. No cuenta el ahorro; los movimientos sin ordenar cuentan como gastos.',
+    qKeptNothing: (month) => `${month} no tiene presupuesto o no tiene nada importado.`,
+    qGoal: '¿Cuándo alcanzaré mi meta de ahorro?',
+    qGoalAt: (when) => `Se alcanza en ${when}`,
+    qGoalMonthly: (monthly) => `con ${monthly} al mes`,
+    qGoalInTime: 'A tiempo para la fecha límite',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'mes' : 'meses'} después de la fecha límite`,
+    qGoalReached: 'Ya alcanzada 🎉',
+    qGoalNoMonthly: (month) => `No hay importe de ahorro para ella en el presupuesto de ${month}.`,
+    qGoalRule: 'Supone que ahorras lo mismo cada mes, sin intereses ni rentabilidad.',
+    qGoalNone: 'Aún no tienes metas de ahorro. Añade una en Plan.',
+    qBasisMonths: (covered, asked) => `Basado en ${covered} de ${asked} meses. Los demás no tienen nada importado.`,
+    qBasisUnsorted: (amount, count) => `${amount} en ${count} ${count === 1 ? 'movimiento' : 'movimientos'} sin ordenar podrían cambiar la respuesta.`,
+    qTooLittle: (need, have) => `Hacen falta al menos ${need} meses con movimientos importados. Tienes ${have}.`,
+    qNothing: 'Nada importado en este periodo.',
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

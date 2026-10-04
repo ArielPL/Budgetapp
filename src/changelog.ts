@@ -79,6 +79,7 @@ export const CHANGELOG: Release[] = [
         'I appen för iPhone och Android syns inte budgeten i appväxlaren. Där visas appens ikon i stället. Skärmdumpar fungerar som vanligt. På Android gäller det från Android 13',
         'Når du ett sparmål eller betalar av en skuld säger appen det, och i mobilappen vibrerar telefonen kort',
         'Mobilappen startar med en ljus skärm, som appen själv',
+        'Nytt i Uppföljning: Fråga om din ekonomi. Sex färdiga frågor, till exempel "Vilka abonnemang betalar jag?", "Höll jag budgeten förra månaden?" och "När når jag mitt sparmål?". Appen räknar fram svaret själv på enheten, och inget skickas iväg. Varje svar säger vad det bygger på: hur många månader och hur mycket som är osorterat. Finns det för lite underlag säger den det i stället för att gissa',
       ],
       en: [
         'The top of Custom says which kind of panel it is: linked to your regular budget, or separate so that what you type does not affect it',
@@ -135,6 +136,7 @@ export const CHANGELOG: Release[] = [
         'In the iPhone and Android app, your budget is hidden in the app switcher, which shows the app\'s icon instead. Screenshots work as usual. On Android this needs Android 13 or later',
         'Reach a savings goal or pay off a debt and the app says so, and in the phone app the phone gives a short buzz',
         'The phone app opens on a light screen, like the app itself',
+        'New in Follow-up: Ask about your money. Six ready-made questions, such as "Which subscriptions do I pay?", "Did I keep to my budget last month?" and "When will I reach my savings goal?". The app works out the answer itself on your device, and nothing is sent anywhere. Every answer says what it is based on: how many months, and how much is unsorted. If there is too little to go on, it says so instead of guessing',
       ],
       es: [
         'Arriba en Personalizado se indica qué tipo de panel es: vinculado a tu presupuesto normal, o aparte para que lo que escribas no lo afecte',
@@ -191,6 +193,7 @@ export const CHANGELOG: Release[] = [
         'En la app para iPhone y Android, tu presupuesto no se ve en el selector de apps, que muestra el icono de la app. Las capturas de pantalla funcionan como siempre. En Android hace falta Android 13 o posterior',
         'Si alcanzas una meta de ahorro o terminas de pagar una deuda, la app te lo dice, y en la app del móvil el teléfono vibra brevemente',
         'La app del móvil se abre con una pantalla clara, como la propia app',
+        'Nuevo en Seguimiento: Pregunta sobre tu economía. Seis preguntas preparadas, como "¿Qué suscripciones pago?", "¿Cumplí el presupuesto el mes pasado?" y "¿Cuándo alcanzaré mi meta de ahorro?". La app calcula la respuesta por sí misma en tu dispositivo, y no se envía nada. Cada respuesta dice en qué se basa: cuántos meses y cuánto está sin ordenar. Si hay demasiado poco, lo dice en vez de adivinar',
       ],
     },
   },

@@ -1131,3 +1131,49 @@ describe('reaching a savings goal (Ariel, 2026-10-04)', () => {
     expect(said()).not.toContain('SYNT BUFFERT');
   });
 });
+
+describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
+  const AUG = JSON.stringify({
+    income: [{ id: 'lon', label: 'Lön', amount: 30000, userNamed: true }],
+    expenses: [
+      { id: 'boende', name: 'Boende', icon: '•', color: '#888', userNamed: true, rows: [{ id: 'hyra', label: 'Hyra', amount: 9000, userNamed: true }] },
+      { id: 'mat', name: 'Mat', icon: '•', color: '#888', userNamed: true, rows: [{ id: 'matv', label: 'Matvaror', amount: 4000, userNamed: true }] },
+    ],
+    savings: [],
+  });
+  const entry = (id: string, date: string, text: string, amount: number, categoryId: string) =>
+    ({ id, date, text, amount, categoryId, direction: 'out' });
+  const ask = async (question: string) => {
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(document.querySelector('.q-card')).not.toBeNull());
+    fireEvent.click([...document.querySelectorAll('.q-ask')].find(x => x.textContent?.includes(question))!);
+    // Amounts are written with a non-breaking space; compare plain spaces.
+    return (document.querySelector('.q-answer')!.textContent ?? '').replace(/\s/g, ' ');
+  };
+
+  it('answers "did I keep to the budget last month" from what is stored', async () => {
+    b.disk.set('budget_2026_7', AUG);
+    b.disk.set('budget_actuals_2026_7', JSON.stringify([
+      entry('a1', '2026-08-02', 'SYNT HYRA', 9000, 'boende'),
+      entry('a2', '2026-08-05', 'SYNT MAT', 4500, 'mat'),
+    ]));
+    const text = await ask(sv.qKept);
+    expect(text).toContain(sv.qKeptNo('500 kr', 'augusti 2026'));
+  });
+
+  it('says what it would need instead of answering from too little', async () => {
+    const text = await ask(sv.qRecurring);
+    expect(text).toContain(sv.qTooLittle(3, 0));
+  });
+
+  it('goes back to the list', async () => {
+    await ask(sv.qGoal);
+    expect(document.querySelector('.q-answer')?.textContent).toContain(sv.qGoalNone);
+    fireEvent.click(document.querySelector('.q-back')!);
+    expect(document.querySelectorAll('.q-ask')).toHaveLength(6);
+  });
+});

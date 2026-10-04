@@ -21,6 +21,7 @@ import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth, type CategoryPlan } from './CsvImport';
 import { SpendingCard } from './SpendingCard';
+import { QuestionCards } from './QuestionCards';
 import { spendingBreakdown, purchaseHighlights, smallLimitChoices } from '../spending';
 import {
   loadHiddenPlaces, hiddenPlacesChange, loadSmallLimit, SMALL_LIMIT_KEY, type HiddenPlaces,
@@ -998,6 +999,10 @@ export const FollowUpTab = ({
           smallLimit={smallLimit} limitChoices={smallLimitChoices(currency)} onLimit={chooseLimit}
           hidden={hiddenPlaces} onHide={hidePlace} onUnhide={unhidePlace}
         />
+      )}
+
+      {!nothingYet && (
+        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} />
       )}
 
       {/* ── The leftover pile, as a short list of decisions ──────────────
