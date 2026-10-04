@@ -22,7 +22,6 @@
 // A plan whose start month is in the future has no recorded month to compare
 // against yet, so no ahead/behind badge is shown until it begins.
 
-import { safeSetItem } from './storageWrite';
 import { appStorage } from './storage';
 
 export interface SavingsPlan {
@@ -194,17 +193,6 @@ export function loadSavingsPlan(): SavingsPlan | null {
   }
 }
 
-/** Persist the plan — refuses invalid ones so storage can never hold a plan
- *  the loader would throw away. Returns whether it saved. */
-export function saveSavingsPlan(plan: SavingsPlan): boolean {
-  if (validateSavingsPlan(plan).length > 0) return false;
-  // False now covers both "invalid" and "storage refused it". Both mean the
-  // plan is not saved, which is what the caller has to act on either way (F4).
-  return safeSetItem(appStorage, SPARPLAN_KEY, JSON.stringify(plan));
-}
-
-/** Remove the plan. Month data and savings goals live under other keys and are
- *  untouched — deleting the plan only clears the projection settings. */
-export function deleteSavingsPlan(): void {
-  appStorage.removeItem(SPARPLAN_KEY);
-}
+// Saving and deleting go through commitStorageChangesOutcome in SparPlan.tsx,
+// so the chart changes only once storage has the change (deep review
+// 2026-10-04, P1). validateSavingsPlan runs first, there as here.

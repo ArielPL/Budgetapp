@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,7 +8,7 @@ import { calculateSavingsMetrics } from '../metrics';
 import { useLang, MONTHS_SHORT, formatAxisTick, type Translations } from '../i18n';
 import { chartColors } from '../themes';
 import {
-  loadSavingsPlan, saveSavingsPlan, deleteSavingsPlan, validateSavingsPlan,
+  loadSavingsPlan, validateSavingsPlan, SPARPLAN_KEY,
   projectPlan, monthsBetween, toYM, earliestSavingsYM, planYears, PLAN_YEARS,
   planVsActual, type SavingsPlan, type PlanVsActualPoint, type PlanField,
 } from '../sparplan';
@@ -16,6 +16,7 @@ import {
 type VsRow = { label: string } & PlanVsActualPoint;
 import { parseAmount } from '../goalForm';
 import { appStorage } from '../storage';
+import { commitStorageChangesOutcome } from '../storageWrite';
 
 const TEAL = '#14b8a6';
 const GRAY = '#888780';
@@ -107,11 +108,16 @@ export const SparPlanSection = () => {
 
   // Persist on every VALID edit; an invalid one shows a field error, keeps the
   // draft so it can be fixed, and touches neither storage nor the chart. The
-  // same validateSavingsPlan runs here, in saveSavingsPlan and in the loader —
+  // same validateSavingsPlan runs here and in the loader —
   // the old form-only isNaN check let `1e309` through as Infinity, which
   // JSON.stringify wrote as null and the loader then rejected: the plan
   // silently vanished on the next reload.
   const [fieldErrors, setFieldErrors] = useState<PlanField[]>([]);
+  /** What storage last confirmed, and which edit is the newest. */
+  const lastStored = useRef<SavingsPlan | null>(plan);
+  const latest = useRef(0);
+  /** The newest edit was refused: said in the card, the draft kept. */
+  const [saveFailed, setSaveFailed] = useState(false);
   const commit = (m: string, r: string, s: string, sy: string, yrs = years) => {
     const next: SavingsPlan = {
       monthlyAmount: parseAmount(m),
@@ -123,13 +129,32 @@ export const SparPlanSection = () => {
     const errors = validateSavingsPlan(next);
     setFieldErrors(errors);
     if (errors.length > 0) return;
-    saveSavingsPlan(next);
-    setPlanState(next);
+    // The chart shows the plan once it is STORED, not when it is typed: in the
+    // phone apps a write is only queued when it returns, and the result used
+    // to be ignored altogether (deep review 2026-10-04, P1). Writes are made
+    // in order; only the newest edit's answer decides what is shown, so a
+    // slow answer to an older keystroke cannot put an older plan back.
+    const mine = ++latest.current;
+    void commitStorageChangesOutcome(appStorage, [{ key: SPARPLAN_KEY, value: JSON.stringify(next) }])
+      .then(outcome => {
+        if (outcome === 'stored') lastStored.current = next;
+        if (mine !== latest.current) return;
+        setPlanState(lastStored.current);
+        setSaveFailed(outcome !== 'stored');
+      });
   };
 
-  const removePlan = () => {
+  const removePlan = async () => {
     if (!window.confirm(t.sparplanDeleteConfirm)) return;
-    deleteSavingsPlan();
+    const outcome = await commitStorageChangesOutcome(appStorage, [{ key: SPARPLAN_KEY, value: null }]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return;
+    }
+    // Anything still on its way is about a plan that no longer exists.
+    latest.current++;
+    lastStored.current = null;
+    setSaveFailed(false);
     setPlanState(null);
     setFieldErrors([]);
     setMonthly('2000');
@@ -240,9 +265,15 @@ export const SparPlanSection = () => {
   const vsPad = Math.max(100, (vsMax - vsMin) * 0.25);
   const vsDomain: [number, number] = [Math.max(0, vsMin - vsPad), vsMax + vsPad];
 
+  /** One amount typed: kept as the draft, and stored if the plan holds up. */
+  const edit = (which: 'monthly' | 'ret' | 'start', v: string) => {
+    if (which === 'monthly') { setMonthly(v); commit(v, ret, start, startYM); }
+    if (which === 'ret') { setRet(v); commit(monthly, v, start, startYM); }
+    if (which === 'start') { setStart(v); commit(monthly, ret, v, startYM); }
+  };
   const field = (
     id: string, label: string, value: string, placeholder: string,
-    set: (v: string) => void, after: (v: string) => void, errorText?: string,
+    which: 'monthly' | 'ret' | 'start', errorText?: string,
   ) => (
     <div className="goal-form-field">
       <label htmlFor={id}>{label}</label>
@@ -251,7 +282,7 @@ export const SparPlanSection = () => {
         placeholder={placeholder}
         aria-invalid={errorText ? true : undefined}
         aria-describedby={errorText ? `${id}-err` : undefined}
-        onChange={e => { set(e.target.value); after(e.target.value); }}
+        onChange={e => edit(which, e.target.value)}
       />
       {errorText && <span className="field-error" id={`${id}-err`} role="alert">{errorText}</span>}
     </div>
@@ -271,12 +302,9 @@ export const SparPlanSection = () => {
             a forecast built from their budget (deep review 2026-09-27, P2). */}
         {!plan && <p className="sparplan-example-note">{t.sparplanExampleNote}</p>}
         <div className="sparplan-inputs">
-          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', setMonthly,
-            v => commit(v, ret, start, startYM), errFor('monthlyAmount', t.sparplanErrAmount))}
-          {field('sp-return', t.sparplanReturn, ret, '7', setRet,
-            v => commit(monthly, v, start, startYM), errFor('annualReturnPct', t.sparplanErrReturn))}
-          {field('sp-start', t.sparplanStartAmount, start, '0', setStart,
-            v => commit(monthly, ret, v, startYM), errFor('startAmount', t.sparplanErrAmount))}
+          {field('sp-monthly', t.sparplanMonthly, monthly, '2000', 'monthly', errFor('monthlyAmount', t.sparplanErrAmount))}
+          {field('sp-return', t.sparplanReturn, ret, '7', 'ret', errFor('annualReturnPct', t.sparplanErrReturn))}
+          {field('sp-start', t.sparplanStartAmount, start, '0', 'start', errFor('startAmount', t.sparplanErrAmount))}
           <div className="goal-form-field">
             <label htmlFor="sp-startym">{t.sparplanStartMonth}</label>
             <input
@@ -290,8 +318,9 @@ export const SparPlanSection = () => {
             )}
           </div>
         </div>
+        {saveFailed && <p className="field-error" role="alert">{t.sparplanSaveFailed}</p>}
         {plan && (
-          <button className="sparplan-delete-btn" onClick={removePlan}>
+          <button className="sparplan-delete-btn" onClick={() => void removePlan()}>
             🗑 {t.sparplanDelete}
           </button>
         )}

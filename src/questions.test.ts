@@ -129,6 +129,21 @@ describe('perDayLeft', () => {
     expect(a.perDay).toBeNull();
   });
 
+  describe('exactly nothing left is not an overrun (deep review 2026-10-04, P2)', () => {
+    const only = (food: number) => budget([['mat', food]]);
+    it.each([
+      ['nothing budgeted, nothing spent', 0, 0, 'none-planned'],
+      ['spent exactly the budget', 100, 100, 'used-up'],
+      ['spent one more', 100, 101, 'over'],
+      ['one left', 100, 99, 'left'],
+      ['decimal dust', 0.3, 0.1 + 0.2, 'used-up'],
+    ] as const)('%s', (_, planned, spent, state) => {
+      const a = perDayLeft(only(planned), spent ? [e(day(9, 2), 'SYNT MAT', spent, 'mat')] : [], 10);
+      expect(a.state).toBe(state);
+      expect(a.perDay === null).toBe(state !== 'left');
+    });
+  });
+
   it('with nothing imported, is the whole budget', () => {
     const a = perDayLeft(b, [], 20);
     expect([a.left, a.perDay, a.through]).toEqual([5000, 250, null]);

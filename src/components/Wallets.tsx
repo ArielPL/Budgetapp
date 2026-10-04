@@ -17,7 +17,12 @@ import {
 // budget and every wallet. A wallet starts empty — the user names it, gives it
 // a total and makes its own parts — or from the trip template's four parts.
 // Separate from the budget: nothing here is counted in a month. Writes go
-// through `onSave`, which resolves once stored; the screen changes only then.
+// through `onChange`, which resolves once stored; the screen changes only then.
+//
+// A change is a FUNCTION of the wallet, not a finished wallet: two quick taps
+// each built a whole new wallet from the same old one, and the second write
+// put back what the first had removed (deep review 2026-10-04, P1). Changes
+// now wait in line and each is applied to what the one before it stored.
 
 const ICON: Record<WalletKind, string> = { blank: '👛', trip: '✈️' };
 
@@ -137,19 +142,38 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
       if (id) appStorage.setItem(OPEN_PANEL_KEY, id); else appStorage.removeItem(OPEN_PANEL_KEY);
     } catch { /* opens on the budget next time */ }
   };
-  /** Store every wallet as `next`; the screen changes only once that is
-   *  stored. `undo` records the step back for a removal. */
-  const save = async (next: Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense'): Promise<boolean> => {
-    const before = undo ? captureKeys(appStorage, [WALLETS_KEY]) : null;
-    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange(next)]);
-    if (outcome !== 'stored') {
-      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
-      return false;
-    }
-    setWallets(next);
-    if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, changes: before });
-    return true;
+  // What storage last confirmed, and the line changes wait in. A change is
+  // applied to `stored` only when its turn comes, so it always builds on
+  // every change before it — never on a screen that has not caught up yet.
+  const stored = useRef<Wallet[]>(wallets);
+  const line = useRef<Promise<unknown>>(Promise.resolve());
+  /** Apply `change` to the wallets as last stored, store the result, and only
+   *  then show it. `undo` records the step back for a removal: taken in turn,
+   *  so it holds exactly the state this change replaced. */
+  const save = (
+    change: (all: Wallet[]) => Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense',
+  ): Promise<boolean> => {
+    const run = line.current.then(async () => {
+      const next = change(stored.current);
+      if (next === stored.current) return true;
+      const before = undo ? captureKeys(appStorage, [WALLETS_KEY]) : null;
+      const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange(next)]);
+      if (outcome !== 'stored') {
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return false;
+      }
+      stored.current = next;
+      setWallets(next);
+      if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, changes: before });
+      return true;
+    });
+    // One refused change must not stop the ones queued behind it.
+    line.current = run.catch(() => false);
+    return run;
   };
+  /** A change to one wallet; nothing if it has gone in the meantime. */
+  const changeWallet = (id: string, change: (w: Wallet) => Wallet, undo?: 'deleteWalletExpense') =>
+    save(all => (all.some(w => w.id === id) ? all.map(w => (w.id === id ? change(w) : w)) : all), undo);
   const current = wallets.find(w => w.id === openId) ?? null;
 
   let content: ReactNode;
@@ -158,7 +182,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
       <NewWallet
         onCancel={() => { setCreating(false); if (!current && budget === null) onLeave?.(); }}
         onCreate={async w => {
-          if (!(await save([...wallets, w]))) return false;
+          if (!(await save(all => [...all, w]))) return false;
           open(w.id);
           return true;
         }} />
@@ -166,11 +190,12 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
   } else if (current) {
     content = (
       <WalletView key={current.id} wallet={current}
-        onSave={(next, removedExpense) =>
-          save(wallets.map(w => (w.id === next.id ? next : w)), removedExpense ? 'deleteWalletExpense' : undefined)}
+        onChange={(change, removedExpense) =>
+          changeWallet(current.id, change, removedExpense ? 'deleteWalletExpense' : undefined)}
         onDelete={async () => {
           if (!window.confirm(t.wDeleteConfirm(current.name))) return;
-          if (await save(wallets.filter(w => w.id !== current.id), 'deleteWallet')) open(null);
+          const id = current.id;
+          if (await save(all => all.filter(w => w.id !== id), 'deleteWallet')) open(null);
         }} />
     );
   } else {
@@ -275,11 +300,11 @@ export const NewWallet = ({ onCreate, onCancel }: {
 
 // ── The wallet ─────────────────────────────────────────────────────────────
 
-export const WalletView = ({ wallet, onSave, onDelete }: {
+export const WalletView = ({ wallet, onChange, onDelete }: {
   wallet: Wallet;
-  /** Store the wallet as `next`; resolves to whether it was stored. An
-   *  expense taken out says so, so the step back can be offered. */
-  onSave: (next: Wallet, removedExpense?: boolean) => Promise<boolean>;
+  /** Apply `change` to the wallet as last stored; resolves to whether it was
+   *  stored. An expense taken out says so, so the step back can be offered. */
+  onChange: (change: (w: Wallet) => Wallet, removedExpense?: boolean) => Promise<boolean>;
   onDelete: () => void;
 }) => {
   const { t, lang, money } = useLang();
@@ -294,7 +319,7 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
 
   if (editing) {
     return <WalletEdit wallet={wallet} onCancel={() => setEditing(false)}
-      onSave={async next => { if (await onSave(next)) setEditing(false); }} />;
+      onSave={async change => { if (await onChange(change)) setEditing(false); }} />;
   }
 
   const timing = s.timing.kind === 'before' ? t.wStartsIn(s.timing.days)
@@ -354,7 +379,7 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
       {addingPot ? (
         <PotForm onCancel={() => setAddingPot(false)}
           onAdd={async pot => {
-            if (await onSave({ ...wallet, pots: [...wallet.pots, pot] })) setAddingPot(false);
+            if (await onChange(w => ({ ...w, pots: [...w.pots, pot] }))) setAddingPot(false);
           }} />
       ) : (
         <button className="wallet-add-pot" onClick={() => setAddingPot(true)}>{t.wAddPot}</button>
@@ -363,7 +388,7 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
       {adding ? (
         <ExpenseForm pots={wallet.pots} onCancel={() => setAdding(false)}
           onAdd={async e => {
-            if (await onSave({ ...wallet, expenses: [...wallet.expenses, e] })) setAdding(false);
+            if (await onChange(w => ({ ...w, expenses: [...w.expenses, e] }))) setAdding(false);
           }} />
       ) : (
         <button className="wallet-add" onClick={() => setAdding(true)}>{t.wAddExpense}</button>
@@ -380,7 +405,7 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
               </span>
               <span className="wallet-expense-amount">{r(e.amount)}</span>
               <button className="wallet-expense-delete" aria-label={t.wDeleteExpense(e.text || potName(e.potId))}
-                onClick={() => void onSave({ ...wallet, expenses: wallet.expenses.filter(x => x.id !== e.id) }, true)}>✕</button>
+                onClick={() => void onChange(w => ({ ...w, expenses: w.expenses.filter(x => x.id !== e.id) }), true)}>✕</button>
             </li>
           ))}
         </ul>
@@ -388,7 +413,12 @@ export const WalletView = ({ wallet, onSave, onDelete }: {
 
       <div className="wallet-footer">
         <button className="custom-secondary-btn" onClick={() => setEditing(true)}>{t.wEdit}</button>
-        <button className="custom-secondary-btn" onClick={() => void onSave({ ...wallet, archived: !wallet.archived })}>
+        <button className="custom-secondary-btn" onClick={() => {
+          // Says which way, rather than flipping whatever is stored by then:
+          // a double tap must not archive and bring back again.
+          const archived = !wallet.archived;
+          void onChange(w => ({ ...w, archived }));
+        }}>
           {wallet.archived ? t.wUnarchive : t.wArchive}
         </button>
         <button className="custom-secondary-btn wallet-danger" onClick={onDelete}>{t.wDelete}</button>
@@ -503,7 +533,7 @@ const PotForm = ({ onAdd, onCancel }: {
 
 const WalletEdit = ({ wallet, onSave, onCancel }: {
   wallet: Wallet;
-  onSave: (next: Wallet) => Promise<void>;
+  onSave: (change: (w: Wallet) => Wallet) => Promise<void>;
   onCancel: () => void;
 }) => {
   const { t } = useLang();
@@ -532,9 +562,13 @@ const WalletEdit = ({ wallet, onSave, onCancel }: {
     }
     setBusy(true);
     try {
-      await onSave({
-        ...wallet, name: name.trim(), total: amount.value,
-        from: from || undefined, to: to || undefined, pots: parsed,
+      const fields = { name: name.trim(), total: amount.value, from: from || undefined, to: to || undefined };
+      await onSave(w => {
+        // A part removed here keeps its place if an expense was filed under
+        // it while the form was open: no expense may point at nothing.
+        const kept = new Set(parsed.map(p => p.id));
+        const used = new Set(w.expenses.map(e => e.potId));
+        return { ...w, ...fields, pots: [...parsed, ...w.pots.filter(p => !kept.has(p.id) && used.has(p.id))] };
       });
     } finally {
       setBusy(false);

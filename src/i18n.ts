@@ -865,6 +865,8 @@ export interface Translations {
   sparplanErrMonth: string;
   sparplanDelete: string;
   sparplanDeleteConfirm: string;
+  /** The newest edit of the savings plan could not be stored. */
+  sparplanSaveFailed: string;
   sparplanInYears: (n: number) => string;
   sparplanHorizon: string;
   sparplanYearsShort: (n: number) => string;
@@ -967,6 +969,8 @@ export interface Translations {
   qPerDayAnswer: (perDay: string) => string;
   qPerDayLeft: (left: string, days: number) => string;
   qPerDayOver: (over: string) => string;
+  qPerDayUsedUp: string;
+  qPerDayNonePlanned: string;
   qPerDayRule: string;
   qPerDayThrough: (date: string) => string;
   qPerDayNothingYet: (month: string) => string;
@@ -1754,6 +1758,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Ange en riktig månad mellan 1900 och 2200',
     sparplanDelete: 'Radera sparplan',
     sparplanDeleteConfirm: 'Radera sparplanen? Dina månadsdata och sparmål påverkas inte.',
+    sparplanSaveFailed: 'Planen kunde inte sparas. Det du skrev står kvar, men diagrammet visar den senast sparade planen. Försök igen.',
     sparplanInYears: (n) => `om ${n} år`,
     sparplanHorizon: 'Hur långt fram',
     sparplanYearsShort: (n) => `${n} år`,
@@ -1840,6 +1845,8 @@ export const translations: Record<Lang, Translations> = {
     qPerDayAnswer: (perDay) => `${perDay} per dag`,
     qPerDayLeft: (left, days) => `${left} kvar till köp, ${days} ${days === 1 ? 'dag' : 'dagar'} kvar`,
     qPerDayOver: (over) => `Du har lagt ${over} mer än budgeten för köp.`,
+    qPerDayUsedUp: 'Budgeten för köp är använd, precis. Inget kvar per dag.',
+    qPerDayNonePlanned: 'Du har inget budgeterat för köp den här månaden.',
     qPerDayRule: 'Räknar med det du budgeterat för köp: allt utom boende, abonnemang, lån och sparande. Osorterade poster räknas som köp.',
     qPerDayThrough: (date) => `Bygger på poster fram till ${date}.`,
     qPerDayNothingYet: (month) => `Inga poster importerade för ${month} än, så svaret är hela budgeten.`,
@@ -2635,6 +2642,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Enter a real month between 1900 and 2200',
     sparplanDelete: 'Delete savings plan',
     sparplanDeleteConfirm: 'Delete the savings plan? Your monthly data and goals are not affected.',
+    sparplanSaveFailed: 'The plan could not be saved. What you typed is still here, but the chart shows the plan last saved. Try again.',
     sparplanInYears: (n) => (n === 1 ? 'in 1 year' : `in ${n} years`),
     sparplanHorizon: 'How far ahead',
     sparplanYearsShort: (n) => (n === 1 ? '1 year' : `${n} years`),
@@ -2721,6 +2729,8 @@ export const translations: Record<Lang, Translations> = {
     qPerDayAnswer: (perDay) => `${perDay} a day`,
     qPerDayLeft: (left, days) => `${left} left for spending, ${days} ${days === 1 ? 'day' : 'days'} to go`,
     qPerDayOver: (over) => `You have spent ${over} more than your spending budget.`,
+    qPerDayUsedUp: 'Your spending budget is used up, exactly. Nothing left per day.',
+    qPerDayNonePlanned: 'You have nothing budgeted for spending this month.',
     qPerDayRule: 'Uses what you budgeted for spending: everything except housing, subscriptions, loans and savings. Unsorted entries count as spending.',
     qPerDayThrough: (date) => `Based on entries up to ${date}.`,
     qPerDayNothingYet: (month) => `Nothing imported for ${month} yet, so the answer is the whole budget.`,
@@ -3516,6 +3526,7 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Introduce un mes real entre 1900 y 2200',
     sparplanDelete: 'Eliminar plan de ahorro',
     sparplanDeleteConfirm: '¿Eliminar el plan de ahorro? Tus datos mensuales y metas no se ven afectados.',
+    sparplanSaveFailed: 'No se pudo guardar el plan. Lo que escribiste sigue aquí, pero el gráfico muestra el último plan guardado. Inténtalo de nuevo.',
     sparplanInYears: (n) => (n === 1 ? 'en 1 año' : `en ${n} años`),
     sparplanHorizon: 'Cuánto tiempo',
     sparplanYearsShort: (n) => (n === 1 ? '1 año' : `${n} años`),
@@ -3602,6 +3613,8 @@ export const translations: Record<Lang, Translations> = {
     qPerDayAnswer: (perDay) => `${perDay} al día`,
     qPerDayLeft: (left, days) => `Quedan ${left} para compras y ${days} ${days === 1 ? 'día' : 'días'}`,
     qPerDayOver: (over) => `Has gastado ${over} más que tu presupuesto para compras.`,
+    qPerDayUsedUp: 'Tu presupuesto para compras está usado, justo. No queda nada por día.',
+    qPerDayNonePlanned: 'No tienes nada presupuestado para compras este mes.',
     qPerDayRule: 'Usa lo que presupuestaste para compras: todo menos vivienda, suscripciones, préstamos y ahorro. Los movimientos sin ordenar cuentan como compras.',
     qPerDayThrough: (date) => `Basado en movimientos hasta el ${date}.`,
     qPerDayNothingYet: (month) => `Aún no hay nada importado de ${month}, así que la respuesta es todo el presupuesto.`,

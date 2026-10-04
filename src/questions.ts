@@ -236,6 +236,16 @@ export interface PerDayAnswer {
   daysLeft: number;
   /** null when nothing is left. */
   perDay: number | null;
+  /**
+   * Which of four things is true. Exactly nothing left is NOT an overrun:
+   * "you spent 0 kr more than your budget" was the answer to a month with no
+   * everyday budget and no spending (deep review 2026-10-04, P2).
+   *   left         — something remains, shared over the days;
+   *   none-planned — nothing budgeted for everyday spending and nothing spent;
+   *   used-up      — spent exactly what was budgeted;
+   *   over         — spent more than was budgeted.
+   */
+  state: 'left' | 'none-planned' | 'used-up' | 'over';
   unsorted: { amount: number; count: number };
   /** The newest entry's date: what "so far" means. null = nothing imported. */
   through: string | null;
@@ -250,11 +260,17 @@ export function perDayLeft(budget: MonthData, entries: ActualEntry[], daysLeft: 
   spent += unsorted.amount;
   const left = planned - spent;
   const days = Math.max(1, daysLeft);
+  // Compared in whole cents: sums of decimals leave dust like 1e-13.
+  const cents = Math.round(left * 100);
+  const state = cents > 0 ? 'left'
+    : cents < 0 ? 'over'
+      : Math.round(planned * 100) === 0 && Math.round(spent * 100) === 0 ? 'none-planned' : 'used-up';
   let through: string | null = null;
   for (const e of entries) if (through === null || e.date > through) through = e.date;
   return {
     planned, spent, left, daysLeft: days,
-    perDay: left > 0 ? left / days : null,
+    perDay: state === 'left' ? left / days : null,
+    state,
     unsorted, through,
   };
 }

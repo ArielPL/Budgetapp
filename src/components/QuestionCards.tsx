@@ -189,9 +189,10 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
         const a = perDayLeft(budget, loadActuals(appStorage, now.year, now.month), daysLeft);
         return (
           <>
-            {a.perDay !== null
-              ? headline(t.qPerDayAnswer(r(a.perDay)), t.qPerDayLeft(r(a.left), a.daysLeft))
-              : headline(t.qPerDayOver(r(-a.left)))}
+            {a.state === 'left' && a.perDay !== null && headline(t.qPerDayAnswer(r(a.perDay)), t.qPerDayLeft(r(a.left), a.daysLeft))}
+            {a.state === 'used-up' && headline(t.qPerDayUsedUp)}
+            {a.state === 'none-planned' && headline(t.qPerDayNonePlanned)}
+            {a.state === 'over' && headline(t.qPerDayOver(r(-a.left)))}
             <p className="q-note">{a.through ? t.qPerDayThrough(shortDay(a.through, lang)) : t.qPerDayNothingYet(month(now))}</p>
             <p className="q-note">{t.qPerDayRule}</p>
             {a.unsorted.amount > 0 && (

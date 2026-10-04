@@ -1165,6 +1165,12 @@ describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
     expect(text).toContain(sv.qKeptNo('500 kr', 'augusti 2026'));
   });
 
+  it('"per day" with nothing budgeted for spending says so — not that 0 kr went over (deep review 2026-10-04, P2)', async () => {
+    const text = await ask(sv.qPerDay);
+    expect(text).toContain(sv.qPerDayNonePlanned);
+    expect(text).not.toContain(sv.qPerDayOver('0 kr'));
+  });
+
   it('says what it would need instead of answering from too little', async () => {
     const text = await ask(sv.qRecurring);
     expect(text).toContain(sv.qTooLittle(3, 0));
@@ -1256,6 +1262,65 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     expect(document.querySelector('.wallet-switch-panel')).toBeNull();
   });
 
+  describe('quick changes while the first is still saving (deep review 2026-10-04, P1)', () => {
+    const THREE = JSON.stringify({ wallets: [{
+      id: 'w1', name: 'SYNT RESA', kind: 'blank', total: 10000, pots: [],
+      expenses: ['A', 'B', 'C'].map((x, i) => ({ id: `e${i}`, date: '2026-09-1' + i, text: `SYNT ${x}`, amount: 100 * (i + 1), potId: '' })),
+    }] });
+    const openWallet = async () => {
+      b.disk.set('budget_wallets', THREE);
+      b.disk.set('budget_panel_open', 'w1');
+      await openCustom();
+      await waitFor(() => expect(document.querySelector('.wallet-hero')).not.toBeNull());
+    };
+    const texts = () => stored()[0].expenses.map(e => e.text);
+
+    it('two quick deletes both land, after a restart too, and each step back is its own', async () => {
+      await openWallet();
+      b.hold();
+      fireEvent.click(document.querySelector(`[aria-label="${sv.wDeleteExpense('SYNT A')}"]`)!);
+      fireEvent.click(document.querySelector(`[aria-label="${sv.wDeleteExpense('SYNT B')}"]`)!);
+      b.release();
+      await waitFor(() => expect(texts()).toEqual(['SYNT C']));
+      await settle();
+      expect(texts()).toEqual(['SYNT C']);
+      const steps = undoOnDisk().filter(u => u.action === 'deleteWalletExpense') as unknown as { changes: { value: string }[] }[];
+      expect(steps).toHaveLength(2);
+      // The newest step holds the state just before the second delete: B and C.
+      const newest = JSON.parse(steps[0].changes[0].value).wallets[0].expenses.map((e: { text: string }) => e.text);
+      const older = JSON.parse(steps[1].changes[0].value).wallets[0].expenses.map((e: { text: string }) => e.text);
+      expect([newest, older].sort((x, y) => x.length - y.length)).toEqual([['SYNT B', 'SYNT C'], ['SYNT A', 'SYNT B', 'SYNT C']]);
+      cleanup();
+      await openCustom();
+      await waitFor(() => expect(document.querySelectorAll('.wallet-expense')).toHaveLength(1));
+    });
+
+    it('an expense and a part added in quick succession are both kept', async () => {
+      await openWallet();
+      b.hold();
+      addExpense('50', 'SYNT D');
+      fireEvent.click(buttonWith(sv.wAddPot)!);
+      fill(sv.wPotName, 'SYNT DEL');
+      fill(sv.wPotPlanned, '500');
+      const potForm = [...document.querySelectorAll<HTMLLabelElement>('.wallet label')].find(l => l.textContent === sv.wPotName)!.closest('form')!;
+      fireEvent.click(potForm.querySelector('button[type=submit]')!);
+      b.release();
+      await waitFor(() => expect(stored()[0].pots.map(p => p.name)).toEqual(['SYNT DEL']));
+      expect(texts()).toEqual(['SYNT A', 'SYNT B', 'SYNT C', 'SYNT D']);
+    });
+
+    it('a refused change leaves the one stored before it, and the screen shows what is stored', async () => {
+      await openWallet();
+      fireEvent.click(document.querySelector(`[aria-label="${sv.wDeleteExpense('SYNT A')}"]`)!);
+      await waitFor(() => expect(texts()).toEqual(['SYNT B', 'SYNT C']));
+      b.refuse.add('budget_wallets');
+      fireEvent.click(document.querySelector(`[aria-label="${sv.wDeleteExpense('SYNT B')}"]`)!);
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(texts()).toEqual(['SYNT B', 'SYNT C']);
+      expect(document.querySelectorAll('.wallet-expense')).toHaveLength(2);
+    });
+  });
+
   it('opens on the wallet again after a restart', async () => {
     await openCustom();
     await createTrip();
@@ -1298,5 +1363,58 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await waitFor(() => expect(stored()).toEqual([]));
     expect(undoOnDisk().map(u => u.action)).toContain('deleteWallet');
     expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain(sv.wMyBudget);
+  });
+});
+
+describe('the savings plan shows only what is stored (deep review 2026-10-04, P1)', () => {
+  const PLAN = JSON.stringify({ monthlyAmount: 1000, annualReturnPct: 5, startAmount: 0, startYM: '2026-01', years: 5 });
+  const storedPlan = () => {
+    const raw = b.disk.get('budget_savings_plan');
+    return raw ? JSON.parse(raw) as { monthlyAmount: number } : null;
+  };
+  const openPlan = async () => {
+    b.disk.set('budget_savings_plan', PLAN);
+    const store = createCachedStorage(b);
+    await store.hydrate();
+    installStorage(store);
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabPlan)!);
+    await waitFor(() => expect(document.getElementById('sp-monthly')).not.toBeNull());
+  };
+  const type = (v: string) => fireEvent.change(document.getElementById('sp-monthly')!, { target: { value: v } });
+  const refusedNote = () => [...document.querySelectorAll('[role=alert]')].some(x => x.textContent === sv.sparplanSaveFailed);
+
+  it('a refused edit keeps the stored plan, says so, and keeps what was typed', async () => {
+    await openPlan();
+    b.refuse.add('budget_savings_plan');
+    type('3000');
+    await waitFor(() => expect(refusedNote()).toBe(true));
+    expect(storedPlan()?.monthlyAmount).toBe(1000);
+    expect((document.getElementById('sp-monthly') as HTMLInputElement).value).toBe('3000');
+    b.refuse.clear();
+    type('3500');
+    await waitFor(() => expect(storedPlan()?.monthlyAmount).toBe(3500));
+    await waitFor(() => expect(refusedNote()).toBe(false));
+  });
+
+  it('quick edits land in order: the last one typed is the one stored', async () => {
+    await openPlan();
+    b.hold();
+    type('2000');
+    type('2500');
+    type('3000');
+    b.release();
+    await waitFor(() => expect(storedPlan()?.monthlyAmount).toBe(3000));
+    await settle();
+    expect(storedPlan()?.monthlyAmount).toBe(3000);
+  });
+
+  it('a refused delete keeps the plan and says so', async () => {
+    await openPlan();
+    b.refuse.add('budget_savings_plan');
+    fireEvent.click(buttonWith(sv.sparplanDelete)!);
+    await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+    expect(storedPlan()?.monthlyAmount).toBe(1000);
+    expect(buttonWith(sv.sparplanDelete)).toBeTruthy();
   });
 });
