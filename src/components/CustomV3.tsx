@@ -4,7 +4,8 @@ import { useIsPhone } from '../useIsPhone';
 import { adoptExternalValue } from '../crossTab';
 import { isCustomValues, isCustomStructure } from '../backup';
 import { captureKeys, type UndoEntry } from '../undo';
-import { useLang, MONTHS, type Lang, type Translations } from '../i18n';
+import { useLang, MONTHS, type Translations } from '../i18n';
+import { inSentence } from '../dateLabel';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney } from '../money';
@@ -108,11 +109,8 @@ export interface BlockRow {
 // Distinct per-category palette — each row defaults to the next colour so a
 // block's chart wedges/bars (and legend dots) aren't all one hue.
 const ROW_COLORS = ['#8b5cf6', '#22c55e', '#f59e0b', '#22d3ee', '#ec4899', '#ef4444', '#14b8a6', '#a78bfa', '#fb923c', '#38bdf8'];
-/** A month name inside a sentence: "Kopiera september", "Copy September".
- *  MONTHS is capitalised because it also titles the month. */
-export function inSentence(name: string, lang: Lang): string {
-  return lang === 'en' ? name : name.toLowerCase();
-}
+/** Moved to dateLabel; re-exported for the modules that import it from here. */
+export { inSentence };
 
 export function paletteColor(i: number): string { return ROW_COLORS[i % ROW_COLORS.length]; }
 

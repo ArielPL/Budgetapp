@@ -1356,6 +1356,17 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     expect(b.disk.get('budget_layout')).toBe('classic');
   });
 
+  it('the menu beside the wallets offers no month tools (store screenshots, 2026-10-05)', async () => {
+    await openApp();
+    openMenu();
+    expect(buttonWith(sv.copyNextMonth)).toBeTruthy();
+    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    await waitFor(() => expect(document.querySelector('.wallet')).not.toBeNull());
+    openMenu();
+    expect(buttonWith(sv.copyNextMonth)).toBeUndefined();
+    expect(buttonWith(sv.resetMonth)).toBeUndefined();
+  });
+
   it('deleting the wallet asks first, and leaves a step back', async () => {
     await openCustom();
     await createTrip();

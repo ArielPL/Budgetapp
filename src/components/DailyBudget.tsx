@@ -1,6 +1,7 @@
 import { splitRemaining } from '../metrics';
 import { periodDays, type PeriodLocks } from '../periodLabel';
 import { useLang, MONTHS, formatMoneyCompact } from '../i18n';
+import { inSentence } from '../dateLabel';
 
 interface Props {
   remaining: number; // income − budgeted expenses for the viewed month
@@ -35,7 +36,8 @@ export const DailyBudget = ({ remaining, year, month, periodStartDay = null, per
     Math.abs(n) >= 1e9
       ? <span title={money(n)}>{formatMoneyCompact(n, currency, lang)}</span>
       : money(n);
-  const daysLabel = t.dailyBudgetDaysInMonth(days, MONTHS[lang][month]);
+  // Mid-sentence: "repartido en octubre", not "en Octubre".
+  const daysLabel = t.dailyBudgetDaysInMonth(days, inSentence(MONTHS[lang][month], lang));
 
   return (
     <div className="daily-budget">

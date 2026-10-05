@@ -12,6 +12,8 @@ import com.getcapacitor.BridgeWebChromeClient;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Before super: Capacitor reads its plugin list while creating the bridge.
+        registerPlugin(AppLangPlugin.class);
         super.onCreate(savedInstanceState);
         // Hide the budget from the app switcher: Android 13+ shows the app's
         // icon there instead of a picture of the last screen. Screenshots still
@@ -21,9 +23,9 @@ public class MainActivity extends BridgeActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             setRecentsScreenshotEnabled(false);
         }
-        // confirm() and alert() in the phone's own language: Capacitor spells
-        // its buttons "OK" and "Cancel" whatever the language (store
-        // screenshots, 2026-10-05). Everything else stays Capacitor's.
+        // confirm() and alert() in the app's own language (see AppLangPlugin):
+        // Capacitor spells its buttons "OK" and "Cancel" whatever the language
+        // (store screenshots, 2026-10-05). Everything else stays Capacitor's.
         Bridge bridge = getBridge();
         if (bridge != null) bridge.getWebView().setWebChromeClient(new LocalizedChromeClient(bridge));
     }
@@ -41,8 +43,8 @@ public class MainActivity extends BridgeActivity {
             if (bridge.getActivity().isFinishing()) return true;
             new AlertDialog.Builder(view.getContext())
                 .setMessage(message)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
-                .setNegativeButton(android.R.string.cancel, (dialog, which) -> result.cancel())
+                .setPositiveButton(AppLangPlugin.ok(view.getContext()), (dialog, which) -> result.confirm())
+                .setNegativeButton(AppLangPlugin.cancel(view.getContext()), (dialog, which) -> result.cancel())
                 .setOnCancelListener(dialog -> result.cancel())
                 .show();
             return true;
@@ -53,7 +55,7 @@ public class MainActivity extends BridgeActivity {
             if (bridge.getActivity().isFinishing()) return true;
             new AlertDialog.Builder(view.getContext())
                 .setMessage(message)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
+                .setPositiveButton(AppLangPlugin.ok(view.getContext()), (dialog, which) -> result.confirm())
                 .setOnCancelListener(dialog -> result.cancel())
                 .show();
             return true;

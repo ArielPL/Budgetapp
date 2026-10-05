@@ -64,3 +64,9 @@ export function longDate(value: string | number, lang: Lang): string {
   const year = at.getFullYear();
   return lang === 'es' ? `${day} de ${name} de ${year}` : `${day} ${name} ${year}`;
 }
+
+/** A month name inside a sentence: "Kopiera september", "Copy September".
+ *  MONTHS is capitalised because it also titles the month. */
+export function inSentence(name: string, lang: Lang): string {
+  return lang === 'en' ? name : name.toLowerCase();
+}

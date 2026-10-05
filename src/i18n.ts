@@ -214,6 +214,8 @@ export function formatMoneyCompact(amount: number, currency: Currency, lang: Lan
 export interface Translations {
   // Tabs
   tabBudget: string;
+  /** Under the icon on a phone, where six tabs share the width. */
+  tabBudgetShort: string;
   tabSavings: string;
   tabSavingsShort: string;
   tabPlan: string;
@@ -1105,6 +1107,7 @@ export interface Translations {
 export const translations: Record<Lang, Translations> = {
   sv: {
     tabBudget: 'Budget',
+    tabBudgetShort: 'Budget',
     tabSavings: 'Sparande & Investeringar',
     tabSavingsShort: 'Sparande',
     tabPlan: 'Plan & Översikt',
@@ -1989,6 +1992,7 @@ export const translations: Record<Lang, Translations> = {
   },
   en: {
     tabBudget: 'Budget',
+    tabBudgetShort: 'Budget',
     tabSavings: 'Savings & Investments',
     tabSavingsShort: 'Savings',
     tabPlan: 'Plan & Overview',
@@ -2873,6 +2877,7 @@ export const translations: Record<Lang, Translations> = {
   },
   es: {
     tabBudget: 'Presupuesto',
+    tabBudgetShort: 'Presup.',
     tabSavings: 'Ahorro e Inversiones',
     tabSavingsShort: 'Ahorro',
     tabPlan: 'Plan y Resumen',
@@ -3668,7 +3673,7 @@ export const translations: Record<Lang, Translations> = {
     wPotFood: 'Comida',
     wPotFun: 'Experiencias',
     wLeft: 'Queda',
-    wUsed: (spent, total) => `${spent} de ${total} usado`,
+    wUsed: (spent, total) => `${spent} de ${total} usados`,
     wLeftList: (left, total) => `Quedan ${left} de ${total}`,
     wDaysLeft: (days) => `${days === 1 ? 'Queda 1 día' : `Quedan ${days} días`}`,
     wStartsIn: (days) => `Empieza en ${days} ${days === 1 ? 'día' : 'días'}`,

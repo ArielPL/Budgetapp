@@ -55,18 +55,21 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
-// ── confirm() and alert() in the phone's own language ──────────────────────
+// ── confirm() and alert() in the app's own language ────────────────────────
 // Capacitor answers the page's confirm() with buttons it spells "Cancel" and
-// "Ok" whatever the phone's language (store screenshots, 2026-10-05: "Detta
-// ERSÄTTER all nuvarande data …" over [Cancel] [Ok]). This sits in front of
-// Capacitor's handler, draws those two dialogs with UIKit's own translated
-// titles, and passes everything else on untouched.
+// "Ok" whatever the language (store screenshots, 2026-10-05: "Detta ERSÄTTER
+// all nuvarande data …" over [Cancel] [Ok]). This sits in front of Capacitor's
+// handler and draws those two dialogs itself, with the buttons in the language
+// the APP is set to — told by the page through AppLangPlugin, since the app
+// can be Spanish on a Swedish phone — or UIKit's own words until then.
+// Everything else passes on untouched.
 
 final class AppViewController: CAPBridgeViewController {
     private var dialogs: LocalizedDialogs?
 
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
+        bridge?.registerPluginInstance(AppLangPlugin())
         guard let webView = webView else { return }
         let proxy = LocalizedDialogs(original: webView.uiDelegate, presenter: self)
         webView.uiDelegate = proxy
@@ -83,10 +86,12 @@ final class LocalizedDialogs: NSObject, WKUIDelegate {
         self.presenter = presenter
     }
 
-    /// UIKit's own word for it, in the language the app runs in (see
-    /// CFBundleLocalizations in Info.plist).
-    private func uikit(_ key: String) -> String {
-        Bundle(for: UIApplication.self).localizedString(forKey: key, value: key, table: nil)
+    /// The button's title in the app's language; UIKit's own word for it
+    /// (the phone's language, see CFBundleLocalizations) until the page has
+    /// said which language it is in.
+    private func title(_ key: String) -> String {
+        if let lang = AppLangPlugin.lang, let word = AppLangPlugin.buttons[lang]?[key] { return word }
+        return Bundle(for: UIApplication.self).localizedString(forKey: key, value: key, table: nil)
     }
 
     override func responds(to aSelector: Selector!) -> Bool {
@@ -101,8 +106,8 @@ final class LocalizedDialogs: NSObject, WKUIDelegate {
                  initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
         guard let presenter = presenter else { completionHandler(false); return }
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: uikit("Cancel"), style: .cancel) { _ in completionHandler(false) })
-        alert.addAction(UIAlertAction(title: uikit("OK"), style: .default) { _ in completionHandler(true) })
+        alert.addAction(UIAlertAction(title: title("Cancel"), style: .cancel) { _ in completionHandler(false) })
+        alert.addAction(UIAlertAction(title: title("OK"), style: .default) { _ in completionHandler(true) })
         presenter.present(alert, animated: true)
     }
 
@@ -110,7 +115,30 @@ final class LocalizedDialogs: NSObject, WKUIDelegate {
                  initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
         guard let presenter = presenter else { completionHandler(); return }
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: uikit("OK"), style: .default) { _ in completionHandler() })
+        alert.addAction(UIAlertAction(title: title("OK"), style: .default) { _ in completionHandler() })
         presenter.present(alert, animated: true)
+    }
+}
+
+/// The page tells the native side which language the app is in.
+@objc(AppLangPlugin)
+public class AppLangPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AppLangPlugin"
+    public let jsName = "AppLang"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise)
+    ]
+
+    static var lang: String?
+    /// The same three languages as the app (src/i18n.ts).
+    static let buttons: [String: [String: String]] = [
+        "sv": ["Cancel": "Avbryt", "OK": "OK"],
+        "en": ["Cancel": "Cancel", "OK": "OK"],
+        "es": ["Cancel": "Cancelar", "OK": "Aceptar"],
+    ]
+
+    @objc func set(_ call: CAPPluginCall) {
+        AppLangPlugin.lang = call.getString("lang")
+        call.resolve()
     }
 }

@@ -109,7 +109,11 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
   );
 
   const answer = (q: QuestionId) => {
+    // Derived figures (averages, per day) in whole units; an amount that was
+    // actually charged exactly, in the currency's own precision — "$34.99",
+    // not "$35" (store screenshots, 2026-10-05).
     const r = (n: number) => money(Math.round(n));
+    const x = (n: number) => money(n);
     switch (q) {
       case 'category': {
         const months = withEntries(spanMonths(now.year, now.month, now.month + 1));
@@ -142,9 +146,9 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
           <>
             {a.items.length === 0 ? <p className="q-note">{t.qRecurringNone}</p> : (
               <>
-                {headline(t.qRecurringAnswer(a.items.length, r(a.perMonth)), t.qRecurringYear(r(a.perMonth * 12)))}
+                {headline(t.qRecurringAnswer(a.items.length, x(a.perMonth)), t.qRecurringYear(x(a.perMonth * 12)))}
                 {lines(a.items.map(i => ({
-                  key: i.text, label: i.text, value: r(i.typical), sub: `· ${t.qRecurringSeen(i.months)}`,
+                  key: i.text, label: i.text, value: x(i.typical), sub: `· ${t.qRecurringSeen(i.months)}`,
                 })))}
               </>
             )}
@@ -210,10 +214,10 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
         const diff = a.actualTotal - a.plannedTotal;
         return (
           <>
-            {headline(diff > 0 ? t.qKeptNo(r(diff), month(last)) : t.qKeptYes(r(-diff), month(last)))}
+            {headline(diff > 0 ? t.qKeptNo(x(diff), month(last)) : t.qKeptYes(x(-diff), month(last)))}
             {lines(a.lines.map(l => ({
-              key: l.id, label: name(l.id), value: t.qKeptRow(r(l.actual), r(l.planned)),
-              sub: l.actual > l.planned ? `· +${r(l.actual - l.planned)}` : undefined,
+              key: l.id, label: name(l.id), value: t.qKeptRow(x(l.actual), x(l.planned)),
+              sub: l.actual > l.planned ? `· +${x(l.actual - l.planned)}` : undefined,
             })))}
             <p className="q-note">{t.qKeptRule}</p>
             {a.unsorted.amount > 0 && (

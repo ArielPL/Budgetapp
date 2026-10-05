@@ -34,11 +34,12 @@ import { UndoBar } from './components/UndoBar';
 import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
-import { shortWhen, longDate } from './dateLabel';
+import { shortWhen, longDate, inSentence } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
 import { goalsJustReached, celebrate } from './rewards';
+import { tellNativeLang } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
@@ -357,6 +358,7 @@ function App({ startupRepair = null }: AppProps) {
     // pronounces an English or Spanish UI with Swedish rules — and since the
     // app opens in the DEVICE's language, that is not a rare case.
     document.documentElement.lang = lang;
+    tellNativeLang(lang);
     // The tab title too — it was Swedish on every device, whatever the UI said.
     document.title = t.appTitle;
   }, [lang, t]);
@@ -2001,16 +2003,16 @@ function App({ startupRepair = null }: AppProps) {
                       were not looking at, and reported success (review
                       2026-09-05, F2). A LINKED panel shows exactly that budget,
                       so there they are the same actions on the same numbers. */}
-                  {showsRegularBudget && (
+                  {showsRegularBudget && !walletsScreen && (
                     <>
                       <div className="utils-divider" />
 
                       <div className="utils-group-label">{t.copyBudget}</div>
                       <button className="utils-action" onClick={copyFromPrevMonth}>
-                        ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
+                        ← {t.copyPrevMonth(inSentence(MONTHS[lang][month === 0 ? 11 : month - 1], lang))}
                       </button>
                       <button className="utils-action" onClick={copyToNextMonth}>
-                        → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                        → {t.copyNextMonth} ({inSentence(MONTHS[lang][month === 11 ? 0 : month + 1], lang)})
                       </button>
                       <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
                         {t.bimMenu}
@@ -2056,7 +2058,9 @@ function App({ startupRepair = null }: AppProps) {
                       whatever layout is on screen, so beside a standalone panel
                       it would wipe invisible data and say it was done. A
                       standalone panel clears its own amounts from its toolbar. */}
-                  {showsRegularBudget && (
+                  {/* Not beside the wallets either: they belong to no month, and
+                      "Reset month" there would blank one the user cannot see. */}
+                  {showsRegularBudget && !walletsScreen && (
                     <>
                       <div className="utils-divider" />
 
