@@ -355,8 +355,17 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
               ? t.debtMinimumLine(when(plans.minimum.debtFree), money(plans.minimum.totalInterest))
               : t.debtMinimumNever}
           </p>
+          {/* When each is paid, soonest first. It used to follow the order the
+              extra money goes in, which read as a timeline out of order: a 0 %
+              instalment the extra reaches last is still paid off early by its
+              own payments (store screenshots, 2026-10-05). Ties, and debts not
+              paid within the horizon (last), keep the strategy's order. */}
           <ol className="debt-order">
-            {chosen.order.map(id => {
+            {[...chosen.order].sort((a, b) => {
+              const pa = chosen.payoffs.find(p => p.id === a)?.months ?? Infinity;
+              const pb = chosen.payoffs.find(p => p.id === b)?.months ?? Infinity;
+              return pa === pb ? 0 : pa < pb ? -1 : 1;
+            }).map(id => {
               const payoff = chosen.payoffs.find(p => p.id === id);
               return (
                 <li key={id}>

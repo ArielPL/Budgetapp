@@ -8,7 +8,7 @@
 // Why a script and not @capacitor/assets: this needs nothing downloaded — only
 // what ships with macOS — and it is short enough to read.
 //
-// The source is public/icon-1024.png (the App Store wants 1024 × 1024; made
+// The source is assets/icon-1024.png (the App Store wants 1024 × 1024; made
 // with Photoshop's Super Resolution from the 512 one, 2026-10-05), falling back
 // to public/icon-512.png; Android's adaptive layer uses icon-maskable-512.png.
 //
@@ -30,8 +30,10 @@ func load(_ path: String) -> CGImage {
   return img
 }
 
-let big = fm.fileExists(atPath: "public/icon-1024.png")
-let icon = load(big ? "public/icon-1024.png" : "public/icon-512.png")
+// Outside public/: it is only a source for this script, and 1.2 MB the web
+// app and the native bundles would otherwise carry for nothing.
+let big = fm.fileExists(atPath: "assets/icon-1024.png")
+let icon = load(big ? "assets/icon-1024.png" : "public/icon-512.png")
 // Always the maskable one: it keeps the coin inside the middle 66 dp a launcher
 // promises not to cut, which the full-bleed 1024 icon does not. 512 is plenty —
 // the largest layer Android asks for is 432 px (108 dp at xxxhdpi).

@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -8,7 +9,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        window?.rootViewController = AppViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
@@ -51,5 +52,65 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         cover?.removeFromSuperview()
         cover = nil
+    }
+}
+
+// ── confirm() and alert() in the phone's own language ──────────────────────
+// Capacitor answers the page's confirm() with buttons it spells "Cancel" and
+// "Ok" whatever the phone's language (store screenshots, 2026-10-05: "Detta
+// ERSÄTTER all nuvarande data …" over [Cancel] [Ok]). This sits in front of
+// Capacitor's handler, draws those two dialogs with UIKit's own translated
+// titles, and passes everything else on untouched.
+
+final class AppViewController: CAPBridgeViewController {
+    private var dialogs: LocalizedDialogs?
+
+    override func capacitorDidLoad() {
+        super.capacitorDidLoad()
+        guard let webView = webView else { return }
+        let proxy = LocalizedDialogs(original: webView.uiDelegate, presenter: self)
+        webView.uiDelegate = proxy
+        dialogs = proxy // the web view holds its delegate weakly
+    }
+}
+
+final class LocalizedDialogs: NSObject, WKUIDelegate {
+    private weak var original: WKUIDelegate?
+    private weak var presenter: UIViewController?
+
+    init(original: WKUIDelegate?, presenter: UIViewController) {
+        self.original = original
+        self.presenter = presenter
+    }
+
+    /// UIKit's own word for it, in the language the app runs in (see
+    /// CFBundleLocalizations in Info.plist).
+    private func uikit(_ key: String) -> String {
+        Bundle(for: UIApplication.self).localizedString(forKey: key, value: key, table: nil)
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || (original?.responds(to: aSelector) ?? false)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        original
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        guard let presenter = presenter else { completionHandler(false); return }
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: uikit("Cancel"), style: .cancel) { _ in completionHandler(false) })
+        alert.addAction(UIAlertAction(title: uikit("OK"), style: .default) { _ in completionHandler(true) })
+        presenter.present(alert, animated: true)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        guard let presenter = presenter else { completionHandler(); return }
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: uikit("OK"), style: .default) { _ in completionHandler() })
+        presenter.present(alert, animated: true)
     }
 }

@@ -2,7 +2,8 @@ import type { ActiveTab } from '../types';
 import { useLang } from '../i18n';
 
 interface Props {
-  active: ActiveTab;
+  /** The tab on screen; null when none is (the wallets' own screen). */
+  active: ActiveTab | null;
   onChange: (tab: ActiveTab) => void;
   /** A linked Custom panel IS the budget, laid out by the user: its bar opens
    *  that panel where Classic opens Budget. */

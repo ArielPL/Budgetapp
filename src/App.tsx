@@ -1789,7 +1789,13 @@ function App({ startupRepair = null }: AppProps) {
     <div className="app">
       <header className="app-header" ref={headerRef}>
         <div className="header-top">
-          <MonthNav
+          {/* A wallet belongs to no month: on the wallets' own screen the
+              header says where you are instead of offering months. */}
+          {walletsScreen ? (
+            <div className="month-nav-wrap">
+              <div className="month-nav"><span className="month-title">✈️ {t.wMenu}</span></div>
+            </div>
+          ) : <MonthNav
             year={year}
             month={month}
             onPrev={prevMonth}
@@ -1800,7 +1806,7 @@ function App({ startupRepair = null }: AppProps) {
             periodStartDay={periodStartDay}
             periodLocks={periodLocks}
             onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
-          />
+          />}
 
           {/* Single utilities menu: language, theme, copy budget, data */}
           <div className="menu-wrap" ref={menuRef}>
@@ -2087,7 +2093,7 @@ function App({ startupRepair = null }: AppProps) {
             hidden — the user scrolls through all sections instead. */}
         {layout === 'classic' && (
           <div className="header-bottom">
-            <TabNav active={activeTab} onChange={changeTab} />
+            <TabNav active={walletsScreen ? null : activeTab} onChange={changeTab} />
           </div>
         )}
         {/* A linked Custom panel is the regular budget laid out another way, so
@@ -2095,7 +2101,7 @@ function App({ startupRepair = null }: AppProps) {
             and gets no tabs rather than tabs about someone else's numbers. */}
         {layout === 'custom' && customTabs && (
           <div className="header-bottom">
-            <TabNav active={activeTab} onChange={changeTab} variant="custom" />
+            <TabNav active={walletsScreen ? null : activeTab} onChange={changeTab} variant="custom" />
           </div>
         )}
       </header>
