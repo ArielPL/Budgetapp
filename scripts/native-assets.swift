@@ -8,10 +8,9 @@
 // Why a script and not @capacitor/assets: this needs nothing downloaded — only
 // what ships with macOS — and it is short enough to read.
 //
-// The source is public/icon-512.png and public/icon-maskable-512.png. The App
-// Store wants a 1024 × 1024 icon, so the iOS icon is the 512 one scaled up and
-// is a little soft. When a 1024 original exists, put it at public/icon-1024.png
-// and run this again; it is then used everywhere instead.
+// The source is public/icon-1024.png (the App Store wants 1024 × 1024; made
+// with Photoshop's Super Resolution from the 512 one, 2026-10-05), falling back
+// to public/icon-512.png; Android's adaptive layer uses icon-maskable-512.png.
 //
 // The splash background is the web app's own (manifest background_color, the
 // light theme's --bg, which new users start in), so the moment the app opens
@@ -33,7 +32,10 @@ func load(_ path: String) -> CGImage {
 
 let big = fm.fileExists(atPath: "public/icon-1024.png")
 let icon = load(big ? "public/icon-1024.png" : "public/icon-512.png")
-let maskable = load(big ? "public/icon-1024.png" : "public/icon-maskable-512.png")
+// Always the maskable one: it keeps the coin inside the middle 66 dp a launcher
+// promises not to cut, which the full-bleed 1024 icon does not. 512 is plenty —
+// the largest layer Android asks for is 432 px (108 dp at xxxhdpi).
+let maskable = load("public/icon-maskable-512.png")
 
 /// Draw into a fresh canvas and write it as PNG. `opaque` leaves out the alpha
 /// channel, which the App Store requires of an app icon.
