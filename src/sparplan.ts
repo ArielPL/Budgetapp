@@ -22,7 +22,6 @@
 // A plan whose start month is in the future has no recorded month to compare
 // against yet, so no ahead/behind badge is shown until it begins.
 
-import { safeSetItem } from './storageWrite';
 import { appStorage } from './storage';
 
 export interface SavingsPlan {
@@ -30,6 +29,19 @@ export interface SavingsPlan {
   annualReturnPct: number; // expected growth per year, e.g. 7 (= 7%)
   startAmount: number;     // pot at plan start (may be 0)
   startYM: string;         // "YYYY-MM" — month the plan started
+  /** How far ahead the projection looks. Absent in plans saved before it
+   *  could be chosen, which keep their 5 years (Ariel, 2026-10-03). */
+  years?: number;
+}
+
+/** The horizons offered, in years. */
+export const PLAN_YEARS = [5, 10, 15, 20, 30, 40] as const;
+export const DEFAULT_PLAN_YEARS = 5;
+
+/** A plan's horizon in years: its own if valid, otherwise five. */
+export function planYears(p: Pick<SavingsPlan, 'years'> | null | undefined): number {
+  const y = p?.years;
+  return typeof y === 'number' && Number.isInteger(y) && y >= 1 && y <= 50 ? y : DEFAULT_PLAN_YEARS;
 }
 
 export const SPARPLAN_KEY = 'budget_savings_plan';
@@ -133,7 +145,7 @@ export const PLAN_LIMITS = {
   maxYear: 2200,
 } as const;
 
-export type PlanField = 'monthlyAmount' | 'annualReturnPct' | 'startAmount' | 'startYM';
+export type PlanField = 'monthlyAmount' | 'annualReturnPct' | 'startAmount' | 'startYM' | 'years';
 
 /** A real calendar month within the product's year range — "2026-13" and
  *  "2026-00" both match the loose \d{4}-\d{2} pattern that used to pass. */
@@ -155,6 +167,7 @@ export function validateSavingsPlan(p: SavingsPlan): PlanField[] {
   }
   if (!amountOk(p.startAmount)) bad.push('startAmount');
   if (typeof p.startYM !== 'string' || !isValidYM(p.startYM)) bad.push('startYM');
+  if (p.years !== undefined && planYears(p) !== p.years) bad.push('years');
   return bad;
 }
 
@@ -180,17 +193,6 @@ export function loadSavingsPlan(): SavingsPlan | null {
   }
 }
 
-/** Persist the plan — refuses invalid ones so storage can never hold a plan
- *  the loader would throw away. Returns whether it saved. */
-export function saveSavingsPlan(plan: SavingsPlan): boolean {
-  if (validateSavingsPlan(plan).length > 0) return false;
-  // False now covers both "invalid" and "storage refused it". Both mean the
-  // plan is not saved, which is what the caller has to act on either way (F4).
-  return safeSetItem(appStorage, SPARPLAN_KEY, JSON.stringify(plan));
-}
-
-/** Remove the plan. Month data and savings goals live under other keys and are
- *  untouched — deleting the plan only clears the projection settings. */
-export function deleteSavingsPlan(): void {
-  appStorage.removeItem(SPARPLAN_KEY);
-}
+// Saving and deleting go through commitStorageChangesOutcome in SparPlan.tsx,
+// so the chart changes only once storage has the change (deep review
+// 2026-10-04, P1). validateSavingsPlan runs first, there as here.

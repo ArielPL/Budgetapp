@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId, type CSSProperties } from 'react';
-import { safeSetItem, applyStorageChanges } from '../storageWrite';
+import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { useIsPhone } from '../useIsPhone';
 import { adoptExternalValue } from '../crossTab';
 import { isCustomValues, isCustomStructure } from '../backup';
 import { captureKeys, type UndoEntry } from '../undo';
-import { useLang, MONTHS } from '../i18n';
+import { useLang, MONTHS, type Lang, type Translations } from '../i18n';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney } from '../money';
@@ -14,7 +14,7 @@ import {
 } from '../blockChart';
 import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
-import { appStorage } from '../storage';
+import { appStorage, settleStorage, storageMark, usesNativeStorage } from '../storage';
 
 // ── Schema ──────────────────────────────────────────────────────────
 // Custom v3 is a generic, build-from-scratch block budget with its OWN data,
@@ -108,7 +108,13 @@ export interface BlockRow {
 // Distinct per-category palette — each row defaults to the next colour so a
 // block's chart wedges/bars (and legend dots) aren't all one hue.
 const ROW_COLORS = ['#8b5cf6', '#22c55e', '#f59e0b', '#22d3ee', '#ec4899', '#ef4444', '#14b8a6', '#a78bfa', '#fb923c', '#38bdf8'];
-function paletteColor(i: number): string { return ROW_COLORS[i % ROW_COLORS.length]; }
+/** A month name inside a sentence: "Kopiera september", "Copy September".
+ *  MONTHS is capitalised because it also titles the month. */
+export function inSentence(name: string, lang: Lang): string {
+  return lang === 'en' ? name : name.toLowerCase();
+}
+
+export function paletteColor(i: number): string { return ROW_COLORS[i % ROW_COLORS.length]; }
 
 export interface CustomBlock {
   id: string;
@@ -121,7 +127,14 @@ export interface CustomBlock {
   rows: BlockRow[];         // empty for summary / note
   icon?: string;            // optional display emoji (title/tile); undefined → kind emoji
   target?: number;          // optional goal; >0 shows a progress bar (regular blocks only)
-  text?: string;            // note-block body (stored cross-month in the structure)
+  text?: string;            // note-block body shown in every month (scope 'all')
+  /** A note's reach. Absent means every month — what every note written before
+   *  scopes existed was, so none of them changes on its own. */
+  noteScope?: 'month';
+  /** Per-month bodies of a 'month' note, keyed by noteMonthKey. Kept in the
+   *  structure rather than a new storage key, so backup, restore and undo of
+   *  the structure already carry them. */
+  monthText?: Record<string, string>;
   nameKey?: CustomDefaultNameKey; // built-in name → translated at render
   userNamed?: boolean;            // user renamed → name is literal, never translated
 }
@@ -155,14 +168,64 @@ function newSummary(name: string): CustomBlock {
 }
 
 function newNote(name: string): CustomBlock {
+  // New notes belong to the month they were written in: a September reminder
+  // that is still on screen in October is the complaint this scope answers.
   return {
     id: uid(), kind: 'note', name, tag: 'in', width: 'full', bg: null,
-    chart: defaultChart(), rows: [], text: '',
+    chart: defaultChart(), rows: [], text: '', noteScope: 'month',
   };
 }
 
+// ── Note scope ──────────────────────────────────────────────────────────────
+// Customize plan N4: a note written in September was shown in October too.
+
+/** Same year/month-index pair the storage keys use: 2026_8 is September. */
+export const noteMonthKey = (year: number, month: number) => `${year}_${month}`;
+const NOTE_MONTH_KEY_RE = /^\d{4}_(?:[0-9]|1[01])$/;
+
+/** What a note says in the given month. */
+export function noteTextFor(b: CustomBlock, year: number, month: number): string {
+  if (b.noteScope === 'month') return b.monthText?.[noteMonthKey(year, month)] ?? '';
+  return b.text ?? '';
+}
+
+/** Write a note's text where its scope keeps it. An emptied month is removed
+ *  rather than stored as '', so the structure does not fill with blanks. */
+export function withNoteText(b: CustomBlock, year: number, month: number, text: string): CustomBlock {
+  if (b.noteScope !== 'month') return { ...b, text };
+  const monthText = { ...b.monthText };
+  const k = noteMonthKey(year, month);
+  if (text === '') delete monthText[k]; else monthText[k] = text;
+  return { ...b, monthText };
+}
+
+/**
+ * Change a note's reach WITHOUT changing what is on screen in the month being
+ * viewed. Switching to one month moves the shared text into that month;
+ * switching to every month makes this month's text the shared one. Text kept
+ * for other months stays stored, so switching back brings it back.
+ */
+export function withNoteScope(b: CustomBlock, scope: 'month' | 'all', year: number, month: number): CustomBlock {
+  const shown = noteTextFor(b, year, month);
+  if (scope === 'month') {
+    if (b.noteScope === 'month') return b;
+    return withNoteText({ ...b, noteScope: 'month' }, year, month, shown);
+  }
+  if (b.noteScope !== 'month') return b;
+  return { ...b, noteScope: undefined, text: shown };
+}
+
+export function loadMonthText(v: unknown): Record<string, string> | undefined {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, text] of Object.entries(v)) {
+    if (NOTE_MONTH_KEY_RE.test(k) && typeof text === 'string' && text !== '') out[k] = text;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 // Preset background tints — theme-aware CSS vars (never hardcoded for presets).
-export const BG_PRESETS: { key: string; varName: string }[] = [
+export const BG_PRESETS: { key: keyof Translations['cfgBgPresets']; varName: string }[] = [
   { key: 'bg-brand',   varName: 'var(--accent-brand)' },
   { key: 'bg-income',  varName: 'var(--tint-income-bg)' },
   { key: 'bg-expense', varName: 'var(--tint-expense-bg)' },
@@ -186,7 +249,7 @@ function hexLuminance(hex: string): number | null {
 // Resolve a block's background to an inline style, including an auto-contrast
 // `--cv3-ink` when the background is a known/light colour. For `bg: null` we
 // return nothing so the block keeps normal theme text/surface behaviour.
-function bgStyle(bg: string | null): CSSProperties | undefined {
+export function bgStyle(bg: string | null): CSSProperties | undefined {
   if (!bg) return undefined;
 
   if (bg.startsWith('#')) {
@@ -253,6 +316,8 @@ export function loadStructure(): CustomBlock[] | null {
         icon: typeof b.icon === 'string' && b.icon ? b.icon : undefined,
         target: typeof b.target === 'number' && b.target > 0 ? b.target : undefined,
         text: typeof b.text === 'string' ? b.text : undefined,
+        noteScope: b.noteScope === 'month' ? 'month' : undefined,
+        monthText: loadMonthText(b.monthText),
         nameKey,
         userNamed: typeof b.userNamed === 'boolean' ? b.userNamed : undefined,
       };
@@ -288,9 +353,11 @@ interface Props {
   /** Remember a step back from the destructive actions here. Custom owns its
    *  own keys, so it captures them itself (review 2026-09-18, F3). */
   onRecordUndo: (entry: UndoEntry) => void;
+  /** Back to the choice between a linked and a standalone panel. */
+  onStartOver?: () => void;
 }
 
-export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => {
+export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver }: Props) => {
   const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
@@ -310,6 +377,12 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   // Real-modal behavior for the phone tap-to-expand overlay.
   const expandRef = useRef<HTMLDivElement>(null);
   useModalFocus(expandRef, expandedFor !== null, () => setExpandedFor(null));
+  // Phone "•••" menu. The ref sits on a layer holding both the menu and its
+  // click-away backdrop: useModalFocus inerts the menu's siblings, and an inert
+  // backdrop would swallow the very tap meant to close it.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useModalFocus(menuRef, menuOpen, () => setMenuOpen(false));
 
   // Persist structure whenever it changes (after the user has started).
   //
@@ -356,6 +429,10 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   // "this is what we just read".
   const savedValues = useRef(values);
   const savedBlocks = useRef(blocks);
+  // Bumped whenever those two are reset from outside the save effect (a month
+  // loaded, another tab adopted). A save confirmed late, in the apps, checks it
+  // so it cannot become the baseline of a month it was not written to.
+  const baselineEpoch = useRef(0);
 
   // Load this month's amounts when the month changes — arm the guard FIRST so
   // the save effect below (which also re-runs on this commit) skips this load
@@ -363,6 +440,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   useEffect(() => {
     skipSave.current = true;
     const fresh = loadValues(year, month);
+    baselineEpoch.current += 1;
     savedValues.current = fresh;
     setValues(fresh);
   }, [year, month]);
@@ -383,6 +461,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
     // Two writes, one meaning. If the amounts land but the snapshot does not,
     // the month's money is recorded with no record of how it was filed — so the
     // failure is reported even when the first half succeeded (F4).
+    const mark = storageMark();
     let ok = safeSetItem(appStorage, key, JSON.stringify(values));
     // Record WHICH block each row belonged to when these amounts were written.
     // Without it the year view had to classify every month with today's layout,
@@ -393,10 +472,20 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
       customSnapshotKey(year, month),
       JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month))),
     ) && ok;
-    if (!ok) onSaveFailed();
+    if (!ok) { onSaveFailed(); return; }
     // What is on disk now. A refused write deliberately does NOT update these:
     // the next change should try again rather than assume it landed.
-    if (ok) { savedValues.current = values; savedBlocks.current = blocks; }
+    const landed = () => { savedValues.current = values; savedBlocks.current = blocks; };
+    if (!usesNativeStorage()) { landed(); return; }
+    // In the apps `ok` only means QUEUED, so the refs moved for a write the
+    // database might still refuse — and the component then believed a refused
+    // value was stored (deep review 2026-09-27, P1). They move once it says
+    // yes, and only if the screen still shows the month this was written to.
+    // A refusal is reported by App's listener; it is not repeated here.
+    const epoch = baselineEpoch.current;
+    void settleStorage(mark).then(stored => {
+      if (stored && epoch === baselineEpoch.current) landed();
+    });
   }, [values, year, month, blocks, onSaveFailed]);
 
   // ── Another tab edited this month, or the structure ──────────────────────
@@ -418,6 +507,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
         e, key, JSON.stringify(savedValues.current), isCustomValues,
       );
       if (incoming) {
+        baselineEpoch.current += 1;
         savedValues.current = incoming.data;
         setValues(incoming.data);
         return;
@@ -427,6 +517,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
       );
       if (structure) {
         loadedBlocks.current = structure.data;
+        baselineEpoch.current += 1;
         savedBlocks.current = structure.data;
         setBlocks(structure.data);
       }
@@ -478,7 +569,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
   };
   // Wipe every month's Custom amounts (keeps the block layout) — a clean-up for
   // data left over from the old month-bleed bug. Confirmed before running.
-  const clearAllAmounts = () => {
+  const clearAllAmounts = async () => {
     if (!window.confirm(t.clearAmountsConfirm)) return;
     // Snapshots go with the amounts they describe. A snapshot exists to say how
     // a month's MONEY was filed, so once every amount is gone it documents
@@ -497,8 +588,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
     // first, then removed as one reversible operation so a refusal cannot leave
     // half the years cleared.
     const before = captureKeys(appStorage, doomed);
-    if (!applyStorageChanges(appStorage, doomed.map(key => ({ key, value: null })))) {
-      onSaveFailed();
+    // Waited for: in the apps the removal only QUEUES when the write returns,
+    // and "cleared", the empty amounts and the step back used to follow at
+    // once — for a removal the database could still refuse (foundation review
+    // 2026-09-29, P1). A refusal changed nothing, and is said as that.
+    const outcome = await commitStorageChangesOutcome(appStorage, doomed.map(key => ({ key, value: null })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return;
     }
     onRecordUndo({
@@ -628,7 +724,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
 
   const renameBlock = (id: string, name: string) => patchBlock(id, { name, userNamed: true });
-  const setNoteText = (id: string, text: string) => patchBlock(id, { text });
+  const setNoteText = (id: string, text: string) =>
+    setBlocks(prev => prev.map(b => (b.id === id ? withNoteText(b, year, month, text) : b)));
+  const setNoteScope = (id: string, scope: 'month' | 'all') =>
+    setBlocks(prev => prev.map(b => (b.id === id ? withNoteScope(b, scope, year, month) : b)));
+  const monthLabel = `${inSentence(MONTHS[lang][month], lang)} ${year}`;
+  const noteScopeLabel = (b: CustomBlock) =>
+    (b.noteScope === 'month' ? t.noteScopeMonth(monthLabel) : t.noteScopeAll);
   const addRow = (id: string) =>
     setBlocks(prev => prev.map(b => b.id === id
       ? { ...b, rows: [...b.rows, defaultRow(b.rows.length)] } : b));
@@ -737,6 +839,10 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
           <button className="custom-help-link" onClick={() => setHelpOpen(true)}>
             ❔ {t.howItWorks}
           </button>
+          {/* Nothing built yet, so nothing to lose: straight back to the choice. */}
+          {onStartOver && (
+            <button className="custom-help-link" onClick={onStartOver}>← {t.customChooseAgain}</button>
+          )}
         </div>
         {picking && <AddPicker onAddBlock={addBlock} onAddSummary={addSummary} onAddNote={addNoteBlock}
           onAddTemplate={addTemplate} onClose={() => setPicking(false)} />}
@@ -744,6 +850,15 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
       </div>
     );
   }
+
+  // The one switch between using the budget and designing it — shared by the
+  // desktop toolbar and the phone's, so both say the same thing.
+  const editToggle = (
+    <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
+      onClick={() => { setMenuOpen(false); setEditing(e => !e); }}>
+      {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
+    </button>
+  );
 
   const cfgBlock = configFor ? viewBlocks.find(b => b.id === configFor) : null;
   const expandedBlock = expandedFor ? viewBlocks.find(b => b.id === expandedFor) : null;
@@ -767,25 +882,74 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
               📅 {t.tabYear}
             </button>
           </div>
-          {view === 'budget' && <>
+          {view === 'budget' && !isPhone && <>
             <button className="custom-edit-btn" onClick={() => setHelpOpen(true)} title={t.howItWorks}>
               ❔ {t.howItWorks}
             </button>
             <button className="custom-edit-btn" onClick={copyLastMonth} title={t.copyLastMonth}>
               📋 {t.copyLastMonth}
             </button>
-            <button className={`custom-edit-btn${editing ? ' custom-edit-active' : ''}`}
-              onClick={() => setEditing(e => !e)}>
-              {editing ? `✓ ${t.cfgDone}` : `✎ ${t.editLayout}`}
-            </button>
+            {editToggle}
             {editing && (
               <button className="custom-edit-btn custom-reset-btn" onClick={clearAllAmounts}
                 title={t.clearAmounts}>
                 🧹 {t.clearAmounts}
               </button>
             )}
+            {editing && onStartOver && (
+              <button className="custom-edit-btn custom-reset-btn" onClick={onStartOver}>↺ {t.startOver}</button>
+            )}
+          </>}
+          {/* Phone: four buttons wrapped onto two lines and pushed the blocks
+              down. Only the mode switch stays out; the rest go behind •••. */}
+          {view === 'budget' && isPhone && <>
+            {editToggle}
+            <button className="custom-edit-btn custom-more-btn" onClick={() => setMenuOpen(true)}
+              aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t.moreActions}
+              title={t.moreActions}>•••</button>
+            {menuOpen && (
+              <div ref={menuRef} className="custom-menu-layer">
+                <div className="custom-menu-backdrop" onClick={() => setMenuOpen(false)} />
+                <div className="custom-menu" role="menu" aria-label={t.moreActions}>
+                  <button role="menuitem" className="custom-menu-item"
+                    onClick={() => { setMenuOpen(false); setHelpOpen(true); }}>
+                    ❔ {t.howItWorks}
+                  </button>
+                  <button role="menuitem" className="custom-menu-item"
+                    onClick={() => { setMenuOpen(false); copyLastMonth(); }}>
+                    📋 {t.copyLastMonth}
+                  </button>
+                  {editing && (
+                    <button role="menuitem" className="custom-menu-item custom-menu-danger"
+                      onClick={() => { setMenuOpen(false); clearAllAmounts(); }}>
+                      🧹 {t.clearAmounts}
+                    </button>
+                  )}
+                  {editing && onStartOver && (
+                    <button role="menuitem" className="custom-menu-item custom-menu-danger"
+                      onClick={() => { setMenuOpen(false); onStartOver(); }}>
+                      ↺ {t.startOver}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </>}
         </div>
+
+        {/* Custom keeps its own amounts; nothing here reaches Classic, and a
+            user switching over with a budget already filled in needs to know
+            that before typing it all a second time. */}
+        <p className="custom-standalone-note">ℹ️ {t.customStandalone}</p>
+
+        {view === 'budget' && !monthRecorded && prevMonthRecorded && (
+          <div className="custom-month-empty" role="status">
+            <span>{t.customMonthEmpty(MONTHS[lang][month])}</span>
+            <button className="custom-primary-btn" onClick={copyLastMonth}>
+              📋 {t.customCopyFrom(inSentence(MONTHS[lang][prevMonth], lang))}
+            </button>
+          </div>
+        )}
 
         {view === 'year' && <CustomYear blocks={blocks} year={year} />}
 
@@ -836,12 +1000,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                       </button>
                     ))}
                   </div>
-                  {isPhone && <>
-                    <button className="custom-icon-btn" onClick={() => move(b.id, -1)} disabled={index === 0}
-                      title={t.moveUp} aria-label={t.moveUp}>↑</button>
-                    <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
-                      title={t.moveDown} aria-label={t.moveDown}>↓</button>
-                  </>}
+                  {/* On every screen, not only phones: dragging is the quick
+                      way on a desktop, but a keyboard or a screen reader cannot
+                      drag, and without these it had no way to reorder at all. */}
+                  <button className="custom-icon-btn" onClick={() => move(b.id, -1)} disabled={index === 0}
+                    title={t.moveUp} aria-label={t.moveUp}>↑</button>
+                  <button className="custom-icon-btn" onClick={() => move(b.id, 1)} disabled={index === blocks.length - 1}
+                    title={t.moveDown} aria-label={t.moveDown}>↓</button>
                   <button className="custom-icon-btn" onClick={() => duplicateBlock(b.id)}
                     title={t.duplicateBlock}
                     aria-label={`${t.duplicateBlock}: ${resolveDisplayName(b, t)}`}>⧉</button>
@@ -859,7 +1024,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                     <span className="custom-tile-title">{b.name}</span>
                   </span>
                   {b.kind === 'note' ? (
-                    <span className="custom-tile-preview">{(b.text || '').split('\n')[0] || '—'}</span>
+                    <span className="custom-tile-preview">{noteTextFor(b, year, month).split('\n')[0] || '—'}</span>
                   ) : (
                     <>
                       <span className={`custom-tile-headline tone-${recorded ? tone : 'neutral'}`}>
@@ -872,7 +1037,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                         </span>
                       )}
                       {b.kind === 'block' && b.target && b.target > 0 && (
-                        <TargetBar total={total} target={b.target} money={money} />
+                        <TargetBar total={total} target={b.target} limit={b.tag === 'out'} money={money} />
                       )}
                     </>
                   )}
@@ -886,6 +1051,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                   onRename={renameBlock} onRenameRow={renameRow} onDeleteRow={deleteRow}
                   onRecolorRow={recolorRow}
                   onAddRow={addRow} onSetAmount={setAmount} onSetNote={setNoteText}
+                  noteText={noteTextFor(b, year, month)} noteScopeLabel={noteScopeLabel(b)}
                   money={money} currency={currency} t={t}
                 />
               )}
@@ -907,6 +1073,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
       {cfgBlock && (
         <ConfigPanel block={cfgBlock}
           onChange={(patch) => patchBlock(cfgBlock.id, patch)}
+          onSetNoteScope={(scope) => setNoteScope(cfgBlock.id, scope)} monthLabel={monthLabel}
           onClose={() => setConfigFor(null)} t={t} />
       )}
 
@@ -937,6 +1104,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
                 onRename={renameBlock} onRenameRow={renameRow} onDeleteRow={deleteRow}
                 onRecolorRow={recolorRow}
                 onAddRow={addRow} onSetAmount={setAmount} onSetNote={setNoteText}
+                noteText={noteTextFor(expandedBlock, year, month)} noteScopeLabel={noteScopeLabel(expandedBlock)}
                 money={money} currency={currency} t={t}
               />
             </div>
@@ -954,7 +1122,16 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo }: Props) => 
 // feature-by-feature guide sits behind a "Show guide" link so it never blocks
 // the user from just starting.
 const HELP_ICONS = ['🧱', '🏷️', '➕', '📐', '🎨', '📊', '🎯', '📝', '📈', '📋', '✎'];
-const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClose: () => void }) => {
+/** The guide. Standalone by default; a linked panel passes its own intro and
+ *  items, because half of the standalone guide (tags, templates, clearing
+ *  amounts) does not exist there. */
+export const CustomHelp = ({ t, onClose, intro, items }: {
+  t: ReturnType<typeof useLang>['t'];
+  onClose: () => void;
+  intro?: string;
+  items?: { icon: string; title: string; body: string }[];
+}) => {
+  const list = items ?? t.customHelp.map((item, i) => ({ ...item, icon: HELP_ICONS[i] ?? '•' }));
   const [showGuide, setShowGuide] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   useModalFocus(panelRef, true, onClose);
@@ -966,12 +1143,12 @@ const CustomHelp = ({ t, onClose }: { t: ReturnType<typeof useLang>['t']; onClos
           <div className="custom-modal-title" id="custom-help-title">❔ {t.customHelpTitle}</div>
           <button className="custom-icon-btn" onClick={onClose} aria-label={t.cfgDone}>✕</button>
         </div>
-        <p className="custom-help-intro">{t.customHelpIntro}</p>
+        <p className="custom-help-intro">{intro ?? t.customHelpIntro}</p>
         {showGuide ? (
           <div className="custom-help-list">
-            {t.customHelp.map((item, i) => (
+            {list.map((item, i) => (
               <div className="custom-help-item" key={i}>
-                <span className="custom-help-icon" aria-hidden="true">{HELP_ICONS[i] ?? '•'}</span>
+                <span className="custom-help-icon" aria-hidden="true">{item.icon}</span>
                 <div>
                   <div className="custom-help-item-title">{item.title}</div>
                   <div className="custom-help-item-body">{item.body}</div>
@@ -999,7 +1176,7 @@ function tagEmoji(b: CustomBlock): string {
 }
 // The block's DISPLAY icon for the title/tile — user-chosen emoji, or the kind
 // emoji as a fallback. (The kind-tag pill always uses the kind emoji.)
-function displayIcon(b: CustomBlock): string {
+export function displayIcon(b: CustomBlock): string {
   return b.icon ?? tagEmoji(b);
 }
 // Fixed, non-editable KIND tag (what kind of money the block is). Distinct from
@@ -1009,12 +1186,12 @@ function kindLabel(b: CustomBlock, t: ReturnType<typeof useLang>['t']): string {
   if (b.kind === 'note') return t.kindNote;
   return b.tag === 'in' ? t.kindIn : b.tag === 'out' ? t.kindOut : t.kindSave;
 }
-function widthLabel(w: BlockWidth, t: ReturnType<typeof useLang>['t']): string {
+export function widthLabel(w: BlockWidth, t: ReturnType<typeof useLang>['t']): string {
   return w === 'full' ? t.cfgWidthFull : w === 'half' ? t.cfgWidthHalf : t.cfgWidthThird;
 }
 
 // ── Block content (full editable view; desktop inline + phone modal) ──
-interface BlockContentProps {
+export interface BlockContentProps {
   block: CustomBlock;
   total: number;
   prevTotal: number;
@@ -1034,14 +1211,21 @@ interface BlockContentProps {
   onAddRow: (id: string) => void;
   onSetAmount: (rowId: string, amount: number) => void;
   onSetNote: (id: string, text: string) => void;
+  /** False where a row's colour is not the block's to change — a linked
+   *  panel's rows take theirs from the regular budget. */
+  canRecolor?: boolean;
+  /** A note's text for the month on screen, and where it is shown. */
+  noteText: string;
+  noteScopeLabel: string;
   money: (n: number) => string;
   currency: ReturnType<typeof useLang>['currency'];
   t: ReturnType<typeof useLang>['t'];
 }
 
-const BlockContent = ({
+export const BlockContent = ({
   block, total, prevTotal, prevRemaining, summary, values, recorded, showDelta, editing,
-  onRename, onRenameRow, onDeleteRow, onRecolorRow, onAddRow, onSetAmount, onSetNote, money, currency, t,
+  onRename, onRenameRow, onDeleteRow, onRecolorRow, onAddRow, onSetAmount, onSetNote, noteText, noteScopeLabel,
+  canRecolor = true, money, currency, t,
 }: BlockContentProps) => {
   // Note block: a free-text block that contributes nothing to the money math.
   if (block.kind === 'note') {
@@ -1050,7 +1234,8 @@ const BlockContent = ({
         <div className="cv3-kind-tag">{tagEmoji(block)} {kindLabel(block, t)}</div>
         <BlockTitle block={block} editing={editing} onRename={onRename} placeholder={t.newNoteName}
           ariaLabel={t.ariaNameField(block.name || t.newNoteName)} />
-        <textarea className="cv3-note-text" value={block.text ?? ''}
+        <div className="cv3-note-scope">{noteScopeLabel}</div>
+        <textarea className="cv3-note-text" value={noteText}
           placeholder={t.notePlaceholder} rows={5}
           onChange={(e) => onSetNote(block.id, e.target.value)} />
       </>
@@ -1094,6 +1279,16 @@ const BlockContent = ({
           value={recorded ? `${summary.remaining >= 0 ? '+' : ''}${money(summary.remaining)}` : '–'}
           cls={!recorded ? '' : summary.remaining >= 0 ? 'tone-positive' : 'tone-negative'} big />
         {deltaNode && <div className="cv3-block-delta">{deltaNode}</div>}
+        {/* "Kvar" here is before saving; Classic's is after. Shown once there is
+            saving to tell them apart — and below the change, which is Kvar's. */}
+        {recorded && summary.saved !== 0 && (() => {
+          const after = summary.remaining - summary.saved;
+          return (
+            <SummaryRow label={t.summaryRemainingAfterSaving}
+              value={`${after >= 0 ? '+' : ''}${money(after)}`}
+              cls={after >= 0 ? 'tone-positive' : 'tone-negative'} />
+          );
+        })()}
       </div>
     );
     const narrow = block.width === 'third';
@@ -1144,12 +1339,19 @@ const BlockContent = ({
     <>
       {block.rows.map(r => (
         <div className="cv3-row" key={r.id}>
-          {/* Per-category colour swatch (also a picker to override). */}
-          <label className="cv3-row-color" style={{ background: r.color }} title={t.cfgCustomColor}>
-            <input type="color" value={r.color} aria-label={t.ariaRowColor(r.name || t.newRowName)}
-              onChange={e => onRecolorRow(block.id, r.id, e.target.value)} />
-          </label>
-          <InlineName className="cv3-row-name" value={r.name} editable
+          {/* Per-category colour swatch. A picker only in design mode: in
+              ordinary use a stray tap on the dot opened a colour dialog, and a
+              stray keystroke in the name renamed the row. Using the budget
+              means entering amounts; everything else is Edit layout. */}
+          {editing && canRecolor ? (
+            <label className="cv3-row-color" style={{ background: r.color }} title={t.cfgCustomColor}>
+              <input type="color" value={r.color} aria-label={t.ariaRowColor(r.name || t.newRowName)}
+                onChange={e => onRecolorRow(block.id, r.id, e.target.value)} />
+            </label>
+          ) : (
+            <span className="cv3-row-color cv3-row-color-static" style={{ background: r.color }} aria-hidden="true" />
+          )}
+          <InlineName className="cv3-row-name" value={r.name} editable={editing}
             placeholder={t.newRowName} ariaLabel={t.ariaNameField(`${block.name} – ${r.name || t.newRowName}`)}
             onChange={(v) => onRenameRow(block.id, r.id, v)} />
           <AmountInput value={values[r.id] || 0} ariaLabel={t.ariaAmountInput(`${block.name} – ${r.name || t.newRowName}`)}
@@ -1160,9 +1362,11 @@ const BlockContent = ({
           )}
         </div>
       ))}
-      <button className="add-category-btn cv3-add-row" onClick={() => onAddRow(block.id)}>
-        {t.addRow}
-      </button>
+      {editing && (
+        <button className="add-category-btn cv3-add-row" onClick={() => onAddRow(block.id)}>
+          {t.addRow}
+        </button>
+      )}
     </>
   );
   const footerNode = (
@@ -1173,7 +1377,7 @@ const BlockContent = ({
       </div>
       {deltaNode && <div className="cv3-block-delta">{deltaNode}</div>}
       {block.target && block.target > 0 && (
-        <TargetBar total={total} target={block.target} money={money} />
+        <TargetBar total={total} target={block.target} limit={block.tag === 'out'} money={money} />
       )}
     </>
   );
@@ -1212,16 +1416,38 @@ const BlockContent = ({
 
 // Thin progress bar toward a block's target. Fill uses the block accent
 // (--cv3-ink), label uses ink so it reads on any background.
-const TargetBar = ({ total, target, money }: { total: number; target: number; money: (n: number) => string }) => {
-  const pct = Math.min(100, Math.round((total / target) * 100));
+//
+// What the number means depends on the block. Income and saving have a GOAL —
+// reaching it is good. An expense block has a LIMIT — reaching it is not, and
+// a bar that filled up and turned "complete" as rent went over budget said the
+// opposite of the truth. A limit is green under 75 %, amber up to the limit,
+// red past it; the words say the same thing, so colour is never the only cue.
+export type TargetState = 'goal' | 'reached' | 'ok' | 'near' | 'over';
+
+export function targetState(total: number, target: number, limit: boolean): TargetState {
+  if (!limit) return total >= target ? 'reached' : 'goal';
+  if (total > target) return 'over';
+  return total >= target * 0.75 ? 'near' : 'ok';
+}
+
+const TargetBar = ({ total, target, limit, money }: {
+  total: number; target: number; limit: boolean; money: (n: number) => string;
+}) => {
+  const { t } = useLang();
+  const pct = Math.round((total / target) * 100);
+  const state = targetState(total, target, limit);
+  const status = state === 'reached' ? t.targetReached
+    : state === 'goal' ? t.targetToGo(money(target - total))
+    : state === 'over' ? t.limitOver(money(total - target))
+    : t.limitLeft(money(target - total));
   return (
-    <div className="cv3-target">
+    <div className={`cv3-target cv3-target-${state}`}>
       <div className="cv3-target-track">
-        <div className="cv3-target-fill" style={{ width: `${pct}%` }} />
+        <div className="cv3-target-fill" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <div className="cv3-target-label">
-        <span>{money(total)} / {money(target)}</span>
-        <span>{pct}%</span>
+        <span>{money(total)} / {money(target)} · {pct}%</span>
+        <span className="cv3-target-status">{status}</span>
       </div>
     </div>
   );
@@ -1322,7 +1548,9 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
 // which JSON.stringify writes as null (found while building the guard for the
 // 2026-07-30 §4 fix, in a field that review had not looked at).
 // Blank or 0 means "no target" — that is a real choice, not an error.
-const TargetInput = ({ value, onChange }: { value?: number; onChange: (v: number | undefined) => void }) => {
+const TargetInput = ({ value, onChange, ariaLabel }: {
+  value?: number; onChange: (v: number | undefined) => void; ariaLabel?: string;
+}) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();
@@ -1340,6 +1568,7 @@ const TargetInput = ({ value, onChange }: { value?: number; onChange: (v: number
         inputMode="decimal"
         value={draft}
         placeholder="0"
+        aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         aria-describedby={invalid ? errorId : undefined}
         onChange={e => {
@@ -1373,7 +1602,10 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose
       <div className="custom-modal" onClick={e => e.stopPropagation()} role="dialog"
         aria-modal="true" aria-labelledby="custom-picker-title" ref={panelRef}>
         <div className="custom-modal-title" id="custom-picker-title">{t.addBlock}</div>
-        <div className="custom-picker-grid">
+        {/* Two kinds of choice, named: an empty block to fill in yourself, or
+            one that arrives with its rows. A bare line did not say which was which. */}
+        <h3 className="custom-picker-heading" id="custom-picker-own">{t.pickerBuildOwn}</h3>
+        <div className="custom-picker-grid" role="group" aria-labelledby="custom-picker-own">
           <button className="custom-picker-btn" onClick={() => onAddBlock('in')}>
             <span className="custom-picker-emoji">💵</span><span>{t.tagIn}</span>
           </button>
@@ -1391,8 +1623,8 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose
           </button>
         </div>
 
-        <div className="custom-picker-sep" role="separator" />
-        <div className="custom-picker-grid">
+        <h3 className="custom-picker-heading custom-picker-heading-next" id="custom-picker-ready">{t.pickerReadyMade}</h3>
+        <div className="custom-picker-grid" role="group" aria-labelledby="custom-picker-ready">
           {BLOCK_TEMPLATES.map(tpl => (
             <button className="custom-picker-btn" key={tpl.key} onClick={() => onAddTemplate(tpl)}>
               <span className="custom-picker-emoji">{tpl.emoji}</span><span>{t[tpl.key]}</span>
@@ -1411,9 +1643,15 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose
 // can never offer a style the renderer, loader or backup validator rejects.
 const CHART_TYPES: readonly ExpenseChartStyle[] = EXPENSE_CHART_STYLES;
 
-const ConfigPanel = ({ block, onChange, onClose, t }: {
+export const ConfigPanel = ({ block, onChange, onSetNoteScope, monthLabel, linked = false, onClose, t }: {
   block: CustomBlock;
   onChange: (patch: Partial<CustomBlock>) => void;
+  onSetNoteScope: (scope: 'month' | 'all') => void;
+  /** "september 2026" — the month a month-scoped note belongs to. */
+  monthLabel: string;
+  /** A linked block's kind comes from the regular budget (income, a category,
+   *  savings), so it is not the panel's to retag. */
+  linked?: boolean;
   onClose: () => void;
   t: ReturnType<typeof useLang>['t'];
 }) => {
@@ -1459,21 +1697,42 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
           </div>
         </div>
 
+        {/* Where a note is shown. Either way, what is on screen now stays. */}
+        {isNote && (
+          <div className="cfg-row">
+            <span className="cfg-label" id="cfg-note-scope">{t.noteScope}</span>
+            <div className="utils-seg" role="group" aria-labelledby="cfg-note-scope">
+              <button className={`seg-btn${block.noteScope === 'month' ? ' seg-active' : ''}`}
+                aria-pressed={block.noteScope === 'month'} onClick={() => onSetNoteScope('month')}>
+                {t.noteScopeMonth(monthLabel)}
+              </button>
+              <button className={`seg-btn${block.noteScope !== 'month' ? ' seg-active' : ''}`}
+                aria-pressed={block.noteScope !== 'month'} onClick={() => onSetNoteScope('all')}>
+                {t.noteScopeAll}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Emoji — block display icon (title/tile); kind tag keeps its kind emoji. */}
         <div className="cfg-row cfg-row-stack">
           <span className="cfg-label">{t.cfgEmoji}</span>
           <div className="cfg-emoji-grid">
+            {/* Named for a screen reader: "∅" alone was read as "empty set",
+                and nothing said which choice was the current one. */}
             <button className={`cfg-emoji-btn${!block.icon ? ' cfg-emoji-active' : ''}`}
-              onClick={() => onChange({ icon: undefined })} title={t.cfgEmojiDefault}>∅</button>
+              onClick={() => onChange({ icon: undefined })} title={t.cfgEmojiDefault}
+              aria-label={t.cfgEmojiDefault} aria-pressed={!block.icon}>∅</button>
             {BLOCK_EMOJIS.map(em => (
               <button key={em} className={`cfg-emoji-btn${block.icon === em ? ' cfg-emoji-active' : ''}`}
-                onClick={() => onChange({ icon: em })}>{em}</button>
+                onClick={() => onChange({ icon: em })}
+                aria-label={`${t.cfgEmoji} ${em}`} aria-pressed={block.icon === em}>{em}</button>
             ))}
           </div>
         </div>
 
-        {/* Tag (regular blocks only — not summary/note) */}
-        {isRegular && (
+        {/* Tag (regular blocks only — not summary/note, not linked) */}
+        {isRegular && !linked && (
           <div className="cfg-row">
             <span className="cfg-label">{t.cfgTag}</span>
             <div className="utils-seg">
@@ -1490,8 +1749,9 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
         {/* Target (regular blocks only). 0/empty → no target. */}
         {isRegular && (
           <div className="cfg-row">
-            <span className="cfg-label">{t.cfgTarget}</span>
-            <TargetInput value={block.target} onChange={target => onChange({ target })} />
+            <span className="cfg-label">{block.tag === 'out' ? t.cfgLimit : t.cfgTarget}</span>
+            <TargetInput value={block.target} onChange={target => onChange({ target })}
+              ariaLabel={(block.tag === 'out' ? t.ariaLimitInput : t.ariaTargetInput)(resolveDisplayName(block, t))} />
           </div>
         )}
 
@@ -1500,11 +1760,14 @@ const ConfigPanel = ({ block, onChange, onClose, t }: {
           <span className="cfg-label">{t.cfgBackground}</span>
           <div className="cfg-bg-swatches">
             <button className={`cfg-swatch bg-none${block.bg === null ? ' cfg-swatch-active' : ''}`}
-              onClick={() => onChange({ bg: null })} title={t.cfgBgNone} aria-label={t.cfgBgNone}>∅</button>
+              onClick={() => onChange({ bg: null })} title={t.cfgBgNone} aria-label={t.cfgBgNone}
+              aria-pressed={block.bg === null}>∅</button>
+            {/* Named in words — these were read aloud as "bg-brand". */}
             {BG_PRESETS.map(p => (
               <button key={p.key}
                 className={`cfg-swatch ${p.key}${block.bg === p.key ? ' cfg-swatch-active' : ''}`}
-                onClick={() => onChange({ bg: p.key })} title={p.key} aria-label={p.key} />
+                onClick={() => onChange({ bg: p.key })} title={t.cfgBgPresets[p.key]}
+                aria-label={t.cfgBgPresets[p.key]} aria-pressed={block.bg === p.key} />
             ))}
             <label className="cfg-swatch cfg-swatch-custom" title={t.cfgCustomColor}>
               <span aria-hidden="true">🎨</span>

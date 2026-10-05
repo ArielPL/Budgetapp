@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
+import { useState, useReducer, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -18,7 +19,12 @@ const SavingsTab = lazy(() => import('./components/SavingsTab').then(m => ({ def
 const PlanTab = lazy(() => import('./components/PlanTab').then(m => ({ default: m.PlanTab })));
 const FollowUpTab = lazy(() => import('./components/FollowUpTab').then(m => ({ default: m.FollowUpTab })));
 const YearTab = lazy(() => import('./components/YearTab').then(m => ({ default: m.YearTab })));
-const CustomV3 = lazy(() => import('./components/CustomV3').then(m => ({ default: m.CustomV3 })));
+const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: m.DebtTab })));
+// Lazy: it carries the spreadsheet reader, which nobody who never imports
+// should have to download.
+const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
+const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
+const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ default: m.WalletArea })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
@@ -29,9 +35,14 @@ import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
 import { shortWhen, longDate } from './dateLabel';
+import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
-import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab } from './types';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, isProtectedCategory, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
+import { goalsJustReached, celebrate } from './rewards';
+import type { CategoryPlan } from './components/CsvImport';
+import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
+import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -54,11 +65,14 @@ import {
   loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
 } from './periodLabel';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
-import { useModalFocus } from './useModalFocus';
+import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
-import { appStorage } from './storage';
-import { safeSetItem, safeRemoveItem, applyStorageChanges, type StorageChange } from './storageWrite';
-import { loadActuals, planRefile, applyRefile } from './actuals';
+import {
+  appStorage, settleStorage, storageMark, onUnsavedChange,
+  hasUnsavedChanges, retryUnsavedChanges, storedSnapshot, usesNativeStorage,
+} from './storage';
+import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageChange } from './storageWrite';
+import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 
 
@@ -106,8 +120,15 @@ function App({ startupRepair = null }: AppProps) {
   const [year, setYear]       = useState(now.getFullYear());
   const [month, setMonth]     = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<ActiveTab>('budget');
+  // Which kind of Custom panel the user chose — or null before they have.
+  // Only a LINKED panel shows the other tabs: they describe the regular budget,
+  // and a standalone panel is a different budget (see customMode.ts).
+  const [customMode, setCustomMode] = useState<CustomMode | null>(() => loadCustomMode(appStorage));
+  const customTabs = customMode === 'linked';
   const [data, setData]       = useState<MonthData>(() => loadMonthData(now.getFullYear(), now.getMonth(), lang));
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
+  const [debtState, setDebtState] = useState<DebtState>(() => loadDebts(appStorage));
+  const [budgetImportOpen, setBudgetImportOpen] = useState(false);
   // ── Theme Builder: palette family + light/dark mode + override map ──
   // Loaded once via a lazy useState (never re-read; reading a ref during render
   // is disallowed by react-hooks/refs).
@@ -116,6 +137,8 @@ function App({ startupRepair = null }: AppProps) {
   const [themeMode, setThemeMode] = useState<Mode>(initialTheme.mode);
   const [themeCustom, setThemeCustom] = useState<ThemeVars>(initialTheme.custom);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
+  /** The wallets as a screen of their own, opened from the menu in any layout. */
+  const [walletsScreen, setWalletsScreen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
     return isCurrency(stored) ? stored : deviceCurrency();
@@ -126,6 +149,10 @@ function App({ startupRepair = null }: AppProps) {
     const v = appStorage.getItem('budget_layout');
     return v === 'combined' || v === 'custom' ? v : 'classic';
   });
+  // Whether the screen shows the REGULAR budget — Classic, Combined, or a
+  // Custom panel linked to it. Only then do the menu's copy and reset actions
+  // act on something the user can see.
+  const showsRegularBudget = layout !== 'custom' || customMode === 'linked';
 
   const t = translations[lang];
   // Format an amount with the active currency (symbol/format only — no conversion).
@@ -152,70 +179,6 @@ function App({ startupRepair = null }: AppProps) {
   // Hand-pinned period starts, for the months no rule can predict.
   const [periodLocks, setPeriodLocks] = useState<PeriodLocks>(() => loadPeriodLocks(appStorage));
 
-  /** Apply a change to how periods are cut, moving the entries that change
-   *  month — counted out loud first, because it is real data moving. */
-  const applyPeriodChange = (
-    nextDay: number | null, nextLocks: PeriodLocks, describe: string,
-  ): boolean => {
-    const plan = planRefile(appStorage, nextDay, nextLocks);
-    if (plan.moving > 0) {
-      if (!window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
-      // Review 2026-09-18, F3: 'periodChange' existed in UndoAction but nothing
-      // ever recorded it. Refiling rewrites every month the entries move
-      // between, so the capture covers the buckets AND the files being emptied
-      // — exactly the keys applyRefile is about to write.
-      // The SETTING that moved them belongs in the capture too. Without it,
-      // undo put the entries back and left the new period rule in force, so
-      // stored filing and the rule disagreed — and the next Follow-up edit
-      // wrote only the months in view, dropping every entry whose budget month
-      // had fallen outside them (finding 3). Both keys are captured whichever
-      // caller we came from: restoring the one that never changed is a no-op.
-      const touched = [
-        ...plan.buckets.keys(), ...plan.emptied,
-        PERIOD_START_KEY, PERIOD_LOCKS_KEY,
-      ];
-      const before = captureKeys(appStorage, touched);
-      if (!applyRefile(appStorage, plan)) { setSaveFailed(true); return false; }
-      recordUndo({
-        at: new Date().toISOString(),
-        action: 'periodChange',
-        count: plan.moving,
-        changes: before,
-      });
-      showMsg(t.periodRefileDone(plan.moving));
-    }
-    return true;
-  };
-
-  /** Pin (or unpin) the day one budget month's period opens. */
-  const lockPeriod = (y: number, m: number, iso: string | null) => {
-    const next = { ...periodLocks };
-    if (iso) next[lockKey(y, m)] = iso;
-    else delete next[lockKey(y, m)];
-    if (!applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`)) return;
-    setPeriodLocks(next);
-    const ok = Object.keys(next).length === 0
-      ? safeRemoveItem(appStorage, PERIOD_LOCKS_KEY)
-      : safeSetItem(appStorage, PERIOD_LOCKS_KEY, JSON.stringify(next));
-    if (!ok) setSaveFailed(true);
-  };
-
-  const changeStartDay = (day: number | null) => {
-    // The period is no longer only a label: it decides which budget month a
-    // recorded entry belongs to, so changing it moves entries between files.
-    // Lossless — every entry carries its own date — but it is real data being
-    // moved, so it is counted out loud first and never done silently.
-    if (!applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day))) return;
-    setPeriodStartDay(day);
-    // Reported like every other write: the entries have already been moved to
-    // match this setting, so a setting that did not land leaves the two
-    // disagreeing — which is exactly the state finding 3 showed is dangerous.
-    const ok = day === null
-      ? safeRemoveItem(appStorage, PERIOD_START_KEY)
-      : safeSetItem(appStorage, PERIOD_START_KEY, String(day));
-    if (!ok) setSaveFailed(true);
-  };
-
   // Tap-to-open month picker (the 12-month strip)
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -226,8 +189,23 @@ function App({ startupRepair = null }: AppProps) {
   const [lastBackup, setLastBackup] = useState<BackupAge>(() => currentBackupAge());
   // A write that did not land. Not dismissable: the edit really is unsaved, and
   // a banner the user can wave away would be the same lie as saying nothing
-  // (review 2026-09-05, F4). It clears itself the moment a save succeeds.
-  const [saveFailed, setSaveFailed] = useState(false);
+  // (review 2026-09-05, F4).
+  //
+  // It shows the SAVED STATE OF EVERYTHING, which storage.ts keeps: up while
+  // any change the user made is not stored, down once all of it is. A write
+  // that went fine never takes it down on its own — a budget edit that saved
+  // used to hide a refused import that had not (foundation review 2026-09-29,
+  // P1). A write that failed puts it up at once; the store's own word follows
+  // (onUnsavedChange). Starts up if something was refused before App existed
+  // — the startup refiling in main.tsx writes before anything here listens.
+  // A reducer rather than useState + a wrapper: its dispatch is as stable as a
+  // state setter, so the many effects that report a save need no new deps.
+  const [saveFailed, setSaveFailed] = useReducer(
+    (_: boolean, failed: boolean) => failed || hasUnsavedChanges(),
+    null,
+    () => hasUnsavedChanges(),
+  );
+  useEffect(() => onUnsavedChange(() => setSaveFailed(false)), []);
 
   // Onboarding heroes — shown on a completely empty month until the user
   // explicitly chooses "start from empty" (persisted so it never nags again).
@@ -303,6 +281,12 @@ function App({ startupRepair = null }: AppProps) {
   // any goal-linked rows offered for it). While `data` still equals this, the
   // user hasn't changed anything and the month must not be written back.
   const loadedSnapshot = useRef<string | null>(null);
+  // The month on screen, for a change that lands after the database answers:
+  // by then the user may have moved on, and putting the change into the screen's
+  // copy would put it into ANOTHER month's — which the save would then write.
+  const shownMonth = useRef({ year, month });
+  useEffect(() => { shownMonth.current = { year, month }; }, [year, month]);
+  const stillShows = (y: number, m: number) => shownMonth.current.year === y && shownMonth.current.month === m;
 
   // ── Theme ─────────────────────────────────────────────────────────
   // Apply the active theme (palette family + mode + any custom overrides) to
@@ -573,10 +557,47 @@ function App({ startupRepair = null }: AppProps) {
    *      and records the date only on a yes.
    */
   const exportData = async () => {
-    const payload = buildBackup(appStorage);
+    // In the apps, the last edits may still be on their way to the database;
+    // the backup waits for them rather than leaving them out.
+    await settleStorage();
+    // A change the device refused is tried once more. If it still will not
+    // store, the user hears that it is not in the file BEFORE the file is made
+    // — the backup is taken from what is stored, never from the screen.
+    if (hasUnsavedChanges() && !(await retryUnsavedChanges())
+      && !window.confirm(t.backupHasUnsaved)) return;
+    // The database itself in the apps, localStorage on the web: what is
+    // STORED. The app's in-memory copy is what the screen shows, and a value
+    // the database refused must never reach a file the user will one day
+    // restore as the truth (deep review 2026-09-27, P0).
+    const stored = await storedSnapshot().catch(() => null);
+    if (!stored) {
+      alert(t.backupShareFailed);
+      return;
+    }
+    const payload = buildBackup(stored);
     const text = JSON.stringify(payload, null, 2);
     const name = backupFilename();
     setMenuOpen(false);
+
+    // The iOS and Android apps: the system share sheet, see nativeShare.ts.
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { shareBackupFile } = await import('./nativeShare');
+        const outcome = await shareBackupFile(name, text, t.backupShareTitle);
+        if (outcome === 'cancelled') return;
+        if (outcome === 'saved') {
+          markBackupDone();
+          showMsg(t.backupSaved);
+          return;
+        }
+        // Sent to another app, which may or may not have kept it: ask, as the
+        // web's plain download does, and write the date only on a yes.
+        if (window.confirm(t.backupConfirmSaved)) markBackupDone();
+      } catch {
+        alert(t.backupShareFailed);
+      }
+      return;
+    }
 
     const picker = (window as unknown as {
       showSaveFilePicker?: (o: unknown) => Promise<{
@@ -633,7 +654,7 @@ function App({ startupRepair = null }: AppProps) {
     e.target.value = ''; // allow re-selecting the same file later
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const check = checkBackup(reader.result as string);
       if (!check.ok) {
         alert(importErrorText(check.reason, t));
@@ -644,19 +665,27 @@ function App({ startupRepair = null }: AppProps) {
       // the one entry worth its size: a restore of the wrong file is the only
       // action in the app that can lose everything at once.
       const before = captureAll(appStorage);
-      const result = applyBackup(appStorage, check.payload);
+      // Waits for the database in the apps: nothing below — the step back, the
+      // reload that shows the restored data — happens for a restore that did
+      // not land. A refused one has changed nothing, and the user stays here.
+      const result = await applyBackup(appStorage, check.payload);
       if (!result.ok) {
         alert(importErrorText(result.reason, t));
         return;
       }
       // pushUndo, not recordUndo: the reload below throws the bar away, so the
       // way back is offered in the menu instead.
+      const mark = storageMark();
       pushUndo(appStorage, {
         at: new Date().toISOString(),
         action: 'restoreBackup',
         changes: before,
         full: true,
       });
+      // A reload drops writes still queued for the app's database, so wait for
+      // the step back. The restore itself is stored either way; what the user
+      // is told is that it cannot be taken back.
+      if (!(await settleStorage(mark))) alert(t.restoreNoUndo);
       location.reload();
     };
     reader.onerror = () => alert(t.importInvalid);
@@ -680,9 +709,11 @@ function App({ startupRepair = null }: AppProps) {
   /** Take the step back, then reload. The same reload a restored backup already
    *  does: every tab, every cached month and every derived number is rebuilt
    *  from storage, which is the only way to be sure the screen matches disk. */
-  const doUndo = () => {
-    const done = undoLast(appStorage);
-    if (!done) {
+  const doUndo = async () => {
+    // Waits for the database in the apps: the reload reads what is stored, so
+    // it must not come before the step back has landed. A refused step changed
+    // nothing and stays on offer.
+    if (!(await undoLast(appStorage))) {
       alert(t.undoFailed);
       return;
     }
@@ -699,6 +730,81 @@ function App({ startupRepair = null }: AppProps) {
     setCopyMsg(msg);
     msgTimer.current = setTimeout(() => { setCopyMsg(''); msgTimer.current = null; }, 2200);
   };
+
+  // ── Pay period ── (after recordUndo and showMsg, which it calls once the
+  // database has answered; the React Compiler cannot follow a call made after
+  // an await to a function declared further down.)
+  /** Apply a change to how periods are cut, moving the entries that change
+   *  month — counted out loud first, because it is real data moving.
+   *
+   *  `setting` is the stored rule itself. It is written in the SAME
+   *  all-or-nothing change as the entries it moves, and the answer waits for
+   *  the database. Written separately, as it used to be, one half could land
+   *  without the other: entries filed by a rule that was never stored, or a
+   *  stored rule with the entries still where the old one put them — the state
+   *  finding 3 showed loses entries at the next Follow-up edit (deep review
+   *  2026-09-27, P1). Resolves false, having changed nothing, when the user
+   *  declines or the device refuses. */
+  const applyPeriodChange = async (
+    nextDay: number | null, nextLocks: PeriodLocks, describe: string, setting: StorageChange,
+  ): Promise<boolean> => {
+    const plan = planRefile(appStorage, nextDay, nextLocks);
+    if (plan.moving > 0 && !window.confirm(t.periodRefileConfirm(plan.moving, describe))) return false;
+    // Review 2026-09-18, F3: 'periodChange' existed in UndoAction but nothing
+    // ever recorded it. Refiling rewrites every month the entries move
+    // between, so the capture covers the buckets AND the files being emptied
+    // — exactly the keys the move is about to write.
+    // The SETTING that moved them belongs in the capture too. Without it,
+    // undo put the entries back and left the new period rule in force, so
+    // stored filing and the rule disagreed — and the next Follow-up edit
+    // wrote only the months in view, dropping every entry whose budget month
+    // had fallen outside them (finding 3). Both keys are captured whichever
+    // caller we came from: restoring the one that never changed is a no-op.
+    const before = captureKeys(appStorage, [
+      ...plan.buckets.keys(), ...plan.emptied,
+      PERIOD_START_KEY, PERIOD_LOCKS_KEY,
+    ]);
+    const outcome = await commitStorageChangesOutcome(appStorage, [...refileChanges(plan), setting]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    if (plan.moving > 0) {
+      recordUndo({
+        at: new Date().toISOString(),
+        action: 'periodChange',
+        count: plan.moving,
+        changes: before,
+      });
+      showMsg(t.periodRefileDone(plan.moving));
+    }
+    return true;
+  };
+
+  /** Pin (or unpin) the day one budget month's period opens. */
+  const lockPeriod = async (y: number, m: number, iso: string | null) => {
+    const next = { ...periodLocks };
+    if (iso) next[lockKey(y, m)] = iso;
+    else delete next[lockKey(y, m)];
+    const setting = {
+      key: PERIOD_LOCKS_KEY,
+      value: Object.keys(next).length === 0 ? null : JSON.stringify(next),
+    };
+    if (!(await applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`, setting))) return;
+    setPeriodLocks(next);
+  };
+
+  const changeStartDay = async (day: number | null) => {
+    // The period is no longer only a label: it decides which budget month a
+    // recorded entry belongs to, so changing it moves entries between files.
+    // Lossless — every entry carries its own date — but it is real data being
+    // moved, so it is counted out loud first and never done silently.
+    const setting = { key: PERIOD_START_KEY, value: day === null ? null : String(day) };
+    if (!(await applyPeriodChange(day, periodLocks, day === null ? t.periodStartOff : String(day), setting))) return;
+    setPeriodStartDay(day);
+  };
+
+
   useEffect(() => () => { if (msgTimer.current !== null) clearTimeout(msgTimer.current); }, []);
 
   // Switching tabs always opens the new tab at the top. Without this, a long
@@ -707,9 +813,40 @@ function App({ startupRepair = null }: AppProps) {
   // jump instantly instead of smooth-scrolling when the user asked for less motion.
   const changeTab = useCallback((tab: ActiveTab) => {
     setActiveTab(tab);
+    setWalletsScreen(false);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
+
+  // ── Android's Back button ─────────────────────────────────────────────
+  // What a user expects, in order: close whatever is on top (any panel, dialog
+  // or menu — see closeTopLayer), then the month picker, then go back to the
+  // Budget tab, and only from there leave — minimised, like Home, so nothing
+  // in progress is lost. Without this, Back with the menu open closed the app
+  // (iOS/Android review, 2026-09-26). iPhones have no such button.
+  const backState = useRef({ activeTab, pickerOpen, tabbed: false });
+  useEffect(() => {
+    backState.current = {
+      activeTab, pickerOpen,
+      tabbed: layout === 'classic' || (layout === 'custom' && customTabs),
+    };
+  });
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    let handle: { remove: () => Promise<void> } | undefined;
+    let gone = false;
+    void import('@capacitor/app').then(({ App: NativeApp }) => NativeApp.addListener('backButton', () => {
+      if (closeTopLayer()) return;
+      const now = backState.current;
+      if (now.pickerOpen) { setPickerOpen(false); return; }
+      if (now.tabbed && now.activeTab !== 'budget') { changeTab('budget'); return; }
+      void NativeApp.minimizeApp();
+    })).then(h => {
+      if (gone) void h.remove();
+      else handle = h;
+    });
+    return () => { gone = true; void handle?.remove(); };
+  }, [changeTab]);
 
   // Pull the PREVIOUS month's budget into this one — the mirror of "copy to next
   // month", and the Classic/Combined counterpart of Custom's "copy last month".
@@ -812,14 +949,17 @@ function App({ startupRepair = null }: AppProps) {
   /**
    * Write a whole copy, or none of it, and say which happened.
    *
-   * The undo step is recorded only after the write succeeded, so it can never
-   * describe changes that were rolled back.
+   * The undo step is recorded only after the write is STORED — in the apps,
+   * once the database has committed it, not when it was queued (deep review
+   * 2026-09-27, P1) — so it can never describe changes that were rolled back.
+   * A refusal has changed nothing, and says so.
    */
-  const applyCopy = (targets: { y: number; m: number }[]): boolean => {
+  const applyCopy = async (targets: { y: number; m: number }[]): Promise<boolean> => {
     const changes = targets.map(({ y, m }) => copyBudgetChange(y, m));
     const before = captureKeys(appStorage, changes.map(c => c.key));
-    if (!applyStorageChanges(appStorage, changes)) {
-      setSaveFailed(true);
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
     recordUndo({
@@ -836,19 +976,19 @@ function App({ startupRepair = null }: AppProps) {
   const occupiedTargets = (targets: { y: number; m: number }[]) =>
     targets.filter(({ y, m }) => hasBudgetContent(loadMonthData(y, m, lang)));
 
-  const copyToNextMonth = () => {
+  const copyToNextMonth = async () => {
     const nextYear = month === 11 ? year + 1 : year;
     const nextMth  = month === 11 ? 0 : month + 1;
     // Ask before replacing a month the user has already built.
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
       t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
     )) return;
-    if (!applyCopy([{ y: nextYear, m: nextMth }])) return;
+    if (!(await applyCopy([{ y: nextYear, m: nextMth }]))) return;
     setMenuOpen(false);
     showMsg(t.copiedTo(MONTHS[lang][nextMth]));
   };
 
-  const copyToAllRemaining = () => {
+  const copyToAllRemaining = async () => {
     const targets = Array.from({ length: 11 - month }, (_, i) => ({ y: year, m: month + 1 + i }));
     // Count BEFORE writing anything: a half-finished mass copy that the user
     // then declines would be the worst of both outcomes.
@@ -858,7 +998,7 @@ function App({ startupRepair = null }: AppProps) {
     // button in the app. All of them are written as ONE reversible operation:
     // a refusal partway through restores every month and reports the failure,
     // rather than leaving the year half copied and saying it worked.
-    if (!applyCopy(targets)) return;
+    if (!(await applyCopy(targets))) return;
     setMenuOpen(false);
     showMsg(t.copiedToMonths(targets.length));
   };
@@ -900,13 +1040,23 @@ function App({ startupRepair = null }: AppProps) {
   // new function each render would re-run that effect on every render.
   const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
 
-  // Try the whole current state again — after the user has freed space or
-  // exported. Both writes are attempted so one succeeding cannot hide the other
-  // still failing.
-  const retrySave = () => {
+  // Try again — after the user has freed space or exported. Everything is
+  // attempted so one part succeeding cannot hide another still failing:
+  //   · in the apps, every change the database refused, whatever tab or
+  //     feature it came from (import, Custom, settings, a step back…), kept
+  //     aside by storageCache.ts exactly as the user made it;
+  //   · the month on screen and the plan, as the screen shows them now — on
+  //     the web this is the whole of it, since a refusal there leaves the
+  //     change on screen and nowhere else.
+  // The banner closes only once all of it is CONFIRMED stored. It used to
+  // close as soon as the two writes were queued (deep review 2026-09-27, P1).
+  const retrySave = async () => {
+    const mark = storageMark();
+    const unsavedOk = await retryUnsavedChanges();
     const monthOk = saveMonthData(year, month, data);
     const planOk = savePlanData(planData);
-    setSaveFailed(!(monthOk && planOk));
+    const landed = await settleStorage(mark);
+    setSaveFailed(!(unsavedOk && monthOk && planOk && landed) || hasUnsavedChanges());
   };
 
   // ── Month navigation ──────────────────────────────────────────────
@@ -997,7 +1147,10 @@ function App({ startupRepair = null }: AppProps) {
 
           return updated;
         });
-        if (goalsChanged) setPlanData(pd => ({ ...pd, goals: updatedGoals }));
+        if (goalsChanged) {
+          setPlanData(pd => ({ ...pd, goals: updatedGoals }));
+          rewardReachedGoals(planData.goals, updatedGoals);
+        }
         // Say so out loud — an unlink is invisible otherwise, and the row not
         // coming back is exactly the behaviour change worth explaining.
         if (unlinkedName) showMsg(t.goalUnlinkedFromBudget(unlinkedName));
@@ -1016,53 +1169,196 @@ function App({ startupRepair = null }: AppProps) {
     setData(d => ({ ...d, expenses: [...d.expenses, newCat] }));
   };
 
-  // Categories the import offered to create, added with their STANDARD ids so an
-  // entry filed under `mat` in August meets the same `mat` in September.
-  //
-  // Added to the months that RECEIVED THE ENTRIES, which are routinely not the
-  // month on screen — a statement is usually last month's. Creating them here
-  // instead would leave the entries where they landed with no row to appear on,
-  // which is the "outside the budget" hole in another disguise.
-  const addStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
+  /**
+   * Categories the import offered to create, as WRITES, added with their
+   * STANDARD ids so an entry filed under `mat` in August meets the same `mat`
+   * in September — and added to the months that RECEIVED THE ENTRIES, which
+   * are routinely not the month on screen (a statement is usually last
+   * month's). Creating them only on screen would leave the entries where they
+   * landed with no row to appear on.
+   *
+   * Writes, not a save, so the caller commits them together with its entries
+   * in one transaction (foundation review 2026-09-29, P1), plus what to do on
+   * screen once they are stored. The month on screen is written from what the
+   * screen holds, so its edits are kept; `apply` then puts the same categories
+   * into the screen's copy — if it still shows that month.
+   */
+  const planStandardCategories = (ids: string[], months: { year: number; month: number }[]) => {
+    const changes: StorageChange[] = [];
+    const created = new Set<string>();
+    let onScreen = false;
     for (const target of months.length > 0 ? months : [{ year, month }]) {
-      if (target.year === year && target.month === month) {
-        setData(d => withStandardCategories(d, ids, lang));
-        continue;
-      }
-      // Another month: read, merge, write. Safe to touch storage directly
-      // precisely BECAUSE it is not the current month — the save effect only
-      // ever writes the month on screen, so the two cannot race.
-      const stored = loadMonthData(target.year, target.month, lang);
-      const merged = withStandardCategories(stored, ids, lang);
-      if (merged !== stored && !saveMonthData(target.year, target.month, merged)) {
-        reportSaveFailed();
-      }
+      const isCurrent = target.year === year && target.month === month;
+      const from = isCurrent ? data : loadMonthData(target.year, target.month, lang);
+      const merged = withStandardCategories(from, ids, lang);
+      if (merged === from) continue;
+      for (const c of merged.expenses) if (!from.expenses.some(x => x.id === c.id)) created.add(c.id);
+      changes.push({ key: storageKey(target.year, target.month), value: JSON.stringify(merged) });
+      if (isCurrent) onScreen = true;
     }
+    return {
+      changes,
+      created: [...created],
+      apply: () => { if (onScreen && stillShows(year, month)) setData(d => withStandardCategories(d, ids, lang)); },
+    };
   };
 
   /**
-   * Create a category the user named, and return its id so the caller can file
-   * something into it straight away.
+   * A category the user named, and the writes that add it to the months given
+   * — for the caller to commit together with the entries it files into it
+   * (Codex, 2026-10-03). It used to be added there and then, the month on
+   * screen through its save and the others one by one, before the entries were
+   * moved: a refusal of either half left entries pointing at a category their
+   * month did not have after a restart, or an empty category behind a "nothing
+   * was changed".
    *
-   * Added to every month given, with ONE id, for the same reason the standard
-   * ones are: a category that exists only in the month you happened to be
-   * looking at leaves the entries in every other month orphaned under an id
-   * nothing can name.
+   * One id in every month, for the same reason the standard ones have one: a
+   * category that exists only in the month you happened to be looking at
+   * leaves the entries in every other month under an id nothing can name.
    */
-  const createNamedCategory = (name: string, months: { year: number; month: number }[]): string => {
+  const planNamedCategory = (name: string) => {
     const color = CATEGORY_PALETTE[data.expenses.length % CATEGORY_PALETTE.length];
     const icon = CATEGORY_ICONS[data.expenses.length % CATEGORY_ICONS.length];
     const cat = createCategory(name, icon, color, t.newRow);
-    for (const target of months.length > 0 ? months : [{ year, month }]) {
-      if (target.year === year && target.month === month) {
-        setData(d => ({ ...d, expenses: [...d.expenses, cat] }));
-        continue;
-      }
-      const stored = loadMonthData(target.year, target.month, lang);
-      if (!saveMonthData(target.year, target.month,
-        { ...stored, expenses: [...stored.expenses, cat] })) reportSaveFailed();
+    const withCat = (d: MonthData): MonthData => ({ ...d, expenses: [...d.expenses, cat] });
+    return {
+      id: cat.id,
+      in: (months: { year: number; month: number }[]): CategoryPlan => {
+        const changes: StorageChange[] = [];
+        let onScreen = false;
+        for (const target of months.length > 0 ? months : [{ year, month }]) {
+          const isCurrent = target.year === year && target.month === month;
+          const from = isCurrent ? data : loadMonthData(target.year, target.month, lang);
+          changes.push({ key: storageKey(target.year, target.month), value: JSON.stringify(withCat(from)) });
+          if (isCurrent) onScreen = true;
+        }
+        return {
+          changes,
+          apply: () => { if (onScreen && stillShows(year, month)) setData(withCat); },
+        };
+      },
+    };
+  };
+
+  // ── A budget imported from a spreadsheet ───────────────────────────
+  /**
+   * Every month the draft reaches, merged and stored in ONE write, with a step
+   * back covering all of them. Nothing on screen changes until it is stored;
+   * a refusal says so and changes nothing. Ids are minted once, so a row or a
+   * new category of the user's own is the same thing in every month.
+   */
+  const importBudget = async (draft: Draft): Promise<boolean> => {
+    const months = rowsByMonth(draft);
+    if (months.length === 0) return false;
+    const rowIds = new Map<string, string>();
+    const catIds = new Map<string, string>();
+    const mint = (map: Map<string, string>, key: string) => {
+      if (!map.has(key)) map.set(key, generateId());
+      return map.get(key)!;
+    };
+    const ids: ImportIds = { row: k => mint(rowIds, k), category: n => mint(catIds, n.toLowerCase()) };
+    const atYear = year;
+    const atMonth = month;
+    const keys = months.map(m => storageKey(m.year, m.month));
+    const before = captureKeys(appStorage, keys);
+    const changes: StorageChange[] = months.map(m => {
+      const from = m.year === atYear && m.month === atMonth ? data : loadMonthData(m.year, m.month, lang);
+      return { key: storageKey(m.year, m.month), value: JSON.stringify(mergeInto(from, m.rows, ids, lang)) };
+    });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
     }
-    return cat.id;
+    const here = months.find(m => m.year === atYear && m.month === atMonth);
+    if (here && stillShows(atYear, atMonth)) setData(d => mergeInto(d, here.rows, ids, lang));
+    recordUndo({
+      at: new Date().toISOString(),
+      action: 'importBudget',
+      ...(months.length === 1 ? { year: months[0].year, month: months[0].month } : {}),
+      count: months.length,
+      changes: before,
+    });
+    // Rows as they landed in the budget: the same name under the same heading
+    // is one row there, however many times the sheet repeats it.
+    const landed = new Set(months.flatMap(m => m.rows.map(({ row }) => (
+      `${JSON.stringify(row.target)}|${row.label.trim().toLowerCase()}`))));
+    showMsg(t.bimDone(landed.size, months.length));
+    return true;
+  };
+
+  // ── Skuld — the debts, and the row each one carries in the budget ─────
+  /**
+   * Store the Debt tab's state, and with `row`, put that row in the month on
+   * screen's "Lån & skulder" — in ONE write, so a debt never exists without
+   * the budget row it was promised, nor the row without the debt. Nothing on
+   * screen changes until it is stored; a refusal says so and changes nothing.
+   */
+  const commitDebts = async (
+    next: DebtState, row?: { id: string; label: string; amount: number },
+  ): Promise<boolean> => {
+    const changes: StorageChange[] = [debtsChange(next)];
+    const atYear = year;
+    const atMonth = month;
+    const withRow = row ? withLoanRow(data, row, lang) : data;
+    if (withRow !== data) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    setDebtState(next);
+    // Into the screen's copy only if it still shows that month — see stillShows.
+    if (row && withRow !== data && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
+    return true;
+  };
+
+  /**
+   * Remove a debt, with a step back, and say what became of its budget row
+   * (Codex, 2026-10-03). The user chose on the card:
+   *
+   *   · removeRow — the row goes too, from the month on screen, in the SAME
+   *     write as the debt;
+   *   · otherwise the row stays as an ordinary budget row, remembered as one
+   *     so the tab never offers it back as a debt to fill in — which made
+   *     Delete look as if it had not worked.
+   *
+   * Either way the row is remembered as plain, so a copy of it in another
+   * month is not offered back either. Recorded follow-up entries are never
+   * touched. One step back covers the debt and the month.
+   */
+  const deleteDebt = async (id: string, removeRow: boolean): Promise<string | null> => {
+    const debt = debtState.debts.find(d => d.id === id);
+    if (!debt) return null;
+    const atYear = year;
+    const atMonth = month;
+    const rowId = debt.budgetRowId;
+    const next: DebtState = {
+      ...debtState,
+      debts: debtState.debts.filter(d => d.id !== id),
+      plainRows: rowId && !debtState.plainRows.includes(rowId) ? [...debtState.plainRows, rowId] : debtState.plainRows,
+    };
+    const withoutRow = (d: MonthData): MonthData => ({
+      ...d,
+      expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
+    });
+    const rowHere = rowId !== undefined && data.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
+    const dropRow = removeRow && rowHere;
+    const monthKey = storageKey(atYear, atMonth);
+    const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
+    const changes: StorageChange[] = [debtsChange(next)];
+    if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(data)) });
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return null;
+    }
+    setDebtState(next);
+    if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
+    recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+    // What became of the row, said on the tab where it was asked — the brief
+    // header message is gone in two seconds and too narrow for it on a phone.
+    return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
   };
 
   /**
@@ -1273,6 +1569,15 @@ function App({ startupRepair = null }: AppProps) {
     }
 
     setPlanData(newPlan);
+    rewardReachedGoals(oldGoals, newGoals);
+  };
+
+  /** A goal the user's own change just completed: say so, and buzz a phone. */
+  const rewardReachedGoals = (before: SavingsGoal[], after: SavingsGoal[]) => {
+    const reached = goalsJustReached(before, after);
+    if (reached.length === 0) return;
+    showMsg(t.goalReached(reached.map(g => shownName(g, lang)).join(', ')));
+    celebrate();
   };
 
   // (Linked budget-row backfill is handled in the month-load effect above,
@@ -1319,6 +1624,7 @@ function App({ startupRepair = null }: AppProps) {
       <div className="onboard-actions">
         <button className="custom-primary-btn" onClick={addStarterBudget}>✨ {t.useBudgetTemplate}</button>
         <button className="custom-secondary-btn" onClick={dismissBudgetHero}>{t.startFromEmpty}</button>
+        <button className="custom-secondary-btn" onClick={() => setBudgetImportOpen(true)}>{t.bimHeroButton}</button>
       </div>
       <p className="onboard-hint">{t.templateIncludes}</p>
     </section>
@@ -1446,11 +1752,12 @@ function App({ startupRepair = null }: AppProps) {
         totalIncome={totalIncome}
         onSaveFailed={reportSaveFailed}
         onGoToMonth={(y, m) => { setYear(y); setMonth(m); }}
-        onCreateCategories={addStandardCategories}
+        onOpenBudget={() => changeTab('budget')}
+        planStandardCategories={planStandardCategories}
         periodStartDay={periodStartDay}
         periodLocks={periodLocks}
         onLockPeriod={lockPeriod}
-        onCreateNamedCategory={createNamedCategory}
+        planNamedCategory={planNamedCategory}
         onRecordUndo={recordUndo}
       />
     </Suspense>
@@ -1459,6 +1766,21 @@ function App({ startupRepair = null }: AppProps) {
   const yearView = (
     <Suspense fallback={lazyFallback}>
       <YearTab year={year} />
+    </Suspense>
+  );
+
+  const debtView = (
+    <Suspense fallback={lazyFallback}>
+      <DebtTab
+        state={debtState}
+        year={year}
+        month={month}
+        canAddRow={!isHistoricMonth(year, month)}
+        remaining={calculateBudgetMetrics(data).remaining}
+        loanRows={data.expenses.find(c => c.id === 'lan')?.rows ?? []}
+        onSave={commitDebts}
+        onDelete={deleteDebt}
+      />
     </Suspense>
   );
 
@@ -1597,9 +1919,21 @@ function App({ startupRepair = null }: AppProps) {
                       >
                         £
                       </button>
+                      <button
+                        className={`seg-btn${currency === 'jpy' ? ' seg-active' : ''}`}
+                        onClick={() => setCurrency('jpy')}
+                        title="Japanese yen"
+                      >
+                        ¥
+                      </button>
                     </div>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
+
+                  {/* Wallets — a trip's own budget, reachable from every layout */}
+                  <button className="utils-action" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
+                    ✈️ {t.wMenu}
+                  </button>
 
                   {/* Theme — opens the Theme Builder panel */}
                   <button
@@ -1654,13 +1988,14 @@ function App({ startupRepair = null }: AppProps) {
                   </div>
                   <div className="utils-hint">{t.periodStartHint}</div>
 
-                  {/* Copy budget — CLASSIC/COMBINED ONLY. These read and write
-                      budget_<year>_<month>, which the Custom layout does not
-                      use. Offered in Custom mode they copied a budget the user
-                      could not see, into a month they were not looking at, and
-                      reported success (review 2026-09-05, F2). Custom has its
-                      own "pull from last month" inside its own UI. */}
-                  {layout !== 'custom' && (
+                  {/* Copy budget — only where the regular budget is on screen.
+                      These read and write budget_<year>_<month>, which a
+                      standalone Custom panel does not use. Offered there they
+                      copied a budget the user could not see, into a month they
+                      were not looking at, and reported success (review
+                      2026-09-05, F2). A LINKED panel shows exactly that budget,
+                      so there they are the same actions on the same numbers. */}
+                  {showsRegularBudget && (
                     <>
                       <div className="utils-divider" />
 
@@ -1670,6 +2005,9 @@ function App({ startupRepair = null }: AppProps) {
                       </button>
                       <button className="utils-action" onClick={copyToNextMonth}>
                         → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                      </button>
+                      <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
+                        {t.bimMenu}
                       </button>
                       {month < 11 && (
                         <button className="utils-action" onClick={copyToAllRemaining}>
@@ -1708,11 +2046,11 @@ function App({ startupRepair = null }: AppProps) {
                   )}
 
                   {/* Danger zone — destructive actions, visually separated.
-                      Also classic-only: resetCurrentMonth blanks the classic
-                      month whatever layout is on screen, so in Custom mode it
-                      would wipe invisible data and say it was done. Custom
-                      clears its own amounts from its own toolbar. */}
-                  {layout !== 'custom' && (
+                      Same rule: resetCurrentMonth blanks the regular month
+                      whatever layout is on screen, so beside a standalone panel
+                      it would wipe invisible data and say it was done. A
+                      standalone panel clears its own amounts from its toolbar. */}
+                  {showsRegularBudget && (
                     <>
                       <div className="utils-divider" />
 
@@ -1750,6 +2088,14 @@ function App({ startupRepair = null }: AppProps) {
         {layout === 'classic' && (
           <div className="header-bottom">
             <TabNav active={activeTab} onChange={changeTab} />
+          </div>
+        )}
+        {/* A linked Custom panel is the regular budget laid out another way, so
+            every tab still describes what it shows. A standalone one is not,
+            and gets no tabs rather than tabs about someone else's numbers. */}
+        {layout === 'custom' && customTabs && (
+          <div className="header-bottom">
+            <TabNav active={activeTab} onChange={changeTab} variant="custom" />
           </div>
         )}
       </header>
@@ -1846,7 +2192,7 @@ function App({ startupRepair = null }: AppProps) {
           <div className="save-error-banner" role="alert">
             <div className="save-error-text">
               <strong>{t.saveFailedTitle}</strong>
-              <span>{t.saveFailedBody}</span>
+              <span>{usesNativeStorage() ? t.saveFailedBodyApp : t.saveFailedBody}</span>
             </div>
             <div className="save-error-actions">
               <button className="save-error-btn" onClick={retrySave}>{t.saveRetry}</button>
@@ -1863,19 +2209,28 @@ function App({ startupRepair = null }: AppProps) {
             onDismiss={dismissBackupReminder}
           />
         )}
-        {layout === 'classic' && (
+        {walletsScreen && (
+          <div className="tab-enter">
+            <Suspense fallback={lazyFallback}>
+              <WalletArea budget={null} budgetTag={null} onRecordUndo={recordUndo}
+                onLeave={() => setWalletsScreen(false)} />
+            </Suspense>
+          </div>
+        )}
+        {!walletsScreen && layout === 'classic' && (
           /* ── Classic: tabbed. key={activeTab} remounts on every switch so the
                lightweight CSS entrance animation (.tab-enter) replays each time. */
           <div className="tab-enter" key={activeTab}>
             {activeTab === 'budget' && budgetView}
             {activeTab === 'followup' && followUpView}
             {activeTab === 'savings' && savingsView}
+            {activeTab === 'debt' && debtView}
             {activeTab === 'plan' && planView}
             {activeTab === 'year' && yearView}
           </div>
         )}
 
-        {layout === 'combined' && (
+        {!walletsScreen && layout === 'combined' && (
           /* ── Combined: tab bar hidden (see header), all four views stacked on
                one scrollable page. Same components/data/handlers as classic.
                On phones the page runs ~10 000px tall, so a sticky mini-nav
@@ -1891,6 +2246,7 @@ function App({ startupRepair = null }: AppProps) {
                 ['combined-budget', '📋', t.tabBudget, t.tabBudget],
                 ['combined-followup', '🧾', t.tabFollowUpShort, t.tabFollowUp],
                 ['combined-savings', '📈', t.tabSavingsShort, t.tabSavings],
+                ['combined-debt', '💳', t.tabDebtShort, t.tabDebt],
                 ['combined-year', '🗓️', t.tabYearShort, t.tabYear],
                 ['combined-plan', '🎯', t.tabPlanShort, t.tabPlan],
               ] as const).map(([id, icon, label, fullName]) => (
@@ -1928,6 +2284,10 @@ function App({ startupRepair = null }: AppProps) {
               {savingsView}
             </section>
             <section className="combined-section">
+              <h2 className="combined-section-title" id="combined-debt" tabIndex={-1}>{t.tabDebt}</h2>
+              {debtView}
+            </section>
+            <section className="combined-section">
               <h2 className="combined-section-title" id="combined-year" tabIndex={-1}>{t.tabYear}</h2>
               {yearView}
             </section>
@@ -1938,13 +2298,39 @@ function App({ startupRepair = null }: AppProps) {
           </div>
         )}
 
-        {layout === 'custom' && (
+        {!walletsScreen && layout === 'custom' && (
           /* ── Custom v3: generic build-from-scratch block budget with its OWN
                separate data (never touches the shared Classic/Combined budget).
-               Tab bar hidden; the global month selector drives its per-month
-               amounts. */
-          <Suspense fallback={lazyFallback}>
-            <CustomV3 year={year} month={month} onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />
+               Its first tab replaces Classic's Budget; the others are the same
+               shared views. The global month selector drives both. */
+          <div className="tab-enter" key={customTabs ? activeTab : 'custom'}>
+            {(!customTabs || activeTab === 'budget') && (
+              <Suspense fallback={lazyFallback}>
+                <CustomPanel year={year} month={month} mode={customMode}
+                  onModeChange={mode => {
+                    setCustomMode(mode);
+                    // A new choice made: the bar offering to undo the Start over
+                    // that led here has done its job. The step stays in the menu.
+                    if (mode) setUndoBarOpen(false);
+                  }}
+                  data={data} onSetIncome={setIncome} onSetCategory={setExpenseCategory}
+                  onAddCategory={cat => setData(d => ({ ...d, expenses: [...d.expenses, cat] }))}
+                  goals={planData.goals} periodStartDay={periodStartDay} periodLocks={periodLocks}
+                  onCopyPrev={copyFromPrevMonth}
+                  onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />
+              </Suspense>
+            )}
+            {customTabs && activeTab === 'followup' && followUpView}
+            {customTabs && activeTab === 'savings' && savingsView}
+            {customTabs && activeTab === 'debt' && debtView}
+            {customTabs && activeTab === 'plan' && planView}
+            {customTabs && activeTab === 'year' && yearView}
+          </div>
+        )}
+        {budgetImportOpen && (
+          <Suspense fallback={null}>
+            <BudgetImport year={year} month={month}
+              onClose={() => setBudgetImportOpen(false)} onImport={importBudget} />
           </Suspense>
         )}
       </main>

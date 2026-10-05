@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   normalise, seedKind, suggest, isTransfer, loadCategoryRules, rememberCategoryRule,
-  isStandardCategoryId, CATEGORY_RULES_KEY, SEED, INTERNATIONAL, SWEDEN,
-  UNITED_STATES, SPAIN, STANDARD_CATEGORY_IDS,
+  isStandardCategoryId, CATEGORY_RULES_KEY, SEED, SEED_LISTS, STANDARD_CATEGORY_IDS,
 } from './categorise';
 import type { StorageLike } from './backup';
 
@@ -160,11 +159,13 @@ describe('the two halves of the list', () => {
     expect(clashes, clashes.join('\n')).toHaveLength(0);
   });
 
-  it('is exactly the four lists together', () => {
+  it('is exactly the lists together — all nine of them', () => {
+    expect(Object.keys(SEED_LISTS)).toEqual([
+      'INTERNATIONAL', 'SWEDEN', 'UNITED_STATES', 'SPAIN',
+      'AUSTRALIA', 'SOUTH_AFRICA', 'MEXICO', 'JAPAN', 'COLOMBIA',
+    ]);
     for (const id of STANDARD_CATEGORY_IDS) {
-      expect(SEED[id]).toEqual([
-        ...INTERNATIONAL[id], ...SWEDEN[id], ...UNITED_STATES[id], ...SPAIN[id],
-      ]);
+      expect(SEED[id]).toEqual(Object.values(SEED_LISTS).flatMap(list => list[id]));
     }
   });
 
@@ -172,7 +173,7 @@ describe('the two halves of the list', () => {
     // A duplicate would be harmless arithmetically and a lie about where the
     // knowledge lives: the point of separate lists is knowing which of them
     // was checked against a real statement and which was not.
-    const lists = { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN };
+    const lists = SEED_LISTS;
     const names = Object.keys(lists) as (keyof typeof lists)[];
     const dupes: string[] = [];
     for (const id of STANDARD_CATEGORY_IDS) {
@@ -189,7 +190,7 @@ describe('the two halves of the list', () => {
   });
 
   it('carries every category in every list, even if empty', () => {
-    for (const list of [INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN]) {
+    for (const list of Object.values(SEED_LISTS)) {
       for (const id of STANDARD_CATEGORY_IDS) {
         expect(Array.isArray(list[id])).toBe(true);
       }

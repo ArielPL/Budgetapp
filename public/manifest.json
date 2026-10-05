@@ -4,8 +4,8 @@
   "description": "Din personliga månadsbudget",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#fbfaff",
+  "theme_color": "#fbfaff",
   "orientation": "any",
   "icons": [
     {

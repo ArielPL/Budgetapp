@@ -55,6 +55,8 @@
   --income-color: #22d3ee;
   --positive: #22c55e;
   --negative: #ef4444;
+  /* Between fine and over: a spending limit that is nearly used up. */
+  --caution: #f59e0b;
   --header-bg: rgba(15, 23, 42, 0.92);
 
   /* Brand accent (selected states, primary buttons) */
@@ -101,6 +103,7 @@
   --income-color: #0fa99a;
   --positive: #2f9e44;
   --negative: #e8590c;
+  --caution: #a16207; /* amber, darker than --negative's orange; AA on white */
   --header-bg: rgba(251, 250, 255, 0.9);
 
   --accent-brand: #8b5cf6;
@@ -128,6 +131,11 @@ body {
   color: var(--text);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  /* Android's WebView flashes a translucent RECTANGLE over whatever is tapped,
+     ignoring rounded corners — a square box round the pill-shaped "Next" in
+     the intro (seen on the emulator, 2026-09-29). iOS draws nothing like it.
+     Buttons give their own feedback; keyboard focus rings are unaffected. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
@@ -201,6 +209,10 @@ a:focus-visible,
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 16px 48px;
+  /* A phone on its side: keep content clear of the notch and rounded
+     corners. env() is 0 everywhere else, so max() leaves 16px there. */
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .app-header {
@@ -208,6 +220,13 @@ a:focus-visible,
   top: 0;
   z-index: 10;
   padding: 16px 0;
+  /* Under the status bar, clock and Dynamic Island. index.html asks for
+     viewport-fit=cover, which lets the page draw behind them and tells it how
+     tall they are; this keeps the month and the menu button below. 0 on a
+     desktop and in a browser tab, so nothing moves there. Found in the iOS
+     simulator (review 2026-09-26): the gear sat under the clock and could
+     not be tapped at all. */
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--border);
   margin-bottom: 24px;
 }
@@ -525,16 +544,153 @@ a:focus-visible,
   flex-wrap: wrap;
 }
 
+/* "Separate budget" line under the toolbar — quiet, but always there. */
+.custom-standalone-note {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* An empty month after a filled one: say so, and offer the one-tap fix. */
+.custom-month-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Phone ••• menu. The layer is a plain wrapper; the toolbar anchors the menu. */
+.custom-toolbar { position: relative; }
+.custom-more-btn { letter-spacing: 1px; }
+.custom-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.custom-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.custom-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.custom-menu-item:hover,
+.custom-menu-item:focus-visible { background: color-mix(in srgb, var(--accent-brand) 10%, transparent); }
+
 /* Budget/Year switch sits at the START of the toolbar; everything else stays
    right-aligned. It is the only route to a multi-month view in Custom, so it
    reads first rather than being lost among the edit actions. */
 .custom-view-seg { margin-right: auto; }
 
-/* Divides the "what kind of block" choices from the ready-made ones. */
-.custom-picker-sep {
-  height: 1px;
-  background: var(--border);
-  margin: 14px 0 12px;
+/* Custom's first screen: linked to the budget, or a budget of its own. */
+.custom-choice {
+  max-width: 760px;
+  margin: 24px auto;
+  text-align: center;
+}
+.custom-choice-title { margin: 0 0 8px; font-size: 1.4rem; }
+.custom-choice-intro { margin: 0 0 20px; color: var(--text-muted); }
+.custom-choice-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  text-align: left;
+}
+.custom-choice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.custom-choice-card h3 { margin: 0; font-size: 1.05rem; }
+.custom-choice-card p { margin: 0; flex: 1; color: var(--text-muted); line-height: 1.45; }
+.custom-choice-card .custom-primary-btn { align-self: flex-start; }
+.custom-choice-later { margin: 16px 0 0; font-size: 0.85rem; color: var(--text-muted); }
+
+/* Outcome, goal and figure blocks on a linked panel (LinkedInsights). */
+.cv3-insight-big {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--cv3-ink, var(--text));
+  font-variant-numeric: tabular-nums;
+}
+.cv3-insight-sub {
+  margin: 2px 0 6px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--cv3-ink-muted, var(--text-muted));
+}
+.cv3-insight-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--cv3-ink-muted, var(--text-muted));
+}
+/* The per-day block reuses the budget tab's card; inside a block it drops its
+   own frame so it is not a card within a card. */
+.custom-section .daily-budget { margin: 0; border: none; background: transparent; padding: 0; box-shadow: none; }
+
+/* A linked block whose category this month's budget does not have. */
+.cv3-linked-missing {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--cv3-ink-muted, var(--text-muted));
+  font-style: italic;
+}
+.custom-picker-empty { margin: 0 0 8px; color: var(--text-muted); font-size: 0.9rem; }
+/* "Bring Transport from August" under a block this month's budget lacks. */
+.cv3-linked-fetch { margin-top: 8px; }
+
+/* Headings over the two kinds of choice in the Add block picker. */
+.custom-picker-heading {
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.custom-picker-heading-next {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 /* Brief confirmation toast (e.g. "Copied from last month"). */
@@ -729,6 +885,13 @@ a:focus-visible,
 .cv3-title-row .cv3-name-input { width: auto; min-width: 4ch; }
 
 /* Note block: free-text body. */
+/* Under a note's title: which month(s) it belongs to. */
+.cv3-note-scope {
+  margin: -4px 0 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--cv3-ink-muted);
+}
 .cv3-note-text {
   width: 100%;
   resize: vertical;
@@ -761,11 +924,22 @@ a:focus-visible,
 .cv3-target-label {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-top: 4px;
   font-size: 0.78rem;
   color: var(--cv3-ink-muted);
   font-variant-numeric: tabular-nums;
 }
+/* A goal fills in the block's own ink. A limit speaks in warning colours as it
+   is used up — with words beside it (TargetBar), never colour alone. */
+.cv3-target-status { font-weight: 600; }
+.cv3-target-reached .cv3-target-status { color: var(--positive); }
+.cv3-target-ok .cv3-target-fill { background: var(--positive); }
+.cv3-target-near .cv3-target-fill { background: var(--caution); }
+.cv3-target-near .cv3-target-status { color: var(--caution); }
+.cv3-target-over .cv3-target-fill { background: var(--negative); }
+.cv3-target-over .cv3-target-status { color: var(--negative); }
 
 /* Fixed, non-editable KIND tag (top-left): what kind of money this block is. */
 .cv3-kind-tag {
@@ -816,6 +990,8 @@ a:focus-visible,
   cursor: pointer;
   overflow: hidden;
 }
+/* Outside Edit layout the dot is only a colour, not a control. */
+.cv3-row-color-static { cursor: default; }
 .cv3-row-color input[type='color'] {
   position: absolute; inset: 0; opacity: 0; border: none; cursor: pointer;
   width: 100%; height: 100%;
@@ -2811,9 +2987,8 @@ a:focus-visible,
 
 /* ─── Plan tab ────────────────────────────────────────────────────── */
 
-.plan-tab {
-  max-width: 900px;
-}
+/* No width cap: on a wide screen the tab used to stop at 900 px and leave a
+   third of the window empty, unlike every other tab (Ariel, 2026-10-03). */
 
 .plan-section {
   display: flex;
@@ -3011,6 +3186,252 @@ a:focus-visible,
   color: var(--negative);
 }
 
+/* ─── Skuld — the Debt tab ─────────────────────────────────────────────
+   Built from the Plan tab's parts (sections, stat tiles, the goal form) so
+   the two tabs that look ahead read as one family. */
+.debt-intro {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.debt-summary { margin-bottom: 16px; }
+.debt-summary .overview-stat { background: var(--surface2); }
+
+.debt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+/* Room to breathe (Ariel, 2026-10-03): the text sat tight against the edges,
+   and the buttons sit at the bottom, level across a row of cards. */
+.debt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.debt-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 2px;
+}
+.debt-card-name {
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.debt-card-kind {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--chip-text);
+  background: var(--chip-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.debt-card-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.debt-card-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.debt-card-status {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--positive);
+}
+.debt-card-status.is-warning { color: var(--negative); }
+/* A row from the budget, waiting for its details: dashed, like the other
+   "not filled in yet" states in the app. */
+.debt-list-pending { margin-bottom: 16px; }
+.debt-card-pending { border-style: dashed; }
+.debt-card-hint {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.debt-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+/* Deleting asks on the card itself: what happens to the budget row is part
+   of the question, so it is answered here with the row named. */
+.debt-delete {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.debt-delete-ask { margin: 0; font-weight: 700; color: var(--text); }
+.debt-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.debt-delete-btn { border-color: var(--negative); }
+.debt-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--positive);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+  font-size: 0.86rem;
+  color: var(--text);
+}
+.debt-notice-close {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.debt-extra { max-width: 220px; margin-bottom: 12px; }
+.debt-way-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.debt-way-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  text-align: left;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+}
+.debt-way-card.is-on {
+  border-color: var(--accent-brand);
+  background: var(--surface2);
+}
+.debt-way-name { font-weight: 700; font-size: 1rem; }
+.debt-way-sub { font-size: 0.8rem; color: var(--text-dim); }
+.debt-way-free { margin-top: 6px; font-weight: 700; color: var(--chip-text); }
+.debt-way-fact { font-size: 0.82rem; color: var(--text-dim); }
+
+.debt-order {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+.debt-order li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.debt-order li:last-child { border-bottom: none; }
+
+.debt-note {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.debt-note-help {
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent-brand);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface2);
+  color: var(--text);
+}
+.debt-form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+/* The form also opens INSIDE a debt card, which can be narrow. Plain 1fr
+   columns never shrink below their field's own minimum width — a date field
+   or a select is wide — so the right-hand column ran off the card (Ariel,
+   2026-10-03). Columns may shrink to nothing, wrap to one when there is no
+   room for two, and every field fills its column. */
+.debt-form .goal-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+}
+/* A form opened in the list takes the whole row, not one card's column. */
+.debt-list-form { grid-column: 1 / -1; }
+.debt-form .label-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 36px;
+}
+
+@media (hover: hover) {
+  .debt-way-card:hover { border-color: var(--accent-brand); }
+}
+
+/* ─── Import a budget from a spreadsheet ─────────────────────────────────
+   Built on the bank import's dialog (csv-*), with a paste box under the file
+   picker and the sheet / amount-column choices above the rows. */
+.bim-paste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+.bim-paste label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.bim-paste textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+.bim-paste .csv-secondary { align-self: flex-start; }
+.bim-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+.bim-options select { min-height: 32px; }
+.bim-section {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* Suspense placeholder while a lazy view's chunk loads — reserves space so
    the swap-in doesn't shift the page; invisible on purpose (loads are fast,
    a spinner would just flash). */
@@ -3089,6 +3510,26 @@ a:focus-visible,
   gap: 10px;
   margin-bottom: 14px;
 }
+.sparplan-horizon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+.sparplan-horizon-seg {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.sparplan-horizon-label {
+  margin-right: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
 .sparplan-hero {
   display: flex;
   align-items: baseline;
@@ -3107,6 +3548,28 @@ a:focus-visible,
   color: var(--text-muted);
 }
 .sparplan-growth { color: var(--positive); font-weight: 600; }
+/* The plan's default figures, until the user changes one: marked as an
+   example so they cannot be read as the user's own forecast. */
+.sparplan-example-note {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.sparplan-example-tag {
+  align-self: center;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
 .sparplan-legend {
   display: flex;
   flex-wrap: wrap;
@@ -3279,6 +3742,20 @@ a:focus-visible,
   margin-bottom: 14px;
 }
 .followup-empty p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); }
+.followup-empty p + p { margin-top: 10px; }
+.followup-empty-cta {
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent-brand);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
 
 .followup-table {
   background: var(--surface);
@@ -4840,6 +5317,11 @@ a:focus-visible,
   padding: 18px;
 }
 
+/* Focus is moved INTO the dialog when it opens, so its title is read out; a
+   ring drawn round the whole card for that said nothing and looked like a
+   stray purple border. Everything inside keeps its own focus ring. */
+.intro-modal:focus-visible { outline: none; }
+
 .intro-skip {
   align-self: flex-end;
   min-height: 36px;
@@ -4858,11 +5340,14 @@ a:focus-visible,
   align-items: center;
   text-align: center;
   gap: 12px;
-  /* Room for the longest of the three bodies in the longest language, so the
-     footer sits still while the cards change under it. */
-  min-height: 210px;
   padding: 6px 4px 18px;
 }
+
+/* All three pages share one cell, so the card is as tall as the longest page
+   and the footer sits still while the cards change under it (Intro.tsx). */
+.intro-stack { display: grid; }
+.intro-stack > .intro-body { grid-area: 1 / 1; }
+.intro-body.is-off { visibility: hidden; }
 
 .intro-emoji { font-size: 2.6rem; line-height: 1; }
 
@@ -4916,6 +5401,294 @@ a:focus-visible,
 /* ── "Where did the money go?" — the spending card at the top of Follow-up ──
    One direct answer, with what is still unsorted said out loud beside it.
    Mobile adjustments are at the end of the file. */
+/* ── Wallets (Custom): the panel switcher and a trip's own budget ──────────
+   The switcher sits above whichever panel is open; a wallet is a narrow,
+   phone-first page — it is filled in on the go. */
+.wallet-switch {
+  position: relative;
+  /* Full width even inside a centring flex parent, so the list below can be
+     as wide as it needs. */
+  align-self: stretch;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto 12px;
+}
+.wallet-switch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.wallet-switch-caret { font-size: 0.75rem; color: var(--text-muted); }
+.wallet-switch-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(380px, 100%);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+}
+.wallet-switch-title { margin: 0 0 6px; font-weight: 700; color: var(--text); }
+.wallet-switch-list { list-style: none; margin: 0; padding: 0; }
+.wallet-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 8px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.wallet-switch-row.is-current { background: var(--surface2); border-radius: var(--radius-sm); }
+.wallet-switch-icon { font-size: 1.1rem; }
+.wallet-switch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wallet-switch-name { font-weight: 600; overflow-wrap: anywhere; }
+.wallet-switch-sub { font-size: 0.8rem; color: var(--text-muted); }
+.wallet-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--chip-text);
+  background: var(--chip-bg);
+  border-radius: var(--radius-pill);
+}
+.wallet-tag-budget { color: var(--tint-income-text); background: var(--tint-income-bg); }
+.wallet-switch-new {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  font: inherit;
+  color: var(--accent-brand-strong);
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.wallet {
+  width: 100%;
+  min-width: 0;
+  max-width: 560px;
+  margin: 0 auto 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.wallet-title { margin: 0 0 4px; font-size: 1.1rem; color: var(--text); }
+.wallet-lead, .wallet-sub { margin: 0 0 10px; font-size: 0.85rem; color: var(--text-muted); }
+.wallet-hero {
+  margin: 12px 0;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+}
+.wallet-hero-label { font-size: 0.8rem; color: var(--text-muted); }
+.wallet-hero-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.wallet-hero-value.is-over { color: var(--negative); }
+.wallet-hero-sub { margin-top: 4px; font-size: 0.8rem; color: var(--text-dim); }
+.wallet-bar {
+  height: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: var(--radius-pill);
+}
+.wallet-bar-thin { height: 5px; margin-top: 6px; }
+.wallet-bar-fill { height: 100%; background: var(--positive); border-radius: inherit; }
+.wallet-bar-fill.is-over { background: var(--negative); }
+.wallet-pots, .wallet-expenses { list-style: none; margin: 0 0 12px; padding: 0; }
+.wallet-pot { padding: 9px 0; border-bottom: 1px solid var(--border); }
+.wallet-pot-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.wallet-pot-name { color: var(--text); overflow-wrap: anywhere; min-width: 0; }
+.wallet-pot-amount { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text); }
+.wallet-pot-amount.is-over { color: var(--negative); }
+.wallet-pot-planned { font-weight: 400; color: var(--text-muted); }
+.wallet-add {
+  width: 100%;
+  margin: 4px 0 12px;
+  padding: 10px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-brand-strong);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.wallet-section { margin: 14px 0 6px; font-size: 0.95rem; color: var(--accent-brand-strong); }
+.wallet-add-pot {
+  margin: 0 0 12px;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--accent-brand-strong);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.wallet-kind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.wallet-kind-label { font-size: 0.85rem; color: var(--text-dim); margin-right: 4px; }
+.wallet-expense {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.wallet-expense-text { flex: 1; min-width: 0; display: flex; flex-direction: column; color: var(--text); overflow-wrap: anywhere; }
+.wallet-expense-meta { font-size: 0.78rem; color: var(--text-muted); }
+.wallet-expense-amount { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text); }
+.wallet-expense-delete {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  font: inherit;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.wallet-expense-form { margin: 4px 0 12px; }
+/* A date field's own minimum width would otherwise push its column wider
+   than the screen. */
+.wallet .goal-form-field { min-width: 0; }
+.wallet .goal-form-field .label-input { width: 100%; min-width: 0; }
+.wallet-pot-edit { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.wallet-pot-edit .label-input { flex: 1; min-width: 0; }
+.wallet-pot-edit .wallet-pot-edit-amount { flex: 0 0 110px; }
+.wallet-footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.wallet-danger { color: var(--negative); }
+
+/* ── Question cards (Follow-up): answers the app works out itself ──────────
+   Same card as "Where did the money go?" above it. Questions are full-width
+   rows a thumb can hit; an answer replaces the list, with a way back. */
+.q-card {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.q-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-brand-strong);
+}
+.q-lead {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.q-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q-ask {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.q-ask:hover { border-color: var(--border-strong); }
+.q-back {
+  margin: 0 0 8px;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.q-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.q-pick select { width: auto; min-width: 0; }
+.q-headline {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+}
+.q-headline-main {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.q-headline-sub {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.q-lines {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.q-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.q-lines li:last-child { border-bottom: none; }
+.q-line-label { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+.q-line-value {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.q-line-sub { font-weight: 400; font-size: 0.8rem; color: var(--text-muted); }
+.q-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.q-note-warn { color: var(--caution); }
+
 .spending-card {
   margin: 0 0 14px;
   padding: 14px 16px;
@@ -5044,6 +5817,87 @@ a:focus-visible,
 @media (hover: hover) {
   .spending-card-btn:hover { border-color: var(--accent-brand); }
   .spending-card-btn-primary:hover { filter: brightness(1.08); }
+}
+
+/* The two lists: biggest purchases, then the small ones. Each row is the
+   place (with its date or count under it), the amount, and a quiet ✕. */
+.spending-card-section {
+  margin: 4px 0 10px;
+}
+
+/* In the theme's accent, so the two headings stand apart from the purchases
+   listed under them (Ariel, 2026-10-03). On a light card --accent-brand is too
+   pale to read (2.8:1 in light Ocean), so light modes take --chip-text: the
+   same hue, darker, ≥ 6.7:1 in every palette. Dark modes keep the brighter
+   accent, ≥ 5.3:1 in every palette, which stands further apart from --text. */
+.spending-card-subtitle {
+  margin: 10px 0 2px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-brand);
+}
+
+:root[data-theme="light"] .spending-card-subtitle {
+  color: var(--chip-text);
+}
+
+.spending-card-row .spending-card-name {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.spending-card-meta {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.spending-card-tag {
+  color: var(--negative);
+}
+
+.spending-card-hide {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.spending-card-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-brand);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.spending-card-limit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 4px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.spending-card-limit select {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.84rem;
+}
+
+@media (hover: hover) {
+  .spending-card-hide:hover { color: var(--text); background: var(--surface2); }
 }
 
 .triage {
@@ -5449,4 +6303,145 @@ a:focus-visible,
   .spending-card-detail-meta {
     text-align: left;
   }
+  /* A thumb-sized ✕ and limit picker. */
+  .spending-card-hide {
+    width: 40px;
+    height: 40px;
+  }
+  .spending-card-limit select {
+    min-height: 40px;
+  }
+}
+
+/* Custom on a phone: the toolbar is one line (Budget/Year · Edit · •••), and the
+   notes under it read from the left like the blocks do. */
+@media (max-width: 640px) {
+  /* Three controls in 351px at 375 wide. Still allowed to wrap: on a 320px
+     phone a second line beats a switch pushed off the left edge. */
+  .custom-toolbar { gap: 6px; }
+  .custom-toolbar .custom-edit-btn { min-height: 44px; padding: 8px 10px; white-space: nowrap; }
+  .custom-toolbar .custom-more-btn { min-width: 44px; padding: 8px; justify-content: center; letter-spacing: 0; }
+  .custom-standalone-note { text-align: left; }
+  .custom-month-empty .custom-primary-btn { width: 100%; justify-content: center; min-height: 44px; }
+  .custom-choice { margin: 8px auto; }
+  .custom-choice-cards { grid-template-columns: minmax(0, 1fr); }
+  .custom-choice-card .custom-primary-btn { align-self: stretch; justify-content: center; min-height: 44px; }
+}
+
+/* Shown by main.tsx when the app's database cannot be opened (iOS/Android):
+   plain DOM, before React, so it must stand on its own. */
+.storage-failed {
+  max-width: 420px;
+  margin: 20vh auto 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--text);
+}
+.storage-failed h1 { font-size: 1.3rem; margin: 0 0 12px; }
+.storage-failed p { color: var(--text-muted); line-height: 1.5; margin: 0 0 20px; }
+.storage-failed button {
+  min-height: 44px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent-brand);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  /* The intro stays a CARD on phones — a box of its own, centred, with room
+     around it — not the bottom sheet every other .theme-panel becomes here.
+     The sheet rule also left it half-converted: its own card width won on
+     equal specificity, so the "sheet" was 32px narrower than the screen and
+     stuck to the left edge (seen on Android and iPhone, 2026-09-29). Every
+     sheet property is set back to the card's, so nothing is left to chance. */
+  .theme-panel.intro-modal {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100% - 32px));
+    max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* The Debt tab on phones: one column, thumb-sized buttons. */
+@media (max-width: 640px) {
+  .debt-way-grid {
+    grid-template-columns: 1fr;
+  }
+  .debt-form .goal-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .debt-form .label-input {
+    min-height: 44px;
+  }
+  .debt-card-actions .custom-secondary-btn {
+    flex: 1;
+    min-height: 44px;
+  }
+  .debt-extra { max-width: none; }
+}
+
+/* The savings plan's horizon on phones: six choices in two even rows of
+   three, rather than a pill that wraps unevenly. */
+@media (max-width: 640px) {
+  .sparplan-horizon-seg {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    border-radius: var(--radius-md);
+  }
+  .sparplan-horizon-seg .seg-btn { min-height: 40px; }
+}
+
+/* iOS zooms the whole page into any text field whose text is under 16 px the
+   moment it gets focus — and leaves it zoomed, cut off at the right. Seen in
+   the iPhone app on the budget import's paste box (2026-10-03), and true of
+   every small field: amounts, names, the debt form. 16 px is exactly the size
+   at which it stops. Not done with maximum-scale in the viewport, which would
+   also take pinch-zoom away from people who need it. The Custom title field is
+   already larger and keeps its size. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.cv3-name-input),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* While something is being typed on a phone, the bottom tab bar steps aside.
+   On iOS it otherwise rides up on top of the keyboard and sits in the middle
+   of the screen, over the very form being filled in (seen in the iPhone
+   simulator, 2026-10-03). It comes back as soon as the field loses focus. */
+@media (max-width: 640px) {
+  body:has(:is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select):focus) .header-bottom {
+    display: none;
+  }
+}
+
+/* iOS draws a date field with a minimum width of its own, wider than a narrow
+   column: in the debt form it stuck out past the fields beside it. Without
+   the native look it takes the column's width like every other field, and
+   tapping it still opens the system date picker. iOS only — the touch-callout
+   property exists nowhere else. */
+@supports (-webkit-touch-callout: none) {
+  .label-input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+/* Wallets on a phone: the form fields two to a row, the switcher list full width. */
+@media (max-width: 640px) {
+  .wallet .goal-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wallet-switch-panel { width: 100%; }
+  .wallet { padding: 14px 12px; }
 }

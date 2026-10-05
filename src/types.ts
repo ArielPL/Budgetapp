@@ -99,4 +99,4 @@ export interface PlanData {
 /** 'followup' sits second, right after 'budget': the plan and what came of it
  *  belong side by side, and the tabs then run from this month outwards to the
  *  year. */
-export type ActiveTab = 'budget' | 'followup' | 'savings' | 'plan' | 'year';
+export type ActiveTab = 'budget' | 'followup' | 'savings' | 'debt' | 'plan' | 'year';

@@ -1,8 +1,9 @@
 // ── storageCache — synchronous reads over an asynchronous store ────────────
 //
-// THIS IS NOT WIRED UP YET. It is the half of the native storage move that can
-// be built and tested in a browser, written now so that the half which cannot
-// be — the Capacitor driver — is small when the time comes.
+// Wired up in the iOS and Android apps (2026-09-27): main.tsx hydrates one of
+// these over the SQLite backend in nativeStorage.ts before React renders, and
+// storage.ts routes `appStorage` through it. The web app still uses
+// localStorage directly and never touches this file.
 //
 // The problem it solves:
 //
@@ -39,8 +40,24 @@
 //      screen. Once writes are queued there is nothing to throw at the caller,
 //      so the failure arrives later, through `onWriteFailed` — which the app
 //      already has somewhere to put: `setSaveFailed`.
+//
+//   4. A REFUSED WRITE MUST NOT STAY IN MEMORY AS IF IT WERE STORED
+//      (deep review 2026-09-27, P0). The cache takes a write before the
+//      database does, so a refusal left the two disagreeing: every read, and a
+//      backup built from those reads, answered with a value that was never
+//      saved. After a refusal the cache is put back to what the database
+//      actually holds — the same thing localStorage does on the web, where a
+//      refused setItem simply leaves the old value — and the refused change is
+//      kept aside (`unsaved`) for "Try again" to write, instead of being lost
+//      or pretending to be saved.
+//
+//   5. AN ACTION THAT SAYS "DONE" MUST BE ABLE TO WAIT FOR THE DATABASE.
+//      `commitBatch` resolves true only once the transaction is committed. A
+//      restore, an import, a step back: each waits for it before it reports
+//      success, records a step back, or reloads.
 
 import type { StorageLike } from './storage';
+import type { StorageChange } from './storageWrite';
 
 /** What a native driver has to provide. Every method is async on purpose:
  *  this is the shape Capacitor Preferences and the Filesystem API both have. */
@@ -49,6 +66,9 @@ export interface AsyncBackend {
   loadAll(): Promise<Record<string, string>>;
   write(key: string, value: string): Promise<void>;
   remove(key: string): Promise<void>;
+  /** Several changes as ONE transaction: all land or none do. Optional — a
+   *  backend without it gets the changes one by one, in order. */
+  commit?(changes: StorageChange[]): Promise<void>;
 }
 
 export interface CachedStorage extends StorageLike {
@@ -69,6 +89,30 @@ export interface CachedStorage extends StorageLike {
   flush(): Promise<void>;
   /** How many writes are still waiting. */
   readonly pending: number;
+  /** Several changes at once: the cache takes all of them now, and the
+   *  backend gets them as one transaction (see AsyncBackend.commit). A refusal
+   *  reaches onWriteFailed with the first key, like any other write. */
+  applyBatch(changes: StorageChange[]): void;
+  /** Like applyBatch, but the caller hears how it went: true once the backend
+   *  has committed every change, false if it refused them. A refusal puts the
+   *  cache back to what the backend holds, is NOT reported to onWriteFailed and
+   *  is NOT kept for retryUnsaved — the caller asked, so the caller tells the
+   *  user, and nothing has changed. */
+  commitBatch(changes: StorageChange[]): Promise<boolean>;
+  /** Changes the backend refused that nothing has replaced since: what the
+   *  user was told is "on screen but not stored". */
+  unsaved(): StorageChange[];
+  /** True while anything the user did is not stored — a refused change, or a
+   *  refusal after which the database could not even be read back. */
+  readonly hasUnsaved: boolean;
+  /** Write every unsaved change again, as one transaction. Resolves true when
+   *  nothing is left unsaved. */
+  retryUnsaved(): Promise<boolean>;
+  /** Hear when hasUnsaved changes, either way. Returns an unsubscribe. */
+  onUnsavedChange(listener: () => void): () => void;
+  /** Everything the backend holds, read after every earlier write has landed.
+   *  What a backup is built from: the database, not the cache. */
+  snapshot(): Promise<Record<string, string>>;
 }
 
 export function createCachedStorage(backend: AsyncBackend): CachedStorage {
@@ -97,12 +141,108 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
   let queue: Promise<void> = Promise.resolve();
   let pending = 0;
 
-  const enqueue = (key: string, job: () => Promise<void>) => {
+  // Every change to the cache gets a number, and each key remembers the number
+  // of the last change to it. After a refusal that is how the cache knows which
+  // keys to put back: the ones nothing has changed SINCE the refused write.
+  // A key changed later has its own write queued behind this one, and that
+  // write — not the database's older value — is what the user last did.
+  let generation = 0;
+  const changedAt = new Map<string, number>();
+  const stamp = (keys: string[]): number => {
+    generation += 1;
+    for (const k of keys) changedAt.set(k, generation);
+    return generation;
+  };
+
+  /** Refused changes nothing has replaced since, by key — each with the
+   *  number of the change that was refused (see `stamp`). */
+  const refusedChanges = new Map<string, { value: string | null; at: number }>();
+  /** Told whenever hasUnsaved may have changed, so the banner can follow the
+   *  real state instead of whichever write answered last. */
+  const unsavedListeners = new Set<() => void>();
+  let lastUnsaved = false;
+  const unsavedChanged = () => {
+    const now = refusedChanges.size > 0 || diverged;
+    if (now === lastUnsaved) return;
+    lastUnsaved = now;
+    for (const l of unsavedListeners) l();
+  };
+  /** A refusal after which the database could not be read back either: the
+   *  cache may hold values that are not stored, and nothing here can say which. */
+  let diverged = false;
+
+  /** Put every key untouched since change `at` back to what the backend
+   *  holds. Runs INSIDE the queue, so every earlier write has landed. */
+  const reconcile = async (at: number) => {
+    try {
+      const disk = await backend.loadAll();
+      for (const k of new Set([...cache.keys(), ...Object.keys(disk)])) {
+        if ((changedAt.get(k) ?? 0) > at) continue;
+        if (Object.prototype.hasOwnProperty.call(disk, k)) cache.set(k, disk[k]);
+        else cache.delete(k);
+      }
+      diverged = false;
+    } catch {
+      diverged = true;
+    }
+    unsavedChanged();
+  };
+
+  /**
+   * Queue `job`, which writes `changes`. Resolves true when it landed.
+   *
+   * `tracked`: a change nobody is waiting on (an ordinary edit). If refused,
+   * it is kept for retryUnsaved and reported through onWriteFailed. An
+   * untracked change is one a caller awaits, and reports itself.
+   */
+  const enqueue = (changes: StorageChange[], at: number, tracked: boolean, job: () => Promise<void>): Promise<boolean> => {
     pending += 1;
-    queue = queue
-      .then(job)
-      .catch(() => { fail(key); })
-      .finally(() => { pending -= 1; });
+    const result = queue.then(job).then(
+      () => {
+        // Landed: whatever was refused for these keys before is superseded.
+        for (const c of changes) refusedChanges.delete(c.key);
+        unsavedChanged();
+        return true;
+      },
+      async () => {
+        if (tracked) {
+          for (const c of changes) refusedChanges.set(c.key, { value: c.value, at });
+          fail(changes[0].key);
+        }
+        await reconcile(at);
+        return false;
+      },
+    ).finally(() => { pending -= 1; });
+    queue = result.then(() => undefined);
+    return result;
+  };
+
+  /** Take `changes` into the cache now; the backend gets them as one job. */
+  const batch = (changes: StorageChange[], tracked: boolean): Promise<boolean> => {
+    if (changes.length === 0) return Promise.resolve(true);
+    for (const { key, value } of changes) {
+      if (value === null) {
+        cache.delete(key);
+        if (!ready) removedBeforeHydrate.add(key);
+      } else {
+        cache.set(key, value);
+        if (!ready) removedBeforeHydrate.delete(key);
+      }
+    }
+    const at = stamp(changes.map(c => c.key));
+    // One job, so nothing queued later can land between its parts — and on
+    // a backend with transactions, one transaction, so a multi-month import
+    // is never half on disk.
+    return enqueue(changes, at, tracked, async () => {
+      if (backend.commit) {
+        await backend.commit(changes);
+        return;
+      }
+      for (const { key, value } of changes) {
+        if (value === null) await backend.remove(key);
+        else await backend.write(key, value);
+      }
+    });
   };
 
   return {
@@ -130,13 +270,63 @@ export function createCachedStorage(backend: AsyncBackend): CachedStorage {
       cache.set(k, v);
       // Written again after being removed: no longer a removal.
       if (!ready) removedBeforeHydrate.delete(k);
-      enqueue(k, () => backend.write(k, v));
+      void enqueue([{ key: k, value: v }], stamp([k]), true, () => backend.write(k, v));
     },
 
     removeItem(k: string) {
       cache.delete(k);
       if (!ready) removedBeforeHydrate.add(k);
-      enqueue(k, () => backend.remove(k));
+      void enqueue([{ key: k, value: null }], stamp([k]), true, () => backend.remove(k));
+    },
+
+    applyBatch(changes: StorageChange[]) {
+      void batch(changes, true);
+    },
+
+    commitBatch(changes: StorageChange[]) {
+      return batch(changes, false);
+    },
+
+    unsaved() {
+      return [...refusedChanges].map(([key, r]) => ({ key, value: r.value }));
+    },
+
+    get hasUnsaved() { return refusedChanges.size > 0 || diverged; },
+
+    async retryUnsaved() {
+      // Only refusals nothing has changed SINCE. A key the user has changed
+      // again has a newer write of its own, queued or landed, and that write
+      // decides: it clears the refusal when it lands, or replaces it with the
+      // newer value when it is refused too. Retrying the older value would
+      // queue it BEHIND the newer one and put it back over it (foundation
+      // review 2026-09-29, P0). A second Try again pressed meanwhile skips it
+      // for the same reason: the first one's write is itself a newer change.
+      const changes = [...refusedChanges]
+        .filter(([key, r]) => (changedAt.get(key) ?? 0) <= r.at)
+        .map(([key, r]) => ({ key, value: r.value }));
+      await batch(changes, true);
+      // Let every write queued before this answer too — the newer ones
+      // above, above all — so what is returned describes the disk.
+      await queue;
+      if (diverged) {
+        // The last read-back failed; try it again, in turn with the writes.
+        const at = generation;
+        const again = queue.then(() => reconcile(at));
+        queue = again;
+        await again;
+      }
+      return refusedChanges.size === 0 && !diverged;
+    },
+
+    onUnsavedChange(listener) {
+      unsavedListeners.add(listener);
+      return () => unsavedListeners.delete(listener);
+    },
+
+    snapshot() {
+      const read = queue.then(() => backend.loadAll());
+      queue = read.then(() => undefined, () => undefined);
+      return read;
     },
 
     async hydrate() {

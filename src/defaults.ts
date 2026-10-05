@@ -97,7 +97,9 @@ const L = {
   vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones' },
   // lån — a real budget line for most people and, until now, a missing concept:
   // a student-loan repayment fitted none of the other seven and landed in Övrigt.
-  lan: { sv: 'Lån & Krediter', en: 'Loans & Credit', es: 'Préstamos y créditos' },
+  // Renamed "Lån & skulder" with the Debt tab (2026-10-03), whose debts each
+  // carry a row here. The old name is still READ — see LEGACY_LABELS.
+  lan: { sv: 'Lån & skulder', en: 'Loans & Debts', es: 'Préstamos y deudas' },
   studyLoan: { sv: 'Studielån (CSN)', en: 'Student loan', es: 'Préstamo estudiantil' },
   mortgage: { sv: 'Bolån & amortering', en: 'Mortgage', es: 'Hipoteca' },
   otherCredit: { sv: 'Övriga lån & krediter', en: 'Other loans & credit', es: 'Otros créditos' },
@@ -136,6 +138,12 @@ for (const entry of Object.values(L)) {
   REVERSE_LABELS[entry.en] = entry;
   REVERSE_LABELS[entry.es] = entry;
 }
+// Names a default once had, as saved in older months: they show under the
+// CURRENT name, so a renamed default does not leave two names in one budget.
+const LEGACY_LABELS: [string, LabelEntry][] = [
+  ['Lån & Krediter', L.lan], ['Loans & Credit', L.lan], ['Préstamos y créditos', L.lan],
+];
+for (const [old, entry] of LEGACY_LABELS) REVERSE_LABELS[old] = entry;
 
 /** Translate a built-in default label to the current language; pass through custom labels. */
 function displayLabel(label: string, lang: Lang): string {
@@ -310,6 +318,31 @@ export function withStandardCategories(
     .map(id => standardExpenseCategory(id, lang))
     .filter((c): c is BudgetCategory => c !== undefined);
   return fresh.length === 0 ? data : { ...data, expenses: [...data.expenses, ...fresh] };
+}
+
+/**
+ * The month with `row` in its loans category ("Lån & skulder"): the row
+ * replaced if it is there, appended if not, and the category created — with
+ * that row only — if the month has none. Pure; returns the SAME object when
+ * nothing would change, so a caller can tell whether a write is needed.
+ *
+ * How a debt in the Debt tab carries its monthly payment into the budget.
+ */
+export function withLoanRow(
+  data: MonthData, row: { id: string; label: string; amount: number }, lang: Lang = 'sv',
+): MonthData {
+  const lan = data.expenses.find(c => c.id === 'lan');
+  const fresh: BudgetRow = { id: row.id, label: row.label, amount: row.amount, isCustom: true, userNamed: true };
+  if (!lan) {
+    const base = standardExpenseCategory('lan', lang)!;
+    return { ...data, expenses: [...data.expenses, { ...base, rows: [fresh] }] };
+  }
+  const existing = lan.rows.find(r => r.id === row.id);
+  if (existing && existing.label === row.label && existing.amount === row.amount) return data;
+  const rows = existing
+    ? lan.rows.map(r => (r.id === row.id ? { ...r, label: row.label, amount: row.amount, userNamed: true } : r))
+    : [...lan.rows, fresh];
+  return { ...data, expenses: data.expenses.map(c => (c.id === 'lan' ? { ...c, rows } : c)) };
 }
 
 // The old default category set, offered as a one-tap "starter pack" so a blank

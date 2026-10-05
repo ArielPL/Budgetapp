@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // The native shells are Capacitor's, and their build folders hold its bundled
+  // JavaScript — not ours to lint. `.claude` holds Claude Code's session
+  // worktrees: full copies of this repo whose own configs would lint twice.
+  globalIgnores(['dist', 'ios', 'android', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -17,6 +20,9 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+      // Pinned so typescript-eslint never has to guess between this folder and
+      // a nested copy's tsconfig.
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
     rules: {
       // Params kept for signature compatibility use the `_name` convention.

@@ -33,6 +33,7 @@ describe('pickLang — what a brand-new install opens in', () => {
 describe('pickCurrency — the same signal, for the symbol only', () => {
   it('follows the country where the language names one', () => {
     expect(pickCurrency(['sv-SE'])).toBe('sek');
+    expect(pickCurrency(['ja-JP'])).toBe('jpy');
     expect(pickCurrency(['es-ES'])).toBe('eur');
     expect(pickCurrency(['en-US'])).toBe('usd');
     expect(pickCurrency(['en-GB'])).toBe('gbp');

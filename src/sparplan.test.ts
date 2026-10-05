@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   monthlyRate, projectPlan, monthsBetween, toYM, earliestSavingsYM, planVsActual,
-  validateSavingsPlan, isValidYM, PLAN_LIMITS,
+  validateSavingsPlan, isValidYM, PLAN_LIMITS, planYears, PLAN_YEARS,
   type SavingsPlan,
 } from './sparplan';
 
@@ -229,5 +229,29 @@ describe('earliestSavingsYM (auto-default plan start)', () => {
   it('returns null when nothing is recorded', () => {
     expect(earliestSavingsYM([{ ym: '2026-01', hasSnapshot: false }])).toBe(null);
     expect(earliestSavingsYM([])).toBe(null);
+  });
+});
+
+// ── How far ahead (Ariel, 2026-10-03) ───────────────────────────────────────
+
+describe('the horizon', () => {
+  it('is five years for a plan saved before it could be chosen', () => {
+    expect(planYears(plan())).toBe(5);
+    expect(planYears(null)).toBe(5);
+    expect(validateSavingsPlan(plan())).toEqual([]);
+  });
+  it('is the plan’s own when it is a whole number of years from 1 to 50', () => {
+    for (const n of PLAN_YEARS) expect(planYears(plan({ years: n }))).toBe(n);
+    expect(validateSavingsPlan(plan({ years: 40 }))).toEqual([]);
+  });
+  it('refuses a horizon that is not one', () => {
+    for (const bad of [0, -5, 2.5, 51, Number.NaN]) {
+      expect(validateSavingsPlan(plan({ years: bad }))).toContain('years');
+      expect(planYears(plan({ years: bad }))).toBe(5);
+    }
+  });
+  it('a longer horizon projects further with the same arithmetic', () => {
+    const p = plan({ monthlyAmount: 1000, annualReturnPct: 0 });
+    expect(projectPlan(p, 30 * 12)[360]).toBe(360_000);
   });
 });

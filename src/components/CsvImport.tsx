@@ -4,22 +4,21 @@ import { appStorage } from '../storage';
 import { useModalFocus } from '../useModalFocus';
 import { generateId, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import {
-  decodeCsv, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
+  decodeCsv, CsvEncodingError, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
   parseDate,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
-import { loadCsvMaps, rememberCsvMap, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
+import { loadCsvMaps, csvMapChange, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
 import {
-  suggest, isTransfer, loadCategoryRules, rememberCategoryRule, STANDARD_CATEGORY_IDS,
+  suggest, isTransfer, loadCategoryRules, learnedRulesChange, STANDARD_CATEGORY_IDS,
   CATEGORY_RULES_KEY,
-  type LearnedRules,
 } from '../categorise';
 import {
   actualsKey, loadActuals, newEntries, groupByMonth,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
-import { applyStorageChanges, type StorageChange } from '../storageWrite';
+import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
@@ -68,13 +67,25 @@ interface Props {
    *  was not enough — the screen sat unchanged and the import looked like it
    *  had done nothing. The caller can now offer to go there. */
   onImported: (summary: string, months: TouchedMonth[]) => void;
-  onSaveFailed: () => void;
-  /** Add standard categories the user accepted an offer to create, into the
-   *  months the entries are being filed in. */
-  onCreateCategories: (ids: string[], months: TouchedMonth[]) => void;
+  /** The writes that add the standard categories the user accepted an offer
+   *  to create, into the months the entries are filed in — for the import to
+   *  commit with its own — and what to do on screen once they are stored. */
+  planStandardCategories: (ids: string[], months: TouchedMonth[]) => CategoryPlan;
   /** Remember what the touched months held before the file landed, so an import
    *  of the wrong file — or into the wrong months — has a way back. */
   onRecordUndo: (entry: UndoEntry) => void;
+}
+
+/** Writes to commit together with something else, and the on-screen update to
+ *  make once they are stored. */
+export interface CategoryPlan {
+  changes: StorageChange[];
+  apply: () => void;
+  /** The categories that are NEW to at least one month the writes reach,
+   *  each once — what an import may honestly say it created. An offer made
+   *  because the month on screen lacks a category is not this: the months the
+   *  file reaches may all have it already (Codex, 2026-10-03). */
+  created?: string[];
 }
 
 /** Prefix marking a choice that is an offer to create rather than a category
@@ -93,8 +104,8 @@ interface Group extends TextGroup {
 }
 
 export const CsvImport = ({
-  categories, periodStartDay, periodLocks, onClose, onImported, onSaveFailed,
-  onCreateCategories, onRecordUndo,
+  categories, periodStartDay, periodLocks, onClose, onImported,
+  planStandardCategories, onRecordUndo,
 }: Props) => {
   const { t, lang, money } = useLang();
 
@@ -153,8 +164,10 @@ export const CsvImport = ({
       setHeaderless(headerless);
       if (remembered) toReview(body, guess, order);
       else setStep('columns');
-    } catch {
-      setError(t.csvUnreadable);
+    } catch (e) {
+      // An encoding it cannot read is said as such — "unreadable" would send
+      // the user looking for a broken file when re-saving it as UTF-8 fixes it.
+      setError(e instanceof CsvEncodingError ? t.csvUnknownEncoding : t.csvUnreadable);
     }
   };
 
@@ -255,7 +268,27 @@ export const CsvImport = ({
   const resolve = (choice: string) =>
     (choice.startsWith(CREATE) ? choice.slice(CREATE.length) : choice);
 
-  const doImport = () => {
+  /** The budget months the chosen rows go to — by the same rule the import
+   *  files them by — so the preview can say what the import will really do. */
+  const reachedMonths = [...groupByMonth(
+    ready.flatMap(g => g.rows.map(r => ({
+      id: '', date: r.date, text: '', amount: 0, direction: 'out' as const, categoryId: '',
+    }))),
+    periodStartDay, periodLocks,
+  ).months.values()].map(b => ({ year: b.year, month: b.month }));
+
+  /** How many categories the import would really add, counted the way the
+   *  receipt counts them. */
+  const willCreate = toCreate.length > 0
+    ? planStandardCategories(toCreate, reachedMonths).created?.length ?? 0
+    : 0;
+
+  // True while an import waits for the database. The button is disabled
+  // meanwhile: a second tap would import the same file twice.
+  const [importing, setImporting] = useState(false);
+
+  const doImport = async () => {
+    if (importing) return;
     const entries: ActualEntry[] = ready.flatMap(g =>
       g.rows.map(r => {
         const categoryId = resolve(g.choice);
@@ -322,39 +355,46 @@ export const CsvImport = ({
       CATEGORY_RULES_KEY,
       CSV_MAPS_KEY,
     ]);
-    if (!applyStorageChanges(appStorage, changes)) {
-      onSaveFailed();
+    // Everything the import leaves behind, as ONE transaction, answered once
+    // it is stored (foundation review 2026-09-29, P1). It used to store the
+    // entries first and the rest afterwards, each on its own — so a refusal
+    // half-way left entries filed under a category that was never created, or
+    // said "done" and "could not save" at once, with a step back describing
+    // more than had landed. Now it is all of it or none:
+    //
+    //   · the entries, in every month the file reaches;
+    //   · the COLUMN LAYOUT, remembered for this bank's file — covered by the
+    //     same step back, because an import is most often undone for being the
+    //     wrong file, and its columns are exactly what should go with it;
+    //   · the standard categories the file needs, in every month it reaches,
+    //     including one whose rows were already there: those entries still
+    //     need a named home;
+    //   · what YOU decided, learned as rules. Never what the sorter guessed:
+    //     storing its own guesses would cement the first mistake that slips
+    //     past and make it look, next month, like something you had confirmed.
+    const reached = [...months.values()].map(b => ({ year: b.year, month: b.month }));
+    const newCategories = toCreate.length > 0
+      ? planStandardCategories(toCreate, reached)
+      : { changes: [], apply: () => {}, created: [] };
+    const rules = learnedRulesChange(appStorage, ready
+      .filter(g => !g.auto)
+      .map(g => ({ text: g.text, categoryId: resolve(g.choice) })));
+    setImporting(true);
+    const outcome = await commitStorageChangesOutcome(appStorage, [
+      ...changes,
+      csvMapChange(appStorage, headerFingerprint(header), roles, dateOrder),
+      ...newCategories.changes,
+      ...(rules ? [rules] : []),
+    ]);
+    setImporting(false);
+    // A refusal changes nothing — no entry, category, layout or rule — and the
+    // dialog stays open to say so. Only said like that when it is VERIFIED.
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.importWriteFailed);
       return;
     }
+    newCategories.apply();
 
-    // Only commit secondary effects after the entries themselves landed. A
-    // refused actuals write must not leave behind categories or learned rules
-    // from an import the app correctly reported as failed.
-    //
-    // Categories go into every month the file reaches, including a month whose
-    // rows were already present: those stored entries still need a named home.
-    // Remembered now, not when the columns were confirmed — so it is covered by
-    // the same step back as everything else the import leaves behind.
-    rememberCsvMap(appStorage, headerFingerprint(header), roles, dateOrder);
-
-    if (toCreate.length > 0) {
-      onCreateCategories(
-        toCreate,
-        [...months.values()].map(b => ({ year: b.year, month: b.month })),
-      );
-    }
-
-    // Learn from what YOU decided, never from what the sorter guessed. Storing
-    // its own guesses back would cement the first mistake that slips past and
-    // make it look, next month, like something you had confirmed.
-    let rules: LearnedRules | undefined;
-    for (const g of ready) {
-      if (g.auto) continue;
-      rules = rememberCategoryRule(appStorage, g.text, resolve(g.choice), rules);
-    }
-
-    // Recorded LAST, once the categories and rules have been written too, so the
-    // step back describes the whole import rather than a part of it.
     if (added > 0) {
       onRecordUndo({
         at: new Date().toISOString(),
@@ -369,7 +409,10 @@ export const CsvImport = ({
     // user cannot see.
     const parts = [t.csvDoneAdded(added)];
     if (touched.length) parts.push(touched.join(', '));
-    if (toCreate.length) parts.push(t.csvDoneCreated(toCreate.length));
+    // What was really added, not what was offered: a re-import into months
+    // that already have the category creates nothing and must not say so.
+    const created = newCategories.created?.length ?? 0;
+    if (created) parts.push(t.csvDoneCreated(created));
     if (duplicates) parts.push(t.csvDoneDuplicates(duplicates));
     if (unassigned) parts.push(t.csvDoneUnassigned(unassigned));
     onImported(parts.join(' · '), written);
@@ -540,10 +583,10 @@ export const CsvImport = ({
                 ))}
               </div>
               <div className="csv-actions">
-                <button className="csv-primary" disabled={ready.length === 0} onClick={doImport}>
+                <button className="csv-primary" disabled={ready.length === 0 || importing} onClick={doImport}>
                   {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
                 </button>
-                {toCreate.length > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(toCreate.length)}</span>}
+                {willCreate > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(willCreate)}</span>}
                 {toUnsorted > 0 && <span className="csv-hint">{t.csvToUnsorted(toUnsorted)}</span>}
                 {toTransfer > 0 && <span className="csv-hint">{t.csvToTransfer(toTransfer)}</span>}
                 {unassigned > 0 && <span className="csv-hint">{t.csvUnassigned(unassigned)}</span>}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spendingBreakdown, categoryRange } from './spending';
+import { spendingBreakdown, categoryRange, purchaseHighlights, FIXED_COST_CATEGORIES } from './spending';
 import { formatPeriodRange } from './dateLabel';
 import { INCOME_ACTUAL_ID, TRANSFER_ACTUAL_ID, UNSORTED_ACTUAL_ID } from './actuals';
 import type { ActualEntry } from './types';
@@ -125,5 +125,52 @@ describe('formatPeriodRange — the header and the card print a period alike', (
 
   it('keeps the capital in English', () => {
     expect(formatPeriodRange(range, 'en')).toBe('25 Aug – 24 Sep');
+  });
+});
+
+// ── The biggest purchases and the small ones ───────────────────────────────
+
+describe('purchaseHighlights', () => {
+  let m = 0;
+  const e = (categoryId: string, amount: number, text: string, direction: 'out' | 'in' = 'out'): ActualEntry =>
+    ({ id: `p${++m}`, date: `2026-09-${String(10 + (m % 15)).padStart(2, '0')}`, text, amount, direction, categoryId });
+  const key = (t: string) => t.toLowerCase();
+
+  it('splits purchases at the limit: the limit itself is not small', () => {
+    const h = purchaseHighlights([e('mat', 199, 'A'), e('mat', 200, 'B'), e('mat', 5000, 'C')], 200, new Set(), key);
+    expect(h.biggest.map(p => p.text)).toEqual(['C', 'B']);
+    expect(h.small).toMatchObject({ total: 199, count: 1 });
+  });
+
+  it('leaves out fixed costs, income, transfers and refunds', () => {
+    const h = purchaseHighlights([
+      ...[...FIXED_COST_CATEGORIES].map(id => e(id, 30, `FIX ${id}`)),
+      e(INCOME_ACTUAL_ID, 30000, 'LÖN', 'in'),
+      e(TRANSFER_ACTUAL_ID, 5000, 'EGET KONTO'),
+      e('mat', 80, 'RETUR', 'in'),
+      e('mat', 80, 'KÖP'),
+    ], 200, new Set(), key);
+    expect(h.biggest).toEqual([]);
+    expect(h.small.places.map(p => p.text)).toEqual(['KÖP']);
+  });
+
+  it('counts unsorted purchases, marked as such', () => {
+    const h = purchaseHighlights([e(UNSORTED_ACTUAL_ID, 900, 'OKÄND')], 200, new Set(), key);
+    expect(h.biggest[0]).toMatchObject({ text: 'OKÄND', unsorted: true });
+  });
+
+  it('groups small purchases by place, most money first', () => {
+    const h = purchaseHighlights([
+      e('mat', 40, 'Kafé'), e('mat', 40, 'KAFÉ'), e('mat', 60, 'Kiosk'), e('fritid', 90, 'Bio'),
+    ], 200, new Set(), key);
+    expect(h.small.places.map(p => [p.text, p.count, p.total])).toEqual([['Bio', 1, 90], ['Kafé', 2, 80], ['Kiosk', 1, 60]]);
+    expect(h.small).toMatchObject({ total: 230, count: 4 });
+  });
+
+  it('leaves out a hidden place from both lists', () => {
+    const h = purchaseHighlights([e('fritid', 1245, 'SJ'), e('fritid', 60, 'SJ'), e('mat', 50, 'X')],
+      200, new Set(['sj']), key);
+    expect(h.biggest).toEqual([]);
+    expect(h.small.places.map(p => p.text)).toEqual(['X']);
   });
 });

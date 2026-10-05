@@ -30,6 +30,12 @@ describe('formatMoney decimal rule (fix plan 2026-07-12 §8)', () => {
     expect(norm(formatMoney(1200.5, 'gbp'))).toBe('£1,200.50');
   });
 
+  it('shows the yen whole, with the ordinary ¥ — it has no smaller unit', () => {
+    expect(norm(formatMoney(12500, 'jpy'))).toBe('¥12,500');
+    expect(norm(formatMoney(12500.6, 'jpy'))).toBe('¥12,501');
+    expect(norm(formatMoney(0, 'jpy'))).toBe('¥0');
+  });
+
   it('clamps float drift instead of showing artifacts', () => {
     expect(norm(formatMoney(0.1 + 0.2, 'sek'))).toBe('0,30 kr');
     // Drift that rounds back to a whole number renders as whole.

@@ -128,43 +128,43 @@ describe('the stack', () => {
 });
 
 describe('undoing', () => {
-  it('puts a wiped month back exactly as it was', () => {
+  it('puts a wiped month back exactly as it was', async () => {
     storage.setItem('budget_2026_8', '{"income":[{"amount":35716}]}');
     const before = storage.snapshot();
 
     pushUndo(storage, entry({ changes: captureKeys(storage, ['budget_2026_8']) }));
     storage.setItem('budget_2026_8', '{"income":[]}');   // the reset
 
-    expect(undoLast(storage)?.action).toBe('resetMonth');
+    expect((await undoLast(storage))?.action).toBe('resetMonth');
     expect(storage.getItem('budget_2026_8')).toBe(before['budget_2026_8']);
   });
 
-  it('removes a month the undone action had created', () => {
+  it('removes a month the undone action had created', async () => {
     pushUndo(storage, entry({
       action: 'import',
       changes: captureKeys(storage, ['budget_actuals_2026_9']),
     }));
     storage.setItem('budget_actuals_2026_9', '[{"amount":100}]');   // the import
 
-    undoLast(storage);
+    await undoLast(storage);
     expect(storage.getItem('budget_actuals_2026_9')).toBeNull();
   });
 
-  it('takes one step at a time, newest first', () => {
+  it('takes one step at a time, newest first', async () => {
     storage.setItem('k', '1');
     pushUndo(storage, entry({ changes: [{ key: 'k', value: '1' }] }));
     storage.setItem('k', '2');
     pushUndo(storage, entry({ changes: [{ key: 'k', value: '2' }] }));
     storage.setItem('k', '3');
 
-    undoLast(storage);
+    await undoLast(storage);
     expect(storage.getItem('k')).toBe('2');
-    undoLast(storage);
+    await undoLast(storage);
     expect(storage.getItem('k')).toBe('1');
-    expect(undoLast(storage)).toBeNull();
+    expect(await undoLast(storage)).toBeNull();
   });
 
-  it('a full entry also removes what appeared after it', () => {
+  it('a full entry also removes what appeared after it', async () => {
     // Restoring a backup that held fewer months must not leave the extra months
     // standing: the user would be reading a mixture of two different states.
     storage.setItem('budget_2026_8', 'august');
@@ -173,26 +173,26 @@ describe('undoing', () => {
     storage.setItem('budget_2026_9', 'september-from-the-backup');
 
     expect(undoChanges(storage, full).find(c => c.key === 'budget_2026_9')?.value).toBeNull();
-    undoLast(storage);
+    await undoLast(storage);
     expect(storage.getItem('budget_2026_9')).toBeNull();
     expect(storage.getItem('budget_2026_8')).toBe('august');
   });
 
-  it('does nothing when there is nothing to undo', () => {
-    expect(undoLast(storage)).toBeNull();
+  it('does nothing when there is nothing to undo', async () => {
+    expect(await undoLast(storage)).toBeNull();
   });
 
-  it('keeps the step when the undo write is refused, so it can be retried', () => {
+  it('keeps the step when the undo write is refused, so it can be retried', async () => {
     storage.setItem('budget_2026_8', 'before');
     pushUndo(storage, entry({ changes: captureKeys(storage, ['budget_2026_8']) }));
     storage.setItem('budget_2026_8', 'after');
 
     storage.failOnKey = 'budget_2026_8';
-    expect(undoLast(storage)).toBeNull();
+    expect(await undoLast(storage)).toBeNull();
     expect(readUndo(storage)).toHaveLength(1);
 
     storage.failOnKey = null;
-    expect(undoLast(storage)?.action).toBe('resetMonth');
+    expect((await undoLast(storage))?.action).toBe('resetMonth');
     expect(storage.getItem('budget_2026_8')).toBe('before');
   });
 

@@ -17,6 +17,25 @@ const FOCUSABLE =
  * conditionally-open overlays (pass `true` when the component itself only
  * mounts while open).
  */
+// ── The open layers, newest last — for Android's Back button ──────────────
+//
+// Every panel, dialog and menu that uses this hook is recorded here while it
+// is open, so one Back press can close exactly the one on top. Without it,
+// Back with the menu open left the app altogether (iOS/Android review,
+// 2026-09-26). Newest last: a panel opened from the menu sits above the menu.
+const layers: { close: () => void }[] = [];
+
+/** Close the topmost open layer. False when nothing is open. */
+export function closeTopLayer(): boolean {
+  const top = layers[layers.length - 1];
+  if (!top) return false;
+  top.close();
+  return true;
+}
+
+/** How many layers are open — for tests. */
+export const openLayerCount = (): number => layers.length;
+
 export function useModalFocus(
   containerRef: RefObject<HTMLElement | null>,
   active: boolean,
@@ -98,7 +117,11 @@ export function useModalFocus(
 
     // Capture phase so the trap wins over page-level shortcuts.
     document.addEventListener('keydown', onKeyDown, true);
+    const layer = { close: () => onCloseRef.current() };
+    layers.push(layer);
     return () => {
+      const at = layers.indexOf(layer);
+      if (at >= 0) layers.splice(at, 1);
       clearTimeout(t);
       document.removeEventListener('keydown', onKeyDown, true);
       // Restore the background BEFORE focus returns — an inert opener ignores

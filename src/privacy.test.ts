@@ -12,7 +12,7 @@ import page from '../public/privacy.html?raw';
 //
 // This does not check the promise is TRUE. What makes it true is that the app
 // makes no network requests at all, which src/index.css and package.json are
-// the record of: three dependencies, no analytics, and a self-hosted typeface
+// the record of: no dependency that talks to a server, no analytics, and a self-hosted typeface
 // after the Google Fonts import that used to send every user's IP to a third
 // party on startup was removed.
 

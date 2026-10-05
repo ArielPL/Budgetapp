@@ -26,6 +26,19 @@ export function formatPeriodRange(range: { from: Date; to: Date }, lang: Lang): 
   return `${day(range.from)} – ${day(range.to)}`;
 }
 
+/** "3 okt" from an entry's "YYYY-MM-DD", read as the local day it names. */
+export function shortDay(iso: string, lang: Lang): string {
+  const [, m, d] = iso.split('-').map(Number);
+  if (!m || !d || m < 1 || m > 12) return '';
+  return `${d} ${lower(MONTHS_SHORT[lang][m - 1], lang)}`;
+}
+
+/** "maj 2031", "May 2031", "mayo de 2031": a month in a sentence. */
+export function monthYear(at: { year: number; month: number }, lang: Lang): string {
+  const name = lower(MONTHS[lang][at.month], lang);
+  return lang === 'es' ? `${name} de ${at.year}` : `${name} ${at.year}`;
+}
+
 /** "17 sep 13:40" — one line, exact enough to answer "when did I do that?". */
 export function shortWhen(iso: string, lang: Lang): string {
   const at = new Date(iso);

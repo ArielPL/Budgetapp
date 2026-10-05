@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { DebtKind } from './debts';
 import type { UndoAction } from './undo';
 
 export type Lang = 'sv' | 'en' | 'es';
@@ -56,6 +57,7 @@ export function pickCurrency(tags: readonly string[]): Currency {
     if (base === 'sv') return 'sek';
     if (base === 'es') return 'eur';
     if (base === 'en') return region === 'gb' ? 'gbp' : 'usd';
+    if (base === 'ja') return 'jpy';
     // Somebody else's European locale: the euro is the better guess than kronor.
     if (['de', 'fr', 'it', 'pt', 'nl', 'fi', 'el', 'ga', 'et', 'lv', 'lt', 'sk', 'sl'].includes(base)) {
       return 'eur';
@@ -98,12 +100,14 @@ export const MONTHS_SHORT: Record<Lang, string[]> = {
 // ── Currency ────────────────────────────────────────────────────────
 // Switching currency changes the SYMBOL/FORMAT ONLY — amounts are never
 // converted (no exchange rates). The user's numbers stay the same.
-export type Currency = 'sek' | 'eur' | 'usd' | 'gbp';
+export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy';
 
 interface CurrencyConfig {
-  code: 'SEK' | 'EUR' | 'USD' | 'GBP';
+  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY';
   locale: string;
   symbol: string;
+  /** The yen has no smaller unit: its amounts are always shown whole. */
+  wholeOnly?: boolean;
 }
 
 export const CURRENCIES: Record<Currency, CurrencyConfig> = {
@@ -111,6 +115,9 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   eur: { code: 'EUR', locale: 'de-DE', symbol: '€' },
   usd: { code: 'USD', locale: 'en-US', symbol: '$' },
   gbp: { code: 'GBP', locale: 'en-GB', symbol: '£' },
+  // en-US rather than ja-JP: Japanese formatting writes the full-width "￥",
+  // and the symbol asked for is the ordinary ¥ (Ariel, 2026-10-03).
+  jpy: { code: 'JPY', locale: 'en-US', symbol: '¥', wholeOnly: true },
 };
 
 /** Runtime check for a stored/imported currency — same story as isLang: an
@@ -147,6 +154,7 @@ function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat
 /** Format an amount with the given currency's symbol/grouping (no conversion).
  *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
+  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount));
   const rounded = Math.round(amount * 100) / 100;
   const hasCents = !Number.isInteger(rounded);
   return getFormatter(currency, hasCents).format(rounded);
@@ -197,8 +205,8 @@ export function formatAxisTick(value: number, lang: Lang): string {
  */
 export function formatMoneyCompact(amount: number, currency: Currency, lang: Lang): string {
   const compact = formatAxisTick(amount, lang);
-  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£' };
-  return currency === 'usd' || currency === 'gbp'
+  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£', jpy: '¥' };
+  return currency === 'usd' || currency === 'gbp' || currency === 'jpy'
     ? `${symbol[currency]}${compact}`
     : `${compact} ${symbol[currency]}`;
 }
@@ -212,6 +220,97 @@ export interface Translations {
   tabPlanShort: string;
   tabYear: string;
   tabYearShort: string;
+  tabDebt: string;
+  tabDebtShort: string;
+  debtTitle: string;
+  debtIntro: string;
+  debtEmpty: string;
+  debtAdd: string;
+  debtName: string;
+  debtNamePlaceholder: string;
+  debtKindLabel: string;
+  debtKind: (kind: DebtKind) => string;
+  debtBalance: string;
+  debtBalanceDate: string;
+  debtRate: string;
+  debtPayment: string;
+  debtCsnHint: string;
+  debtAddToBudget: (month: string) => string;
+  debtCreate: string;
+  debtSave: string;
+  debtErrorName: string;
+  debtErrorNumbers: string;
+  debtLeft: string;
+  debtAsOf: (date: string) => string;
+  debtPerMonth: (amount: string) => string;
+  debtRateShort: (pct: string) => string;
+  debtPaidOff: (when: string) => string;
+  debtGrowing: string;
+  debtMortgageNote: string;
+  debtEdit: (name: string) => string;
+  debtEditShort: string;
+  debtDeleteShort: string;
+  /** Said when a debt's balance is set to nothing — with haptics on a phone. */
+  debtCleared: (debt: string) => string;
+  debtDelete: (name: string) => string;
+  debtDeleteAsk: (name: string) => string;
+  debtDeleteRowInfo: (month: string) => string;
+  debtDeleteBoth: string;
+  debtDeleteOnly: string;
+  debtDeletedBoth: (name: string) => string;
+  debtDeletedKept: (name: string) => string;
+  debtDeleted: (name: string) => string;
+  debtSummaryTotal: string;
+  debtSummaryMonthly: string;
+  debtSummaryFree: string;
+  debtWayTitle: string;
+  debtExtra: string;
+  debtAvalanche: string;
+  debtAvalancheSub: string;
+  debtSnowball: string;
+  debtSnowballSub: string;
+  debtFreeBy: (when: string) => string;
+  debtInterest: (amount: string) => string;
+  debtFirstPaid: (name: string, when: string) => string;
+  debtNotWithin: string;
+  debtMinimumLine: (when: string, interest: string) => string;
+  debtMinimumNever: string;
+  debtSameOrder: string;
+  debtFromBudget: (amount: string) => string;
+  bimTitle: string;
+  bimMenu: string;
+  bimHeroButton: string;
+  bimLead: string;
+  bimPick: string;
+  bimPasteLabel: string;
+  bimPastePlaceholder: string;
+  bimRead: string;
+  bimSheet: string;
+  bimIntoMonth: (month: string) => string;
+  bimIntoMonths: (n: number, from: string, to: string) => string;
+  bimAmountColumn: string;
+  bimColumn: (n: number) => string;
+  bimNote: string;
+  bimSkip: string;
+  bimOther: string;
+  bimNewGroup: string;
+  bimStandardGroup: string;
+  bimImportN: (n: number) => string;
+  bimMonthsN: (n: number) => string;
+  bimDone: (rows: number, months: number) => string;
+  bimErrTooBig: string;
+  bimErrTooLarge: string;
+  bimErrUnreadable: string;
+  bimErrEmpty: string;
+  bimErrNoAmounts: string;
+  bimBack: string;
+  debtFromBudgetHint: string;
+  debtComplete: string;
+  debtCompleteFor: (name: string) => string;
+  debtEstimateNote: string;
+  debtPaidThisMonth: (month: string, amount: string) => string;
+  debtOverBudget: string;
+  debtExtraOverRemaining: (amount: string) => string;
   tabFollowUp: string;
   tabFollowUpShort: string;
   followUpHeading: string;
@@ -252,13 +351,35 @@ export interface Translations {
   spendingEvidenceHide: string;
   /** The top of a category's possible range, when some money is unsorted. */
   spendingUpTo: (high: string) => string;
+  /** The card's two lists: the biggest purchases, and the small ones summed. */
+  spendingBiggest: string;
+  spendingSmall: (total: string) => string;
+  spendingSmallSub: (n: number, limit: string) => string;
+  spendingTimes: (n: number) => string;
+  spendingFixedNote: string;
+  spendingNoPurchases: string;
+  spendingUnsortedTag: string;
+  spendingHide: (place: string) => string;
+  spendingHiddenCount: (n: number) => string;
+  spendingHiddenShow: string;
+  spendingHiddenHide: string;
+  spendingUnhide: (place: string) => string;
+  spendingUnhideShort: string;
+  spendingLimitLabel: string;
+  spendingShowMore: string;
+  spendingShowFewer: string;
   followUpEmptyBody: string;
+  /** The first step, when no month in view has a budget and nothing is recorded. */
+  followUpStartBody: string;
+  followUpStartBudget: string;
   followUpImport: string;
   csvTitle: string;
   csvDropLead: string;
   csvDropSub: string;
   csvPick: string;
   csvUnreadable: string;
+  /** The file's text encoding is none the app can read (see decodeCsv). */
+  csvUnknownEncoding: string;
   csvNoRows: string;
   csvNoText: string;
   csvColumnsLead: string;
@@ -409,6 +530,10 @@ export interface Translations {
   introSkip: string;
   introDone: string;
   introStep: (n: number, of: number) => string;
+  /** The first intro page in the iOS/Android apps, where the phone's own
+   *  backup may carry the budget (Ariel's decision, 2026-09-26). */
+  introPrivacyNativeTitle: string;
+  introPrivacyNativeBody: string;
   // The letter, kept for the menu
   welcomeTitle: string;
   /** The letter shown on first run and from the menu, one string per paragraph.
@@ -453,6 +578,19 @@ export interface Translations {
   summaryExpenses: string;
   summarySaved: string;
   summaryRemaining: string;
+  /** Custom's "Kvar" is before saving; this row is after it, which is what
+   *  Classic calls "Kvar". Shown only when something was saved. */
+  summaryRemainingAfterSaving: string;
+  /** Custom keeps its own amounts; says so at the top of the page. */
+  customStandalone: string;
+  /** An empty month whose previous month is filled in. */
+  customMonthEmpty: (month: string) => string;
+  customCopyFrom: (month: string) => string;
+  /** The phone toolbar's ••• menu. */
+  moreActions: string;
+  /** Background presets in words, for the swatch buttons. */
+  cfgBgPresets: { 'bg-brand': string; 'bg-income': string; 'bg-expense': string; 'bg-savings': string; 'bg-remain': string };
+  ariaTargetInput: (block: string) => string;
   copyLastMonth: string;
   copiedLastMonth: string;
   clearAmounts: string;
@@ -467,6 +605,73 @@ export interface Translations {
   cfgEmoji: string;
   cfgEmojiDefault: string;
   cfgTarget: string;
+  /** An expense block's target is a ceiling, not a goal. */
+  cfgLimit: string;
+  /** Headings in the Add block picker. */
+  pickerBuildOwn: string;
+  /** Linked-panel blocks that show outcome, goals and figures (LinkedInsights). */
+  kindActual: string;
+  kindGoal: string;
+  kindKpi: string;
+  actualNoEntries: (month: string) => string;
+  actualNothingHere: (name: string) => string;
+  actualUnsorted: (amount: string) => string;
+  actualIncomeDone: string;
+  actualIncomeToCome: (amount: string) => string;
+  actualOver: (amount: string) => string;
+  actualLeft: (amount: string) => string;
+  actualOfBudget: (amount: string) => string;
+  actualNoBudget: string;
+  actualCount: (n: number) => string;
+  goalMissing: string;
+  goalOf: (amount: string) => string;
+  goalBy: (month: string) => string;
+  goalThisMonth: (amount: string, month: string) => string;
+  kpiNoIncome: string;
+  kpiLargest: string;
+  kpiShare: (pct: number) => string;
+  kpiNothing: string;
+  pickerNewCategory: string;
+  pickerOutcome: string;
+  pickerGoals: string;
+  pickerFigures: string;
+  /** The guide for a linked panel. */
+  customHelpLinkedIntro: string;
+  customHelpLinked: { title: string; body: string }[];
+  /** Custom linked to the regular budget (CustomLinked.tsx) and the choice. */
+  customLinkedNote: string;
+  linkedMissing: (name: string, month: string) => string;
+  linkedRemove: string;
+  /** Leaving Edit layout on a linked panel: carry new or renamed categories on. */
+  linkedCarryConfirm: (names: string[], month: string, count: number, first: string, last: string) => string;
+  linkedFetchFrom: (name: string, month: string) => string;
+  ariaLinkedRemove: (name: string) => string;
+  pickerFromBudget: string;
+  pickerOther: string;
+  linkedAllShown: string;
+  startOver: string;
+  startOverConfirmStandalone: string;
+  startOverConfirmLinked: string;
+  customChooseAgain: string;
+  choiceTitle: string;
+  choiceIntro: string;
+  choiceLinkedTitle: string;
+  choiceLinkedBody: string;
+  choiceLinkedCta: string;
+  choiceStandaloneTitle: string;
+  choiceStandaloneBody: string;
+  choiceStandaloneCta: string;
+  choiceChangeLater: string;
+  /** Where a note block is shown: one month, or all of them. */
+  noteScope: string;
+  noteScopeMonth: (month: string) => string;
+  noteScopeAll: string;
+  pickerReadyMade: string;
+  ariaLimitInput: (block: string) => string;
+  targetReached: string;
+  targetToGo: (amount: string) => string;
+  limitLeft: (amount: string) => string;
+  limitOver: (amount: string) => string;
   kindNote: string;
   addNote: string;
   newNoteName: string;
@@ -513,7 +718,13 @@ export interface Translations {
     custom: string;
   };
   saveFailedTitle: string;
+  /** The app's database could not be opened at startup (iOS/Android). */
+  storageOpenFailedTitle: string;
+  storageOpenFailedBody: string;
+  storageOpenFailedRetry: string;
   saveFailedBody: string;
+  /** The same, in the iOS and Android apps, where there is no browser to free. */
+  saveFailedBodyApp: string;
   saveRetry: string;
   copyBudget: string;
   copyNextMonth: string;
@@ -552,6 +763,14 @@ export interface Translations {
   undoWhat: (action: UndoAction, where: string, count: number) => string;
   undoDone: string;
   undoFailed: string;
+  /** A restore that landed, whose step back could not be stored. */
+  restoreNoUndo: string;
+  /** An all-or-nothing change the device refused: nothing was changed. */
+  changeNotSaved: string;
+  /** A refused change the device would not let the app fully take back. */
+  changePartlySaved: string;
+  /** Asked before a backup while some changes are not stored. */
+  backupHasUnsaved: string;
   undoDismiss: string;
   // Triage — the short list of decisions the leftover pile becomes. src/triage.ts
   triageWaiting: (n: number) => string;
@@ -646,7 +865,14 @@ export interface Translations {
   sparplanErrMonth: string;
   sparplanDelete: string;
   sparplanDeleteConfirm: string;
-  sparplanIn5Years: string;
+  /** The newest edit of the savings plan could not be stored. */
+  sparplanSaveFailed: string;
+  sparplanInYears: (n: number) => string;
+  sparplanHorizon: string;
+  sparplanYearsShort: (n: number) => string;
+  /** Shown until the user has changed a number: the figures are an example. */
+  sparplanExampleTag: string;
+  sparplanExampleNote: string;
   sparplanNow: string;
   sparplanMonth: (n: number) => string;
   sparplanOfWhichGrowth: (amount: string) => string;
@@ -718,6 +944,123 @@ export interface Translations {
   /** Confirmation that removing a goal's budget row unlinked the goal — the row
    *  will not reappear, and the goal keeps the progress it already has. */
   goalUnlinkedFromBudget: (goal: string) => string;
+  /** Said when a savings goal is reached — with a tap of haptics on a phone. */
+  goalReached: (goal: string) => string;
+  // Question cards (Follow-up): answers the app works out itself
+  qTitle: string;
+  qLead: string;
+  qBack: string;
+  qCategoryYear: (category: string) => string;
+  qCategoryPick: string;
+  qCategoryTotal: (amount: string, year: number) => string;
+  qCategoryAverage: (amount: string) => string;
+  qUnknownMonth: string;
+  qRecurring: string;
+  qRecurringAnswer: (count: number, perMonth: string) => string;
+  qRecurringYear: (perYear: string) => string;
+  qRecurringNone: string;
+  qRecurringSeen: (months: number) => string;
+  qRecurringRule: string;
+  qRises: string;
+  qRisesWindows: (recent: string, earlier: string) => string;
+  qRisesNone: string;
+  qRisesPerMonth: string;
+  qPerDay: string;
+  qPerDayAnswer: (perDay: string) => string;
+  qPerDayLeft: (left: string, days: number) => string;
+  qPerDayOver: (over: string) => string;
+  qPerDayUsedUp: string;
+  qPerDayNonePlanned: string;
+  qPerDayRule: string;
+  qPerDayThrough: (date: string) => string;
+  qPerDayNothingYet: (month: string) => string;
+  qNoBudget: (month: string) => string;
+  qKept: string;
+  qKeptYes: (under: string, month: string) => string;
+  qKeptNo: (over: string, month: string) => string;
+  qKeptRow: (actual: string, planned: string) => string;
+  qKeptRule: string;
+  qKeptNothing: (month: string) => string;
+  qGoal: string;
+  qGoalAt: (when: string) => string;
+  qGoalMonthly: (monthly: string) => string;
+  qGoalInTime: string;
+  qGoalLate: (months: number) => string;
+  qGoalReached: string;
+  qGoalNoMonthly: (month: string) => string;
+  qGoalRule: string;
+  qGoalNone: string;
+  qBasisMonths: (covered: number, asked: number) => string;
+  qBasisUnsorted: (amount: string, count: number) => string;
+  qTooLittle: (need: number, have: number) => string;
+  qNothing: string;
+  // Wallets (in Custom): a separate budget for one thing, like a trip
+  wPanels: string;
+  wMenu: string;
+  wMyBudget: string;
+  wTagLinked: string;
+  wTagStandalone: string;
+  wTagWallet: string;
+  wTagSeparate: string;
+  wNew: string;
+  wNewLead: string;
+  wName: string;
+  wNamePlaceholder: string;
+  wTotal: string;
+  wFrom: string;
+  wTo: string;
+  wDatesOptional: string;
+  wTripNote: string;
+  wStartFrom: string;
+  wKindBlank: string;
+  wKindTrip: string;
+  wBlankNote: string;
+  wNamePlaceholderBlank: string;
+  wNoPart: string;
+  wNoPots: string;
+  wUnassigned: string;
+  wCreate: string;
+  wPotTravel: string;
+  wPotStay: string;
+  wPotFood: string;
+  wPotFun: string;
+  wLeft: string;
+  wUsed: (spent: string, total: string) => string;
+  wLeftList: (left: string, total: string) => string;
+  wDaysLeft: (days: number) => string;
+  wStartsIn: (days: number) => string;
+  wEnded: string;
+  wPerDay: (amount: string) => string;
+  wOver: (over: string) => string;
+  wAddExpense: string;
+  wAmount: string;
+  wWhat: string;
+  wWhatPlaceholder: string;
+  wPot: string;
+  wDate: string;
+  wAdd: string;
+  wExpenses: string;
+  wNoExpenses: string;
+  wDeleteExpense: (text: string) => string;
+  wEdit: string;
+  wSave: string;
+  wArchive: string;
+  wUnarchive: string;
+  wArchived: string;
+  wDelete: string;
+  wDeleteConfirm: (name: string) => string;
+  wPots: string;
+  wAddPot: string;
+  wNewPot: string;
+  wPotName: string;
+  wPotPlanned: string;
+  wRemovePot: (name: string) => string;
+  wPotHasExpenses: (name: string) => string;
+  wPotsDiffer: (planned: string, total: string) => string;
+  wErrName: string;
+  wErrAmount: string;
+  wErrDates: string;
+  wErrPot: string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -737,6 +1080,9 @@ export interface Translations {
    *  on. The date in the menu is a promise that a file exists, so it is only
    *  written on a yes (review 2026-09-18, F5). */
   backupConfirmSaved: string;
+  /** The share sheet's title for a backup file (iOS/Android). */
+  backupShareTitle: string;
+  backupShareFailed: string;
   backupSaved: string;
   // ── The guide to the follow-up tab ──────────────────────────────────────
   // Same shape as privacyBody: a '## ' prefix makes a heading, everything else
@@ -765,6 +1111,96 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'År',
     tabYearShort: 'År',
+    tabDebt: 'Skuld',
+    tabDebtShort: 'Skuld',
+    debtTitle: '💳 Skulder',
+    debtIntro: 'Lägg in dina skulder, så räknar appen ut när du blir skuldfri och vad räntan kostar på vägen. Appen räknar och jämför, men ger inga råd.',
+    debtEmpty: 'Inga skulder ännu.',
+    debtAdd: '+ Lägg till skuld',
+    debtName: 'Namn',
+    debtNamePlaceholder: 'T.ex. CSN',
+    debtKindLabel: 'Typ',
+    debtKind: (kind) => ({ csn: 'CSN (studielån)', loan: 'Privatlån', card: 'Kreditkort', installment: 'Avbetalning', mortgage: 'Bolån', other: 'Annat' })[kind],
+    debtBalance: 'Kvar att betala',
+    debtBalanceDate: 'Enligt besked den',
+    debtRate: 'Ränta (% per år)',
+    debtPayment: 'Betalning per månad',
+    debtCsnHint: 'CSN: betalningen är årsbeloppet delat med 12. Skriv in räntan från ditt senaste besked från CSN, eftersom regeringen bestämmer den varje år. Årsbeloppet räknas om varje år och ökar med ungefär 2 %. En extra inbetalning går först till årets belopp och sedan till skulden. Räntan ger inget avdrag i deklarationen.',
+    debtAddToBudget: (month) => `Lägg betalningen som en rad under Lån & skulder i budgeten för ${month}`,
+    debtCreate: 'Lägg till',
+    debtSave: 'Spara',
+    debtErrorName: 'Skriv ett namn.',
+    debtErrorNumbers: 'Fyll i belopp, ränta och betalning med siffror.',
+    debtLeft: 'kvar, uppskattat',
+    debtAsOf: (date) => `enligt besked ${date}`,
+    debtPerMonth: (amount) => `${amount} per månad`,
+    debtRateShort: (pct) => `${pct} % ränta`,
+    debtPaidOff: (when) => `Betald ${when}`,
+    debtGrowing: 'Betalningen täcker inte räntan, så skulden växer.',
+    debtMortgageNote: 'Bolån räknas inte i vägen till skuldfri.',
+    debtEdit: (name) => `Ändra ${name}`,
+    debtEditShort: 'Ändra',
+    debtDeleteShort: 'Ta bort',
+    debtCleared: (debt) => `🎉 ${debt} är betald!`,
+    debtDelete: (name) => `Ta bort ${name}`,
+    debtDeleteAsk: (name) => `Ta bort ${name}?`,
+    debtDeleteRowInfo: (month) => `Betalningen är en rad under Lån & skulder i budgeten för ${month}. Utfall du redan har registrerat påverkas inte.`,
+    debtDeleteBoth: 'Ta bort skuld och budgetrad',
+    debtDeleteOnly: 'Ta bort bara skulden',
+    debtDeletedBoth: (name) => `${name} och dess rad i budgeten togs bort.`,
+    debtDeletedKept: (name) => `${name} togs bort. Raden ligger kvar i budgeten som en vanlig rad.`,
+    debtDeleted: (name) => `${name} togs bort.`,
+    debtSummaryTotal: 'Kvar totalt',
+    debtSummaryMonthly: 'Per månad',
+    debtSummaryFree: 'Skuldfri',
+    debtWayTitle: '🏁 Vägen till skuldfri',
+    debtExtra: 'Extra per månad',
+    debtAvalanche: 'Lavinen',
+    debtAvalancheSub: 'Högst ränta först. Kostar minst.',
+    debtSnowball: 'Snöbollen',
+    debtSnowballSub: 'Minsta skulden först. Första skulden blir betald snabbast.',
+    debtFreeBy: (when) => `Skuldfri ${when}`,
+    debtInterest: (amount) => `Ränta på vägen: ${amount}`,
+    debtFirstPaid: (name, when) => `Först betald: ${name}, ${when}`,
+    debtNotWithin: 'Inte inom 50 år',
+    debtMinimumLine: (when, interest) => `Utan extra: skuldfri ${when}, ränta ${interest}.`,
+    debtMinimumNever: 'Utan extra blir skulderna inte betalda inom 50 år.',
+    debtSameOrder: 'Här blir båda vägarna samma, eftersom de minsta skulderna också har högst ränta.',
+    debtFromBudget: (amount) => `Från budgeten · ${amount} per månad`,
+    bimTitle: 'Importera budget',
+    bimMenu: '📥 Importera budget från Excel',
+    bimHeroButton: '📥 Importera från Excel',
+    bimLead: 'Har du redan en budget i Excel, Google Kalkylark eller Numbers? Välj filen (.xlsx eller CSV), eller markera cellerna där och klistra in dem här.',
+    bimPick: 'Välj fil',
+    bimPasteLabel: 'Eller klistra in cellerna',
+    bimPastePlaceholder: 'Hyra\t9500\nMat\t4000',
+    bimRead: 'Läs in',
+    bimSheet: 'Blad',
+    bimIntoMonth: (month) => `Läggs in i ${month}.`,
+    bimIntoMonths: (n, from, to) => `Läggs in i ${n} månader: ${from} – ${to}.`,
+    bimAmountColumn: 'Belopp från kolumnen',
+    bimColumn: (n) => `Kolumn ${n}`,
+    bimNote: 'Finns raden redan i budgeten får den det nya beloppet. Inget tas bort, och du kan ångra efteråt.',
+    bimSkip: 'Hoppa över',
+    bimOther: 'Övrigt',
+    bimNewGroup: 'Ny kategori',
+    bimStandardGroup: 'Kategorier',
+    bimImportN: (n) => (n === 1 ? 'Importera 1 rad' : `Importera ${n} rader`),
+    bimMonthsN: (n) => (n === 1 ? '1 månad' : `${n} månader`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
+    bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
+    bimErrTooLarge: 'Tabellen är för stor för att vara en budget (högst 5 000 rader, 200 kolumner och 50 blad).',
+    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx eller CSV och försök igen.',
+    bimErrEmpty: 'Hittade inga rader att importera.',
+    bimErrNoAmounts: 'Hittade inga belopp. Se till att en kolumn innehåller siffror.',
+    bimBack: 'Välj en annan fil',
+    debtFromBudgetHint: 'Fyll i vad som är kvar och räntan, så räknas den med i vägen till skuldfri.',
+    debtComplete: 'Fyll i uppgifter',
+    debtCompleteFor: (name) => `Fyll i uppgifter för ${name}`,
+    debtEstimateNote: 'Siffrorna är uppskattningar. Långivaren räknar ränta per dag och kan ta avgifter. Rätta beloppet när du får ett nytt besked.',
+    debtPaidThisMonth: (month, amount) => `Betalt i ${month} enligt Utfall: ${amount}`,
+    debtOverBudget: 'Budgeten för den här månaden går inte ihop. Kommunens budget- och skuldrådgivning hjälper gratis, och Kronofogden har information om skuldsanering.',
+    debtExtraOverRemaining: (amount) => `Extrabeloppet är mer än det som blir kvar i budgeten (${amount}).`,
     tabFollowUp: 'Uppföljning',
     tabFollowUpShort: 'Utfall',
     followUpHeading: 'Plan och utfall',
@@ -802,16 +1238,35 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} är störst även om allt osorterat skulle höra till en annan kategori.`,
     spendingStatusInsufficient: 'Det osorterade är stort nog att ändra ordningen. Sortera det för ett säkert svar.',
     spendingSort: 'Sortera de här',
-    spendingEvidenceShow: 'Visa underlag',
-    spendingEvidenceHide: 'Dölj underlag',
+    spendingEvidenceShow: 'Visa per kategori',
+    spendingEvidenceHide: 'Dölj per kategori',
     spendingUpTo: (high) => `kan vara upp till ${high}`,
+    spendingBiggest: 'Största köpen',
+    spendingSmall: (total) => `Småköpen: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 köp under ${limit}` : `${n} köp under ${limit}`),
+    spendingTimes: (n) => (n === 1 ? '1 gång' : `${n} gånger`),
+    spendingFixedNote: 'Boende, prenumerationer, lån och sparande räknas inte här, eftersom de är fasta kostnader.',
+    spendingNoPurchases: 'Inga köp utöver de fasta kostnaderna.',
+    spendingUnsortedTag: 'osorterad',
+    spendingHide: (place) => `Räkna inte med ${place} här`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 ställe räknas inte här' : `${n} ställen räknas inte här`),
+    spendingHiddenShow: 'Visa',
+    spendingHiddenHide: 'Dölj',
+    spendingUnhide: (place) => `Räkna med ${place} igen`,
+    spendingUnhideShort: 'Räkna med igen',
+    spendingLimitLabel: 'Småköp är under',
+    spendingShowMore: 'Visa fler',
+    spendingShowFewer: 'Visa färre',
     followUpEmptyBody: 'Här står din plan bredvid vad som faktiskt hände. Öppna en kategori och lägg till det du betalat — varje siffra går att fälla ut och läsa rad för rad.',
+    followUpStartBody: 'Börja med att lägga in månadens budget. Sedan kan du föra in vad du betalat här, eller importera kontoutdraget från banken.',
+    followUpStartBudget: 'Till Budget',
     followUpImport: 'Importera kontoutdrag',
     csvTitle: 'Importera kontoutdrag',
     csvDropLead: 'Släpp din fil här',
     csvDropSub: 'CSV från din bank. Filen lämnar aldrig den här enheten.',
     csvPick: 'Välj fil',
     csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
+    csvUnknownEncoding: 'Filen är sparad i en teckenkodning appen inte kan läsa, så texten skulle bli fel. Spara den som UTF-8 (i Excel: "CSV UTF-8") och försök igen.',
     csvNoRows: 'Hittade inga transaktioner i filen.',
     csvNoText: '(utan text)',
     csvColumnsLead: 'Stämmer det här? Välj vad varje kolumn innehåller.',
@@ -958,6 +1413,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Hoppa över',
     introDone: 'Kom igång',
     introStep: (n, of) => `Steg ${n} av ${of}`,
+    introPrivacyNativeTitle: 'Din budget är din',
+    introPrivacyNativeBody: 'Ingen inloggning, inget konto och ingen server hos oss. Det du skriver sparas i appen på telefonen, och appen skickar det inte till oss eller någon annan. Är telefonens säkerhetskopiering påslagen (iCloud eller Google) kan den kopiera budgeten till ditt eget konto där. En backupfil som du själv delar hamnar där du väljer.',
     welcomeTitle: 'Välkommen till Budgetapp!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
@@ -1004,6 +1461,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Utgifter',
     summarySaved: 'Sparat',
     summaryRemaining: 'Kvar',
+    summaryRemainingAfterSaving: 'Kvar efter sparande',
+    customStandalone: 'Fristående budget – påverkar inte din vanliga budget',
+    customMonthEmpty: (month) => `${month} är inte ifylld ännu`,
+    customCopyFrom: (month) => `Kopiera ${month}`,
+    moreActions: 'Fler val',
+    cfgBgPresets: {
+      'bg-brand': 'Accentfärg', 'bg-income': 'Inkomstfärg', 'bg-expense': 'Utgiftsfärg',
+      'bg-savings': 'Sparfärg', 'bg-remain': 'Kvar-färg',
+    },
+    ariaTargetInput: (block) => `Målbelopp för ${block}`,
     copyLastMonth: 'Kopiera förra månaden',
     copiedLastMonth: 'Kopierat från förra månaden',
     clearAmounts: 'Rensa belopp',
@@ -1017,19 +1484,88 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Lägg till block', body: 'Tryck på "Lägg till block", ge det ett namn och välj vad det är – pengar in, ut, sparande eller en anteckning.' },
       { title: 'IN / UT / SPAR', body: 'Taggen avgör hur blocket räknas. Översikten använder den för att räkna ut vad som är kvar.' },
-      { title: 'Dina egna rader', body: 'Inuti ett block lägger du till hur många kategorirader du vill och skriver in beloppen.' },
+      { title: 'Dina egna rader', body: 'Inuti ett block skriver du in beloppen. Nya rader, namn och färger ändrar du under Redigera layout.' },
       { title: 'Ändra storlek', body: 'Sätt varje block till Hel, Halv eller ⅓ bredd. På mobilen blir de tryckbara rutor.' },
       { title: 'Färg & emoji', body: 'Ge valfritt block en egen bakgrundsfärg och ikon – gör det till ditt.' },
       { title: 'Diagram', body: 'Slå på ett diagram och välj stil (munk, paj, staplar, trädkarta …), storlek och var det placeras.' },
-      { title: 'Mål', body: 'Sätt ett målbelopp så fylls en förloppsmätare på vägen dit.' },
-      { title: 'Anteckningar', body: 'Lägg till ett textblock för påminnelser eller planer, bredvid dina pengar.' },
+      { title: 'Mål', body: 'Sätt ett målbelopp så fylls en förloppsmätare på vägen dit. För ett utgiftsblock blir det en gräns, som varnar när den nästan är nådd.' },
+      { title: 'Anteckningar', body: 'Lägg till ett textblock för påminnelser eller planer, bredvid dina pengar. Välj om det gäller bara en månad eller alla.' },
       { title: 'Översikt', body: 'Lägg till ett översiktsblock – det räknar Inkomst − Utgifter automatiskt och visar förändringen mot förra månaden.' },
       { title: 'Kopiera förra månaden', body: 'Ett tryck hämtar förra månadens belopp till denna månad så du slipper skriva om.' },
-      { title: 'Redigera layout', body: 'Dra för att flytta (↑↓ på mobil), ⚙ för inställningar, ✕ för att ta bort, 🧹 för att rensa alla belopp.' },
+      { title: 'Redigera layout', body: 'Här lägger du till rader och byter namn och färg. Dra för att flytta (↑↓ på mobil), ⚙ för inställningar, ✕ för att ta bort, 🧹 för att rensa alla belopp.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Standard',
     cfgTarget: 'Mål',
+    cfgLimit: 'Gräns',
+    pickerBuildOwn: 'Bygg själv',
+    kindActual: 'UTFALL',
+    kindGoal: 'SPARMÅL',
+    kindKpi: 'NYCKELTAL',
+    actualNoEntries: (month) => `Inga transaktioner för ${month} ännu. Importera ett kontoutdrag under Uppföljning.`,
+    actualNothingHere: (name) => `Inget har registrerats i ${name} ännu.`,
+    actualUnsorted: (amount) => `Upp till ${amount} osorterat kan höra hit.`,
+    actualIncomeDone: '✓ Allt har kommit in',
+    actualIncomeToCome: (amount) => `${amount} har inte kommit in än`,
+    actualOver: (amount) => `⚠ ${amount} över budget`,
+    actualLeft: (amount) => `${amount} kvar av budgeten`,
+    actualOfBudget: (amount) => `av ${amount} i budget`,
+    actualNoBudget: 'ingen budget satt',
+    actualCount: (n) => (n === 1 ? '1 transaktion' : `${n} transaktioner`),
+    goalMissing: 'Sparmålet finns inte längre i Plan.',
+    goalOf: (amount) => `av ${amount}`,
+    goalBy: (month) => `Klart senast ${month}`,
+    goalThisMonth: (amount, month) => `${amount} sparas i ${month}`,
+    kpiNoIncome: 'Fyll i inkomsten först.',
+    kpiLargest: 'Största kategorin',
+    kpiShare: (pct) => `${pct} % av utgifterna`,
+    kpiNothing: 'Inga utgifter i budgeten ännu.',
+    pickerNewCategory: 'Ny kategori',
+    pickerOutcome: 'Utfall',
+    pickerGoals: 'Sparmål',
+    pickerFigures: 'Nyckeltal',
+    customHelpLinkedIntro: 'Panelen visar din vanliga budget på ditt sätt. Samma belopp, samma kategorier – bara ordnade som du vill.',
+    customHelpLinked: [
+      { title: 'Samma budget', body: 'Ett belopp du skriver här ändras även under Uppföljning, Sparande, Plan och År. Det finns bara en siffra.' },
+      { title: 'Utfall', body: 'Lägg till ett utfallsblock för en kategori och se vad som faktiskt har gått åt, från transaktionerna du importerat under Uppföljning.' },
+      { title: 'Sparmål', body: 'Visa ett mål från Plan direkt i panelen.' },
+      { title: 'Nyckeltal', body: 'Största kategorin och Kvar att leva på, samma siffror som i budgeten.' },
+      { title: 'Ny kategori', body: 'Skapar en kategori i din vanliga budget för månaden du tittar på.' },
+      { title: 'Redigera layout', body: 'Välj vad som visas, ordning, storlek och färg. ✕ tar bara bort blocket från panelen – budgeten ändras inte.' },
+      { title: 'Börja om', body: 'Tar dig tillbaka till valet mellan kopplad och fristående. Din vanliga budget rörs inte.' },
+    ],
+    customLinkedNote: '🔗 Kopplad till din vanliga budget – samma belopp på båda ställena',
+    linkedMissing: (name, month) => `${name || 'Kategorin'} finns inte i budgeten för ${month}`,
+    linkedRemove: 'Ta bort från panelen',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `Du ändrade ${names.join(', ')} i budgeten för ${month}.\n\nSka ändringen gälla även ${count === 1 ? `${first}, som redan har en budget` : `de ${count} senare månaderna som redan har en budget (${first}–${last})`}?\n\nNya kategorier läggs till där, och namn byts där de fortfarande heter som förut. Du kan ångra efteråt.`,
+    linkedFetchFrom: (name, month) => `Hämta ${name} från ${month}`,
+    ariaLinkedRemove: (name) => `Ta bort ${name} från panelen. Budgeten ändras inte`,
+    pickerFromBudget: 'Från din budget',
+    pickerOther: 'Övrigt',
+    linkedAllShown: 'Allt i din budget visas redan',
+    startOver: 'Börja om',
+    startOverConfirmStandalone: 'Börja om Anpassad?\n\nAlla block, belopp och anteckningar i Anpassad raderas, i alla månader. Din vanliga budget påverkas inte.\n\nTips: exportera en backup först. Du kan också ångra direkt efteråt.',
+    startOverConfirmLinked: 'Börja om Anpassad?\n\nBara panelens upplägg raderas: vilka block som visas, ordningen, färgerna och anteckningarna. Din vanliga budget och alla belopp finns kvar.\n\nDu kan ångra direkt efteråt.',
+    customChooseAgain: 'Välj en annan sorts panel',
+    choiceTitle: 'Vad ska Anpassad vara?',
+    choiceIntro: 'Visa din vanliga budget på ditt eget sätt, eller bygg en separat budget, till exempel för en resa.',
+    choiceLinkedTitle: '🔗 Kopplad till min budget',
+    choiceLinkedBody: 'Använder kategorierna och beloppen i din vanliga budget. Ändrar du ett belopp syns det på båda ställena. Uppföljning, Sparande, Plan och År följer med.',
+    choiceLinkedCta: 'Välj kopplad',
+    choiceStandaloneTitle: '👛 Fristående budget',
+    choiceStandaloneBody: 'Egna block och belopp som inte påverkar din vanliga budget. Passar resor, projekt och tillfälliga budgetar.',
+    choiceStandaloneCta: 'Välj fristående',
+    choiceChangeLater: 'Du kan välja om senare med "Börja om" under Redigera layout.',
+    noteScope: 'Visas',
+    noteScopeMonth: (month) => `Bara ${month}`,
+    noteScopeAll: 'Alla månader',
+    pickerReadyMade: 'Färdiga block',
+    ariaLimitInput: (block) => `Gräns för ${block}`,
+    targetReached: '✓ Målet nått',
+    targetToGo: (amount) => `${amount} kvar till målet`,
+    limitLeft: (amount) => `${amount} kvar av gränsen`,
+    limitOver: (amount) => `⚠ ${amount} över gränsen`,
     kindNote: 'ANTECKNING',
     addNote: 'Anteckning',
     newNoteName: 'Anteckning',
@@ -1072,7 +1608,11 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Egen',
     },
     saveFailedTitle: 'Kunde inte spara',
+    storageOpenFailedTitle: 'Appen kunde inte öppna din budget',
+    storageOpenFailedBody: 'Lagringen på telefonen gick inte att öppna just nu. Ingenting har raderats. Försök igen, och starta om telefonen om det inte hjälper.',
+    storageOpenFailedRetry: 'Försök igen',
     saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
+    saveFailedBodyApp: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme på telefonen eller exportera dina data, och försök sedan igen.',
     saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
     copyNextMonth: 'Nästa månad',
@@ -1106,14 +1646,23 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `En rad togs bort i ${where}` : 'En rad togs bort';
       if (action === 'deleteEntry') return `En post togs bort i ${where}`;
       if (action === 'deleteGoal') return 'Ett sparmål togs bort';
+      if (action === 'deleteDebt') return 'En skuld togs bort';
+      if (action === 'importBudget') return count > 1 ? `En budget importerades till ${count} månader` : `En budget importerades till ${where}`;
       if (action === 'deleteBlock') return 'Ett block togs bort i Anpassad';
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
+      if (action === 'resetCustom') return 'Anpassad började om från början';
+      if (action === 'deleteWallet') return 'En plånbok togs bort';
+      if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
     undoDone: '✓ Ångrat',
     undoFailed: 'Kunde inte ångra — enheten nekade skrivningen. Frigör utrymme och försök igen.',
+    restoreNoUndo: 'Backupen är återställd, men steget tillbaka kunde inte sparas. Återställningen går därför inte att ångra.',
+    changeNotSaved: 'Det gick inte att spara, så ingenting ändrades. Frigör utrymme på enheten och försök igen.',
+    changePartlySaved: 'Det gick inte att spara, och enheten lät inte appen ta tillbaka allt: en del av ändringen kan finnas kvar. Frigör utrymme och tryck på "Försök spara igen" i rutan överst, så sparas det som var innan.',
+    backupHasUnsaved: 'Några av dina senaste ändringar kunde inte sparas och kommer inte med i backupen. Backupen innehåller det som faktiskt är sparat. Vill du fortsätta?',
     undoDismiss: 'Stäng',
     triageWaiting: (n) => n === 1 ? '1 post väntar på en kategori' : `${n} poster väntar på en kategori`,
     triageOpen: 'Sortera',
@@ -1170,8 +1719,12 @@ export const translations: Record<Lang, Translations> = {
       "Budgetappen är en webbsida som du öppnar i webbläsaren och kan lägga till på hemskärmen. Det finns ingen version i App Store eller på Google Play än. Den dagen det gör det uppdateras den här texten — fram till dess beskriver den en webbsida.",
       "## Allt stannar på din enhet",
       "Din budget, dina registrerade utgifter och de kontoutdrag du importerar behandlas och sparas lokalt i din webbläsare. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen databas att skicka något till.",
+      "## I appen för iPhone och Android",
+      "När Budget används som app på iPhone eller Android sparas allt i en databas på telefonen i stället för i webbläsaren. Appen skickar ingenting till utvecklaren eller någon tredje part: det finns ingen server, inget konto, ingen analys och ingen spårning.",
+      "Telefonens egen säkerhetskopiering — iCloud på iPhone, Googles säkerhetskopiering på Android — kan, om du har den påslagen, kopiera databasen till ditt eget konto hos Apple eller Google, så att budgeten följer med till en ny telefon. Det sköts av telefonen och ditt konto, inte av appen, och utvecklaren har ingen åtkomst till det. Vill du inte det ändrar du säkerhetskopieringen i telefonens inställningar. En backupfil som du själv sparar eller delar från appen hamnar där du väljer.",
+      "Tar du bort appen raderas databasen från telefonen. Det som finns i din egen säkerhetskopia styrs av dina inställningar för den.",
       "## Kontoutdrag läses på plats",
-      "När du importerar en CSV-fil läses den där du är. Innehållet lämnar aldrig din enhet — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
+      "När du importerar en CSV-fil läses den där du är, på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
       "## Ingen reklam, ingen analys, ingen spårning",
       "Det finns inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg. Inte heller några tredjepartsskript som samlar in data i bakgrunden.",
       "Sorteringen som känner igen butiker är en lista som följer med sidan, inte en tjänst den frågar. Den fungerar utan nätverk.",
@@ -1184,7 +1737,7 @@ export const translations: Record<Lang, Translations> = {
       "## Frågor",
       "Har du en fråga om hur appen hanterar dina uppgifter kan du mejla ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Senast uppdaterad 19 september 2026.",
+    privacyUpdated: "Senast uppdaterad 27 september 2026.",
     privacyClose: "Stäng",
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
@@ -1205,7 +1758,12 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Ange en riktig månad mellan 1900 och 2200',
     sparplanDelete: 'Radera sparplan',
     sparplanDeleteConfirm: 'Radera sparplanen? Dina månadsdata och sparmål påverkas inte.',
-    sparplanIn5Years: 'om 5 år',
+    sparplanSaveFailed: 'Planen kunde inte sparas. Det du skrev står kvar, men diagrammet visar den senast sparade planen. Försök igen.',
+    sparplanInYears: (n) => `om ${n} år`,
+    sparplanHorizon: 'Hur långt fram',
+    sparplanYearsShort: (n) => `${n} år`,
+    sparplanExampleTag: 'Exempel',
+    sparplanExampleNote: 'Siffrorna nedan är ett räkneexempel, inte din budget. Ändra dem så blir det din egen plan.',
     sparplanNow: 'Nu',
     sparplanMonth: (n) => `Månad ${n}`,
     sparplanOfWhichGrowth: (amount) => `varav ${amount} är avkastning`,
@@ -1264,6 +1822,120 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Välj färg',
     protectedCategory: 'Kopplad till Plan — kan inte tas bort',
     goalUnlinkedFromBudget: (goal) => `"${goal}" är inte längre kopplat till budgeten. Målet behåller det du sparat.`,
+    goalReached: (goal) => `🎉 Du har nått målet "${goal}"!`,
+    qTitle: 'Fråga om din ekonomi',
+    qLead: 'Appen räknar fram svaret själv, här på enheten. Inget skickas iväg.',
+    qBack: 'Frågor',
+    qCategoryYear: (category) => `Vad har jag lagt på ${category.toLowerCase()} i år?`,
+    qCategoryPick: 'Kategori',
+    qCategoryTotal: (amount, year) => `${amount} hittills ${year}`,
+    qCategoryAverage: (amount) => `I snitt ${amount} per månad`,
+    qUnknownMonth: '– = inga importerade poster',
+    qRecurring: 'Vilka abonnemang betalar jag?',
+    qRecurringAnswer: (count, perMonth) => `${count} st · ${perMonth} per månad`,
+    qRecurringYear: (perYear) => `${perYear} per år`,
+    qRecurringNone: 'Hittade inga betalningar med samma belopp varje månad.',
+    qRecurringSeen: (months) => `${months} mån`,
+    qRecurringRule: 'Räknar betalningar som kommer en gång i månaden, minst tre av de senaste sex månaderna, med nästan samma belopp. Hyra, lån och sparande räknas inte.',
+    qRises: 'Vad har ökat mest på sistone?',
+    qRisesWindows: (recent, earlier) => `Snitt per månad ${recent}, jämfört med ${earlier}`,
+    qRisesNone: 'Ingen kategori har ökat.',
+    qRisesPerMonth: 'per månad',
+    qPerDay: 'Hur mycket kan jag lägga per dag resten av månaden?',
+    qPerDayAnswer: (perDay) => `${perDay} per dag`,
+    qPerDayLeft: (left, days) => `${left} kvar till köp, ${days} ${days === 1 ? 'dag' : 'dagar'} kvar`,
+    qPerDayOver: (over) => `Du har lagt ${over} mer än budgeten för köp.`,
+    qPerDayUsedUp: 'Budgeten för köp är använd, precis. Inget kvar per dag.',
+    qPerDayNonePlanned: 'Du har inget budgeterat för köp den här månaden.',
+    qPerDayRule: 'Räknar med det du budgeterat för köp: allt utom boende, abonnemang, lån och sparande. Osorterade poster räknas som köp.',
+    qPerDayThrough: (date) => `Bygger på poster fram till ${date}.`,
+    qPerDayNothingYet: (month) => `Inga poster importerade för ${month} än, så svaret är hela budgeten.`,
+    qNoBudget: (month) => `${month} har ingen budget än.`,
+    qKept: 'Höll jag budgeten förra månaden?',
+    qKeptYes: (under, month) => `Ja, ${under} under budgeten i ${month}`,
+    qKeptNo: (over, month) => `Nej, ${over} över budgeten i ${month}`,
+    qKeptRow: (actual, planned) => `${actual} av ${planned}`,
+    qKeptRule: 'Jämför det som gick åt med budgeten. Sparande räknas inte, osorterade poster räknas som utgifter.',
+    qKeptNothing: (month) => `${month} har ingen budget eller inga importerade poster.`,
+    qGoal: 'När når jag mitt sparmål?',
+    qGoalAt: (when) => `Når målet i ${when}`,
+    qGoalMonthly: (monthly) => `med ${monthly} i månaden`,
+    qGoalInTime: 'I tid till deadline',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'månad' : 'månader'} efter deadline`,
+    qGoalReached: 'Redan nått 🎉',
+    qGoalNoMonthly: (month) => `Inget sparbelopp för målet i budgeten för ${month}.`,
+    qGoalRule: 'Räknar med att du sparar samma belopp varje månad, utan ränta eller avkastning.',
+    qGoalNone: 'Du har inga sparmål än. Lägg till ett under Plan.',
+    qBasisMonths: (covered, asked) => `Bygger på ${covered} av ${asked} månader. De andra har inga importerade poster.`,
+    qBasisUnsorted: (amount, count) => `${amount} i ${count} ${count === 1 ? 'osorterad post' : 'osorterade poster'} kan ändra svaret.`,
+    qTooLittle: (need, have) => `Behöver minst ${need} månader med importerade poster. Du har ${have}.`,
+    qNothing: 'Inga importerade poster under perioden.',
+    wPanels: 'Mina paneler',
+    wMenu: 'Plånböcker',
+    wMyBudget: 'Min budget',
+    wTagLinked: 'Kopplad',
+    wTagStandalone: 'Fristående',
+    wTagWallet: 'Plånbok',
+    wTagSeparate: 'Fristående plånbok',
+    wNew: 'Ny plånbok',
+    wNewLead: 'Egna belopp. Påverkar inte din budget.',
+    wName: 'Namn',
+    wNamePlaceholder: 'Japan 2027',
+    wTotal: 'Total budget',
+    wFrom: 'Från',
+    wTo: 'Till',
+    wDatesOptional: 'Datum (valfritt)',
+    wTripNote: 'Resan får delarna Resor, Boende, Mat och Upplevelser, med totalen fördelad på dem. Allt går att ändra.',
+    wStartFrom: 'Börja från',
+    wKindBlank: 'Tom',
+    wKindTrip: 'Resa',
+    wBlankNote: 'En tom plånbok. Du lägger själv till delar, till exempel Mat eller Material, och utgifter.',
+    wNamePlaceholderBlank: 'Renoveringen',
+    wNoPart: 'Ingen del',
+    wNoPots: 'Inga delar än. Vill du dela upp budgeten, till exempel i Mat och Resor, lägger du till dem här.',
+    wUnassigned: 'Utan del',
+    wCreate: 'Skapa plånbok',
+    wPotTravel: 'Resor',
+    wPotStay: 'Boende',
+    wPotFood: 'Mat',
+    wPotFun: 'Upplevelser',
+    wLeft: 'Kvar',
+    wUsed: (spent, total) => `${spent} av ${total} använt`,
+    wLeftList: (left, total) => `${left} av ${total} kvar`,
+    wDaysLeft: (days) => `${days} ${days === 1 ? 'dag' : 'dagar'} kvar`,
+    wStartsIn: (days) => `Börjar om ${days} ${days === 1 ? 'dag' : 'dagar'}`,
+    wEnded: 'Resan är slut',
+    wPerDay: (amount) => `${amount} per dag resten av resan`,
+    wOver: (over) => `${over} över budgeten`,
+    wAddExpense: '+ Lägg till utgift',
+    wAmount: 'Belopp',
+    wWhat: 'Vad',
+    wWhatPlaceholder: 'Tåg till Kyoto',
+    wPot: 'Del',
+    wDate: 'Datum',
+    wAdd: 'Lägg till',
+    wExpenses: 'Utgifter',
+    wNoExpenses: 'Inga utgifter än. Lägg till dem allt eftersom.',
+    wDeleteExpense: (text) => `Ta bort ${text}`,
+    wEdit: 'Ändra plånboken',
+    wSave: 'Spara',
+    wArchive: 'Arkivera',
+    wUnarchive: 'Plocka fram',
+    wArchived: 'arkiverad',
+    wDelete: 'Ta bort plånboken',
+    wDeleteConfirm: (name) => `Ta bort "${name}" med alla utgifter?\n\nDu kan ångra det direkt efteråt.`,
+    wPots: 'Delar',
+    wAddPot: '+ Lägg till del',
+    wNewPot: 'Ny del',
+    wPotName: 'Namn på delen',
+    wPotPlanned: 'Planerat',
+    wRemovePot: (name) => `Ta bort delen ${name}`,
+    wPotHasExpenses: (name) => `${name} har utgifter. Ta bort dem först.`,
+    wPotsDiffer: (planned, total) => `Delarna är planerade till ${planned}, men totalen är ${total}.`,
+    wErrName: 'Skriv ett namn.',
+    wErrAmount: 'Skriv ett belopp.',
+    wErrDates: 'Slutdatum kan inte vara före startdatum.',
+    wErrPot: 'Delen måste ha ett namn och ett belopp.',
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -1274,6 +1946,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
     backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
+    backupShareTitle: 'Budget – säkerhetskopia',
+    backupShareFailed: 'Säkerhetskopian kunde inte skapas. Ingenting har ändrats — försök igen.',
     backupSaved: '✓ Säkerhetskopia sparad',
     followUpHelp: 'Hjälp',
     followUpHelpTitle: 'Så fungerar utfallet',
@@ -1287,7 +1961,7 @@ export const translations: Record<Lang, Translations> = {
       'Får du lön den 25:e lever du inte i kalendermånader. Ställ in startdagen, så räknas utfallet från lönedag till lönedag: 25 juli till 24 augusti.',
       'Infaller den 25:e på en helg flyttar appen till närmaste vardag före, för det är då pengarna kom. Blir det ändå fel kan du nåla fast en enskild period för hand — det gäller bara den månaden.',
       '## Sorteraren',
-      'Det är ingen AI, och ingenting laddas ner. Det är en lista på 863 namn — butiker, banker och tjänster i Sverige, USA, Spanien och internationellt — plus dina egna rättelser.',
+      'Det är ingen AI, och ingenting laddas ner. Det är en lista med namn på butiker, banker och tjänster — från Sverige, USA, Spanien, Australien, Sydafrika, Mexiko, Japan och Colombia, plus internationella — och dina egna rättelser.',
       '1. Den läser texten på raden och letar efter ett namn den känner igen. "ICA NÄRA KUNGSHOLMEN 4711" är ICA.',
       '2. Känner den inte igen något lägger den posten i Övrigt i stället för att gissa. En fel kategori kostar mer än en tom.',
       '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
@@ -1321,6 +1995,96 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Year',
     tabYearShort: 'Year',
+    tabDebt: 'Debt',
+    tabDebtShort: 'Debt',
+    debtTitle: '💳 Debts',
+    debtIntro: 'Add your debts, and the app works out when you will be debt-free and what the interest costs on the way. The app calculates and compares, but gives no advice.',
+    debtEmpty: 'No debts yet.',
+    debtAdd: '+ Add a debt',
+    debtName: 'Name',
+    debtNamePlaceholder: 'E.g. student loan',
+    debtKindLabel: 'Type',
+    debtKind: (kind) => ({ csn: 'CSN (Swedish student loan)', loan: 'Personal loan', card: 'Credit card', installment: 'Instalment plan', mortgage: 'Mortgage', other: 'Other' })[kind],
+    debtBalance: 'Left to pay',
+    debtBalanceDate: 'As of',
+    debtRate: 'Interest (% a year)',
+    debtPayment: 'Payment a month',
+    debtCsnHint: 'CSN: the payment is the yearly amount divided by 12. Type the interest rate from your latest CSN statement; the government sets it every year. The yearly amount is recalculated every year and rises by about 2 %. An extra payment goes to the year’s amount first, then to the debt. The interest is not tax-deductible.',
+    debtAddToBudget: (month) => `Add the payment as a row under Loans & Debts in the budget for ${month}`,
+    debtCreate: 'Add',
+    debtSave: 'Save',
+    debtErrorName: 'Type a name.',
+    debtErrorNumbers: 'Fill in the amount, interest and payment as numbers.',
+    debtLeft: 'left, estimated',
+    debtAsOf: (date) => `as of ${date}`,
+    debtPerMonth: (amount) => `${amount} a month`,
+    debtRateShort: (pct) => `${pct} % interest`,
+    debtPaidOff: (when) => `Paid ${when}`,
+    debtGrowing: 'The payment does not cover the interest, so the debt grows.',
+    debtMortgageNote: 'Mortgages are not part of the way to debt-free.',
+    debtEdit: (name) => `Edit ${name}`,
+    debtEditShort: 'Edit',
+    debtDeleteShort: 'Delete',
+    debtCleared: (debt) => `🎉 ${debt} is paid off!`,
+    debtDelete: (name) => `Delete ${name}`,
+    debtDeleteAsk: (name) => `Delete ${name}?`,
+    debtDeleteRowInfo: (month) => `Its payment is a row under Loans & Debts in the budget for ${month}. Follow-up entries you have already recorded are not affected.`,
+    debtDeleteBoth: 'Delete the debt and its budget row',
+    debtDeleteOnly: 'Delete only the debt',
+    debtDeletedBoth: (name) => `${name} and its budget row were deleted.`,
+    debtDeletedKept: (name) => `${name} was deleted. Its row stays in the budget as an ordinary row.`,
+    debtDeleted: (name) => `${name} was deleted.`,
+    debtSummaryTotal: 'Left in total',
+    debtSummaryMonthly: 'A month',
+    debtSummaryFree: 'Debt-free',
+    debtWayTitle: '🏁 The way to debt-free',
+    debtExtra: 'Extra a month',
+    debtAvalanche: 'The avalanche',
+    debtAvalancheSub: 'Highest interest first. Costs the least.',
+    debtSnowball: 'The snowball',
+    debtSnowballSub: 'Smallest debt first. Pays off the first debt soonest.',
+    debtFreeBy: (when) => `Debt-free ${when}`,
+    debtInterest: (amount) => `Interest on the way: ${amount}`,
+    debtFirstPaid: (name, when) => `First paid: ${name}, ${when}`,
+    debtNotWithin: 'Not within 50 years',
+    debtMinimumLine: (when, interest) => `Without extra: debt-free ${when}, interest ${interest}.`,
+    debtMinimumNever: 'Without extra the debts are not paid within 50 years.',
+    debtSameOrder: 'Here both ways are the same, because the smallest debts also have the highest interest.',
+    debtFromBudget: (amount) => `From the budget · ${amount} a month`,
+    bimTitle: 'Import a budget',
+    bimMenu: '📥 Import a budget from Excel',
+    bimHeroButton: '📥 Import from Excel',
+    bimLead: 'Already have a budget in Excel, Google Sheets or Numbers? Choose the file (.xlsx or CSV), or select the cells there and paste them here.',
+    bimPick: 'Choose file',
+    bimPasteLabel: 'Or paste the cells',
+    bimPastePlaceholder: 'Rent\t1200\nFood\t400',
+    bimRead: 'Read',
+    bimSheet: 'Sheet',
+    bimIntoMonth: (month) => `Goes into ${month}.`,
+    bimIntoMonths: (n, from, to) => `Goes into ${n} months: ${from} – ${to}.`,
+    bimAmountColumn: 'Amounts from the column',
+    bimColumn: (n) => `Column ${n}`,
+    bimNote: 'A row already in the budget gets the new amount. Nothing is removed, and you can undo it afterwards.',
+    bimSkip: 'Leave out',
+    bimOther: 'Other',
+    bimNewGroup: 'New category',
+    bimStandardGroup: 'Categories',
+    bimImportN: (n) => (n === 1 ? 'Import 1 row' : `Import ${n} rows`),
+    bimMonthsN: (n) => (n === 1 ? '1 month' : `${n} months`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
+    bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
+    bimErrTooLarge: 'The table is too big to be a budget (at most 5,000 rows, 200 columns and 50 sheets).',
+    bimErrUnreadable: 'The file could not be read. Save it as .xlsx or CSV and try again.',
+    bimErrEmpty: 'Found no rows to import.',
+    bimErrNoAmounts: 'Found no amounts. Make sure one column holds numbers.',
+    bimBack: 'Choose another file',
+    debtFromBudgetHint: 'Fill in what is left and the interest, and it counts in the way to debt-free.',
+    debtComplete: 'Fill in details',
+    debtCompleteFor: (name) => `Fill in details for ${name}`,
+    debtEstimateNote: 'These are estimates. Lenders charge interest daily and may add fees. Correct the amount when you get a new statement.',
+    debtPaidThisMonth: (month, amount) => `Paid in ${month} according to Follow-up: ${amount}`,
+    debtOverBudget: 'This month’s budget does not add up. Free debt advice is often available from your local council or a debt charity.',
+    debtExtraOverRemaining: (amount) => `The extra amount is more than what is left in the budget (${amount}).`,
     tabFollowUp: 'Follow-up',
     tabFollowUpShort: 'Actual',
     followUpHeading: 'Plan and actual',
@@ -1358,16 +2122,35 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} is the biggest even if everything unsorted belonged to another category.`,
     spendingStatusInsufficient: 'What is unsorted is enough to change the order. Sort it for a sure answer.',
     spendingSort: 'Sort these',
-    spendingEvidenceShow: 'Show details',
-    spendingEvidenceHide: 'Hide details',
+    spendingEvidenceShow: 'Show by category',
+    spendingEvidenceHide: 'Hide by category',
     spendingUpTo: (high) => `could be up to ${high}`,
+    spendingBiggest: 'Biggest purchases',
+    spendingSmall: (total) => `Small purchases: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 purchase under ${limit}` : `${n} purchases under ${limit}`),
+    spendingTimes: (n) => (n === 1 ? 'once' : `${n} times`),
+    spendingFixedNote: 'Housing, subscriptions, loans and savings are not counted here, as they are fixed costs.',
+    spendingNoPurchases: 'No purchases besides the fixed costs.',
+    spendingUnsortedTag: 'unsorted',
+    spendingHide: (place) => `Don't count ${place} here`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 place is not counted here' : `${n} places are not counted here`),
+    spendingHiddenShow: 'Show',
+    spendingHiddenHide: 'Hide',
+    spendingUnhide: (place) => `Count ${place} again`,
+    spendingUnhideShort: 'Count again',
+    spendingLimitLabel: 'Small means under',
+    spendingShowMore: 'Show more',
+    spendingShowFewer: 'Show fewer',
     followUpEmptyBody: 'Here your plan sits next to what actually happened. Open a category and add what you paid — every figure can be unfolded and read line by line.',
+    followUpStartBody: 'Start by entering this month\'s budget. Then you can add what you paid here, or import your bank statement.',
+    followUpStartBudget: 'Go to Budget',
     followUpImport: 'Import statement',
     csvTitle: 'Import bank statement',
     csvDropLead: 'Drop your file here',
     csvDropSub: 'A CSV from your bank. The file never leaves this device.',
     csvPick: 'Choose file',
     csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
+    csvUnknownEncoding: 'The file is saved in a text encoding the app cannot read, so the text would come out wrong. Save it as UTF-8 (in Excel: "CSV UTF-8") and try again.',
     csvNoRows: 'No transactions found in the file.',
     csvNoText: '(no text)',
     csvColumnsLead: 'Is this right? Choose what each column holds.',
@@ -1514,6 +2297,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Skip',
     introDone: 'Get started',
     introStep: (n, of) => `Step ${n} of ${of}`,
+    introPrivacyNativeTitle: 'Your budget is yours',
+    introPrivacyNativeBody: 'No sign-in, no account, no server of ours. What you type is saved in the app on the phone, and the app does not send it to us or anyone else. If the phone\'s backup is on (iCloud or Google), it may copy your budget to your own account there. A backup file you share yourself goes where you choose.',
     welcomeTitle: 'Welcome to Budgetapp!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
@@ -1560,6 +2345,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Expenses',
     summarySaved: 'Saved',
     summaryRemaining: 'Remaining',
+    summaryRemainingAfterSaving: 'Left after saving',
+    customStandalone: 'A separate budget – it does not change your regular budget',
+    customMonthEmpty: (month) => `${month} has not been filled in yet`,
+    customCopyFrom: (month) => `Copy ${month}`,
+    moreActions: 'More actions',
+    cfgBgPresets: {
+      'bg-brand': 'Accent colour', 'bg-income': 'Income colour', 'bg-expense': 'Expense colour',
+      'bg-savings': 'Savings colour', 'bg-remain': 'Remaining colour',
+    },
+    ariaTargetInput: (block) => `Target amount for ${block}`,
     copyLastMonth: 'Copy last month',
     copiedLastMonth: 'Copied from last month',
     clearAmounts: 'Clear amounts',
@@ -1573,19 +2368,88 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Add blocks', body: 'Tap "Add block", give it a name, and choose what it is — money In, Out, Savings, or a Note.' },
       { title: 'In / Out / Savings', body: 'The tag decides how a block counts. The Summary uses it to work out what’s left.' },
-      { title: 'Your own rows', body: 'Inside a block, add as many category rows as you like and type in the amounts.' },
+      { title: 'Your own rows', body: 'Inside a block, type in the amounts. New rows, names and colours are changed under Edit layout.' },
       { title: 'Resize', body: 'Set each block to Full, Half or ⅓ width. On phone they become tap-to-open tiles.' },
       { title: 'Colour & emoji', body: 'Give any block its own background colour and icon — make it yours.' },
       { title: 'Charts', body: 'Turn on a chart and pick the style (donut, pie, bars, treemap…), size, and where it sits.' },
-      { title: 'Targets', body: 'Set a goal amount and a progress bar fills toward it.' },
-      { title: 'Notes', body: 'Add a text block for reminders or plans, right beside your money.' },
+      { title: 'Targets', body: 'Set a goal amount and a progress bar fills toward it. On an expense block it becomes a limit that warns you when it is nearly used up.' },
+      { title: 'Notes', body: 'Add a text block for reminders or plans, right beside your money. Choose whether it is for one month or every month.' },
       { title: 'Summary', body: 'Add a Summary block — it adds up Income − Expenses automatically and shows the change vs last month.' },
       { title: 'Copy last month', body: 'One tap brings last month’s amounts into this month so you don’t retype.' },
-      { title: 'Edit layout', body: 'Drag to reorder (↑↓ on phone), ⚙ to configure, ✕ to remove, 🧹 to clear all amounts.' },
+      { title: 'Edit layout', body: 'This is where you add rows and change names and colours. Drag to reorder (↑↓ on phone), ⚙ to configure, ✕ to remove, 🧹 to clear all amounts.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Default',
     cfgTarget: 'Target',
+    cfgLimit: 'Limit',
+    pickerBuildOwn: 'Build your own',
+    kindActual: 'OUTCOME',
+    kindGoal: 'GOAL',
+    kindKpi: 'FIGURE',
+    actualNoEntries: (month) => `No transactions for ${month} yet. Import a statement under Follow-up.`,
+    actualNothingHere: (name) => `Nothing has been recorded in ${name} yet.`,
+    actualUnsorted: (amount) => `Up to ${amount} still unsorted could belong here.`,
+    actualIncomeDone: '✓ All of it has come in',
+    actualIncomeToCome: (amount) => `${amount} has not come in yet`,
+    actualOver: (amount) => `⚠ ${amount} over budget`,
+    actualLeft: (amount) => `${amount} left of the budget`,
+    actualOfBudget: (amount) => `of ${amount} budgeted`,
+    actualNoBudget: 'no budget set',
+    actualCount: (n) => (n === 1 ? '1 transaction' : `${n} transactions`),
+    goalMissing: 'This savings goal is no longer in Plan.',
+    goalOf: (amount) => `of ${amount}`,
+    goalBy: (month) => `Done by ${month}`,
+    goalThisMonth: (amount, month) => `${amount} saved in ${month}`,
+    kpiNoIncome: 'Fill in your income first.',
+    kpiLargest: 'Biggest category',
+    kpiShare: (pct) => `${pct}% of spending`,
+    kpiNothing: 'No expenses in the budget yet.',
+    pickerNewCategory: 'New category',
+    pickerOutcome: 'Outcome',
+    pickerGoals: 'Savings goals',
+    pickerFigures: 'Figures',
+    customHelpLinkedIntro: 'The panel shows your regular budget your way. Same amounts, same categories – arranged how you like.',
+    customHelpLinked: [
+      { title: 'One budget', body: 'An amount you type here also changes under Follow-up, Savings, Plan and Year. There is only one figure.' },
+      { title: 'Outcome', body: 'Add an outcome block for a category and see what was actually spent, from the transactions you imported under Follow-up.' },
+      { title: 'Savings goals', body: 'Show a goal from Plan right on the panel.' },
+      { title: 'Figures', body: 'The biggest category and Left to live on – the same figures as in the budget.' },
+      { title: 'New category', body: 'Creates a category in your regular budget for the month you are looking at.' },
+      { title: 'Edit layout', body: 'Choose what is shown, the order, size and colour. ✕ only removes the block from the panel – the budget does not change.' },
+      { title: 'Start over', body: 'Takes you back to the choice between linked and separate. Your regular budget is not touched.' },
+    ],
+    customLinkedNote: '🔗 Linked to your regular budget – the same amounts in both places',
+    linkedMissing: (name, month) => `${name || 'This category'} is not in the budget for ${month}`,
+    linkedRemove: 'Remove from panel',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `You changed ${names.join(', ')} in the budget for ${month}.\n\nShould the change also apply to ${count === 1 ? `${first}, which already has a budget` : `the ${count} later months that already have a budget (${first}–${last})`}?\n\nNew categories are added there, and names change where they still have the old name. You can undo afterwards.`,
+    linkedFetchFrom: (name, month) => `Bring ${name} from ${month}`,
+    ariaLinkedRemove: (name) => `Remove ${name} from the panel. The budget does not change`,
+    pickerFromBudget: 'From your budget',
+    pickerOther: 'Other',
+    linkedAllShown: 'Everything in your budget is already shown',
+    startOver: 'Start over',
+    startOverConfirmStandalone: 'Start Custom over?\n\nEvery block, amount and note in Custom is deleted, in every month. Your regular budget is not affected.\n\nTip: export a backup first. You can also undo straight afterwards.',
+    startOverConfirmLinked: 'Start Custom over?\n\nOnly the panel\'s layout is deleted: which blocks are shown, their order, colours and notes. Your regular budget and every amount stay.\n\nYou can undo straight afterwards.',
+    customChooseAgain: 'Choose another kind of panel',
+    choiceTitle: 'What should Custom be?',
+    choiceIntro: 'Show your regular budget your own way, or build a separate budget, for a trip for example.',
+    choiceLinkedTitle: '🔗 Linked to my budget',
+    choiceLinkedBody: 'Uses the categories and amounts in your regular budget. Change an amount and it changes in both places. Follow-up, Savings, Plan and Year come along.',
+    choiceLinkedCta: 'Choose linked',
+    choiceStandaloneTitle: '👛 Separate budget',
+    choiceStandaloneBody: 'Its own blocks and amounts, which do not affect your regular budget. Good for trips, projects and temporary budgets.',
+    choiceStandaloneCta: 'Choose separate',
+    choiceChangeLater: 'You can choose again later with "Start over" under Edit layout.',
+    noteScope: 'Shown',
+    noteScopeMonth: (month) => `Only ${month}`,
+    noteScopeAll: 'Every month',
+    pickerReadyMade: 'Ready-made blocks',
+    ariaLimitInput: (block) => `Limit for ${block}`,
+    targetReached: '✓ Target reached',
+    targetToGo: (amount) => `${amount} to go`,
+    limitLeft: (amount) => `${amount} left of the limit`,
+    limitOver: (amount) => `⚠ ${amount} over the limit`,
     kindNote: 'NOTE',
     addNote: 'Note',
     newNoteName: 'Note',
@@ -1628,7 +2492,11 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Custom',
     },
     saveFailedTitle: 'Could not save',
+    storageOpenFailedTitle: 'The app could not open your budget',
+    storageOpenFailedBody: 'The storage on this phone could not be opened just now. Nothing has been deleted. Try again, and restart the phone if that does not help.',
+    storageOpenFailedRetry: 'Try again',
     saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
+    saveFailedBodyApp: 'The change is on screen but has not been stored. Free up space on the phone or export your data, then try again.',
     saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
     copyNextMonth: 'Next month',
@@ -1663,14 +2531,23 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `A row was removed from ${where}` : 'A row was removed';
       if (action === 'deleteEntry') return `An entry was removed from ${where}`;
       if (action === 'deleteGoal') return 'A savings goal was removed';
+      if (action === 'deleteDebt') return 'A debt was removed';
+      if (action === 'importBudget') return count > 1 ? `A budget was imported into ${count} months` : `A budget was imported into ${where}`;
       if (action === 'deleteBlock') return 'A block was removed from Custom';
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
+      if (action === 'resetCustom') return 'Custom was started over';
+      if (action === 'deleteWallet') return 'A wallet was removed';
+      if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
     undoDone: '✓ Undone',
     undoFailed: 'Could not undo — the device refused the write. Free some space and try again.',
+    restoreNoUndo: 'The backup has been restored, but the step back could not be stored, so the restore cannot be undone.',
+    changeNotSaved: 'It could not be saved, so nothing was changed. Free up space on the device and try again.',
+    changePartlySaved: 'It could not be saved, and the device would not let the app take all of it back: part of the change may remain. Free up space and press "Try saving again" in the box at the top to store what was there before.',
+    backupHasUnsaved: 'Some of your latest changes could not be saved and will not be in the backup. The backup holds what is actually stored. Continue?',
     undoDismiss: 'Dismiss',
     triageWaiting: (n) => n === 1 ? '1 entry is waiting for a category' : `${n} entries are waiting for a category`,
     triageOpen: 'Sort them',
@@ -1726,8 +2603,12 @@ export const translations: Record<Lang, Translations> = {
       "Budget is a web page you open in a browser and can add to your home screen. There is no version in the App Store or on Google Play yet. The day there is, this text will be updated — until then it describes a web page.",
       "## Everything stays on your device",
       "Your budget, the spending you record and the bank statements you import are processed and stored locally in your browser. None of it is sent to the developer or to any third party. There is no account, no sign-in and no database to send anything to.",
+      "## In the app for iPhone and Android",
+      "When Budget is used as an app on iPhone or Android, everything is saved in a database on the phone instead of in the browser. The app sends nothing to the developer or any third party: there is no server, no account, no analytics and no tracking.",
+      "The phone's own backup — iCloud on iPhone, Google's backup on Android — may, if you have it turned on, copy the database to your own Apple or Google account, so your budget follows you to a new phone. That is done by the phone and your account, not by the app, and the developer has no access to it. If you do not want that, change the backup settings on the phone. A backup file you save or share from the app yourself goes where you choose.",
+      "If you delete the app, the database is removed from the phone. What is in your own backup is governed by your settings for it.",
       "## Statements are read where they are",
-      "When you import a CSV file it is read where you are. The contents never leave your device — not the transactions, not the amounts, not the names of the places you shopped.",
+      "When you import a CSV file it is read where you are, on your device. The app never sends its contents anywhere — not the transactions, not the amounts, not the names of the places you shopped.",
       "## No ads, no analytics, no tracking",
       "There are no ad networks, no visitor statistics and no tracking tools. Nor any third-party scripts collecting data in the background.",
       "The sorting that recognises shops is a list that ships with the page, not a service it asks. It works with no network at all.",
@@ -1740,7 +2621,7 @@ export const translations: Record<Lang, Translations> = {
       "## Questions",
       "If you have a question about how the app handles your data, you can email ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Last updated 19 September 2026.",
+    privacyUpdated: "Last updated 27 September 2026.",
     privacyClose: "Close",
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
@@ -1761,7 +2642,12 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Enter a real month between 1900 and 2200',
     sparplanDelete: 'Delete savings plan',
     sparplanDeleteConfirm: 'Delete the savings plan? Your monthly data and goals are not affected.',
-    sparplanIn5Years: 'in 5 years',
+    sparplanSaveFailed: 'The plan could not be saved. What you typed is still here, but the chart shows the plan last saved. Try again.',
+    sparplanInYears: (n) => (n === 1 ? 'in 1 year' : `in ${n} years`),
+    sparplanHorizon: 'How far ahead',
+    sparplanYearsShort: (n) => (n === 1 ? '1 year' : `${n} years`),
+    sparplanExampleTag: 'Example',
+    sparplanExampleNote: 'The figures below are a worked example, not your budget. Change them and it becomes your own plan.',
     sparplanNow: 'Now',
     sparplanMonth: (n) => `Month ${n}`,
     sparplanOfWhichGrowth: (amount) => `of which ${amount} is growth`,
@@ -1820,6 +2706,120 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Choose color',
     protectedCategory: 'Linked to Plan — cannot be deleted',
     goalUnlinkedFromBudget: (goal) => `"${goal}" is no longer linked to your budget. The goal keeps what you've saved.`,
+    goalReached: (goal) => `🎉 You've reached your goal "${goal}"!`,
+    qTitle: 'Ask about your money',
+    qLead: 'The app works the answer out itself, here on this device. Nothing is sent anywhere.',
+    qBack: 'Questions',
+    qCategoryYear: (category) => `What have I spent on ${category.toLowerCase()} this year?`,
+    qCategoryPick: 'Category',
+    qCategoryTotal: (amount, year) => `${amount} so far in ${year}`,
+    qCategoryAverage: (amount) => `${amount} a month on average`,
+    qUnknownMonth: '– = nothing imported',
+    qRecurring: 'Which subscriptions do I pay?',
+    qRecurringAnswer: (count, perMonth) => `${count} · ${perMonth} a month`,
+    qRecurringYear: (perYear) => `${perYear} a year`,
+    qRecurringNone: 'No payments of the same amount every month were found.',
+    qRecurringSeen: (months) => `${months} mo`,
+    qRecurringRule: 'Counts payments made once a month, in at least three of the last six months, for nearly the same amount. Rent, loans and savings are not counted.',
+    qRises: 'What has gone up most lately?',
+    qRisesWindows: (recent, earlier) => `Average per month ${recent}, compared with ${earlier}`,
+    qRisesNone: 'No category has gone up.',
+    qRisesPerMonth: 'a month',
+    qPerDay: 'How much can I spend per day for the rest of the month?',
+    qPerDayAnswer: (perDay) => `${perDay} a day`,
+    qPerDayLeft: (left, days) => `${left} left for spending, ${days} ${days === 1 ? 'day' : 'days'} to go`,
+    qPerDayOver: (over) => `You have spent ${over} more than your spending budget.`,
+    qPerDayUsedUp: 'Your spending budget is used up, exactly. Nothing left per day.',
+    qPerDayNonePlanned: 'You have nothing budgeted for spending this month.',
+    qPerDayRule: 'Uses what you budgeted for spending: everything except housing, subscriptions, loans and savings. Unsorted entries count as spending.',
+    qPerDayThrough: (date) => `Based on entries up to ${date}.`,
+    qPerDayNothingYet: (month) => `Nothing imported for ${month} yet, so the answer is the whole budget.`,
+    qNoBudget: (month) => `${month} has no budget yet.`,
+    qKept: 'Did I keep to my budget last month?',
+    qKeptYes: (under, month) => `Yes, ${under} under budget in ${month}`,
+    qKeptNo: (over, month) => `No, ${over} over budget in ${month}`,
+    qKeptRow: (actual, planned) => `${actual} of ${planned}`,
+    qKeptRule: 'Compares what went out with the budget. Savings are not counted; unsorted entries count as spending.',
+    qKeptNothing: (month) => `${month} has no budget or nothing imported.`,
+    qGoal: 'When will I reach my savings goal?',
+    qGoalAt: (when) => `Reached in ${when}`,
+    qGoalMonthly: (monthly) => `at ${monthly} a month`,
+    qGoalInTime: 'In time for the deadline',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'month' : 'months'} after the deadline`,
+    qGoalReached: 'Already reached 🎉',
+    qGoalNoMonthly: (month) => `No amount saved towards it in the budget for ${month}.`,
+    qGoalRule: 'Assumes you save the same amount every month, with no interest or returns.',
+    qGoalNone: 'You have no savings goals yet. Add one under Plan.',
+    qBasisMonths: (covered, asked) => `Based on ${covered} of ${asked} months. The others have nothing imported.`,
+    qBasisUnsorted: (amount, count) => `${amount} in ${count} unsorted ${count === 1 ? 'entry' : 'entries'} could change the answer.`,
+    qTooLittle: (need, have) => `Needs at least ${need} months with imported entries. You have ${have}.`,
+    qNothing: 'Nothing imported in this period.',
+    wPanels: 'My panels',
+    wMenu: 'Wallets',
+    wMyBudget: 'My budget',
+    wTagLinked: 'Linked',
+    wTagStandalone: 'Separate',
+    wTagWallet: 'Wallet',
+    wTagSeparate: 'Separate wallet',
+    wNew: 'New wallet',
+    wNewLead: 'Its own amounts. Does not affect your budget.',
+    wName: 'Name',
+    wNamePlaceholder: 'Japan 2027',
+    wTotal: 'Total budget',
+    wFrom: 'From',
+    wTo: 'To',
+    wDatesOptional: 'Dates (optional)',
+    wTripNote: 'The trip gets the parts Travel, Stay, Food and Experiences, with the total shared over them. Everything can be changed.',
+    wStartFrom: 'Start from',
+    wKindBlank: 'Empty',
+    wKindTrip: 'Trip',
+    wBlankNote: 'An empty wallet. You add the parts yourself, such as Food or Materials, and the expenses.',
+    wNamePlaceholderBlank: 'The renovation',
+    wNoPart: 'No part',
+    wNoPots: 'No parts yet. To split the budget, for example into Food and Travel, add them here.',
+    wUnassigned: 'No part',
+    wCreate: 'Create wallet',
+    wPotTravel: 'Travel',
+    wPotStay: 'Stay',
+    wPotFood: 'Food',
+    wPotFun: 'Experiences',
+    wLeft: 'Left',
+    wUsed: (spent, total) => `${spent} of ${total} used`,
+    wLeftList: (left, total) => `${left} of ${total} left`,
+    wDaysLeft: (days) => `${days} ${days === 1 ? 'day' : 'days'} left`,
+    wStartsIn: (days) => `Starts in ${days} ${days === 1 ? 'day' : 'days'}`,
+    wEnded: 'The trip is over',
+    wPerDay: (amount) => `${amount} a day for the rest of the trip`,
+    wOver: (over) => `${over} over budget`,
+    wAddExpense: '+ Add expense',
+    wAmount: 'Amount',
+    wWhat: 'What',
+    wWhatPlaceholder: 'Train to Kyoto',
+    wPot: 'Part',
+    wDate: 'Date',
+    wAdd: 'Add',
+    wExpenses: 'Expenses',
+    wNoExpenses: 'No expenses yet. Add them as you go.',
+    wDeleteExpense: (text) => `Delete ${text}`,
+    wEdit: 'Edit wallet',
+    wSave: 'Save',
+    wArchive: 'Archive',
+    wUnarchive: 'Bring back',
+    wArchived: 'archived',
+    wDelete: 'Delete wallet',
+    wDeleteConfirm: (name) => `Delete "${name}" and all its expenses?\n\nYou can undo it straight after.`,
+    wPots: 'Parts',
+    wAddPot: '+ Add part',
+    wNewPot: 'New part',
+    wPotName: 'Name of the part',
+    wPotPlanned: 'Planned',
+    wRemovePot: (name) => `Remove the part ${name}`,
+    wPotHasExpenses: (name) => `${name} has expenses. Delete them first.`,
+    wPotsDiffer: (planned, total) => `The parts are planned at ${planned}, but the total is ${total}.`,
+    wErrName: 'Enter a name.',
+    wErrAmount: 'Enter an amount.',
+    wErrDates: 'The end date cannot be before the start date.',
+    wErrPot: 'A part needs a name and an amount.',
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -1830,6 +2830,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
     backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
+    backupShareTitle: 'Budget – backup',
+    backupShareFailed: 'The backup could not be created. Nothing has changed — please try again.',
     backupSaved: '✓ Backup saved',
     followUpHelp: 'Help',
     followUpHelpTitle: 'How Follow-up works',
@@ -1843,7 +2845,7 @@ export const translations: Record<Lang, Translations> = {
       'If you are paid on the 25th you do not live in calendar months. Set the start day and Follow-up counts from payday to payday: 25 July to 24 August.',
       'When the 25th falls on a weekend the app moves to the nearest weekday before it, because that is when the money arrived. If it is still wrong you can pin a single period by hand — that applies to that month only.',
       '## The sorter',
-      'It is not an AI, and nothing is downloaded. It is a list of 863 names — shops, banks and services in Sweden, the United States, Spain and internationally — plus your own corrections.',
+      'It is not an AI, and nothing is downloaded. It is a list of names of shops, banks and services — from Sweden, the United States, Spain, Australia, South Africa, Mexico, Japan and Colombia, plus international ones — and your own corrections.',
       '1. It reads the text on the row and looks for a name it knows. "ICA NÄRA KUNGSHOLMEN 4711" is ICA.',
       '2. If it recognises nothing it puts the entry in Övrigt rather than guessing. A wrong category costs more than an empty one.',
       '3. When you move a place to the right category it remembers. Next time your correction outweighs the list.',
@@ -1877,6 +2879,96 @@ export const translations: Record<Lang, Translations> = {
     tabPlanShort: 'Plan',
     tabYear: 'Año',
     tabYearShort: 'Año',
+    tabDebt: 'Deuda',
+    tabDebtShort: 'Deuda',
+    debtTitle: '💳 Deudas',
+    debtIntro: 'Añade tus deudas y la app calcula cuándo quedarás libre de deudas y cuánto cuestan los intereses por el camino. La app calcula y compara, pero no da consejos.',
+    debtEmpty: 'Todavía no hay deudas.',
+    debtAdd: '+ Añadir deuda',
+    debtName: 'Nombre',
+    debtNamePlaceholder: 'Ej. préstamo de estudios',
+    debtKindLabel: 'Tipo',
+    debtKind: (kind) => ({ csn: 'CSN (préstamo estudiantil sueco)', loan: 'Préstamo personal', card: 'Tarjeta de crédito', installment: 'Pago a plazos', mortgage: 'Hipoteca', other: 'Otra' })[kind],
+    debtBalance: 'Pendiente de pago',
+    debtBalanceDate: 'Según el extracto del',
+    debtRate: 'Interés (% anual)',
+    debtPayment: 'Pago al mes',
+    debtCsnHint: 'CSN: el pago es la cuota anual dividida entre 12. Escribe el interés de tu último extracto de CSN, porque el gobierno lo fija cada año. La cuota anual se recalcula cada año y sube un 2 % aproximadamente. Un pago extra va primero a la cuota del año y después a la deuda. El interés no es deducible.',
+    debtAddToBudget: (month) => `Añadir el pago como fila en Préstamos y deudas del presupuesto de ${month}`,
+    debtCreate: 'Añadir',
+    debtSave: 'Guardar',
+    debtErrorName: 'Escribe un nombre.',
+    debtErrorNumbers: 'Rellena el importe, el interés y el pago con números.',
+    debtLeft: 'pendiente, estimado',
+    debtAsOf: (date) => `según el extracto del ${date}`,
+    debtPerMonth: (amount) => `${amount} al mes`,
+    debtRateShort: (pct) => `${pct} % de interés`,
+    debtPaidOff: (when) => `Pagada en ${when}`,
+    debtGrowing: 'El pago no cubre los intereses, así que la deuda crece.',
+    debtMortgageNote: 'La hipoteca no cuenta en el camino para quedar libre de deudas.',
+    debtEdit: (name) => `Editar ${name}`,
+    debtEditShort: 'Editar',
+    debtDeleteShort: 'Eliminar',
+    debtCleared: (debt) => `🎉 ¡${debt} está pagada!`,
+    debtDelete: (name) => `Eliminar ${name}`,
+    debtDeleteAsk: (name) => `¿Eliminar ${name}?`,
+    debtDeleteRowInfo: (month) => `Su pago es una fila en Préstamos y deudas del presupuesto de ${month}. Los movimientos que ya registraste no se ven afectados.`,
+    debtDeleteBoth: 'Eliminar la deuda y su fila',
+    debtDeleteOnly: 'Eliminar solo la deuda',
+    debtDeletedBoth: (name) => `${name} y su fila del presupuesto se eliminaron.`,
+    debtDeletedKept: (name) => `${name} se eliminó. Su fila se queda en el presupuesto como una fila normal.`,
+    debtDeleted: (name) => `${name} se eliminó.`,
+    debtSummaryTotal: 'Pendiente en total',
+    debtSummaryMonthly: 'Al mes',
+    debtSummaryFree: 'Sin deudas',
+    debtWayTitle: '🏁 El camino para quedar sin deudas',
+    debtExtra: 'Extra al mes',
+    debtAvalanche: 'La avalancha',
+    debtAvalancheSub: 'Primero el interés más alto. Cuesta menos.',
+    debtSnowball: 'La bola de nieve',
+    debtSnowballSub: 'Primero la deuda más pequeña. Liquida la primera deuda antes.',
+    debtFreeBy: (when) => `Sin deudas en ${when}`,
+    debtInterest: (amount) => `Intereses por el camino: ${amount}`,
+    debtFirstPaid: (name, when) => `Primera pagada: ${name}, ${when}`,
+    debtNotWithin: 'No en 50 años',
+    debtMinimumLine: (when, interest) => `Sin extra: sin deudas en ${when}, intereses ${interest}.`,
+    debtMinimumNever: 'Sin extra las deudas no se pagan en 50 años.',
+    debtSameOrder: 'Aquí los dos caminos coinciden, porque las deudas más pequeñas también tienen el interés más alto.',
+    debtFromBudget: (amount) => `Del presupuesto · ${amount} al mes`,
+    bimTitle: 'Importar presupuesto',
+    bimMenu: '📥 Importar presupuesto de Excel',
+    bimHeroButton: '📥 Importar de Excel',
+    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google o Numbers? Elige el archivo (.xlsx o CSV), o selecciona las celdas allí y pégalas aquí.',
+    bimPick: 'Elegir archivo',
+    bimPasteLabel: 'O pega las celdas',
+    bimPastePlaceholder: 'Alquiler\t800\nComida\t300',
+    bimRead: 'Leer',
+    bimSheet: 'Hoja',
+    bimIntoMonth: (month) => `Se añade a ${month}.`,
+    bimIntoMonths: (n, from, to) => `Se añade a ${n} meses: ${from} – ${to}.`,
+    bimAmountColumn: 'Importes de la columna',
+    bimColumn: (n) => `Columna ${n}`,
+    bimNote: 'Una fila que ya está en el presupuesto recibe el nuevo importe. No se elimina nada y puedes deshacerlo después.',
+    bimSkip: 'Omitir',
+    bimOther: 'Otros',
+    bimNewGroup: 'Categoría nueva',
+    bimStandardGroup: 'Categorías',
+    bimImportN: (n) => (n === 1 ? 'Importar 1 fila' : `Importar ${n} filas`),
+    bimMonthsN: (n) => (n === 1 ? '1 mes' : `${n} meses`),
+    bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
+    bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
+    bimErrTooLarge: 'La tabla es demasiado grande para ser un presupuesto (como máximo 5000 filas, 200 columnas y 50 hojas).',
+    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx o CSV e inténtalo de nuevo.',
+    bimErrEmpty: 'No se encontraron filas para importar.',
+    bimErrNoAmounts: 'No se encontraron importes. Asegúrate de que una columna tenga números.',
+    bimBack: 'Elegir otro archivo',
+    debtFromBudgetHint: 'Rellena lo que queda y el interés, y contará en el camino para quedar sin deudas.',
+    debtComplete: 'Rellenar datos',
+    debtCompleteFor: (name) => `Rellenar datos de ${name}`,
+    debtEstimateNote: 'Las cifras son estimaciones. El prestamista calcula intereses a diario y puede cobrar comisiones. Corrige el importe cuando recibas un nuevo extracto.',
+    debtPaidThisMonth: (month, amount) => `Pagado en ${month} según Seguimiento: ${amount}`,
+    debtOverBudget: 'El presupuesto de este mes no cuadra. Muchos ayuntamientos y asociaciones de consumidores ofrecen asesoramiento gratuito sobre deudas.',
+    debtExtraOverRemaining: (amount) => `El importe extra es mayor que lo que queda en el presupuesto (${amount}).`,
     tabFollowUp: 'Seguimiento',
     tabFollowUpShort: 'Real',
     followUpHeading: 'Plan y realidad',
@@ -1914,16 +3006,35 @@ export const translations: Record<Lang, Translations> = {
     spendingStatusPartial: (category) => `${category} es la mayor aunque todo lo no clasificado perteneciera a otra categoría.`,
     spendingStatusInsufficient: 'Lo no clasificado basta para cambiar el orden. Clasifícalo para una respuesta segura.',
     spendingSort: 'Clasificar estos',
-    spendingEvidenceShow: 'Ver detalles',
-    spendingEvidenceHide: 'Ocultar detalles',
+    spendingEvidenceShow: 'Ver por categoría',
+    spendingEvidenceHide: 'Ocultar por categoría',
     spendingUpTo: (high) => `podría llegar a ${high}`,
+    spendingBiggest: 'Las compras más grandes',
+    spendingSmall: (total) => `Compras pequeñas: ${total}`,
+    spendingSmallSub: (n, limit) => (n === 1 ? `1 compra de menos de ${limit}` : `${n} compras de menos de ${limit}`),
+    spendingTimes: (n) => (n === 1 ? '1 vez' : `${n} veces`),
+    spendingFixedNote: 'Vivienda, suscripciones, préstamos y ahorro no cuentan aquí, porque son gastos fijos.',
+    spendingNoPurchases: 'Ninguna compra aparte de los gastos fijos.',
+    spendingUnsortedTag: 'sin clasificar',
+    spendingHide: (place) => `No contar ${place} aquí`,
+    spendingHiddenCount: (n) => (n === 1 ? '1 lugar no cuenta aquí' : `${n} lugares no cuentan aquí`),
+    spendingHiddenShow: 'Mostrar',
+    spendingHiddenHide: 'Ocultar',
+    spendingUnhide: (place) => `Volver a contar ${place}`,
+    spendingUnhideShort: 'Volver a contar',
+    spendingLimitLabel: 'Pequeña es menos de',
+    spendingShowMore: 'Ver más',
+    spendingShowFewer: 'Ver menos',
     followUpEmptyBody: 'Aquí tu plan aparece junto a lo que pasó de verdad. Abre una categoría y añade lo que pagaste — cada cifra se puede desplegar y leer línea por línea.',
+    followUpStartBody: 'Empieza por introducir el presupuesto del mes. Después puedes añadir aquí lo que pagaste, o importar el extracto del banco.',
+    followUpStartBudget: 'Ir a Presupuesto',
     followUpImport: 'Importar extracto',
     csvTitle: 'Importar extracto bancario',
     csvDropLead: 'Suelta tu archivo aquí',
     csvDropSub: 'Un CSV de tu banco. El archivo nunca sale de este dispositivo.',
     csvPick: 'Elegir archivo',
     csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
+    csvUnknownEncoding: 'El archivo está guardado en una codificación que la app no puede leer, así que el texto saldría mal. Guárdalo como UTF-8 (en Excel: "CSV UTF-8") e inténtalo de nuevo.',
     csvNoRows: 'No se encontraron movimientos en el archivo.',
     csvNoText: '(sin texto)',
     csvColumnsLead: '¿Es correcto? Elige qué contiene cada columna.',
@@ -2070,6 +3181,8 @@ export const translations: Record<Lang, Translations> = {
     introSkip: 'Omitir',
     introDone: 'Empezar',
     introStep: (n, of) => `Paso ${n} de ${of}`,
+    introPrivacyNativeTitle: 'Tu presupuesto es tuyo',
+    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta y sin servidor nuestro. Lo que escribes se guarda en la app del teléfono, y la app no lo envía a nosotros ni a nadie más. Si la copia de seguridad del teléfono está activada (iCloud o Google), puede copiar tu presupuesto a tu propia cuenta allí. Un archivo de copia que compartes tú va adonde tú elijas.',
     welcomeTitle: '¡Bienvenido a Budgetapp!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
@@ -2116,6 +3229,16 @@ export const translations: Record<Lang, Translations> = {
     summaryExpenses: 'Gastos',
     summarySaved: 'Ahorrado',
     summaryRemaining: 'Restante',
+    summaryRemainingAfterSaving: 'Queda tras ahorrar',
+    customStandalone: 'Presupuesto independiente – no cambia tu presupuesto normal',
+    customMonthEmpty: (month) => `${month} aún no está rellenado`,
+    customCopyFrom: (month) => `Copiar ${month}`,
+    moreActions: 'Más acciones',
+    cfgBgPresets: {
+      'bg-brand': 'Color de acento', 'bg-income': 'Color de ingresos', 'bg-expense': 'Color de gastos',
+      'bg-savings': 'Color de ahorro', 'bg-remain': 'Color de restante',
+    },
+    ariaTargetInput: (block) => `Importe objetivo de ${block}`,
     copyLastMonth: 'Copiar mes anterior',
     copiedLastMonth: 'Copiado del mes anterior',
     clearAmounts: 'Borrar importes',
@@ -2129,19 +3252,88 @@ export const translations: Record<Lang, Translations> = {
     customHelp: [
       { title: 'Añadir bloques', body: 'Pulsa "Añadir bloque", ponle un nombre y elige qué es: dinero que Entra, Sale, Ahorro o una Nota.' },
       { title: 'Entrada / Salida / Ahorro', body: 'La etiqueta decide cómo cuenta el bloque. El Resumen la usa para calcular lo que queda.' },
-      { title: 'Tus propias filas', body: 'Dentro de un bloque, añade tantas filas de categoría como quieras y escribe los importes.' },
+      { title: 'Tus propias filas', body: 'Dentro de un bloque, escribe los importes. Las filas nuevas, los nombres y los colores se cambian en Editar diseño.' },
       { title: 'Cambiar tamaño', body: 'Pon cada bloque a ancho Completo, Medio o ⅓. En el móvil se convierten en fichas que se tocan.' },
       { title: 'Color y emoji', body: 'Dale a cualquier bloque su propio color de fondo e icono: hazlo tuyo.' },
       { title: 'Gráficos', body: 'Activa un gráfico y elige el estilo (dona, tarta, barras, mapa de árbol…), el tamaño y dónde se coloca.' },
-      { title: 'Objetivos', body: 'Define un importe objetivo y una barra de progreso se llena hacia él.' },
-      { title: 'Notas', body: 'Añade un bloque de texto para recordatorios o planes, junto a tu dinero.' },
+      { title: 'Objetivos', body: 'Define un importe objetivo y una barra de progreso se llena hacia él. En un bloque de gastos se convierte en un límite que avisa cuando casi se ha agotado.' },
+      { title: 'Notas', body: 'Añade un bloque de texto para recordatorios o planes, junto a tu dinero. Elige si es para un mes o para todos.' },
       { title: 'Resumen', body: 'Añade un bloque de Resumen: suma Ingresos − Gastos automáticamente y muestra el cambio respecto al mes anterior.' },
       { title: 'Copiar mes anterior', body: 'Un toque trae los importes del mes anterior a este mes para no volver a escribirlos.' },
-      { title: 'Editar diseño', body: 'Arrastra para reordenar (↑↓ en el móvil), ⚙ para configurar, ✕ para quitar, 🧹 para borrar todos los importes.' },
+      { title: 'Editar diseño', body: 'Aquí añades filas y cambias nombres y colores. Arrastra para reordenar (↑↓ en el móvil), ⚙ para configurar, ✕ para quitar, 🧹 para borrar todos los importes.' },
     ],
     cfgEmoji: 'Emoji',
     cfgEmojiDefault: 'Predeterminado',
     cfgTarget: 'Objetivo',
+    cfgLimit: 'Límite',
+    pickerBuildOwn: 'Crea el tuyo',
+    kindActual: 'REAL',
+    kindGoal: 'META',
+    kindKpi: 'DATO',
+    actualNoEntries: (month) => `Aún no hay movimientos de ${month}. Importa un extracto en Seguimiento.`,
+    actualNothingHere: (name) => `Aún no se ha registrado nada en ${name}.`,
+    actualUnsorted: (amount) => `Hasta ${amount} sin clasificar podría ir aquí.`,
+    actualIncomeDone: '✓ Ha entrado todo',
+    actualIncomeToCome: (amount) => `Faltan por entrar ${amount}`,
+    actualOver: (amount) => `⚠ ${amount} por encima del presupuesto`,
+    actualLeft: (amount) => `Quedan ${amount} del presupuesto`,
+    actualOfBudget: (amount) => `de ${amount} presupuestados`,
+    actualNoBudget: 'sin presupuesto',
+    actualCount: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
+    goalMissing: 'Esta meta de ahorro ya no está en Plan.',
+    goalOf: (amount) => `de ${amount}`,
+    goalBy: (month) => `Lista para ${month}`,
+    goalThisMonth: (amount, month) => `${amount} ahorrados en ${month}`,
+    kpiNoIncome: 'Rellena primero los ingresos.',
+    kpiLargest: 'Categoría más grande',
+    kpiShare: (pct) => `${pct} % de los gastos`,
+    kpiNothing: 'Aún no hay gastos en el presupuesto.',
+    pickerNewCategory: 'Categoría nueva',
+    pickerOutcome: 'Real',
+    pickerGoals: 'Metas de ahorro',
+    pickerFigures: 'Datos',
+    customHelpLinkedIntro: 'El panel muestra tu presupuesto normal a tu manera. Los mismos importes y categorías, ordenados como quieras.',
+    customHelpLinked: [
+      { title: 'Un solo presupuesto', body: 'Un importe que escribes aquí cambia también en Seguimiento, Ahorro, Plan y Año. Solo hay una cifra.' },
+      { title: 'Real', body: 'Añade un bloque de gasto real para una categoría y mira lo que se ha gastado de verdad, según los movimientos importados en Seguimiento.' },
+      { title: 'Metas de ahorro', body: 'Muestra una meta de Plan directamente en el panel.' },
+      { title: 'Datos', body: 'La categoría más grande y lo que queda para vivir, las mismas cifras que en el presupuesto.' },
+      { title: 'Categoría nueva', body: 'Crea una categoría en tu presupuesto normal para el mes que estás viendo.' },
+      { title: 'Editar diseño', body: 'Elige qué se muestra, el orden, el tamaño y el color. ✕ solo quita el bloque del panel; el presupuesto no cambia.' },
+      { title: 'Empezar de nuevo', body: 'Te devuelve a la elección entre vinculado y aparte. Tu presupuesto normal no se toca.' },
+    ],
+    customLinkedNote: '🔗 Vinculado a tu presupuesto normal – los mismos importes en ambos sitios',
+    linkedMissing: (name, month) => `${name || 'Esta categoría'} no está en el presupuesto de ${month}`,
+    linkedRemove: 'Quitar del panel',
+    linkedCarryConfirm: (names, month, count, first, last) =>
+      `Cambiaste ${names.join(', ')} en el presupuesto de ${month}.\n\n¿El cambio debe aplicarse también a ${count === 1 ? `${first}, que ya tiene presupuesto` : `los ${count} meses siguientes que ya tienen presupuesto (${first}–${last})`}?\n\nLas categorías nuevas se añaden allí, y los nombres cambian donde aún tienen el nombre anterior. Puedes deshacerlo después.`,
+    linkedFetchFrom: (name, month) => `Traer ${name} de ${month}`,
+    ariaLinkedRemove: (name) => `Quitar ${name} del panel. El presupuesto no cambia`,
+    pickerFromBudget: 'De tu presupuesto',
+    pickerOther: 'Otros',
+    linkedAllShown: 'Todo tu presupuesto ya se muestra',
+    startOver: 'Empezar de nuevo',
+    startOverConfirmStandalone: '¿Empezar Personalizado de nuevo?\n\nSe borran todos los bloques, importes y notas de Personalizado, en todos los meses. Tu presupuesto normal no se ve afectado.\n\nConsejo: exporta una copia de seguridad antes. También puedes deshacerlo justo después.',
+    startOverConfirmLinked: '¿Empezar Personalizado de nuevo?\n\nSolo se borra el diseño del panel: qué bloques se muestran, su orden, colores y notas. Tu presupuesto normal y todos los importes se quedan.\n\nPuedes deshacerlo justo después.',
+    customChooseAgain: 'Elegir otro tipo de panel',
+    choiceTitle: '¿Qué quieres que sea Personalizado?',
+    choiceIntro: 'Muestra tu presupuesto normal a tu manera, o crea un presupuesto aparte, por ejemplo para un viaje.',
+    choiceLinkedTitle: '🔗 Vinculado a mi presupuesto',
+    choiceLinkedBody: 'Usa las categorías y los importes de tu presupuesto normal. Si cambias un importe, cambia en ambos sitios. Seguimiento, Ahorro, Plan y Año te acompañan.',
+    choiceLinkedCta: 'Elegir vinculado',
+    choiceStandaloneTitle: '👛 Presupuesto aparte',
+    choiceStandaloneBody: 'Bloques e importes propios que no afectan a tu presupuesto normal. Ideal para viajes, proyectos y presupuestos temporales.',
+    choiceStandaloneCta: 'Elegir aparte',
+    choiceChangeLater: 'Puedes volver a elegir con "Empezar de nuevo" en Editar diseño.',
+    noteScope: 'Se muestra',
+    noteScopeMonth: (month) => `Solo ${month}`,
+    noteScopeAll: 'Todos los meses',
+    pickerReadyMade: 'Bloques listos',
+    ariaLimitInput: (block) => `Límite de ${block}`,
+    targetReached: '✓ Objetivo alcanzado',
+    targetToGo: (amount) => `Faltan ${amount}`,
+    limitLeft: (amount) => `Quedan ${amount} del límite`,
+    limitOver: (amount) => `⚠ ${amount} por encima del límite`,
     kindNote: 'NOTA',
     addNote: 'Nota',
     newNoteName: 'Nota',
@@ -2184,7 +3376,11 @@ export const translations: Record<Lang, Translations> = {
       custom: 'Personalizado',
     },
     saveFailedTitle: 'No se pudo guardar',
+    storageOpenFailedTitle: 'La app no pudo abrir tu presupuesto',
+    storageOpenFailedBody: 'No se pudo abrir el almacenamiento del teléfono en este momento. No se ha borrado nada. Inténtalo de nuevo y reinicia el teléfono si no funciona.',
+    storageOpenFailedRetry: 'Intentar de nuevo',
     saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
+    saveFailedBodyApp: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el teléfono o exporta tus datos, y vuelve a intentarlo.',
     saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
     copyNextMonth: 'Mes siguiente',
@@ -2219,14 +3415,23 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteRow') return where ? `Se eliminó una fila de ${where}` : 'Se eliminó una fila';
       if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;
       if (action === 'deleteGoal') return 'Se eliminó una meta de ahorro';
+      if (action === 'deleteDebt') return 'Se eliminó una deuda';
+      if (action === 'importBudget') return count > 1 ? `Se importó un presupuesto a ${count} meses` : `Se importó un presupuesto a ${where}`;
       if (action === 'deleteBlock') return 'Se eliminó un bloque de Personalizado';
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
+      if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
+      if (action === 'deleteWallet') return 'Se eliminó una cartera';
+      if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
     undoDone: '✓ Deshecho',
     undoFailed: 'No se pudo deshacer — el dispositivo rechazó la escritura. Libera espacio e inténtalo de nuevo.',
+    restoreNoUndo: 'La copia se ha restaurado, pero el paso atrás no se pudo guardar, así que la restauración no se puede deshacer.',
+    changeNotSaved: 'No se pudo guardar, así que no se cambió nada. Libera espacio en el dispositivo e inténtalo de nuevo.',
+    changePartlySaved: 'No se pudo guardar, y el dispositivo no dejó que la app lo deshiciera todo: puede quedar parte del cambio. Libera espacio y pulsa "Intentar guardar de nuevo" en el aviso de arriba para guardar lo que había antes.',
+    backupHasUnsaved: 'Algunos de tus últimos cambios no se pudieron guardar y no estarán en la copia. La copia contiene lo que está realmente guardado. ¿Continuar?',
     undoDismiss: 'Cerrar',
     triageWaiting: (n) => n === 1 ? '1 movimiento espera una categoría' : `${n} movimientos esperan una categoría`,
     triageOpen: 'Clasificar',
@@ -2282,8 +3487,12 @@ export const translations: Record<Lang, Translations> = {
       "Budget es una página web que abres en el navegador y puedes añadir a la pantalla de inicio. Todavía no hay versión en la App Store ni en Google Play. El día que la haya, este texto se actualizará — hasta entonces describe una página web.",
       "## Todo se queda en tu dispositivo",
       "Tu presupuesto, los gastos que registras y los extractos bancarios que importas se procesan y se guardan localmente en tu navegador. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, no hay inicio de sesión y no hay base de datos a la que enviar nada.",
+      "## En la app para iPhone y Android",
+      "Cuando Budget se usa como app en iPhone o Android, todo se guarda en una base de datos en el teléfono en lugar de en el navegador. La app no envía nada al desarrollador ni a terceros: no hay servidor, ni cuenta, ni analítica, ni seguimiento.",
+      "La copia de seguridad del propio teléfono — iCloud en iPhone, la copia de Google en Android — puede, si la tienes activada, copiar la base de datos a tu propia cuenta de Apple o Google, para que tu presupuesto te acompañe a un teléfono nuevo. Eso lo hacen el teléfono y tu cuenta, no la app, y el desarrollador no tiene acceso. Si no lo quieres, cambia los ajustes de copia de seguridad del teléfono. Un archivo de copia que guardas o compartes tú desde la app va adonde tú elijas.",
+      "Si borras la app, la base de datos se elimina del teléfono. Lo que haya en tu propia copia de seguridad depende de tus ajustes para ella.",
       "## Los extractos se leen donde están",
-      "Cuando importas un archivo CSV se lee donde estás. El contenido nunca sale de tu dispositivo — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
+      "Cuando importas un archivo CSV se lee donde estás, en tu dispositivo. La app nunca envía su contenido a ningún sitio — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
       "## Sin publicidad, sin analítica, sin rastreo",
       "No hay redes publicitarias, ni estadísticas de uso, ni herramientas de rastreo. Tampoco scripts de terceros que recojan datos en segundo plano.",
       "La clasificación que reconoce las tiendas es una lista que viaja con la página, no un servicio al que consulta. Funciona sin red.",
@@ -2296,7 +3505,7 @@ export const translations: Record<Lang, Translations> = {
       "## Preguntas",
       "Si tienes alguna pregunta sobre cómo la app trata tus datos, puedes escribir a ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Última actualización: 19 de septiembre de 2026.",
+    privacyUpdated: "Última actualización: 27 de septiembre de 2026.",
     privacyClose: "Cerrar",
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
@@ -2317,7 +3526,12 @@ export const translations: Record<Lang, Translations> = {
     sparplanErrMonth: 'Introduce un mes real entre 1900 y 2200',
     sparplanDelete: 'Eliminar plan de ahorro',
     sparplanDeleteConfirm: '¿Eliminar el plan de ahorro? Tus datos mensuales y metas no se ven afectados.',
-    sparplanIn5Years: 'en 5 años',
+    sparplanSaveFailed: 'No se pudo guardar el plan. Lo que escribiste sigue aquí, pero el gráfico muestra el último plan guardado. Inténtalo de nuevo.',
+    sparplanInYears: (n) => (n === 1 ? 'en 1 año' : `en ${n} años`),
+    sparplanHorizon: 'Cuánto tiempo',
+    sparplanYearsShort: (n) => (n === 1 ? '1 año' : `${n} años`),
+    sparplanExampleTag: 'Ejemplo',
+    sparplanExampleNote: 'Las cifras de abajo son un ejemplo de cálculo, no tu presupuesto. Cámbialas y será tu propio plan.',
     sparplanNow: 'Ahora',
     sparplanMonth: (n) => `Mes ${n}`,
     sparplanOfWhichGrowth: (amount) => `de los cuales ${amount} es rendimiento`,
@@ -2376,6 +3590,120 @@ export const translations: Record<Lang, Translations> = {
     chooseColor: 'Elegir color',
     protectedCategory: 'Vinculada al Plan — no se puede eliminar',
     goalUnlinkedFromBudget: (goal) => `"${goal}" ya no está vinculada a tu presupuesto. La meta conserva lo que has ahorrado.`,
+    goalReached: (goal) => `🎉 ¡Has alcanzado tu meta "${goal}"!`,
+    qTitle: 'Pregunta sobre tu economía',
+    qLead: 'La app calcula la respuesta por sí misma, aquí en el dispositivo. No se envía nada.',
+    qBack: 'Preguntas',
+    qCategoryYear: (category) => `¿Cuánto he gastado en ${category.toLowerCase()} este año?`,
+    qCategoryPick: 'Categoría',
+    qCategoryTotal: (amount, year) => `${amount} en lo que va de ${year}`,
+    qCategoryAverage: (amount) => `${amount} al mes de media`,
+    qUnknownMonth: '– = nada importado',
+    qRecurring: '¿Qué suscripciones pago?',
+    qRecurringAnswer: (count, perMonth) => `${count} · ${perMonth} al mes`,
+    qRecurringYear: (perYear) => `${perYear} al año`,
+    qRecurringNone: 'No se encontraron pagos del mismo importe cada mes.',
+    qRecurringSeen: (months) => `${months} meses`,
+    qRecurringRule: 'Cuenta pagos que llegan una vez al mes, en al menos tres de los últimos seis meses, por casi el mismo importe. No cuenta alquiler, préstamos ni ahorro.',
+    qRises: '¿Qué ha subido más últimamente?',
+    qRisesWindows: (recent, earlier) => `Media al mes ${recent}, comparada con ${earlier}`,
+    qRisesNone: 'Ninguna categoría ha subido.',
+    qRisesPerMonth: 'al mes',
+    qPerDay: '¿Cuánto puedo gastar al día el resto del mes?',
+    qPerDayAnswer: (perDay) => `${perDay} al día`,
+    qPerDayLeft: (left, days) => `Quedan ${left} para compras y ${days} ${days === 1 ? 'día' : 'días'}`,
+    qPerDayOver: (over) => `Has gastado ${over} más que tu presupuesto para compras.`,
+    qPerDayUsedUp: 'Tu presupuesto para compras está usado, justo. No queda nada por día.',
+    qPerDayNonePlanned: 'No tienes nada presupuestado para compras este mes.',
+    qPerDayRule: 'Usa lo que presupuestaste para compras: todo menos vivienda, suscripciones, préstamos y ahorro. Los movimientos sin ordenar cuentan como compras.',
+    qPerDayThrough: (date) => `Basado en movimientos hasta el ${date}.`,
+    qPerDayNothingYet: (month) => `Aún no hay nada importado de ${month}, así que la respuesta es todo el presupuesto.`,
+    qNoBudget: (month) => `${month} aún no tiene presupuesto.`,
+    qKept: '¿Cumplí el presupuesto el mes pasado?',
+    qKeptYes: (under, month) => `Sí, ${under} por debajo del presupuesto en ${month}`,
+    qKeptNo: (over, month) => `No, ${over} por encima del presupuesto en ${month}`,
+    qKeptRow: (actual, planned) => `${actual} de ${planned}`,
+    qKeptRule: 'Compara lo que salió con el presupuesto. No cuenta el ahorro; los movimientos sin ordenar cuentan como gastos.',
+    qKeptNothing: (month) => `${month} no tiene presupuesto o no tiene nada importado.`,
+    qGoal: '¿Cuándo alcanzaré mi meta de ahorro?',
+    qGoalAt: (when) => `Se alcanza en ${when}`,
+    qGoalMonthly: (monthly) => `con ${monthly} al mes`,
+    qGoalInTime: 'A tiempo para la fecha límite',
+    qGoalLate: (months) => `${months} ${months === 1 ? 'mes' : 'meses'} después de la fecha límite`,
+    qGoalReached: 'Ya alcanzada 🎉',
+    qGoalNoMonthly: (month) => `No hay importe de ahorro para ella en el presupuesto de ${month}.`,
+    qGoalRule: 'Supone que ahorras lo mismo cada mes, sin intereses ni rentabilidad.',
+    qGoalNone: 'Aún no tienes metas de ahorro. Añade una en Plan.',
+    qBasisMonths: (covered, asked) => `Basado en ${covered} de ${asked} meses. Los demás no tienen nada importado.`,
+    qBasisUnsorted: (amount, count) => `${amount} en ${count} ${count === 1 ? 'movimiento' : 'movimientos'} sin ordenar podrían cambiar la respuesta.`,
+    qTooLittle: (need, have) => `Hacen falta al menos ${need} meses con movimientos importados. Tienes ${have}.`,
+    qNothing: 'Nada importado en este periodo.',
+    wPanels: 'Mis paneles',
+    wMenu: 'Carteras',
+    wMyBudget: 'Mi presupuesto',
+    wTagLinked: 'Vinculado',
+    wTagStandalone: 'Independiente',
+    wTagWallet: 'Cartera',
+    wTagSeparate: 'Cartera independiente',
+    wNew: 'Nueva cartera',
+    wNewLead: 'Sus propios importes. No afecta a tu presupuesto.',
+    wName: 'Nombre',
+    wNamePlaceholder: 'Japón 2027',
+    wTotal: 'Presupuesto total',
+    wFrom: 'Desde',
+    wTo: 'Hasta',
+    wDatesOptional: 'Fechas (opcional)',
+    wTripNote: 'El viaje tiene las partes Transporte, Alojamiento, Comida y Experiencias, con el total repartido entre ellas. Todo se puede cambiar.',
+    wStartFrom: 'Empezar con',
+    wKindBlank: 'Vacía',
+    wKindTrip: 'Viaje',
+    wBlankNote: 'Una cartera vacía. Tú añades las partes, como Comida o Materiales, y los gastos.',
+    wNamePlaceholderBlank: 'La reforma',
+    wNoPart: 'Sin parte',
+    wNoPots: 'Aún no hay partes. Para dividir el presupuesto, por ejemplo en Comida y Transporte, añádelas aquí.',
+    wUnassigned: 'Sin parte',
+    wCreate: 'Crear cartera',
+    wPotTravel: 'Transporte',
+    wPotStay: 'Alojamiento',
+    wPotFood: 'Comida',
+    wPotFun: 'Experiencias',
+    wLeft: 'Queda',
+    wUsed: (spent, total) => `${spent} de ${total} usado`,
+    wLeftList: (left, total) => `Quedan ${left} de ${total}`,
+    wDaysLeft: (days) => `${days === 1 ? 'Queda 1 día' : `Quedan ${days} días`}`,
+    wStartsIn: (days) => `Empieza en ${days} ${days === 1 ? 'día' : 'días'}`,
+    wEnded: 'El viaje ha terminado',
+    wPerDay: (amount) => `${amount} al día el resto del viaje`,
+    wOver: (over) => `${over} por encima del presupuesto`,
+    wAddExpense: '+ Añadir gasto',
+    wAmount: 'Importe',
+    wWhat: 'Qué',
+    wWhatPlaceholder: 'Tren a Kioto',
+    wPot: 'Parte',
+    wDate: 'Fecha',
+    wAdd: 'Añadir',
+    wExpenses: 'Gastos',
+    wNoExpenses: 'Aún no hay gastos. Añádelos sobre la marcha.',
+    wDeleteExpense: (text) => `Eliminar ${text}`,
+    wEdit: 'Editar cartera',
+    wSave: 'Guardar',
+    wArchive: 'Archivar',
+    wUnarchive: 'Recuperar',
+    wArchived: 'archivada',
+    wDelete: 'Eliminar cartera',
+    wDeleteConfirm: (name) => `¿Eliminar "${name}" con todos sus gastos?\n\nPuedes deshacerlo justo después.`,
+    wPots: 'Partes',
+    wAddPot: '+ Añadir parte',
+    wNewPot: 'Nueva parte',
+    wPotName: 'Nombre de la parte',
+    wPotPlanned: 'Previsto',
+    wRemovePot: (name) => `Quitar la parte ${name}`,
+    wPotHasExpenses: (name) => `${name} tiene gastos. Elimínalos primero.`,
+    wPotsDiffer: (planned, total) => `Las partes suman ${planned}, pero el total es ${total}.`,
+    wErrName: 'Escribe un nombre.',
+    wErrAmount: 'Escribe un importe.',
+    wErrDates: 'La fecha final no puede ser anterior a la inicial.',
+    wErrPot: 'Una parte necesita un nombre y un importe.',
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',
@@ -2386,6 +3714,8 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
     backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
+    backupShareTitle: 'Budget – copia de seguridad',
+    backupShareFailed: 'No se pudo crear la copia de seguridad. No ha cambiado nada; inténtalo de nuevo.',
     backupSaved: '✓ Copia de seguridad guardada',
     followUpHelp: 'Ayuda',
     followUpHelpTitle: 'Cómo funciona Seguimiento',
@@ -2399,7 +3729,7 @@ export const translations: Record<Lang, Translations> = {
       'Si cobras el día 25 no vives en meses naturales. Fija el día de inicio y Seguimiento cuenta de cobro a cobro: del 25 de julio al 24 de agosto.',
       'Si el 25 cae en fin de semana la app se mueve al día laborable anterior, porque es cuando llegó el dinero. Si aun así falla puedes fijar un periodo a mano — vale solo para ese mes.',
       '## El clasificador',
-      'No es una IA, y no se descarga nada. Es una lista de 863 nombres — tiendas, bancos y servicios de Suecia, Estados Unidos, España e internacionales — más tus propias correcciones.',
+      'No es una IA, y no se descarga nada. Es una lista de nombres de tiendas, bancos y servicios — de Suecia, Estados Unidos, España, Australia, Sudáfrica, México, Japón y Colombia, además de internacionales — y tus propias correcciones.',
       '1. Lee el texto de la fila y busca un nombre que conozca. "ICA NÄRA KUNGSHOLMEN 4711" es ICA.',
       '2. Si no reconoce nada deja el movimiento en Övrigt en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
       '3. Cuando mueves un sitio a la categoría correcta lo recuerda. La próxima vez tu corrección pesa más que la lista.',

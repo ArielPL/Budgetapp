@@ -130,3 +130,117 @@ export function categoryRange(
   const low = breakdown.categories.find(c => c.id === id)?.amount ?? 0;
   return { low, high: low + breakdown.unsorted.amount };
 }
+
+// ── The biggest purchases and the small ones ───────────────────────────────
+//
+// "Boende was the biggest" tells nobody anything: the rent is always the
+// biggest. What a person wants from this card is the part they CANNOT see in
+// their head — the few big things they bought, and the small ones that add up
+// without anyone noticing (Ariel, 2026-10-03).
+//
+// Both lists look past categories: a purchase is big or small by its amount.
+// So they need no sorting to be right, with one exception said out loud on the
+// card — fixed costs are left out BY CATEGORY, and an unsorted rent payment
+// cannot be recognised as one. It is shown, marked unsorted, rather than
+// guessed away.
+
+/** Standard categories that hold fixed costs, not purchases: the rent and
+ *  everything at home, subscriptions, loan payments, and money put aside. */
+export const FIXED_COST_CATEGORIES: ReadonlySet<string> =
+  new Set(['boende', 'prenumerationer', 'lan', 'sparande']);
+
+export interface Purchase {
+  id: string;
+  text: string;
+  /** The key its place is hidden by. */
+  key: string;
+  date: string;
+  amount: number;
+  /** Still in Övrigt: it may be a fixed cost the card could not recognise. */
+  unsorted: boolean;
+}
+
+export interface SmallPlace {
+  /** The place as the bank wrote it, from its first purchase in view. */
+  text: string;
+  /** The key a hidden place is remembered by (categorise's normalise). */
+  key: string;
+  count: number;
+  total: number;
+}
+
+export interface PurchaseHighlights {
+  /** Purchases at or above the limit, biggest first. */
+  biggest: Purchase[];
+  /** Purchases under the limit, by place, most money first. */
+  small: { total: number; count: number; places: SmallPlace[] };
+}
+
+/**
+ * The biggest purchases and the small ones in `entries`, leaving out income,
+ * transfers, refunds, fixed costs and the places the user chose not to count.
+ *
+ * `placeKey` turns a bank text into the key hidden places are kept under —
+ * passed in so this module stays free of the sorter's matching rules.
+ */
+export function purchaseHighlights(
+  entries: ActualEntry[],
+  smallLimit: number,
+  hidden: ReadonlySet<string>,
+  placeKey: (text: string) => string,
+): PurchaseHighlights {
+  const biggest: Purchase[] = [];
+  const places = new Map<string, SmallPlace>();
+  let smallTotal = 0;
+  let smallCount = 0;
+
+  for (const e of entries) {
+    if (e.categoryId === INCOME_ACTUAL_ID || e.categoryId === TRANSFER_ACTUAL_ID) continue;
+    if (FIXED_COST_CATEGORIES.has(e.categoryId)) continue;
+    const amount = actualContribution(e);
+    // A refund is not a purchase, and a purchase of nothing says nothing.
+    if (amount <= 0) continue;
+    const key = placeKey(e.text);
+    if (hidden.has(key)) continue;
+
+    if (amount >= smallLimit) {
+      biggest.push({
+        id: e.id, text: e.text, key, date: e.date, amount,
+        unsorted: e.categoryId === UNSORTED_ACTUAL_ID,
+      });
+      continue;
+    }
+    smallTotal += amount;
+    smallCount += 1;
+    const place = places.get(key) ?? { text: e.text, key, count: 0, total: 0 };
+    place.count += 1;
+    place.total += amount;
+    places.set(key, place);
+  }
+
+  biggest.sort((a, b) => b.amount - a.amount || a.date.localeCompare(b.date));
+  return {
+    biggest,
+    small: {
+      total: smallTotal,
+      count: smallCount,
+      // Most money first; between equals, the place visited more often.
+      places: [...places.values()].sort((a, b) => b.total - a.total || b.count - a.count),
+    },
+  };
+}
+
+/** Where the small-purchase limit starts: 200 kronor, 3 000 yen, or 20 of
+ *  the others — roughly the same coffee-and-a-bun in each. */
+export function defaultSmallLimit(currency: string): number {
+  if (currency === 'sek') return 200;
+  if (currency === 'jpy') return 3000;
+  return 20;
+}
+
+/** The limits offered, around the default. */
+export function smallLimitChoices(currency: string): number[] {
+  if (currency === 'sek') return [50, 100, 200, 300, 500];
+  if (currency === 'jpy') return [500, 1000, 2000, 3000, 5000];
+  return [5, 10, 20, 30, 50];
+}

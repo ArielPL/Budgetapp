@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the phone's own backup may carry (Android 12 and later).
+
+  Ariel's decision, 2026-09-26: the user's Google backup MAY include the budget,
+  so it follows them to a new phone. It is the user's own backup, encrypted in
+  their Google account; the developer never has access to it.
+
+  ONLY the app's database is included: the budget lives there (see
+  src/nativeStorage.ts). The WebView's own folders are left out on purpose —
+  they hold caches and, on early test builds, a stale copy of old data.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+    </device-transfer>
+</data-extraction-rules>

@@ -6,6 +6,7 @@
 // whole app on every tab. 'custom' is a separate palette: the user's
 // per-var overrides layered on top of a base (Sorbet of the active mode).
 
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { appStorage } from './storage';
 
 export type PaletteId = 'sorbet' | 'ocean' | 'forest' | 'sunset' | 'custom';
@@ -347,6 +348,17 @@ export function applyVars(vars: ThemeVars, mode: Mode): void {
   // Keep data-theme honest so chart axis colors (Charts/YearTab/GrowthChart,
   // which read dataset.theme === 'light') stay legible.
   root.setAttribute('data-theme', mode);
+  // The browser's own bar (and an installed app's title bar) in the theme's
+  // background, rather than the dark one index.html once hard-coded.
+  const bg = vars['--bg'];
+  if (bg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+  // In the iOS and Android apps the page draws behind the status bar, so its
+  // clock and icons must contrast with THIS theme, not with the phone's own
+  // light or dark setting: light icons on a dark header, dark on a light one.
+  if (Capacitor.isNativePlatform()) {
+    SystemBars.setStyle({ style: mode === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light })
+      .catch(() => { /* cosmetic — never worth failing a theme change over */ });
+  }
 }
 
 /**
@@ -422,9 +434,12 @@ export function loadThemeState(): ThemeState {
     }
   }
 
-  // v0 light/dark toggle migration.
+  // v0 light/dark toggle migration — and, with nothing stored at all, a new
+  // install. That starts LIGHT (Ariel, 2026-10-03). Everyone who has opened
+  // the app before has a mode stored (App writes it on every start), so this
+  // changes how nobody's app already looks.
   const legacy = appStorage.getItem(LS_LEGACY_THEME);
-  const mode: Mode = legacy === 'light' ? 'light' : 'dark';
+  const mode: Mode = legacy === 'dark' ? 'dark' : 'light';
   return { palette: 'sorbet', mode, custom: {} };
 }
 

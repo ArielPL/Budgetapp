@@ -125,48 +125,48 @@ describe('planPersist never drops an entry', () => {
 
 describe('repairFiling puts stored entries where the rule says', () => {
 
-  it('moves misfiled entries and says how many', () => {
+  it('moves misfiled entries and says how many', async () => {
     const s = withPayDay(calendarFiledAugust());
-    const step = repairFiling(s, new Date('2026-09-22T08:00:00Z'));
+    const step = await repairFiling(s, new Date('2026-09-22T08:00:00Z'));
     expect(step?.action).toBe('refileRepair');
     expect(step?.count).toBe(2);
     expect(whereIs(s)).toEqual({ a1: '2026_7', a2: '2026_8', a3: '2026_8' });
   });
 
-  it('loses nothing — every entry is still there, exactly once', () => {
+  it('loses nothing — every entry is still there, exactly once', async () => {
     const s = withPayDay(calendarFiledAugust());
     s.setItem(actualsKey(2026, 8), JSON.stringify([entry('s1', '2026-09-05')]));
-    repairFiling(s);
+    await repairFiling(s);
     expect(Object.keys(whereIs(s)).sort()).toEqual(['a1', 'a2', 'a3', 's1']);
   });
 
-  it('does nothing, and records nothing, when the filing already agrees', () => {
+  it('does nothing, and records nothing, when the filing already agrees', async () => {
     const s = withPayDay(new FakeStorage());
     s.setItem(actualsKey(2026, 7), JSON.stringify([entry('a1', '2026-08-10')]));
     const before = new Map(s.map);
-    expect(repairFiling(s)).toBeNull();
+    expect(await repairFiling(s)).toBeNull();
     expect(s.map).toEqual(before);
     expect(readUndo(s)).toEqual([]);
   });
 
-  it('is idempotent — a second start finds nothing to do', () => {
+  it('is idempotent — a second start finds nothing to do', async () => {
     const s = withPayDay(calendarFiledAugust());
-    repairFiling(s);
-    expect(repairFiling(s)).toBeNull();
+    await repairFiling(s);
+    expect(await repairFiling(s)).toBeNull();
   });
 
-  it('can be taken back exactly', () => {
+  it('can be taken back exactly', async () => {
     const s = withPayDay(calendarFiledAugust());
     const original = s.getItem(actualsKey(2026, 7));
-    repairFiling(s);
-    expect(undoLast(s)?.action).toBe('refileRepair');
+    await repairFiling(s);
+    expect((await undoLast(s))?.action).toBe('refileRepair');
     expect(s.getItem(actualsKey(2026, 7))).toBe(original);
     expect(loadActuals(s, 2026, 8)).toEqual([]);
   });
 
-  it('leaves calendar filing alone when no pay period is set', () => {
+  it('leaves calendar filing alone when no pay period is set', async () => {
     const s = calendarFiledAugust();   // no PERIOD_START_KEY
-    expect(repairFiling(s)).toBeNull();
+    expect(await repairFiling(s)).toBeNull();
     expect(whereIs(s)).toEqual({ a1: '2026_7', a2: '2026_7', a3: '2026_7' });
   });
 });
@@ -199,11 +199,11 @@ const ids = (s: FakeStorage) => Object.keys(whereIs(s)).map(k => k.replace('new-
 describe('re-importing the same statement restores what was lost', () => {
   const dates = ['2026-08-10', '2026-08-26', '2026-08-28'];
 
-  it('brings back the missing entries and nothing twice', () => {
+  it('brings back the missing entries and nothing twice', async () => {
     // a2 and a3 were lost; a1 survived in August.
     const s = withPayDay(new FakeStorage());
     s.setItem(actualsKey(2026, 7), JSON.stringify([entry('a1', '2026-08-10')]));
-    repairFiling(s);
+    await repairFiling(s);
     importInto(s, reimported(['a1', 'a2', 'a3'], dates), 25);
     expect(ids(s)).toEqual(['a1', 'a2', 'a3']);
     expect(Object.keys(whereIs(s))).toHaveLength(3);
@@ -217,9 +217,9 @@ describe('re-importing the same statement restores what was lost', () => {
     expect(Object.keys(whereIs(s))).toHaveLength(5);
   });
 
-  it('adds nothing at all once the repair has put everything home', () => {
+  it('adds nothing at all once the repair has put everything home', async () => {
     const s = withPayDay(calendarFiledAugust());
-    repairFiling(s);
+    await repairFiling(s);
     importInto(s, reimported(['a1', 'a2', 'a3'], dates), 25);
     expect(Object.keys(whereIs(s))).toHaveLength(3);
   });
