@@ -1,5 +1,5 @@
 import { useState, useId, useRef } from 'react';
-import type { PlanData, SavingsGoal } from '../types';
+import type { MonthData, PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { validateNewGoal, type GoalFormError } from '../goalForm';
 import { useLang, MONTHS, type Translations } from '../i18n';
@@ -23,6 +23,9 @@ interface Props {
   savedThisMonth: number | null; // how far the balance moved; null = not recorded
   year: number;
   month: number;
+  /** The month on screen as the app holds it, for the savings plan's
+   *  comparison — see SparPlanSection's `live`. */
+  monthData?: MonthData;
 }
 
 const GoalCard = ({ goal, onUpdate, onDelete }: {
@@ -270,7 +273,7 @@ const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (data: Pla
   );
 };
 
-export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, month }: Props) => {
+export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, month, monthData }: Props) => {
   const { lang, t, money } = useLang();
 
   // ── Overview highlights (current month) ──
@@ -361,7 +364,7 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
       </section>
 
       {/* ── Savings plan: projection + plan-vs-actual ── */}
-      <SparPlanSection />
+      <SparPlanSection live={monthData ? { year, month, data: monthData } : undefined} />
 
       {/* ── Goals ── */}
       <GoalsSection data={data} onChange={onChange} />

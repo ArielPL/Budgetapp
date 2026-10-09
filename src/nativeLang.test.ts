@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const native = vi.hoisted(() => ({ on: false, set: vi.fn(() => Promise.resolve()) }));
+const native = vi.hoisted(() => ({
+  on: false, set: vi.fn(() => Promise.resolve()), theme: vi.fn(() => Promise.resolve()),
+}));
 vi.mock('@capacitor/core', () => ({
   Capacitor: { isNativePlatform: () => native.on },
-  registerPlugin: () => ({ set: native.set }),
+  registerPlugin: () => ({ set: native.set, theme: native.theme }),
 }));
 
-const { tellNativeLang } = await import('./nativeLang');
+const { tellNativeLang, tellNativeTheme } = await import('./nativeLang');
 
 describe('tellNativeLang', () => {
   beforeEach(() => { native.set.mockClear(); });
@@ -27,6 +29,26 @@ describe('tellNativeLang', () => {
     native.on = true;
     native.set.mockImplementationOnce(() => Promise.reject(new Error('not implemented')));
     expect(() => tellNativeLang('en')).not.toThrow();
+    await Promise.resolve();
+  });
+});
+
+describe('tellNativeTheme (full sweep 2026-10-08)', () => {
+  beforeEach(() => { native.theme.mockClear(); });
+
+  it('tells a phone app the theme and its background, for the app-switcher cover', () => {
+    native.on = true;
+    tellNativeTheme('dark', '#0f172a');
+    expect(native.theme).toHaveBeenCalledWith({ mode: 'dark', background: '#0f172a' });
+  });
+
+  it('does nothing on the web, and never throws on an older shell', async () => {
+    native.on = false;
+    tellNativeTheme('light', '#fbfaff');
+    expect(native.theme).not.toHaveBeenCalled();
+    native.on = true;
+    native.theme.mockImplementationOnce(() => Promise.reject(new Error('not implemented')));
+    expect(() => tellNativeTheme('light', '#fbfaff')).not.toThrow();
     await Promise.resolve();
   });
 });

@@ -39,7 +39,7 @@ import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
 import { goalsJustReached, celebrate } from './rewards';
-import { tellNativeLang } from './nativeLang';
+import { tellNativeLang, tellNativeTheme } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
@@ -130,6 +130,9 @@ function App({ startupRepair = null }: AppProps) {
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   const [debtState, setDebtState] = useState<DebtState>(() => loadDebts(appStorage));
   const [budgetImportOpen, setBudgetImportOpen] = useState(false);
+  /** Bumped when recorded entries are stored or moved, for views that read
+   *  them from storage beside Follow-up (the Debt tab in Combined). */
+  const [actualsRevision, bumpActuals] = useReducer((n: number) => n + 1, 0);
   // ── Theme Builder: palette family + light/dark mode + override map ──
   // Loaded once via a lazy useState (never re-read; reading a ref during render
   // is disallowed by react-hooks/refs).
@@ -295,7 +298,10 @@ function App({ startupRepair = null }: AppProps) {
   // the saved theme before first paint; this keeps :root in sync on changes.
   useEffect(() => {
     const state = { palette: themePalette, mode: themeMode, custom: themeCustom };
-    applyVars(resolveVars(state), themeMode);
+    const vars = resolveVars(state);
+    applyVars(vars, themeMode);
+    // The iOS app-switcher cover in this theme's own background.
+    tellNativeTheme(themeMode, vars['--bg'] ?? '');
     let ok = safeSetItem(appStorage, LS_PALETTE, themePalette);
     ok = safeSetItem(appStorage, LS_MODE, themeMode) && ok;
     // Stored for any family, not only the legacy 'custom' palette — the whole
@@ -593,8 +599,10 @@ function App({ startupRepair = null }: AppProps) {
           return;
         }
         // Sent to another app, which may or may not have kept it: ask, as the
-        // web's plain download does, and write the date only on a yes.
-        if (window.confirm(t.backupConfirmSaved)) markBackupDone();
+        // web's plain download does, and write the date only on a yes. In the
+        // share sheet's own words — nothing was "downloaded" here (full sweep
+        // 2026-10-08).
+        if (window.confirm(t.backupConfirmShared)) markBackupDone();
       } catch {
         alert(t.backupShareFailed);
       }
@@ -772,6 +780,7 @@ function App({ startupRepair = null }: AppProps) {
       return false;
     }
     if (plan.moving > 0) {
+      bumpActuals();
       recordUndo({
         at: new Date().toISOString(),
         action: 'periodChange',
@@ -792,7 +801,7 @@ function App({ startupRepair = null }: AppProps) {
       key: PERIOD_LOCKS_KEY,
       value: Object.keys(next).length === 0 ? null : JSON.stringify(next),
     };
-    if (!(await applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`, setting))) return;
+    if (!(await applyPeriodChange(periodStartDay, next, `${inSentence(MONTHS[lang][m], lang)} ${y}`, setting))) return;
     setPeriodLocks(next);
   };
 
@@ -826,10 +835,10 @@ function App({ startupRepair = null }: AppProps) {
   // Budget tab, and only from there leave — minimised, like Home, so nothing
   // in progress is lost. Without this, Back with the menu open closed the app
   // (iOS/Android review, 2026-09-26). iPhones have no such button.
-  const backState = useRef({ activeTab, pickerOpen, tabbed: false });
+  const backState = useRef({ activeTab, pickerOpen, walletsScreen, tabbed: false });
   useEffect(() => {
     backState.current = {
-      activeTab, pickerOpen,
+      activeTab, pickerOpen, walletsScreen,
       tabbed: layout === 'classic' || (layout === 'custom' && customTabs),
     };
   });
@@ -841,6 +850,10 @@ function App({ startupRepair = null }: AppProps) {
       if (closeTopLayer()) return;
       const now = backState.current;
       if (now.pickerOpen) { setPickerOpen(false); return; }
+      // The wallets are a screen opened from the menu, not the budget: Back
+      // returns to the budget rather than leaving the app from a wallet (full
+      // sweep 2026-10-08).
+      if (now.walletsScreen) { setWalletsScreen(false); return; }
       if (now.tabbed && now.activeTab !== 'budget') { changeTab('budget'); return; }
       void NativeApp.minimizeApp();
     })).then(h => {
@@ -884,7 +897,8 @@ function App({ startupRepair = null }: AppProps) {
     // names, categories, an order and a per-year marking — all of it the user's,
     // and all of it about to be replaced.
     if (hasBudgetContent(data) && !window.confirm(
-      t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
+      // Both months sit mid-sentence: lower case in sv and es (inSentence).
+      t.copyPrevMonthConfirm(inSentence(prevName, lang), `${inSentence(MONTHS[lang][month], lang)} ${year}`),
     )) return;
 
     // Captured before setData, like every other step back here: the save effect
@@ -983,11 +997,11 @@ function App({ startupRepair = null }: AppProps) {
     const nextMth  = month === 11 ? 0 : month + 1;
     // Ask before replacing a month the user has already built.
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
-      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
+      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${inSentence(MONTHS[lang][month], lang)} ${year}`),
     )) return;
     if (!(await applyCopy([{ y: nextYear, m: nextMth }]))) return;
     setMenuOpen(false);
-    showMsg(t.copiedTo(MONTHS[lang][nextMth]));
+    showMsg(t.copiedTo(inSentence(MONTHS[lang][nextMth], lang)));
   };
 
   const copyToAllRemaining = async () => {
@@ -1010,7 +1024,8 @@ function App({ startupRepair = null }: AppProps) {
   // month-load effect). The save effect persists this to the current month's key.
   const resetCurrentMonth = () => {
     // Name the exact month in the confirm so the user knows what's being wiped.
-    const name = `${MONTHS[lang][month]} ${year}`;
+    // Mid-sentence ('för oktober 2026'): lower case in sv and es.
+    const name = `${inSentence(MONTHS[lang][month], lang)} ${year}`;
     // The month's RECORDED ENTRIES are deliberately not cleared. A plan can be
     // retyped in a minute; the record of what was actually spent has to be
     // imported from the bank again. But the dialog has to say so — it used to
@@ -1110,6 +1125,8 @@ function App({ startupRepair = null }: AppProps) {
       if (oldSparande) {
         let goalsChanged = false;
         let unlinkedName = '';
+        // Linked rows renamed here, as rowId → new label, for the other months.
+        const renamedRows = new Map<string, string>();
         const updatedGoals = planData.goals.map(goal => {
           if (!goal.budgetRowId) return goal;
           const oldRow = oldSparande.rows.find(r => r.id === goal.budgetRowId);
@@ -1145,6 +1162,7 @@ function App({ startupRepair = null }: AppProps) {
           if (newRow.label !== oldRow.label) {
             updated = { ...updated, name: newRow.label };
             goalsChanged = true;
+            renamedRows.set(newRow.id, newRow.label);
           }
 
           return updated;
@@ -1152,6 +1170,15 @@ function App({ startupRepair = null }: AppProps) {
         if (goalsChanged) {
           setPlanData(pd => ({ ...pd, goals: updatedGoals }));
           rewardReachedGoals(planData.goals, updatedGoals);
+        }
+        // The same row in every other month takes the new name too — the
+        // sweep a goal renamed in Plan already gets (handlePlanDataChange).
+        // Renamed here, August kept the old name while September and the goal
+        // said the new one (full sweep 2026-10-08). The month on screen is
+        // renamed in state below, so its key is skipped.
+        if (renamedRows.size > 0
+          && !sweepGoalRows(appStorage, new Set(), renamedRows, storageKey(year, month))) {
+          setSaveFailed(true);
         }
         // Say so out loud — an unlink is invisible otherwise, and the row not
         // coming back is exactly the behaviour change worth explaining.
@@ -1741,6 +1768,7 @@ function App({ startupRepair = null }: AppProps) {
         savedThisMonth={savedThisMonthAmount}
         year={year}
         month={month}
+        monthData={data}
       />
     </Suspense>
   );
@@ -1761,13 +1789,14 @@ function App({ startupRepair = null }: AppProps) {
         onLockPeriod={lockPeriod}
         planNamedCategory={planNamedCategory}
         onRecordUndo={recordUndo}
+        onActualsChanged={bumpActuals}
       />
     </Suspense>
   );
 
   const yearView = (
     <Suspense fallback={lazyFallback}>
-      <YearTab year={year} />
+      <YearTab year={year} live={{ month, data }} />
     </Suspense>
   );
 
@@ -1782,6 +1811,7 @@ function App({ startupRepair = null }: AppProps) {
         loanRows={data.expenses.find(c => c.id === 'lan')?.rows ?? []}
         onSave={commitDebts}
         onDelete={deleteDebt}
+        actualsRevision={actualsRevision}
       />
     </Suspense>
   );

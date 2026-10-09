@@ -12,6 +12,7 @@
 
 import type { StorageLike } from './storage';
 import type { StorageChange } from './storageWrite';
+import { toCents } from './money';
 
 export const WALLETS_KEY = 'budget_wallets';
 /** Which panel Custom opens on: a wallet's id, or absent for the budget. A
@@ -197,8 +198,11 @@ export function walletSummary(w: Wallet, today: string): WalletSummary {
   if (w.from && t < dayNumber(w.from)) timing = { kind: 'before', days: dayNumber(w.from) - t };
   else if (w.to && t > dayNumber(w.to)) timing = { kind: 'after' };
   else if (w.to) timing = { kind: 'during', daysLeft: dayNumber(w.to) - t + 1 };
+  // To the cent, or a wallet spent to the cent read as "0 € over" — toCents.
+  spent = toCents(spent);
   return {
-    spent, left: w.total - spent, plannedInPots, timing, unassigned: byPot.get('') ?? 0,
-    pots: w.pots.map(pot => ({ pot, spent: byPot.get(pot.id) ?? 0 })),
+    spent, left: toCents(w.total - spent), plannedInPots: toCents(plannedInPots), timing,
+    unassigned: toCents(byPot.get('') ?? 0),
+    pots: w.pots.map(pot => ({ pot, spent: toCents(byPot.get(pot.id) ?? 0) })),
   };
 }

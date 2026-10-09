@@ -29,13 +29,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // covers Control Center and the notification shade — and comes off when the
     // app is active again. It looks like the launch screen: the light
     // background and the icon. Screenshots are not affected.
+    //
+    // In the APP's theme, not the phone's: a dark app used to flash a white
+    // card in the switcher (full sweep 2026-10-08). The page tells which theme
+    // and background it shows through AppLangPlugin.theme; until it has, the
+    // launch screen's light colour.
     private var cover: UIView?
 
     func sceneWillResignActive(_ scene: UIScene) {
         guard cover == nil, let window = window else { return }
         let view = UIView(frame: window.bounds)
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        view.backgroundColor = UIColor(red: 0xfb / 255, green: 0xfa / 255, blue: 0xff / 255, alpha: 1)
+        view.backgroundColor = AppLangPlugin.coverColor
         let icon = UIImageView(image: UIImage(named: "Splash"))
         icon.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(icon)
@@ -126,10 +131,47 @@ public class AppLangPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "AppLangPlugin"
     public let jsName = "AppLang"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "theme", returnType: CAPPluginReturnPromise)
     ]
 
     static var lang: String?
+    /// The app's theme ("light" / "dark") and its background, as the page last
+    /// said — for the app-switcher cover. Read on the main thread.
+    static var themeMode: String?
+    static var themeBackground: UIColor?
+
+    /// The launch screen's light background, and Sorbet's dark one: what each
+    /// theme looks like when the page sent no colour this app can read.
+    private static let lightBackground = UIColor(red: 0xfb / 255, green: 0xfa / 255, blue: 0xff / 255, alpha: 1)
+    private static let darkBackground = UIColor(red: 0x0f / 255, green: 0x17 / 255, blue: 0x2a / 255, alpha: 1)
+
+    static var coverColor: UIColor {
+        if let bg = themeBackground { return bg }
+        return themeMode == "dark" ? darkBackground : lightBackground
+    }
+
+    /// "#rgb" or "#rrggbb", or nil for anything else (a custom theme value is
+    /// any string the user's override map holds).
+    static func color(hex: String) -> UIColor? {
+        var s = hex.trimmingCharacters(in: .whitespaces)
+        guard s.hasPrefix("#") else { return nil }
+        s.removeFirst()
+        if s.count == 3 { s = s.map { "\($0)\($0)" }.joined() }
+        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
+        return UIColor(red: CGFloat((v >> 16) & 0xff) / 255, green: CGFloat((v >> 8) & 0xff) / 255,
+                       blue: CGFloat(v & 0xff) / 255, alpha: 1)
+    }
+
+    @objc func theme(_ call: CAPPluginCall) {
+        let mode = call.getString("mode")
+        let background = call.getString("background").flatMap { AppLangPlugin.color(hex: $0) }
+        DispatchQueue.main.async {
+            AppLangPlugin.themeMode = mode
+            AppLangPlugin.themeBackground = background
+        }
+        call.resolve()
+    }
     /// The same three languages as the app (src/i18n.ts).
     static let buttons: [String: [String: String]] = [
         "sv": ["Cancel": "Avbryt", "OK": "OK"],

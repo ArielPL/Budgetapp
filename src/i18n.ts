@@ -154,8 +154,10 @@ function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat
 /** Format an amount with the given currency's symbol/grouping (no conversion).
  *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
-  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount));
-  const rounded = Math.round(amount * 100) / 100;
+  // `|| 0` turns −0 into 0: Intl prints negative zero as "−0 kr", and a tiny
+  // negative remainder rounds to exactly that (full sweep 2026-10-08).
+  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount) || 0);
+  const rounded = Math.round(amount * 100) / 100 || 0;
   const hasCents = !Number.isInteger(rounded);
   return getFormatter(currency, hasCents).format(rounded);
 }
@@ -1082,6 +1084,9 @@ export interface Translations {
    *  on. The date in the menu is a promise that a file exists, so it is only
    *  written on a yes (review 2026-09-18, F5). */
   backupConfirmSaved: string;
+  /** The same question in the apps, after the share sheet: nothing was
+   *  downloaded there, the file went to another app. */
+  backupConfirmShared: string;
   /** The share sheet's title for a backup file (iOS/Android). */
   backupShareTitle: string;
   backupShareFailed: string;
@@ -1949,6 +1954,7 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
     backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
+    backupConfirmShared: 'Kontrollera att filen kom fram dit du skickade den.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om den inte sparades där — då står datumet kvar som förut.',
     backupShareTitle: 'Budget – säkerhetskopia',
     backupShareFailed: 'Säkerhetskopian kunde inte skapas. Ingenting har ändrats — försök igen.',
     backupSaved: '✓ Säkerhetskopia sparad',
@@ -2834,6 +2840,7 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
     backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
+    backupConfirmShared: 'Check that the file arrived where you sent it.\n\nPress OK and the app will record that you have a backup from today. Cancel if it was not saved there — the previous date then stays as it was.',
     backupShareTitle: 'Budget – backup',
     backupShareFailed: 'The backup could not be created. Nothing has changed — please try again.',
     backupSaved: '✓ Backup saved',
@@ -3719,6 +3726,7 @@ export const translations: Record<Lang, Translations> = {
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
     backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
+    backupConfirmShared: 'Comprueba que el archivo llegó a donde lo enviaste.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si no se guardó allí — entonces la fecha anterior se queda como estaba.',
     backupShareTitle: 'Budget – copia de seguridad',
     backupShareFailed: 'No se pudo crear la copia de seguridad. No ha cambiado nada; inténtalo de nuevo.',
     backupSaved: '✓ Copia de seguridad guardada',

@@ -366,7 +366,7 @@ export const CustomLinked = ({
         recorded={recorded} showDelta={recorded && hasSource(prevData, lb.source)}
         summary={summary} values={values} editing={editing}
         onRename={renameBlock} onRenameRow={renameRow} onDeleteRow={deleteRow}
-        onRecolorRow={() => {}} canRecolor={false}
+        onRecolorRow={() => {}} canRecolor={false} commitAmountsOnBlur
         onAddRow={addRow} onSetAmount={setAmount} onSetNote={setNoteText}
         noteText={noteTextFor(b, year, month)}
         noteScopeLabel={b.noteScope === 'month' ? t.noteScopeMonth(monthLabel) : t.noteScopeAll}

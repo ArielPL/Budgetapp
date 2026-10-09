@@ -23,14 +23,15 @@ const sorbetDark: ThemeVars = {
   '--border': '#334155',
   '--border-strong': '#475569',
   '--text': '#e2e8f0',
-  '--text-muted': '#8392a8', // AA ≥4.5:1 on --surface (was #64748b)
-  '--text-dim': '#94a3b8',
+  '--text-muted': '#919eb2', // AA ≥4.5:1 on --surface (was #64748b)
+  '--text-dim': '#a1aec2',
   '--income-color': '#22d3ee',
   '--positive': '#22c55e',
-  '--negative': '#ef4444',
+  '--negative': '#f37878',
   '--header-bg': 'rgba(15, 23, 42, 0.92)',
   '--accent-brand': '#a78bfa',
-  '--accent-brand-strong': '#8b5cf6',
+  '--accent-brand-strong': '#c4b5fd',
+  '--on-accent': '#1b1236', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#18241a',
   '--tint-remaining-text': '#c0dd97',
   '--tint-income-bg': '#11201c',
@@ -52,14 +53,15 @@ const sorbetLight: ThemeVars = {
   '--border': '#ece9f5',
   '--border-strong': '#d8d3ea',
   '--text': '#20203a',
-  '--text-muted': '#75718a', // AA ≥4.5:1 on --surface (was #9a96ad)
+  '--text-muted': '#6c687f', // AA ≥4.5:1 on --surface (was #9a96ad)
   '--text-dim': '#5d5972',
-  '--income-color': '#0fa99a',
-  '--positive': '#2f9e44',
-  '--negative': '#e8590c',
+  '--income-color': '#0b7b70',
+  '--positive': '#257d36',
+  '--negative': '#bc480a',
   '--header-bg': 'rgba(251, 250, 255, 0.9)',
-  '--accent-brand': '#8b5cf6',
-  '--accent-brand-strong': '#7c3aed',
+  '--accent-brand': '#7c3aed',
+  '--accent-brand-strong': '#6d28d9',
+  '--on-accent': '#ffffff', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#eaf3de',
   '--tint-remaining-text': '#173404',
   '--tint-income-bg': '#e1f5ee',
@@ -82,14 +84,15 @@ const oceanDark: ThemeVars = {
   '--border': '#1e425f',
   '--border-strong': '#2d597d',
   '--text': '#e3eef7',
-  '--text-muted': '#6f93ad',
+  '--text-muted': '#7b9cb4',
   '--text-dim': '#9cb9d1',
   '--income-color': '#2dd4bf',
   '--positive': '#34d399',
   '--negative': '#fb7185',
   '--header-bg': 'rgba(10, 25, 41, 0.92)',
   '--accent-brand': '#38bdf8',
-  '--accent-brand-strong': '#0ea5e9',
+  '--accent-brand-strong': '#7dd3fc',
+  '--on-accent': '#04283e', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#0d2b2a',
   '--tint-remaining-text': '#7fe6d6',
   '--tint-income-bg': '#0c2a28',
@@ -111,14 +114,15 @@ const oceanLight: ThemeVars = {
   '--border': '#d4e6f3',
   '--border-strong': '#b3d2e8',
   '--text': '#0e2a40',
-  '--text-muted': '#547997', // AA ≥4.5:1 on --surface (was #6286a1)
+  '--text-muted': '#4a6a85', // AA ≥4.5:1 on --surface (was #6286a1)
   '--text-dim': '#3f6688',
-  '--income-color': '#0d9488',
-  '--positive': '#0f9d6e',
-  '--negative': '#dc4b63',
+  '--income-color': '#0b7970',
+  '--positive': '#0c7c57',
+  '--negative': '#bd4155',
   '--header-bg': 'rgba(243, 249, 253, 0.9)',
-  '--accent-brand': '#0ea5e9',
-  '--accent-brand-strong': '#0284c7',
+  '--accent-brand': '#0369a1',
+  '--accent-brand-strong': '#075985',
+  '--on-accent': '#ffffff', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#dcf3ee',
   '--tint-remaining-text': '#0a3d36',
   '--tint-income-bg': '#d6f1ea',
@@ -141,14 +145,15 @@ const forestDark: ThemeVars = {
   '--border': '#244833',
   '--border-strong': '#356147',
   '--text': '#e4f0e7',
-  '--text-muted': '#6f9a7e',
+  '--text-muted': '#7ba288',
   '--text-dim': '#9fc2ab',
   '--income-color': '#34d399',
   '--positive': '#4ade80',
   '--negative': '#f87171',
   '--header-bg': 'rgba(12, 26, 18, 0.92)',
   '--accent-brand': '#5ec98a',
-  '--accent-brand-strong': '#3fae6c',
+  '--accent-brand-strong': '#86d9a6',
+  '--on-accent': '#072a1b', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#13301f',
   '--tint-remaining-text': '#a7e6b8',
   '--tint-income-bg': '#0f2c20',
@@ -170,14 +175,15 @@ const forestLight: ThemeVars = {
   '--border': '#d4e8d9',
   '--border-strong': '#b4d6bd',
   '--text': '#13301f',
-  '--text-muted': '#527e61', // AA ≥4.5:1 on --surface (was #5f8a6e)
+  '--text-muted': '#497056', // AA ≥4.5:1 on --surface (was #5f8a6e)
   '--text-dim': '#3d6b4d',
-  '--income-color': '#0f9d6e',
-  '--positive': '#1f9d4d',
-  '--negative': '#dc5b4b',
+  '--income-color': '#0c7c57',
+  '--positive': '#187c3d',
+  '--negative': '#b44b3e',
   '--header-bg': 'rgba(244, 250, 245, 0.9)',
-  '--accent-brand': '#16a34a',
-  '--accent-brand-strong': '#15803d',
+  '--accent-brand': '#12773a',
+  '--accent-brand-strong': '#166534',
+  '--on-accent': '#ffffff', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#dcf1e2',
   '--tint-remaining-text': '#0c3a1d',
   '--tint-income-bg': '#d6f0e2',
@@ -200,14 +206,15 @@ const sunsetDark: ThemeVars = {
   '--border': '#4d2f3b',
   '--border-strong': '#6b4252',
   '--text': '#f6e7ec',
-  '--text-muted': '#b07f8f',
+  '--text-muted': '#b58796',
   '--text-dim': '#d0a4b1',
   '--income-color': '#fbbf24',
   '--positive': '#4ade80',
-  '--negative': '#f43f5e',
+  '--negative': '#f66079',
   '--header-bg': 'rgba(28, 17, 23, 0.92)',
   '--accent-brand': '#fb7185',
-  '--accent-brand-strong': '#f43f5e',
+  '--accent-brand-strong': '#fda4af',
+  '--on-accent': '#3b0b1d', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#2d2014',
   '--tint-remaining-text': '#f7d79a',
   '--tint-income-bg': '#2e2412',
@@ -229,14 +236,15 @@ const sunsetLight: ThemeVars = {
   '--border': '#f3dcd9',
   '--border-strong': '#e6bdba',
   '--text': '#3a1a22',
-  '--text-muted': '#996674', // AA ≥4.5:1 on --surface (was #a87482)
+  '--text-muted': '#875a66', // AA ≥4.5:1 on --surface (was #a87482)
   '--text-dim': '#7d4a58',
-  '--income-color': '#d97706',
-  '--positive': '#1f9d4d',
-  '--negative': '#e11d48',
+  '--income-color': '#a15804',
+  '--positive': '#187a3c',
+  '--negative': '#d11b43',
   '--header-bg': 'rgba(253, 246, 243, 0.9)',
-  '--accent-brand': '#f43f5e',
-  '--accent-brand-strong': '#e11d48',
+  '--accent-brand': '#be123c',
+  '--accent-brand-strong': '#9f1239',
+  '--on-accent': '#ffffff', // ink on --accent-brand fills (AA)
   '--tint-remaining-bg': '#fcecd6',
   '--tint-remaining-text': '#5a3a0c',
   '--tint-income-bg': '#fcedd2',
@@ -336,7 +344,39 @@ export function baseVars(palette: PaletteId, mode: Mode): ThemeVars {
  * variables with Sorbet's, in one tap, with no way back.
  */
 export function resolveVars(state: ThemeState): ThemeVars {
-  return { ...PALETTES[baseFamily(state.palette)][state.mode], ...state.custom };
+  const vars = { ...PALETTES[baseFamily(state.palette)][state.mode], ...state.custom };
+  // A picked accent can be any colour, so the family's ink (white or dark,
+  // chosen for ITS accent) may not suit it: a white label on a pale amber
+  // button is 1.6:1. Choose the ink for the colour actually in use.
+  const picked = state.custom['--accent-brand'];
+  if (picked && !state.custom['--on-accent']) {
+    const ink = inkFor(picked);
+    if (ink) vars['--on-accent'] = ink;
+  }
+  return vars;
+}
+
+const INK_LIGHT = '#ffffff';
+const INK_DARK = '#14101f';
+
+function luminance(hex: string): number | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const lin = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+}
+
+/** White or near-black, whichever reads better on `accent` (null if not #rrggbb). */
+function inkFor(accent: string): string | null {
+  const l = luminance(accent);
+  if (l === null) return null;
+  const onWhite = 1.05 / (l + 0.05);
+  const onDark = (l + 0.05) / (luminance(INK_DARK)! + 0.05);
+  return onWhite >= onDark ? INK_LIGHT : INK_DARK;
 }
 
 /** Apply a full var map inline on :root, and set data-theme for chart tints. */

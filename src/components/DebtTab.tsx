@@ -43,6 +43,9 @@ interface Props {
   /** Remove a debt; with `removeRow`, its row in the month on screen too.
    *  Resolves to what to tell the user, or null when nothing was stored. */
   onDelete: (id: string, removeRow: boolean) => Promise<string | null>;
+  /** Bumped whenever recorded entries are stored, so "paid this month" is
+   *  read again — in the Combined layout Follow-up sits on the same page. */
+  actualsRevision?: number;
 }
 
 const todayIso = () => {
@@ -50,7 +53,9 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, onSave, onDelete }: Props) => {
+export const DebtTab = ({
+  state, year, month, canAddRow, remaining, loanRows, onSave, onDelete, actualsRevision = 0,
+}: Props) => {
   const { t, lang, money } = useLang();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -95,11 +100,15 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
   const hasRow = (d: Debt) => d.budgetRowId !== undefined && loanRows.some(r => r.id === d.budgetRowId);
 
   // What Follow-up recorded under "Lån & skulder" in the month on screen.
+  // Re-read when entries are stored: in Combined, Follow-up is on the same
+  // page and a new loan payment there left this a step behind (full sweep
+  // 2026-10-08). `actualsRevision` is only a signal to read again.
   const paidThisMonth = useMemo(
     () => loadActuals(appStorage, year, month)
       .filter(e => e.categoryId === 'lan')
       .reduce((s, e) => s + actualContribution(e), 0),
-    [year, month],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [year, month, actualsRevision],
   );
 
   const saveExtra = () => {

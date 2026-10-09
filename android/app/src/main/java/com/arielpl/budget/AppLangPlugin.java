@@ -22,6 +22,17 @@ public class AppLangPlugin extends Plugin {
         call.resolve();
     }
 
+    /** The app's theme, as the page last said ("light" / "dark"). Android
+     *  needs no cover of its own (MainActivity hides the app from the switcher
+     *  differently), so it is only kept; resolving keeps the shared call quiet. */
+    static volatile String themeMode;
+
+    @PluginMethod
+    public void theme(PluginCall call) {
+        themeMode = call.getString("mode");
+        call.resolve();
+    }
+
     static String cancel(Context context) {
         if ("sv".equals(lang)) return "Avbryt";
         if ("en".equals(lang)) return "Cancel";

@@ -34,6 +34,7 @@
 //   • Leftover rate = remaining ÷ income = the share of income not yet budgeted.
 
 import type { MonthData, BudgetCategory, BudgetRow, RowPeriod } from './types';
+import { toCents } from './money';
 
 /** The savings category treated as a separate long-term bucket. Excluded from
  *  every "saved" total so Savings, Plan and Year never disagree. */
@@ -58,7 +59,8 @@ export function recursNextMonth(row: BudgetRow): boolean {
 /** A row contributes exactly what it says. `period` is a timing label, never
  *  a multiplier — see RowPeriod in types.ts for why the division was removed. */
 export function sumRows(rows: BudgetRow[]): number {
-  return rows.reduce((s, r) => s + (r.amount || 0), 0);
+  // To the cent — see toCents for the "−0 €" this prevents.
+  return toCents(rows.reduce((s, r) => s + (r.amount || 0), 0));
 }
 
 export function categoryTotal(cat: BudgetCategory): number {
@@ -67,10 +69,10 @@ export function categoryTotal(cat: BudgetCategory): number {
 
 /** Sum a list of categories, optionally skipping one id (used to drop pension). */
 export function sumCategories(cats: BudgetCategory[], excludeId?: string): number {
-  return cats.reduce(
+  return toCents(cats.reduce(
     (s, c) => (excludeId && c.id === excludeId ? s : s + categoryTotal(c)),
     0,
-  );
+  ));
 }
 
 /** value/base as an integer percent, clamped to ≥ 0, and 0 when base ≤ 0 —

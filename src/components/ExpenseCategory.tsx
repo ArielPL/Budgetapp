@@ -108,7 +108,6 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
             stays reachable via title= (main review §12). */}
         <span
           className="section-total"
-          style={{ color: category.color }}
           title={Math.abs(total) >= 1e9 ? money(total) : undefined}
         >
           {Math.abs(total) >= 1e9 ? formatMoneyCompact(total, currency, lang) : money(total)}
@@ -129,7 +128,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
             ? t.ariaExpand(shownName(category, lang))
             : t.ariaCollapse(shownName(category, lang))}
           aria-expanded={!collapsed}
-          style={{ color: category.color, cursor: 'pointer', background: 'none', border: 'none', font: 'inherit', padding: 0 }}
+          style={{ cursor: 'pointer', background: 'none', border: 'none', font: 'inherit', padding: 0 }}
         >
           {collapsed ? '▸' : '▾'}
         </button>
@@ -220,7 +219,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
               </div>
             ))}
           </div>
-          <button className="add-row-btn" onClick={addRow} style={{ color: category.color }}>
+          <button className="add-row-btn" onClick={addRow}>
             {t.addRow}
           </button>
         </>

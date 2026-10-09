@@ -8,7 +8,7 @@ import { useLang, MONTHS, type Translations } from '../i18n';
 import { inSentence } from '../dateLabel';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
-import { parseMoneyOrZero, coerceStoredMoney } from '../money';
+import { parseMoneyOrZero, coerceStoredMoney, toCents } from '../money';
 import {
   EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
   type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
@@ -252,8 +252,12 @@ export function bgStyle(bg: string | null): CSSProperties | undefined {
 
   if (bg.startsWith('#')) {
     const lum = hexLuminance(bg);
-    // Light bg → dark ink; dark bg → light ink. Threshold ~0.55 reads well.
-    const ink = lum !== null && lum > 0.55 ? '#1a1a22' : '#ffffff';
+    // Whichever ink contrasts more with the background (WCAG ratio). A fixed
+    // 0.55 luminance cut-off put white on mid-tones like #f59e0b at ~2:1
+    // (contrast pass, 2026-10-09); the real crossover sits near 0.18.
+    const DARK_INK = '#1a1a22';
+    const darkLum = hexLuminance(DARK_INK)!;
+    const ink = lum !== null && (lum + 0.05) / (darkLum + 0.05) > 1.05 / (lum + 0.05) ? DARK_INK : '#ffffff';
     return { background: bg, borderColor: 'transparent', ['--cv3-ink' as string]: ink };
   }
 
@@ -541,16 +545,29 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // ── Copy last month: pull the previous month's amounts into this month ──
   const [toast, setToast] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (text: string) => {
+    setToast(text);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2200);
+  };
   const copyLastMonth = () => {
     const py = month === 0 ? year - 1 : year;
     const pm = month === 0 ? 11 : month - 1;
+    // Nothing recorded last month means nothing to copy. Copying it anyway
+    // wrote `{}` over this month — every amount gone behind a "Copied" toast
+    // (full sweep 2026-10-08). The Classic pull refuses the same way.
+    const source = loadValues(py, pm);
+    if (Object.keys(source).length === 0) {
+      showToast(t.copyPrevMonthEmpty(MONTHS[lang][pm]));
+      return;
+    }
     // This month's amounts are about to be replaced wholesale. Ask first when
     // there is something there — an explicitly recorded 0 included, since the
     // user typed that too.
     const hasOwn = appStorage.getItem(valuesKey(year, month)) !== null
       && Object.keys(values).length > 0;
     if (hasOwn && !window.confirm(
-      t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, MONTHS[lang][pm]),
+      t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, inSentence(MONTHS[lang][pm], lang)),
     )) return;
     onRecordUndo({
       at: new Date().toISOString(),
@@ -560,10 +577,8 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       count: 1,
       changes: captureKeys(appStorage, [valuesKey(year, month), customSnapshotKey(year, month)]),
     });
-    setValues(loadValues(py, pm)); // the save effect persists it to this month's key
-    setToast(t.copiedLastMonth);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 2200);
+    setValues(source); // the save effect persists it to this month's key
+    showToast(t.copiedLastMonth);
   };
   // Wipe every month's Custom amounts (keeps the block layout) — a clean-up for
   // data left over from the old month-bleed bug. Confirmed before running.
@@ -603,9 +618,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       changes: before,
     });
     setValues({});
-    setToast(t.clearedAmounts);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 2200);
+    showToast(t.clearedAmounts);
   };
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
@@ -781,9 +794,10 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   })), [blocks, t]);
 
   // ── Money math ──
-  const blockTotal = (b: CustomBlock) => b.rows.reduce((s, r) => s + (values[r.id] || 0), 0);
+  // To the cent, so a month spent to the cent is 0 left, not −0 — see toCents.
+  const blockTotal = (b: CustomBlock) => toCents(b.rows.reduce((s, r) => s + (values[r.id] || 0), 0));
   const sumTag = (tag: BlockTag) =>
-    blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockTotal(b), 0);
+    toCents(blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockTotal(b), 0));
   const summary = {
     income: sumTag('in'),
     expenses: sumTag('out'),
@@ -795,9 +809,9 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   const prevYear = month === 0 ? year - 1 : year;
   const prevMonth = month === 0 ? 11 : month - 1;
   const prevValues = useMemo(() => loadValues(prevYear, prevMonth), [prevYear, prevMonth]);
-  const blockPrev = (b: CustomBlock) => b.rows.reduce((s, r) => s + (prevValues[r.id] || 0), 0);
+  const blockPrev = (b: CustomBlock) => toCents(b.rows.reduce((s, r) => s + (prevValues[r.id] || 0), 0));
   const prevSumTag = (tag: BlockTag) =>
-    blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockPrev(b), 0);
+    toCents(blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockPrev(b), 0));
   const prevRemaining = prevSumTag('in') - prevSumTag('out');
 
   // ── What this month, and the one before it, actually hold ──────────────
@@ -1212,6 +1226,10 @@ export interface BlockContentProps {
   /** False where a row's colour is not the block's to change — a linked
    *  panel's rows take theirs from the regular budget. */
   canRecolor?: boolean;
+  /** Hand an amount over once it is entered (Enter, or leaving the field)
+   *  rather than on every keystroke — for a linked panel, whose amounts ARE
+   *  the regular budget's. See AmountInput. */
+  commitAmountsOnBlur?: boolean;
   /** A note's text for the month on screen, and where it is shown. */
   noteText: string;
   noteScopeLabel: string;
@@ -1223,7 +1241,7 @@ export interface BlockContentProps {
 export const BlockContent = ({
   block, total, prevTotal, prevRemaining, summary, values, recorded, showDelta, editing,
   onRename, onRenameRow, onDeleteRow, onRecolorRow, onAddRow, onSetAmount, onSetNote, noteText, noteScopeLabel,
-  canRecolor = true, money, currency, t,
+  canRecolor = true, commitAmountsOnBlur = false, money, currency, t,
 }: BlockContentProps) => {
   // Note block: a free-text block that contributes nothing to the money math.
   if (block.kind === 'note') {
@@ -1353,7 +1371,7 @@ export const BlockContent = ({
             placeholder={t.newRowName} ariaLabel={t.ariaNameField(`${block.name} – ${r.name || t.newRowName}`)}
             onChange={(v) => onRenameRow(block.id, r.id, v)} />
           <AmountInput value={values[r.id] || 0} ariaLabel={t.ariaAmountInput(`${block.name} – ${r.name || t.newRowName}`)}
-            onChange={(v) => onSetAmount(r.id, v)} />
+            commitOnBlur={commitAmountsOnBlur} onChange={(v) => onSetAmount(r.id, v)} />
           {editing && (
             <button className="cv3-row-del" onClick={() => onDeleteRow(block.id, r.id)}
               title={t.deleteRow} aria-label={t.ariaDeleteRow(r.name || t.newRowName)}>✕</button>
@@ -1500,7 +1518,17 @@ const InlineName = ({ value, editable, onChange, className, placeholder, ariaLab
 // though the user had asked for it (main review 2026-07-30 §4). `123abc`
 // became 123 the same way. A budget app may refuse a number; it may never
 // quietly substitute a different one.
-const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: (v: number) => void; ariaLabel?: string }) => {
+//
+// `commitOnBlur`: a linked panel's amounts are the REGULAR budget's, and every
+// change to a savings row there moves its linked goal by the difference — never
+// below 0. Handed over keystroke by keystroke, typing 1 500 over 1 000 went
+// 1, 15, 150, 1 500: the first step pulled a 300 kr goal down to 0, and the
+// rest added 1 499 back, so the goal read 1 499 instead of 800 (full sweep
+// 2026-10-08). There the amount is handed over once, on Enter or on leaving
+// the field — as the regular budget's own fields do.
+const AmountInput = ({ value, onChange, ariaLabel, commitOnBlur = false }: {
+  value: number; onChange: (v: number) => void; ariaLabel?: string; commitOnBlur?: boolean;
+}) => {
   const [draft, setDraft] = useState<string>(value ? String(value) : '');
   const [invalid, setInvalid] = useState(false);
   const errorId = useId();
@@ -1512,6 +1540,11 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
     if (!current.ok || current.value !== value) { setDraft(value ? String(value) : ''); setInvalid(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
+  /** Hand over what is typed, once — only for `commitOnBlur`. */
+  const commit = () => {
+    const parsed = parseMoneyOrZero(draft);
+    if (parsed.ok && parsed.value !== value) onChange(parsed.value);
+  };
   return (
     <span className="cv3-amount-wrap">
       <input
@@ -1529,8 +1562,10 @@ const AmountInput = ({ value, onChange, ariaLabel }: { value: number; onChange: 
           setInvalid(!parsed.ok);
           // An invalid draft leaves the stored amount — and every total built
           // from it — on the last value the user actually confirmed.
-          if (parsed.ok) onChange(parsed.value);
+          if (parsed.ok && !commitOnBlur) onChange(parsed.value);
         }}
+        onBlur={commitOnBlur ? commit : undefined}
+        onKeyDown={commitOnBlur ? e => { if (e.key === 'Enter') commit(); } : undefined}
       />
       {invalid && (
         <span className="cv3-amount-error" id={errorId} role="alert">{t.invalidAmount}</span>

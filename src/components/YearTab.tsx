@@ -5,11 +5,19 @@ import {
 import { loadMonthData } from '../defaults';
 import { hasBudgetContent } from '../monthContent';
 import { calculateBudgetMetrics, calculateSavingsMetrics, yearSavingsGrowth, type SavingsSnapshot } from '../metrics';
-import { useLang, MONTHS, MONTHS_SHORT, formatAxisTick } from '../i18n';
+import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 import { chartColors } from '../themes';
+import { axisWidth, axisLabel } from '../axisWidth';
+import type { MonthData } from '../types';
 
 interface Props {
   year: number;
+  /** The month on screen as the app holds it right now. Read from storage it
+   *  is one edit behind: this view renders BEFORE the app's save effect writes
+   *  the edit, so in the Combined layout — where the year sits on the same
+   *  page as the budget — every change showed up here one change late (full
+   *  sweep 2026-10-08). GrowthChart solved the same thing the same way. */
+  live?: { month: number; data: MonthData };
 }
 
 interface MonthRow {
@@ -46,13 +54,13 @@ const CustomTooltip = ({ active, payload, label, money }: TooltipProps) => {
   );
 };
 
-export const YearTab = ({ year }: Props) => {
+export const YearTab = ({ year, live }: Props) => {
   const { lang, t, money } = useLang();
   const { text: tickColor, grid: gridColor } = chartColors();
 
   const snapshots: SavingsSnapshot[] = [];
   const rows: MonthRow[] = Array.from({ length: 12 }, (_, m) => {
-    const data = loadMonthData(year, m, lang);
+    const data = live && live.month === m ? live.data : loadMonthData(year, m, lang);
     const { income, expenses } = calculateBudgetMetrics(data);
     // Savings BALANCE for the month (excludes pension — a separate long-term
     // bucket). A month with nothing recorded is unknown, not a balance of 0.
@@ -157,19 +165,19 @@ export const YearTab = ({ year }: Props) => {
                   <YAxis
                     yAxisId="flow"
                     tick={{ fill: tickColor, fontSize: 11 }}
-                    tickFormatter={v => formatAxisTick(v, lang)}
+                    tickFormatter={v => axisLabel(v, lang)}
                     axisLine={false}
                     tickLine={false}
-                    width={38}
+                    width={axisWidth(chartData.flatMap(r => [r.income, r.expenses]), lang)}
                   />
                   <YAxis
                     yAxisId="balance"
                     orientation="right"
                     tick={{ fill: SAVINGS_COLOR, fontSize: 11 }}
-                    tickFormatter={v => formatAxisTick(v, lang)}
+                    tickFormatter={v => axisLabel(v, lang)}
                     axisLine={false}
                     tickLine={false}
-                    width={38}
+                    width={axisWidth(chartData.map(r => r.savings), lang)}
                   />
                   <Tooltip content={<CustomTooltip money={money} />} cursor={{ fill: gridColor, opacity: 0.4 }} />
                   <Legend

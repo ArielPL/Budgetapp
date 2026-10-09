@@ -135,6 +135,9 @@ describe('a linked panel is the regular budget', () => {
     await chooseLinked();
     const hyra = screen.getByLabelText(/Boende – Hyra/);
     act(() => { fireEvent.change(hyra, { target: { value: '9500' } }); });
+    // Handed over on leaving the field, as the regular budget's own fields do
+    // (full sweep 2026-10-08: keystrokes moved linked goals by every step).
+    act(() => { fireEvent.blur(hyra); });
     await waitFor(() => {
       const month = stored(BUDGET_KEY) as MonthData;
       expect(month.expenses.find(c => c.id === 'boende')!.rows[0].amount).toBe(9500);

@@ -169,4 +169,16 @@ describe('a budget month is as long as its period, not its calendar month', () =
     const locks = { '2026_5': '2026-04-20' };
     expect(periodDays(2026, 5, 25, locks)).not.toBe(periodDays(2026, 5, 25));
   });
+
+  it('honours a pinned period with no start day set, as the header does (full sweep 2026-10-08)', () => {
+    // A pin outlives turning the start day off. The header then reads
+    // "20 Sep – 31 Oct" for October, and the per-day tile must divide by
+    // those 42 days, not by October's 31.
+    const locks = { '2026_9': '2026-09-20' };
+    expect(periodDays(2026, 9, null, locks)).toBe(42);
+    // The pin moves September's end too: 1 – 19 September.
+    expect(periodDays(2026, 8, null, locks)).toBe(19);
+    // A month no pin reaches is still its calendar month.
+    expect(periodDays(2026, 3, null, locks)).toBe(30);
+  });
 });

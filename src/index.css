@@ -45,8 +45,8 @@
   --border: #334155;
   --border-strong: #475569;
   --text: #e2e8f0;
-  --text-muted: #8392a8; /* AA ≥4.5:1 on --surface (was #64748b, 3.07:1) */
-  --text-dim: #94a3b8;
+  --text-muted: #919eb2; /* AA ≥4.5:1 on cards AND on every tinted card (was #64748b, 3.07:1) */
+  --text-dim: #a1aec2;
   /* Chart ink — aliases so every chart tracks the theme (incl. custom themes,
      which override --text-muted/--border). Recharts can't resolve var() inside
      SVG attributes, so components read the computed value via chartColors(). */
@@ -54,14 +54,30 @@
   --chart-grid: var(--border);
   --income-color: #22d3ee;
   --positive: #22c55e;
-  --negative: #ef4444;
+  --negative: #f37878; /* AA as text on dark cards (was #ef4444, 3.1:1 on tinted ones) */
   /* Between fine and over: a spending limit that is nearly used up. */
   --caution: #f59e0b;
   --header-bg: rgba(15, 23, 42, 0.92);
 
   /* Brand accent (selected states, primary buttons) */
   --accent-brand: #a78bfa;
-  --accent-brand-strong: #8b5cf6;
+  /* In dark mode "strong" is the LIGHTER step (hover, and accent-coloured text
+     on dark cards); white on #8b5cf6 was only 4.2:1 and the text 2.8:1. */
+  --accent-brand-strong: #c4b5fd;
+  /* Ink for text sitting ON an --accent-brand / -strong fill. Dark ink on the
+     light dark-mode accent (white on #a78bfa was 2.72:1); white on the deeper
+     light-mode accent. themes.ts sets it per palette, and derives it for a
+     custom accent. */
+  --on-accent: #1b1236;
+
+  /* Text that takes its colour from DATA (a category, a goal, a chart series)
+     arrives as an inline style, so a theme token cannot reach it. These two
+     filters do what the amount cells already do with color-mix — pull the hue
+     toward black in light mode, toward white in dark — so the same worst-case
+     colour clears 4.5:1 on a card. See "Data colours as text" at the end.
+       light: brightness(.55)               = 55% colour + 45% black
+       dark:  contrast(.4815) brightness(1.35) = 65% colour + 35% white */
+  --data-ink-filter: contrast(0.4815) brightness(1.35);
 
   /* Soft role tints — surfaces + on-tint text (legible on dark) */
   --tint-remaining-bg: #18241a;
@@ -98,16 +114,21 @@
   --border: #ece9f5;
   --border-strong: #d8d3ea;
   --text: #20203a;
-  --text-muted: #75718a; /* AA ≥4.5:1 on --surface (was #9a96ad, 2.86:1) */
+  --text-muted: #6c687f; /* AA ≥4.5:1 on cards AND on every tinted card (was #9a96ad, 2.86:1) */
   --text-dim: #5d5972;
-  --income-color: #0fa99a;
-  --positive: #2f9e44;
-  --negative: #e8590c;
+  /* Deepened so they are readable AS TEXT on white and on the tinted cards
+     (were #0fa99a 2.6:1, #2f9e44 3.1:1, #e8590c 3.2:1). */
+  --income-color: #0b7b70;
+  --positive: #257d36;
+  --negative: #bc480a;
   --caution: #a16207; /* amber, darker than --negative's orange; AA on white */
   --header-bg: rgba(251, 250, 255, 0.9);
 
-  --accent-brand: #8b5cf6;
-  --accent-brand-strong: #7c3aed;
+  /* White on the old #8b5cf6 was 4.2:1; this step clears 4.5 with room. */
+  --accent-brand: #7c3aed;
+  --accent-brand-strong: #6d28d9;
+  --on-accent: #ffffff;
+  --data-ink-filter: brightness(0.55);
 
   /* Soft pastel tints per role */
   --tint-remaining-bg: #eaf3de;
@@ -374,9 +395,9 @@ a:focus-visible,
   margin-bottom: 8px;
 }
 
-.income-card .card-label { color: var(--tint-income-text); opacity: 0.7; }
-.expense-card .card-label { color: var(--tint-expense-text); opacity: 0.7; }
-.remaining-card .card-label { color: var(--tint-remaining-text); opacity: 0.7; }
+.income-card .card-label { color: var(--tint-income-text); opacity: 0.88; }
+.expense-card .card-label { color: var(--tint-expense-text); opacity: 0.88; }
+.remaining-card .card-label { color: var(--tint-remaining-text); opacity: 0.88; }
 
 .card-amount {
   font-size: 1.75rem;
@@ -748,7 +769,7 @@ a:focus-visible,
 .custom-edit-active {
   background: var(--accent-brand);
   border-color: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* Every Custom v3 block is a padded surface card — airy by default; an inline
@@ -814,7 +835,7 @@ a:focus-visible,
   transition: background 0.12s, color 0.12s;
 }
 .width-seg:hover { color: var(--text); }
-.width-active { background: var(--accent-brand); color: #fff; }
+.width-active { background: var(--accent-brand); color: var(--on-accent); }
 
 /* Subtle ghost icon-buttons (≈24px) for ⚙ / ✕ / ↑ / ↓ — light hover, no heavy
    bordered squares. */
@@ -846,7 +867,7 @@ a:focus-visible,
 
 /* Config-panel show-chart toggle reuses the icon-button look, a touch larger. */
 .custom-toggle-btn { width: 34px; height: 34px; border: 1px solid var(--border-strong); }
-.custom-toggle-on { background: var(--accent-brand); color: #fff; border-color: var(--accent-brand); }
+.custom-toggle-on { background: var(--accent-brand); color: var(--on-accent); border-color: var(--accent-brand); }
 
 /* ─── Custom v3: generic block builder ────────────────────────────── */
 /* Auto-contrast: `--cv3-ink` is the block's text colour. It defaults to the
@@ -1191,9 +1212,11 @@ a:focus-visible,
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  /* --text-dim, not --text-muted: small uppercase labels need the extra
-     contrast to stay readable on phones (UX review). */
-  color: var(--text-dim);
+  /* The block's own ink (72% of it), not --text-dim: a tile on a custom
+     background colour set its ink inline, and this label ignored it — dark grey
+     text on a red or navy tile, 1.8:1. On a plain tile the ink IS --text, so
+     this lands within a shade of --text-dim. */
+  color: var(--cv3-ink-muted, var(--text-dim));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1212,7 +1235,7 @@ a:focus-visible,
 }
 .custom-tile-headline.tone-positive { color: var(--income-color); }
 .custom-tile-headline.tone-negative { color: var(--tint-expense-text); }
-.custom-tile-headline.tone-neutral  { color: var(--text); }
+.custom-tile-headline.tone-neutral  { color: var(--cv3-ink, var(--text)); }
 
 .custom-tile-preview {
   font-size: 0.95rem;
@@ -1225,7 +1248,7 @@ a:focus-visible,
 
 .custom-tile-sub {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--cv3-ink-muted, var(--text-muted));
 }
 
 /* ─── Tap-to-expand modal (full editable section) ─────────────────── */
@@ -1281,7 +1304,7 @@ a:focus-visible,
   border: none;
   border-radius: var(--radius-md);
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1377,7 +1400,7 @@ a:focus-visible,
   border: none;
   border-radius: var(--radius-md);
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1461,7 +1484,7 @@ a:focus-visible,
 .cfg-chart-active {
   background: var(--accent-brand);
   border-color: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ─── Stacked bar (one horizontal 100%-width proportional bar) ────── */
@@ -2245,7 +2268,7 @@ a:focus-visible,
 }
 
 .seg-active {
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand);
 }
 
@@ -2307,7 +2330,7 @@ a:focus-visible,
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand);
   border-radius: var(--radius-pill);
   padding: 2px 7px;
@@ -2334,7 +2357,7 @@ a:focus-visible,
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand);
   border-radius: var(--radius-pill);
   padding: 2px 7px;
@@ -2513,14 +2536,17 @@ a:focus-visible,
 .cat-delete-btn {
   font-size: 0.78rem;
   font-weight: 500;
-  color: var(--negative);
+  /* Sits on a panel tinted with the category's colour AND on its own red wash,
+     so the plain red was 4.2:1 here. Pulled toward the text colour (darker in
+     light mode, lighter in dark) it clears AA on the wash and on its hover. */
+  color: color-mix(in srgb, var(--negative) 65%, var(--text));
   background: rgba(239, 68, 68, 0.1);
   border-radius: 7px;
   padding: 6px 12px;
   transition: background 0.1s;
 }
 
-.cat-delete-btn:hover { background: rgba(239, 68, 68, 0.25); }
+.cat-delete-btn:hover { background: rgba(239, 68, 68, 0.16); }
 
 .cat-done-btn {
   margin-left: auto;
@@ -2665,7 +2691,7 @@ a:focus-visible,
 .backup-banner-export {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand);
   border-radius: 8px;
   padding: 7px 14px;
@@ -2797,7 +2823,7 @@ a:focus-visible,
 }
 
 .month-pill-active {
-  color: #fff !important;
+  color: var(--on-accent) !important;
   background: var(--accent-brand) !important;
   border-color: var(--accent-brand) !important;
 }
@@ -2871,7 +2897,8 @@ a:focus-visible,
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
   padding: 10px 18px;
-  opacity: 0.8;
+  /* Faint by its dashed border and --surface2 alone: fading the whole card to
+     80% took its muted text to 3.3:1. */
 }
 .savings-pension-card .card-label {
   margin-bottom: 0;
@@ -2888,14 +2915,14 @@ a:focus-visible,
   background: var(--tint-savings-bg);
   border-color: transparent;
 }
-.savings-card .card-label { color: var(--tint-savings-text); opacity: 0.7; }
+.savings-card .card-label { color: var(--tint-savings-text); opacity: 0.88; }
 .savings-card .card-amount { color: var(--tint-savings-text); }
 
 .savings-prev-card {
   background: var(--tint-savings-prev-bg);
   border-color: transparent;
 }
-.savings-prev-card .card-label { color: var(--tint-savings-prev-text); opacity: 0.7; }
+.savings-prev-card .card-label { color: var(--tint-savings-prev-text); opacity: 0.88; }
 .savings-prev-card .card-amount { color: var(--tint-savings-prev-text); }
 
 /* Remove sticky from right column in savings tab */
@@ -3048,7 +3075,7 @@ a:focus-visible,
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  opacity: 0.7;
+  opacity: 0.88; /* was 0.7: 3.95:1 on the light tints. 0.88 clears AA in every palette */
   margin-bottom: 6px;
 }
 .overview-stat-rate .overview-stat-label { color: var(--tint-income-text); }
@@ -3068,7 +3095,7 @@ a:focus-visible,
   font-size: 0.72rem;
   margin-top: 3px;
   color: var(--tint-savings-text);
-  opacity: 0.7;
+  opacity: 0.88;
 }
 
 .overview-goals-summary {
@@ -3137,7 +3164,7 @@ a:focus-visible,
 .add-goal-btn {
   padding: 7px 14px;
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -3750,7 +3777,7 @@ a:focus-visible,
   border: none;
   border-radius: var(--radius-pill);
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
@@ -3884,7 +3911,7 @@ a:focus-visible,
 .followup-form-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
 .followup-form-save {
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   padding: 8px 16px;
   border-radius: var(--radius-pill);
   font-size: 0.82rem;
@@ -3924,7 +3951,7 @@ a:focus-visible,
   font-size: 0.84rem;
   min-height: 40px;
 }
-@media (hover: hover) { .followup-import:hover { background: var(--accent-brand); color: #fff; } }
+@media (hover: hover) { .followup-import:hover { background: var(--accent-brand); color: var(--on-accent); } }
 .followup-top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* How many months are in view. Chips rather than a select: there are four, they
@@ -3949,7 +3976,7 @@ a:focus-visible,
 .followup-span.is-on {
   background: var(--accent-brand);
   border-color: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
 }
 @media (hover: hover) {
@@ -4063,7 +4090,7 @@ a:focus-visible,
 }
 .followup-newcat-save {
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: var(--radius-pill);
   padding: 7px 14px;
   font-size: 0.8rem;
@@ -4152,7 +4179,7 @@ a:focus-visible,
   font-weight: 600;
   min-height: 32px;
 }
-.followup-toast-go:hover { background: var(--accent-brand); color: #fff; }
+.followup-toast-go:hover { background: var(--accent-brand); color: var(--on-accent); }
 
 /* Qualified with .theme-panel on purpose. Both classes are on the same element
    and .theme-panel is defined further down this file, so on equal specificity it
@@ -4194,7 +4221,7 @@ a:focus-visible,
 .csv-drop-sub { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
 .csv-pick {
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: var(--radius-pill);
   padding: 10px 22px;
   font-size: 0.88rem;
@@ -4294,7 +4321,7 @@ a:focus-visible,
 }
 .csv-primary {
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: var(--radius-pill);
   padding: 10px 20px;
   font-size: 0.88rem;
@@ -4674,7 +4701,7 @@ a:focus-visible,
   padding: 13px 20px;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand);
   border-radius: var(--radius-pill);
   transition: background 0.12s, transform 0.08s;
@@ -5390,7 +5417,7 @@ a:focus-visible,
   border-radius: var(--radius-pill);
   font-size: 0.9rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand-strong);
 }
 
@@ -5811,7 +5838,7 @@ a:focus-visible,
 .spending-card-btn-primary {
   border-color: transparent;
   background: var(--accent-brand-strong);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 @media (hover: hover) {
@@ -5928,7 +5955,7 @@ a:focus-visible,
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand-strong);
 }
 
@@ -6003,7 +6030,7 @@ a:focus-visible,
 }
 
 @media (hover: hover) {
-  .triage-accept:hover { background: var(--accent-brand); color: #fff; }
+  .triage-accept:hover { background: var(--accent-brand); color: var(--on-accent); }
   .triage-accept:hover .triage-why { color: rgba(255, 255, 255, 0.85); }
 }
 
@@ -6133,7 +6160,7 @@ a:focus-visible,
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-brand-strong);
 }
 
@@ -6345,7 +6372,7 @@ a:focus-visible,
   border: none;
   border-radius: var(--radius-md);
   background: var(--accent-brand);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -6444,4 +6471,77 @@ a:focus-visible,
   .wallet .goal-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wallet-switch-panel { width: 100%; }
   .wallet { padding: 14px 12px; }
+}
+
+/* Placeholders: the browser's own grey is #757575 — 4.2:1 on a --surface2
+   field in light mode, and a different grey again in dark. Fields that style
+   their own (.cv3-*, .plan-notes…) keep doing so; this is the floor for the
+   rest. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* The Year chart's right-hand axis is the savings colour, #06b6d4, written
+   straight into the SVG as an attribute: 2.4:1 on a white card. A stylesheet
+   fill beats the attribute. (A CSS filter would do the same job as below, but
+   Safari ignores filters on SVG children.) Dark mode already clears 4.5. */
+:root[data-theme='light'] .recharts-cartesian-axis-tick-value[fill="#06b6d4"] {
+  fill: color-mix(in srgb, #06b6d4 55%, #000);
+}
+
+/* Treemap cell labels are white text on whatever colour the category is —
+   amber, green and cyan cells gave 1.9–2.4:1. Which ink suits a cell is not
+   known to CSS, so the label gets a dark outline underneath instead: the
+   letters stay white and stand off any fill. */
+svg text[fill="#fff"] {
+  paint-order: stroke;
+  stroke: rgba(15, 23, 42, 0.78);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* A category's header total, collapse arrow and "+ Add row" are drawn in the
+   category's own colour (--accent, set on the section). The lightest hues —
+   amber, cyan, orange — were 1.8–2.7:1 on the tinted card. Same mix the amount
+   cells use: toward black in light mode, toward white in dark. */
+:root[data-theme='light'] .expense-section :is(.section-total, .collapse-arrow, .add-row-btn) {
+  color: color-mix(in srgb, var(--accent) 55%, #000);
+}
+:root[data-theme='dark'] .expense-section :is(.section-total, .collapse-arrow, .add-row-btn) {
+  color: color-mix(in srgb, var(--accent) 65%, #fff);
+}
+
+/* ─── Data colours as text (contrast) ─────────────────────────────────────
+   The category's own colour is what the app uses to say "this is Food". As a
+   fill or a dot it is fine; as TEXT on a card the lightest of them (amber,
+   cyan, orange) were 1.8–2.7:1 on white and the indigo 3.0:1 on dark.
+   The colour arrives as an inline style, which a theme variable cannot reach,
+   so the text is pulled toward black (light) or white (dark) with a filter —
+   the same mix the amount cells use. Only inline literal colours match, so
+   anything already coloured by a token (var(--positive)…) is left alone. */
+.cat-edit-btn[style*="color: rgb"],
+.goal-pct[style*="color: rgb"],
+.overview-goal-pct[style*="color: rgb"],
+.savings-donut-name[style*="color: rgb"],
+.savings-donut-center-text > span[style*="color: rgb"],
+.year-card-row > span[style*="color: rgb"],
+td.num[style*="color: rgb"],
+.recharts-legend-item-text[style*="color: rgb"],
+.chart-tooltip [style*="color: rgb"] {
+  filter: var(--data-ink-filter);
+}
+
+/* Follow-up on a phone: the three figures each get a third of the row, and a
+   magnitude like "−296 028 786,60 kr" (amounts are joined with no-break
+   spaces) was wider than its third. It ran on past the cell — over its
+   neighbour for the plan and actual, out of the table for the difference,
+   where .followup-table's overflow:hidden cut it off. A figure that does not
+   fit now wraps onto a second line inside its own cell. */
+@media (max-width: 640px) {
+  .followup-row .num {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
