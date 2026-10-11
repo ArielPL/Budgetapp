@@ -373,3 +373,36 @@ describe('Follow-up: moving a place moves only what the row shows', () => {
     expectOnlyTheThree();
   });
 });
+
+describe('Privacy: how to lock the app (2026-10-11)', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  const openPrivacy = async () => {
+    await boot({});
+    fireEvent.click(buttonWith(sv.menu)!);
+    fireEvent.click(buttonWith(sv.privacyTitle)!);
+    await waitFor(() => expect(document.getElementById('privacy-title')).not.toBeNull());
+    return document.querySelector('[aria-labelledby="privacy-title"]')!.textContent ?? '';
+  };
+
+  it('points iPhone users to Require Face ID', async () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+    const text = await openPrivacy();
+    expect(text).toContain(sv.lockTipTitle);
+    expect(text).toContain(sv.lockTipIos);
+    expect(text).not.toContain(sv.lockTipAndroid);
+  });
+
+  it('points Android users to the phone\'s app lock', async () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    const text = await openPrivacy();
+    expect(text).toContain(sv.lockTipAndroid);
+    expect(text).not.toContain(sv.lockTipIos);
+  });
+
+  it('says nothing about it on the web, where there is no such lock', async () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('web');
+    const text = await openPrivacy();
+    expect(text).not.toContain(sv.lockTipTitle);
+  });
+});

@@ -2200,6 +2200,15 @@ function App({ startupRepair = null }: AppProps) {
                     ? <h3 className="privacy-heading" key={i}>{para.slice(3)}</h3>
                     : <p key={i}>{para}</p>
                 ))}
+                {/* The phone locks apps itself (iOS 18: Require Face ID; many
+                    Android brands: app lock), so the app points there rather
+                    than shipping a lock of its own (decided 2026-10-11). */}
+                {Capacitor.getPlatform() !== 'web' && (
+                  <>
+                    <h3 className="privacy-heading">{t.lockTipTitle}</h3>
+                    <p>{Capacitor.getPlatform() === 'ios' ? t.lockTipIos : t.lockTipAndroid}</p>
+                  </>
+                )}
                 <p className="privacy-updated">{t.privacyUpdated}</p>
               </div>
               <button className="welcome-start-btn" onClick={() => setPrivacyOpen(false)}>

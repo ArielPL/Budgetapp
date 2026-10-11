@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.arielpl.budget',
-  appName: 'Budget',
+  appName: 'YourBudget',
   webDir: 'dist',
   // Behind the page while it loads: the splash's colour and the default light
   // theme's, so nothing flashes between the splash and the budget.

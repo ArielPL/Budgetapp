@@ -2764,6 +2764,13 @@ a:focus-visible,
 .tab-label { }
 .tab-label-short { display: none; }
 
+/* Tablet widths (an iPad in portrait is 820px): the full names need ~880px,
+   so the last tab ran off the edge. The phone's short names fit. */
+@media (min-width: 641px) and (max-width: 960px) {
+  .tab-label { display: none; }
+  .tab-label-short { display: inline; }
+}
+
 /* ─── Month picker (tap-to-open, hidden by default) ───────────────── */
 
 .month-picker {
