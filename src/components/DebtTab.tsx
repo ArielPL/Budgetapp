@@ -37,9 +37,11 @@ interface Props {
   /** The rows of "Lån & skulder" in the month on screen. One with money in it
    *  and no debt behind it is shown here too, waiting for its details. */
   loanRows: BudgetRow[];
-  /** Store `next`; with `row`, also put that row in the month on screen.
-   *  Resolves to whether it was stored. */
-  onSave: (next: DebtState, row?: { id: string; label: string; amount: number }) => Promise<boolean>;
+  /** Store `change` applied to the last STORED state — never to `state`, which
+   *  may be a step behind while an earlier change is still being written — and
+   *  with `row`, also put that row in the month on screen. Resolves to whether
+   *  it was stored. */
+  onSave: (change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number }) => Promise<boolean>;
   /** Remove a debt; with `removeRow`, its row in the month on screen too.
    *  Resolves to what to tell the user, or null when nothing was stored. */
   onDelete: (id: string, removeRow: boolean) => Promise<string | null>;
@@ -71,6 +73,13 @@ export const DebtTab = ({
     if (said) setNotice(said);
   };
   const [extraText, setExtraText] = useState(String(state.extraPerMonth || ''));
+  // The field follows what is stored: a refused save leaves `state` as it
+  // was on disk, and the field must not go on showing an amount that is not.
+  const [shownFor, setShownFor] = useState(state);
+  if (shownFor !== state) {
+    setShownFor(state);
+    setExtraText(String(state.extraPerMonth || ''));
+  }
 
   // Plans start this calendar month, whatever month the app is showing: a
   // way out of debt begins today, not in the month being looked at.
@@ -114,10 +123,10 @@ export const DebtTab = ({
   const saveExtra = () => {
     const parsed = parseMoneyInput(extraText || '0');
     if (!parsed.ok) { setExtraText(String(state.extraPerMonth || '')); return; }
-    if (parsed.value !== state.extraPerMonth) void onSave({ ...state, extraPerMonth: parsed.value });
+    if (parsed.value !== state.extraPerMonth) void onSave(s => ({ ...s, extraPerMonth: parsed.value }));
   };
   const choose = (strategy: Strategy) => {
-    if (strategy !== state.strategy) void onSave({ ...state, strategy });
+    if (strategy !== state.strategy) void onSave(s => ({ ...s, strategy }));
   };
 
   const strategyCard = (strategy: Strategy, title: string, sub: string) => {
@@ -183,7 +192,7 @@ export const DebtTab = ({
             onSubmit={async (debt, addRow) => {
               const withRow = addRow ? { ...debt, budgetRowId: generateId() } : debt;
               const ok = await onSave(
-                { ...state, debts: [...state.debts, withRow] },
+                s => ({ ...s, debts: [...s.debts, withRow] }),
                 withRow.budgetRowId
                   ? { id: withRow.budgetRowId, label: withRow.name, amount: withRow.monthlyPayment }
                   : undefined,
@@ -216,7 +225,7 @@ export const DebtTab = ({
                       onSubmit={async debt => {
                         const withRow = { ...debt, budgetRowId: r.id };
                         const ok = await onSave(
-                          { ...state, debts: [...state.debts, withRow] },
+                          s => ({ ...s, debts: [...s.debts, withRow] }),
                           // The row is the user's; it is only rewritten in a
                           // month that is not over yet.
                           canAddRow ? { id: r.id, label: withRow.name, amount: withRow.monthlyPayment } : undefined,
@@ -261,7 +270,8 @@ export const DebtTab = ({
                     onSubmit={async next => {
                       const updated = { ...next, id: d.id, budgetRowId: d.budgetRowId };
                       const ok = await onSave(
-                        { ...state, debts: state.debts.map(x => (x.id === d.id ? updated : x)) },
+                        // A debt deleted meanwhile stays deleted: map, not add.
+                        s => ({ ...s, debts: s.debts.map(x => (x.id === d.id ? updated : x)) }),
                         d.budgetRowId && canAddRow
                           ? { id: d.budgetRowId, label: updated.name, amount: updated.monthlyPayment }
                           : undefined,

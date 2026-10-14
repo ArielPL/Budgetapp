@@ -1323,23 +1323,51 @@ function App({ startupRepair = null }: AppProps) {
    * the budget row it was promised, nor the row without the debt. Nothing on
    * screen changes until it is stored; a refusal says so and changes nothing.
    */
-  const commitDebts = async (
-    next: DebtState, row?: { id: string; label: string; amount: number },
+  //
+  // Debt changes are queued, and each is a function of the LAST STORED state,
+  // not of the copy on screen. Two quick ones — a new extra amount, then a
+  // strategy — used to be built from the same old copy, and the second write
+  // put the old extra back (deep review 2026-10-14, P1). The month a row goes
+  // into is read from storage for the same reason: an earlier queued change
+  // may have put a row there that the screen's copy does not have yet.
+  const debtsStored = useRef<DebtState>(debtState);
+  const debtLine = useRef<Promise<unknown>>(Promise.resolve());
+  const queueDebts = <T,>(job: () => Promise<T>, failed: T): Promise<T> => {
+    const run = debtLine.current.then(job);
+    debtLine.current = run.catch(() => failed);
+    return run;
+  };
+  /** After a refused or half-done write, show what storage actually holds. */
+  const reloadDebts = () => {
+    const actual = loadDebts(appStorage);
+    debtsStored.current = actual;
+    setDebtState(actual);
+  };
+  const commitDebts = (
+    change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number },
   ): Promise<boolean> => {
-    const changes: StorageChange[] = [debtsChange(next)];
     const atYear = year;
     const atMonth = month;
-    const withRow = row ? withLoanRow(data, row, lang) : data;
-    if (withRow !== data) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
-    const outcome = await commitStorageChangesOutcome(appStorage, changes);
-    if (outcome !== 'stored') {
-      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
-      return false;
-    }
-    setDebtState(next);
-    // Into the screen's copy only if it still shows that month — see stillShows.
-    if (row && withRow !== data && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
-    return true;
+    return queueDebts(async () => {
+      const prev = debtsStored.current;
+      const next = change(prev);
+      const stored = row ? loadMonthData(atYear, atMonth, lang) : null;
+      const withRow = row && stored ? withLoanRow(stored, row, lang) : stored;
+      if (next === prev && withRow === stored) return true;
+      const changes: StorageChange[] = [debtsChange(next)];
+      if (withRow !== stored) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
+      const outcome = await commitStorageChangesOutcome(appStorage, changes);
+      if (outcome !== 'stored') {
+        reloadDebts();
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return false;
+      }
+      debtsStored.current = next;
+      setDebtState(next);
+      // Into the screen's copy only if it still shows that month — see stillShows.
+      if (row && withRow !== stored && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
+      return true;
+    }, false);
   };
 
   /**
@@ -1356,38 +1384,45 @@ function App({ startupRepair = null }: AppProps) {
    * month is not offered back either. Recorded follow-up entries are never
    * touched. One step back covers the debt and the month.
    */
-  const deleteDebt = async (id: string, removeRow: boolean): Promise<string | null> => {
-    const debt = debtState.debts.find(d => d.id === id);
-    if (!debt) return null;
+  const deleteDebt = (id: string, removeRow: boolean): Promise<string | null> => {
     const atYear = year;
     const atMonth = month;
-    const rowId = debt.budgetRowId;
-    const next: DebtState = {
-      ...debtState,
-      debts: debtState.debts.filter(d => d.id !== id),
-      plainRows: rowId && !debtState.plainRows.includes(rowId) ? [...debtState.plainRows, rowId] : debtState.plainRows,
-    };
-    const withoutRow = (d: MonthData): MonthData => ({
-      ...d,
-      expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
-    });
-    const rowHere = rowId !== undefined && data.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
-    const dropRow = removeRow && rowHere;
-    const monthKey = storageKey(atYear, atMonth);
-    const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
-    const changes: StorageChange[] = [debtsChange(next)];
-    if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(data)) });
-    const outcome = await commitStorageChangesOutcome(appStorage, changes);
-    if (outcome !== 'stored') {
-      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
-      return null;
-    }
-    setDebtState(next);
-    if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
-    recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
-    // What became of the row, said on the tab where it was asked — the brief
-    // header message is gone in two seconds and too narrow for it on a phone.
-    return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
+    // In the same queue as every other debt change, built from what is stored.
+    return queueDebts(async () => {
+      const prev = debtsStored.current;
+      const debt = prev.debts.find(d => d.id === id);
+      if (!debt) return null;
+      const rowId = debt.budgetRowId;
+      const next: DebtState = {
+        ...prev,
+        debts: prev.debts.filter(d => d.id !== id),
+        plainRows: rowId && !prev.plainRows.includes(rowId) ? [...prev.plainRows, rowId] : prev.plainRows,
+      };
+      const withoutRow = (d: MonthData): MonthData => ({
+        ...d,
+        expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
+      });
+      const stored = loadMonthData(atYear, atMonth, lang);
+      const rowHere = rowId !== undefined && stored.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
+      const dropRow = removeRow && rowHere;
+      const monthKey = storageKey(atYear, atMonth);
+      const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
+      const changes: StorageChange[] = [debtsChange(next)];
+      if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(stored)) });
+      const outcome = await commitStorageChangesOutcome(appStorage, changes);
+      if (outcome !== 'stored') {
+        reloadDebts();
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return null;
+      }
+      debtsStored.current = next;
+      setDebtState(next);
+      if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
+      recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+      // What became of the row, said on the tab where it was asked — the brief
+      // header message is gone in two seconds and too narrow for it on a phone.
+      return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
+    }, null);
   };
 
   /**

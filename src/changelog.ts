@@ -51,6 +51,7 @@ export const CHANGELOG: Release[] = [
         'I apparna står det under Integritet hur du låser appen med telefonens eget lås: Kräv Face ID på iPhone, applås på många Android-telefoner',
         'Appen heter nu YourBudget: på hemskärmen, i fliken i webbläsaren, i välkomsttexten och i integritetstexten. Din data och dina inställningar är orörda',
         'Texterna säger enheten i stället för telefonen där appen lika gärna kan köras på en iPad, och på iPad får flikarna korta namn så att alla får plats',
+        'Skuld: ändrar du extrabeloppet och väljer strategi snabbt efter varandra sparas båda. Förut kunde det nya beloppet försvinna fast fältet visade det',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -79,6 +80,7 @@ export const CHANGELOG: Release[] = [
         'In the apps, Privacy now says how to lock the app with the phone\'s own lock: Require Face ID on iPhone, app lock on many Android phones',
         'The app is now called YourBudget: on the home screen, in the browser tab, in the welcome text and in the privacy text. Your data and settings are untouched',
         'The texts say device instead of phone where the app may just as well run on an iPad, and on an iPad the tabs use short names so they all fit',
+        'Debt: change the extra amount and pick a strategy in quick succession and both are saved. Before, the new amount could vanish while the field still showed it',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -107,6 +109,7 @@ export const CHANGELOG: Release[] = [
         'En las apps, Privacidad explica cómo bloquear la app con el bloqueo del propio teléfono: Requerir Face ID en iPhone, bloqueo de apps en muchos Android',
         'La app ahora se llama YourBudget: en la pantalla de inicio, en la pestaña del navegador, en la bienvenida y en el texto de privacidad. Tus datos y ajustes no cambian',
         'Los textos dicen dispositivo en lugar de teléfono donde la app puede usarse igual en un iPad, y en el iPad las pestañas usan nombres cortos para que quepan todas',
+        'Deuda: si cambias el importe extra y eliges una estrategia seguidos, se guardan los dos. Antes, el nuevo importe podía perderse aunque el campo lo mostrara',
       ],
     },
   },
