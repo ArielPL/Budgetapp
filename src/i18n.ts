@@ -1466,7 +1466,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Se vad som faktiskt hände',
-        body: 'Under Uppföljning läser du in bankens CSV-fil. Appen sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
+        body: 'Under Uppföljning läser du in en CSV-fil som du själv laddat ner från din internetbank. Appen kopplar aldrig upp mot banken och ser aldrig dina inloggningar. Den sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
       },
     ],
     introNext: 'Nästa',
@@ -1715,6 +1715,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'En plånbok togs bort';
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (action === 'createGoal') return 'Ett sparmål skapades';
+      if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
@@ -2404,7 +2405,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'See what actually happened',
-        body: 'Under Follow-up you load your bank\u2019s CSV file. The app sorts the entries and puts the plan next to reality — so you can see where the money went.',
+        body: 'Under Follow-up you load a CSV file you downloaded yourself from your online bank. The app never connects to your bank and never sees your login. It sorts the entries and puts the plan next to reality — so you can see where the money went.',
       },
     ],
     introNext: 'Next',
@@ -2654,6 +2655,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'A wallet was removed';
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (action === 'createGoal') return 'A savings goal was created';
+      if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
@@ -3342,7 +3344,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Mira qué pasó de verdad',
-        body: 'En Seguimiento cargas el archivo CSV de tu banco. La app clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
+        body: 'En Seguimiento cargas un archivo CSV que tú mismo descargas de tu banca en línea. La app nunca se conecta a tu banco ni ve tus datos de acceso. Clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
       },
     ],
     introNext: 'Siguiente',
@@ -3592,6 +3594,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'Se eliminó una cartera';
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
+      if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';

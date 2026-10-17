@@ -1091,6 +1091,13 @@ function App({ startupRepair = null }: AppProps) {
   // Picker: selecting a month collapses the strip.
   const selectMonth = (m: number) => { setMonth(m); setPickerOpen(false); };
 
+  /** Whether a row in `before` has a different name in `after`. */
+  const renamedARow = (before: BudgetRow[], after: BudgetRow[]) =>
+    before.some(r => {
+      const now = after.find(x => x.id === r.id);
+      return now !== undefined && now.label !== r.label;
+    });
+
   // ── Income ────────────────────────────────────────────────────────
   const setIncome = (rows: BudgetRow[]) => {
     // A row that disappeared is a DELETE, not an edit — and a deleted row is
@@ -1098,6 +1105,7 @@ function App({ startupRepair = null }: AppProps) {
     // than inside IncomeSection so every path that removes a row is covered,
     // including any future one.
     if (rows.length < data.income.length) recordMonthUndo('deleteRow');
+    else if (renamedARow(data.income, rows)) recordMonthUndo('renameRow');
     setData(d => ({ ...d, income: rows }));
   };
 
@@ -1119,6 +1127,13 @@ function App({ startupRepair = null }: AppProps) {
           && previous.rows.some(r => r.id === g.budgetRowId)
           && !updatedCat.rows.some(r => r.id === g.budgetRowId));
       recordMonthUndo('deleteRow', willUnlink ? ['budget_plan'] : []);
+    } else if (previous && renamedARow(
+      // A goal's row renames the goal and its row in every month too; that is
+      // undone by renaming the goal back, not by one month's step.
+      previous.rows.filter(r => !planData.goals.some(g => g.budgetRowId === r.id)),
+      updatedCat.rows,
+    )) {
+      recordMonthUndo('renameRow');
     }
     // When "sparande" changes, sync both amount AND label back to the linked goal
     if (updatedCat.id === 'sparande') {

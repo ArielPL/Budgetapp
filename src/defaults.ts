@@ -14,6 +14,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   prenumerationer: '#8b5cf6',
   personligt: '#ec4899',
   fritid: '#f97316',
+  givande: '#84cc16',
   sparande: '#14b8a6',
   lan: '#f43f5e',
 };
@@ -63,7 +64,8 @@ const L = {
   // income
   salary: { sv: 'Lön', en: 'Salary', es: 'Salario' },
   sideIncome: { sv: 'Sidoinkomst', en: 'Side income', es: 'Ingreso extra' },
-  benefits: { sv: 'Bidrag/Ersättning', en: 'Benefits', es: 'Prestaciones' },
+  // "Benefits? What do you mean?" (tester, 2026-10-17): said plainly, with an example.
+  benefits: { sv: 'Bidrag (t.ex. barnbidrag)', en: 'Government benefits', es: 'Ayudas y subsidios' },
   // boende
   boende: { sv: 'Boende', en: 'Housing', es: 'Vivienda' },
   rent: { sv: 'Hyra/Bolån', en: 'Rent/Mortgage', es: 'Alquiler/Hipoteca' },
@@ -93,8 +95,15 @@ const L = {
   // fritid
   fritid: { sv: 'Fritid', en: 'Leisure', es: 'Ocio' },
   hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos' },
+  // Read only: older budgets have it under Fritid. New ones give it a category
+  // of its own (givande) — a tester looking for tithes did not think of Leisure.
   giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones' },
   vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones' },
+  // givande
+  givande: { sv: 'Gåvor & givande', en: 'Giving', es: 'Donativos' },
+  tithes: { sv: 'Tionde & kollekt', en: 'Tithes & offerings', es: 'Diezmos y ofrendas' },
+  charity: { sv: 'Välgörenhet', en: 'Charity', es: 'Donaciones' },
+  gifts: { sv: 'Presenter', en: 'Gifts', es: 'Regalos' },
   // lån — a real budget line for most people and, until now, a missing concept:
   // a student-loan repayment fitted none of the other seven and landed in Övrigt.
   // Renamed "Lån & skulder" with the Debt tab (2026-10-03), whose debts each
@@ -142,6 +151,7 @@ for (const entry of Object.values(L)) {
 // CURRENT name, so a renamed default does not leave two names in one budget.
 const LEGACY_LABELS: [string, LabelEntry][] = [
   ['Lån & Krediter', L.lan], ['Loans & Credit', L.lan], ['Préstamos y créditos', L.lan],
+  ['Bidrag/Ersättning', L.benefits], ['Benefits', L.benefits], ['Prestaciones', L.benefits],
 ];
 for (const [old, entry] of LEGACY_LABELS) REVERSE_LABELS[old] = entry;
 
@@ -218,8 +228,15 @@ function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
       id: 'fritid', name: tr(L.fritid, lang), icon: '🎯', color: CATEGORY_COLORS.fritid,
       rows: [
         { id: makeId(), label: tr(L.hobby, lang), amount: 0 },
-        { id: makeId(), label: tr(L.giftsCharity, lang), amount: 0 },
         { id: makeId(), label: tr(L.vacation, lang), amount: 0 },
+      ],
+    },
+    {
+      id: 'givande', name: tr(L.givande, lang), icon: '🎁', color: CATEGORY_COLORS.givande,
+      rows: [
+        { id: makeId(), label: tr(L.tithes, lang), amount: 0 },
+        { id: makeId(), label: tr(L.charity, lang), amount: 0 },
+        { id: makeId(), label: tr(L.gifts, lang), amount: 0 },
       ],
     },
     {
@@ -289,7 +306,7 @@ export function defaultMonthData(_lang: Lang = 'sv'): MonthData {
 }
 
 /**
- * One of the seven standard expense categories, built fresh, WITH ITS STABLE ID.
+ * One of the standard expense categories, built fresh, WITH ITS STABLE ID.
  *
  * The id is the point. `createCategory` mints a random one, which is right for
  * a category the user invents and wrong for restoring a standard one: entries

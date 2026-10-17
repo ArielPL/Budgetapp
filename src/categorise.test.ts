@@ -74,8 +74,9 @@ describe('the built-in Swedish list', () => {
     // Added after running a real August statement through the list cold.
     ['CIZGARA GRILL S', 'mat'],
     ['FORNHOJDENS FRIS', 'personligt'],
-    ['SÖDERMALMSKYRKAN', 'fritid'],
-    ['Swish WAO Church Söder', 'fritid'],
+    // Churches are giving, not leisure (tester, 2026-10-17).
+    ['SÖDERMALMSKYRKAN', 'givande'],
+    ['Swish WAO Church Söder', 'givande'],
   ])('reads %s as %s', (text, kind) => {
     expect(seedKind(text)).toBe(kind);
   });
@@ -111,14 +112,14 @@ describe('the built-in Swedish list', () => {
 
   it('reaches inside a Swedish compound, but only through its ending', () => {
     // The one thing whole words cannot do: "kyrkan" is welded to the parish.
-    expect(seedKind('SÖDERMALMSKYRKAN')).toBe('fritid');
-    expect(seedKind('Filadelfiaförsamlingen')).toBe('fritid');
+    expect(seedKind('SÖDERMALMSKYRKAN')).toBe('givande');
+    expect(seedKind('Filadelfiaförsamlingen')).toBe('givande');
     // And the ending that covers every regional transport operator at once.
     expect(seedKind('Västtrafiken')).toBe('transport');
     expect(seedKind('Hallandstrafiken')).toBe('transport');
     // The ending has to be a suffix, not the whole word, or it is just a word
     // rule wearing a disguise.
-    expect(seedKind('Kyrka')).toBe('fritid');       // a word rule covers this
+    expect(seedKind('Kyrka')).toBe('givande');      // a word rule covers this
     expect(seedKind('Trafiken AB')).toBeUndefined(); // no word rule, no compound
   });
 

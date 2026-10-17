@@ -17,16 +17,16 @@
 
 import type { StorageLike } from './backup';
 
-/** The seven categories a fresh budget ships with, by their stable ids. The
+/** The categories a fresh budget ships with, by their stable ids. The
  *  ids are stable ACROSS MONTHS, which is what lets an entry filed in August
  *  line up with the same category in September. */
 export type StandardCategoryId =
   | 'boende' | 'mat' | 'transport' | 'prenumerationer'
-  | 'personligt' | 'fritid' | 'sparande' | 'lan';
+  | 'personligt' | 'fritid' | 'sparande' | 'lan' | 'givande';
 
 export const STANDARD_CATEGORY_IDS: readonly StandardCategoryId[] = [
   'boende', 'mat', 'transport', 'prenumerationer', 'personligt', 'fritid', 'sparande',
-  'lan',
+  'lan', 'givande',
 ];
 
 export function isStandardCategoryId(id: string): id is StandardCategoryId {
@@ -164,8 +164,8 @@ const INTERNATIONAL: Record<StandardCategoryId, string[]> = {
     'hotel', 'hilton', 'marriott', 'ibis', 'novotel', 'accor', 'radisson',
     'ryanair', 'easyjet', 'lufthansa', 'klm', 'air france', 'wizz air',
     'vueling', 'eurowings', 'norwegian', 'sas', 'finnair',
-    'church', 'unicef', 'wwf',
   ],
+  givande: ['church', 'unicef', 'wwf'],
   sparande: [
     'coinbase', 'binance', 'kraken', 'trade republic', 'etoro', 'degiro',
     'interactive brokers',
@@ -240,11 +240,14 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'hotell', 'scandic', 'elite hotels', 'first hotel', 'nordic choice',
     'strawberry', 'vandrarhem',
     'ving', 'tui', 'apollo', 'resia', 'fritidsresor',
+    'swedavia', 'flygbussarna', 'tallink', 'viking line', 'stena line',
+  ],
+  // Churches and charities: giving, not leisure (tester, 2026-10-17).
+  givande: [
     'kyrka', 'kyrkan', 'forsamling', 'missionskyrkan', 'pingstkyrkan',
     'equmenia', 'fralsningsarmen', 'stadsmissionen', 'radda barnen',
     'rode korset', 'cancerfonden', 'barncancerfonden', 'hjart lungfonden',
     'lakare utan granser', 'musikhjalpen', 'brostcancerforbundet',
-    'swedavia', 'flygbussarna', 'tallink', 'viking line', 'stena line',
   ],
   sparande: [
     'nordnet', 'avanza', 'lysa', 'opti', 'savr', 'sigmastocks', 'fundler',
@@ -332,6 +335,7 @@ const UNITED_STATES: Record<StandardCategoryId, string[]> = {
     'sallie mae', 'navient', 'nelnet', 'mohela', 'great lakes',
     'lendingclub', 'upstart', 'oportun', 'avant',
   ],
+  givande: [],
 };
 
 const SPAIN: Record<StandardCategoryId, string[]> = {
@@ -381,6 +385,7 @@ const SPAIN: Record<StandardCategoryId, string[]> = {
   lan: [
     'cofidis', 'cetelem', 'wizink', 'younited', 'creditea', 'hipoteca',
   ],
+  givande: [],
 };
 
 const AUSTRALIA: Record<StandardCategoryId, string[]> = {
@@ -398,6 +403,7 @@ const AUSTRALIA: Record<StandardCategoryId, string[]> = {
   fritid: ['qantas', 'jetstar', 'jb hi fi'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const SOUTH_AFRICA: Record<StandardCategoryId, string[]> = {
@@ -421,6 +427,7 @@ const SOUTH_AFRICA: Record<StandardCategoryId, string[]> = {
   fritid: ['flysafair', 'incredible connection'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const MEXICO: Record<StandardCategoryId, string[]> = {
@@ -441,6 +448,7 @@ const MEXICO: Record<StandardCategoryId, string[]> = {
   fritid: ['cinepolis', 'cinemex', 'volaris'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 // Japanese descriptors have no spaces, so these are matched as a run of
@@ -468,6 +476,7 @@ const JAPAN: Record<StandardCategoryId, string[]> = {
   ],
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const COLOMBIA: Record<StandardCategoryId, string[]> = {
@@ -485,6 +494,7 @@ const COLOMBIA: Record<StandardCategoryId, string[]> = {
   fritid: ['cine colombia', 'avianca'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 /** Every list, by name — the tests hold them all to the same rules. */
@@ -530,7 +540,7 @@ const GLUED_BRANDS: { prefix: string; kind: StandardCategoryId; except: string[]
  */
 const SEED_SUFFIX: Partial<Record<StandardCategoryId, string[]>> = {
   transport: ['trafiken'],
-  fritid: ['kyrkan', 'kyrka', 'forsamlingen', 'forsamling'],
+  givande: ['kyrkan', 'kyrka', 'forsamlingen', 'forsamling'],
   personligt: ['salong', 'apoteket'],
   mat: ['bageri', 'konditori', 'restaurang', 'pizzeria'],
 };

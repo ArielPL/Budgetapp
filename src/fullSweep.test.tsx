@@ -406,3 +406,41 @@ describe('Privacy: how to lock the app (2026-10-11)', () => {
     expect(text).not.toContain(sv.lockTipTitle);
   });
 });
+
+describe('Renaming a row by mistake (tester, 2026-10-17)', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+  const renameHyra = (to: string) => {
+    fireEvent.click([...document.querySelectorAll('button.editable-label')].find(el => el.textContent === 'Hyra')!);
+    const input = document.querySelector('input.label-input:focus, .budget-row input.label-input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: to } });
+    fireEvent.blur(input);
+  };
+
+  it('can be undone from the undo bar', async () => {
+    await boot();
+    await waitFor(() => expect([...document.querySelectorAll('button.editable-label')].some(el => el.textContent === 'Hyra')).toBe(true));
+    renameHyra('SYNT fel');
+    await waitFor(() => expect(b.disk.get('budget_2026_8')).toContain('SYNT fel'));
+    expect(b.disk.get('budget_undo')).toContain('"renameRow"');
+    expect(document.body.textContent).toContain(sv.undoWhat('renameRow', 'september 2026', 0).slice(0, 18));
+  });
+
+  it('a tap that changes nothing is not a rename', async () => {
+    await boot();
+    await waitFor(() => expect([...document.querySelectorAll('button.editable-label')].some(el => el.textContent === 'Hyra')).toBe(true));
+    renameHyra('Hyra');
+    await settle();
+    expect(b.disk.get('budget_undo') ?? '').not.toContain('"renameRow"');
+    expect(b.disk.get('budget_2026_8')).toBe(SEPT);
+  });
+});
+
+describe('The budget template has a place for giving (tester, 2026-10-17)', () => {
+  it('Giving is its own category, with tithes, and no longer a row under Leisure', async () => {
+    const { starterMonthData } = await import('./defaults');
+    const m = starterMonthData('sv');
+    const giving = m.expenses.find(c => c.id === 'givande')!;
+    expect(giving.rows.map(r => r.label)).toEqual(['Tionde & kollekt', 'Välgörenhet', 'Presenter']);
+    expect(m.expenses.find(c => c.id === 'fritid')!.rows.map(r => r.label)).not.toContain('Gåvor & Välgörenhet');
+  });
+});

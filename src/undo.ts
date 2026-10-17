@@ -74,6 +74,9 @@ export type UndoAction =
   | 'deleteWallet'
   /** One expense in a wallet. */
   | 'deleteWalletExpense'
+  /** A budget row's name, changed — easily done by a tap on the wrong field
+   *  (tester, 2026-10-17). */
+  | 'renameRow'
   /** A savings goal made from "What do I need to save?" — the goal and the
    *  amount it put in the month's budget. */
   | 'createGoal'
@@ -134,6 +137,7 @@ const ACTIONS: Record<UndoAction, true> = {
   resetCustom: true,
   deleteWallet: true,
   deleteWalletExpense: true,
+  renameRow: true,
   createGoal: true,
   debtExtra: true,
 };
