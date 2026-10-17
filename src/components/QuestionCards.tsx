@@ -1,10 +1,11 @@
 import { useId, useState } from 'react';
 import { useLang } from '../i18n';
+import { parseMoneyInput } from '../money';
 import { appStorage } from '../storage';
 import { loadActuals } from '../actuals';
 import { loadMonthData, loadPlanData, shownName, standardExpenseCategory, storageKey } from '../defaults';
 import { monthYear, shortDay } from '../dateLabel';
-import { budgetMonthOf, periodRange, type PeriodLocks } from '../periodLabel';
+import { budgetMonthOf, periodDays, periodRange, type PeriodLocks } from '../periodLabel';
 import { spanMonths } from '../span';
 import { addMonths, type YearMonth } from '../debts';
 import { PENSION_CATEGORY_ID } from '../metrics';
@@ -13,6 +14,9 @@ import {
   RECURRING_MIN_MONTHS, COMPARE_MIN_MONTHS,
   type Basis, type MonthEntries,
 } from '../questions';
+import { whatIf, needToSave, searchEntries, type WhatIfTarget } from '../tools';
+import { calculateBudgetMetrics } from '../metrics';
+import { ConfirmChange } from './ConfirmChange';
 import type { MonthData } from '../types';
 
 // ── Question cards ─────────────────────────────────────────────────────────
@@ -25,10 +29,38 @@ import type { MonthData } from '../types';
 // "Now" is today's budget month, not the month on screen: the questions are in
 // the present tense ("this year", "last month", "the rest of the month").
 
-type QuestionId = 'category' | 'recurring' | 'rises' | 'perDay' | 'kept' | 'goal';
-const QUESTIONS: QuestionId[] = ['category', 'recurring', 'perDay', 'kept', 'rises', 'goal'];
+// The last two are tools rather than questions (tools.ts): the user tries a
+// change, and nothing is stored unless a confirmed step makes it real.
+type QuestionId = 'category' | 'recurring' | 'rises' | 'perDay' | 'kept' | 'goal' | 'whatIf' | 'needToSave';
+const QUESTIONS: QuestionId[] = ['category', 'recurring', 'perDay', 'kept', 'rises', 'goal', 'whatIf', 'needToSave'];
 const ICONS: Record<QuestionId, string> = {
-  category: '🛒', recurring: '🔁', rises: '📈', perDay: '📅', kept: '⚖️', goal: '🎯',
+  category: '🛒', recurring: '🔁', rises: '📈', perDay: '📅', kept: '⚖️', goal: '🎯', whatIf: '🧮', needToSave: '💰',
+};
+
+/** What "Create as savings goal" asks the app to store. */
+export interface NewGoalRequest {
+  name: string;
+  target: number;
+  saved: number;
+  /** "YYYY-MM" */
+  deadline: string;
+  /** Put in the savings row of `at`'s budget. */
+  monthly: number;
+  at: YearMonth;
+}
+
+/** An amount that may be negative: "−500" is a cut. Typed minus signs vary. */
+function parseSigned(raw: string): number | null {
+  const s = raw.trim();
+  const negative = /^[-−–]/.test(s);
+  const r = parseMoneyInput(negative ? s.slice(1) : s);
+  return r.ok ? (negative ? -r.value : r.value) : null;
+}
+
+const toMonthInput = (at: YearMonth) => `${at.year}-${String(at.month + 1).padStart(2, '0')}`;
+const fromMonthInput = (v: string): YearMonth | null => {
+  const m = /^(\d{4})-(\d{2})$/.exec(v);
+  return m ? { year: Number(m[1]), month: Number(m[2]) - 1 } : null;
 };
 
 interface Props {
@@ -36,6 +68,8 @@ interface Props {
   nameOf: (id: string) => string;
   periodStartDay: number | null;
   periodLocks: PeriodLocks;
+  /** Store a goal from "What do I need to save?". Absent: no create button. */
+  onCreateGoal?: (goal: NewGoalRequest) => Promise<boolean>;
 }
 
 const localIso = (d: Date) =>
@@ -44,11 +78,23 @@ const localIso = (d: Date) =>
 const withEntries = (months: YearMonth[]): MonthEntries[] =>
   months.map(m => ({ ...m, entries: loadActuals(appStorage, m.year, m.month) }));
 
-export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) => {
+export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoal }: Props) => {
   const { t, lang, money } = useLang();
   const [open, setOpen] = useState<QuestionId | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const pickId = useId();
+  const formId = useId();
+  // What if…?
+  const [whatIfOn, setWhatIfOn] = useState<string>('income');
+  const [whatIfText, setWhatIfText] = useState('');
+  // What do I need to save?
+  const [needName, setNeedName] = useState('');
+  const [needTarget, setNeedTarget] = useState('');
+  const [needBy, setNeedBy] = useState('');
+  const [needSaved, setNeedSaved] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  // Search
+  const [query, setQuery] = useState('');
 
   const today = new Date();
   const now: YearMonth = budgetMonthOf(localIso(today), periodStartDay, periodLocks)
@@ -78,6 +124,8 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
       case 'perDay': return t.qPerDay;
       case 'kept': return t.qKept;
       case 'goal': return t.qGoal;
+      case 'whatIf': return t.qWhatIf;
+      case 'needToSave': return t.qNeedToSave;
     }
   };
 
@@ -246,7 +294,126 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
           </>
         );
       }
+      case 'whatIf': {
+        const budget = budgetOf(now);
+        if (!budget) return <p className="q-note">{t.qNoBudget(month(now))}</p>;
+        const targets = budget.expenses.filter(c => c.id !== PENSION_CATEGORY_ID);
+        const on = whatIfOn === 'income' || targets.some(c => c.id === whatIfOn) ? whatIfOn : 'income';
+        const target: WhatIfTarget = on === 'income' ? { kind: 'income' } : { kind: 'category', id: on };
+        const delta = parseSigned(whatIfText) ?? 0;
+        const a = whatIf(budget, target, delta, periodDays(now.year, now.month, periodStartDay, periodLocks));
+        const change = (b: number, c: number) => (b === c ? r(b) : `${r(b)} → ${r(c)}`);
+        return (
+          <>
+            <p className="q-note">{t.qWhatIfLead(month(now))}</p>
+            <div className="q-form">
+              <label htmlFor={`${formId}-on`}>{t.qWhatIfWhat}</label>
+              <select id={`${formId}-on`} className="label-input" value={on} onChange={e => setWhatIfOn(e.target.value)}>
+                <option value="income">{t.qWhatIfIncome}</option>
+                {targets.map(c => <option key={c.id} value={c.id}>{shownName(c, lang)}</option>)}
+              </select>
+              <label htmlFor={`${formId}-amount`}>{t.qWhatIfAmount}</label>
+              <input id={`${formId}-amount`} className="label-input" inputMode="decimal" placeholder="1500"
+                value={whatIfText} onChange={e => setWhatIfText(e.target.value)} />
+            </div>
+            <p className="q-note">{t.qWhatIfHint}</p>
+            {lines([
+              { key: 'remaining', label: t.qWhatIfRemaining, value: change(a.before.remaining, a.after.remaining) },
+              { key: 'perDay', label: t.qWhatIfPerDay, value: change(a.before.perDay, a.after.perDay) },
+              {
+                key: 'savings', label: t.qWhatIfSavings,
+                value: a.before.savings === a.after.savings ? r(a.before.savings) : change(a.before.savings, a.after.savings),
+                sub: a.before.savings === a.after.savings ? `· ${t.qWhatIfSame}` : undefined,
+              },
+            ])}
+          </>
+        );
+      }
+      case 'needToSave': {
+        const target = parseMoneyInput(needTarget);
+        const saved = parseMoneyInput(needSaved || '0');
+        const by = fromMonthInput(needBy || toMonthInput(addMonths(now, 8)));
+        const a = target.ok && saved.ok && by ? needToSave(target.value, saved.value, now, by) : null;
+        const budget = budgetOf(now);
+        const remaining = budget ? calculateBudgetMetrics(budget).remaining : 0;
+        const name = needName.trim() || t.toolGoalDefaultName;
+        return (
+          <>
+            <div className="q-form">
+              <label htmlFor={`${formId}-name`}>{t.qNeedName}</label>
+              <input id={`${formId}-name`} className="label-input" placeholder={t.qNeedNamePlaceholder}
+                value={needName} onChange={e => setNeedName(e.target.value)} />
+              <label htmlFor={`${formId}-target`}>{t.qNeedTarget}</label>
+              <input id={`${formId}-target`} className="label-input" inputMode="decimal" placeholder="30000"
+                value={needTarget} onChange={e => setNeedTarget(e.target.value)} />
+              <label htmlFor={`${formId}-by`}>{t.qNeedBy}</label>
+              <input id={`${formId}-by`} className="label-input" type="month"
+                value={needBy || toMonthInput(addMonths(now, 8))} onChange={e => setNeedBy(e.target.value)} />
+              <label htmlFor={`${formId}-saved`}>{t.qNeedSaved}</label>
+              <input id={`${formId}-saved`} className="label-input" inputMode="decimal" placeholder="0"
+                value={needSaved} onChange={e => setNeedSaved(e.target.value)} />
+            </div>
+            {a?.kind === 'reached' && <p className="q-note">{t.qNeedReached}</p>}
+            {a?.kind === 'past' && <p className="q-note q-note-warn">{t.qNeedPast}</p>}
+            {a?.kind === 'ok' && by && target.ok && saved.ok && (
+              <>
+                {headline(t.qNeedAnswer(r(a.perMonth)), t.qNeedSub(r(a.left), a.months))}
+                {remaining > 0 && <p className="q-note">{t.qNeedShare(Math.round((a.perMonth / remaining) * 100), month(now))}</p>}
+                {onCreateGoal && (
+                  <button className="custom-primary-btn q-act" onClick={() => setConfirming(true)}>{t.qNeedCreate}</button>
+                )}
+                {confirming && onCreateGoal && (
+                  <ConfirmChange
+                    title={t.toolGoalTitle}
+                    lines={[
+                      { label: t.toolGoalName, after: name },
+                      { label: t.qNeedTarget, after: x(target.value) },
+                      ...(saved.value > 0 ? [{ label: t.qNeedSaved, after: x(saved.value) }] : []),
+                      { label: t.qNeedBy, after: month(by) },
+                      { label: t.toolGoalInBudget(month(now)), after: t.toolPerMonth(r(a.perMonth)) },
+                    ]}
+                    onClose={() => setConfirming(false)}
+                    onConfirm={async () => {
+                      const ok = await onCreateGoal({
+                        name, target: target.value, saved: saved.value,
+                        deadline: toMonthInput(by), monthly: a.perMonth, at: now,
+                      });
+                      if (ok) {
+                        setNeedName(''); setNeedTarget(''); setNeedBy(''); setNeedSaved('');
+                        setOpen('goal');
+                      }
+                      return ok;
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </>
+        );
+      }
     }
+  };
+
+  /** Search through the last twelve months' purchases, under the questions. */
+  const search = () => {
+    const a = query.trim() ? searchEntries(withEntries(spanMonths(now.year, now.month, 12)), query) : null;
+    const x = (n: number) => money(n);
+    return (
+      <div className="q-search">
+        <label className="q-search-label" htmlFor={`${formId}-search`}>🔍 {t.qSearch}</label>
+        <input id={`${formId}-search`} className="label-input" type="search" placeholder={t.qSearchPlaceholder}
+          value={query} onChange={e => setQuery(e.target.value)} />
+        {a && (a.count === 0 ? <p className="q-note">{t.qSearchNone(query.trim())}</p> : (
+          <div role="status">
+            {headline(x(a.total), t.qSearchSub(a.count))}
+            {lines(a.months.map(m => ({
+              key: `${m.year}_${m.month}`, label: month(m), value: x(m.amount), sub: `· ${t.qSearchCount(m.count)}`,
+            })))}
+            {a.mostlyIn && <p className="q-note">{t.qSearchMostly(name(a.mostlyIn))}</p>}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -255,6 +422,7 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks }: Props) =>
         <>
           <h3 className="q-title">💬 {t.qTitle}</h3>
           <p className="q-lead">{t.qLead}</p>
+          {search()}
           <div className="q-list">
             {QUESTIONS.map(q => (
               <button key={q} className="q-ask" onClick={() => setOpen(q)}>

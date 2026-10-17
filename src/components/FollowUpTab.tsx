@@ -21,7 +21,7 @@ import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth, type CategoryPlan } from './CsvImport';
 import { SpendingCard } from './SpendingCard';
-import { QuestionCards } from './QuestionCards';
+import { QuestionCards, type NewGoalRequest } from './QuestionCards';
 import { spendingBreakdown, purchaseHighlights, smallLimitChoices } from '../spending';
 import {
   loadHiddenPlaces, hiddenPlacesChange, loadSmallLimit, SMALL_LIMIT_KEY, type HiddenPlaces,
@@ -65,6 +65,8 @@ interface Props {
   onLockPeriod: (year: number, month: number, iso: string | null) => void;
   /** Open the Budget tab — offered while there is nothing here to follow up. */
   onOpenBudget?: () => void;
+  /** Store a goal from the "What do I need to save?" tool. */
+  onCreateGoal?: (goal: NewGoalRequest) => Promise<boolean>;
   /** A new category the user named: its id now, and the writes that add it
    *  to the months given, to commit together with the entries moved into it. */
   planNamedCategory: (name: string) => { id: string; in: (months: TouchedMonth[]) => CategoryPlan };
@@ -100,7 +102,7 @@ const NO_ENTRIES: ActualEntry[] = [];
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, planStandardCategories,
   periodStartDay, periodLocks, onLockPeriod, planNamedCategory, onRecordUndo, onOpenBudget,
-  onActualsChanged,
+  onActualsChanged, onCreateGoal,
 }: Props) => {
   const { t, lang, money, currency } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
@@ -1023,7 +1025,7 @@ export const FollowUpTab = ({
       )}
 
       {!nothingYet && (
-        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} />
+        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal} />
       )}
 
       {/* ── The leftover pile, as a short list of decisions ──────────────

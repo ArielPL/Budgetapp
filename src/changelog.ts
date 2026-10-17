@@ -52,6 +52,7 @@ export const CHANGELOG: Release[] = [
         'Appen heter nu YourBudget: på hemskärmen, i fliken i webbläsaren, i välkomsttexten och i integritetstexten. Din data och dina inställningar är orörda',
         'Texterna säger enheten i stället för telefonen där appen lika gärna kan köras på en iPad, och på iPad får flikarna korta namn så att alla får plats',
         'Skuld: ändrar du extrabeloppet och väljer strategi snabbt efter varandra sparas båda. Förut kunde det nya beloppet försvinna fast fältet visade det',
+        'Nya verktyg i Uppföljning: sök bland köpen, ”Vad händer om…?” som provräknar en ändring i budgeten, och ”Vad behöver jag spara?” som kan bli ett sparmål. På fliken Skuld kan du prova ett annat extrabelopp innan du ändrar det. Inget ändras förrän du bekräftat, och allt går att ångra',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -81,6 +82,7 @@ export const CHANGELOG: Release[] = [
         'The app is now called YourBudget: on the home screen, in the browser tab, in the welcome text and in the privacy text. Your data and settings are untouched',
         'The texts say device instead of phone where the app may just as well run on an iPad, and on an iPad the tabs use short names so they all fit',
         'Debt: change the extra amount and pick a strategy in quick succession and both are saved. Before, the new amount could vanish while the field still showed it',
+        'New tools in Follow-up: search your purchases, “What if…?” to try a change to the budget, and “What do I need to save?”, which can become a savings goal. On the Debt tab you can try a different extra amount before changing it. Nothing changes until you confirm, and it can all be undone',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -110,6 +112,7 @@ export const CHANGELOG: Release[] = [
         'La app ahora se llama YourBudget: en la pantalla de inicio, en la pestaña del navegador, en la bienvenida y en el texto de privacidad. Tus datos y ajustes no cambian',
         'Los textos dicen dispositivo en lugar de teléfono donde la app puede usarse igual en un iPad, y en el iPad las pestañas usan nombres cortos para que quepan todas',
         'Deuda: si cambias el importe extra y eliges una estrategia seguidos, se guardan los dos. Antes, el nuevo importe podía perderse aunque el campo lo mostrara',
+        'Nuevas herramientas en Seguimiento: busca en tus compras, «¿Qué pasa si…?» para probar un cambio en el presupuesto, y «¿Cuánto necesito ahorrar?», que puede convertirse en una meta de ahorro. En la pestaña Deuda puedes probar otro importe extra antes de cambiarlo. Nada cambia hasta que confirmas, y todo se puede deshacer',
       ],
     },
   },

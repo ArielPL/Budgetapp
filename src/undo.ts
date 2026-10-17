@@ -73,7 +73,12 @@ export type UndoAction =
   /** A wallet, with every expense in it. */
   | 'deleteWallet'
   /** One expense in a wallet. */
-  | 'deleteWalletExpense';
+  | 'deleteWalletExpense'
+  /** A savings goal made from "What do I need to save?" — the goal and the
+   *  amount it put in the month's budget. */
+  | 'createGoal'
+  /** The Debt tab's extra amount, set from "Try an amount". */
+  | 'debtExtra';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -129,6 +134,8 @@ const ACTIONS: Record<UndoAction, true> = {
   resetCustom: true,
   deleteWallet: true,
   deleteWalletExpense: true,
+  createGoal: true,
+  debtExtra: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than

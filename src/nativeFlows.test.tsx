@@ -1180,7 +1180,8 @@ describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
     await ask(sv.qGoal);
     expect(document.querySelector('.q-answer')?.textContent).toContain(sv.qGoalNone);
     fireEvent.click(document.querySelector('.q-back')!);
-    expect(document.querySelectorAll('.q-ask')).toHaveLength(6);
+    // Six questions and the two tools (2026-10-17).
+    expect(document.querySelectorAll('.q-ask')).toHaveLength(8);
   });
 });
 

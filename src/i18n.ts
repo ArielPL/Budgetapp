@@ -997,6 +997,54 @@ export interface Translations {
   qGoalReached: string;
   qGoalNoMonthly: (month: string) => string;
   qGoalRule: string;
+  /** Tools (tools.ts): try a change before making it. */
+  qWhatIf: string;
+  qWhatIfLead: (month: string) => string;
+  qWhatIfWhat: string;
+  qWhatIfIncome: string;
+  qWhatIfAmount: string;
+  qWhatIfHint: string;
+  qWhatIfRemaining: string;
+  qWhatIfPerDay: string;
+  qWhatIfSavings: string;
+  qWhatIfSame: string;
+  qNeedToSave: string;
+  qNeedName: string;
+  qNeedNamePlaceholder: string;
+  qNeedTarget: string;
+  qNeedBy: string;
+  qNeedSaved: string;
+  qNeedAnswer: (perMonth: string) => string;
+  qNeedSub: (left: string, months: number) => string;
+  qNeedShare: (pct: number, month: string) => string;
+  qNeedReached: string;
+  qNeedPast: string;
+  qNeedCreate: string;
+  qSearch: string;
+  qSearchPlaceholder: string;
+  qSearchSub: (count: number) => string;
+  qSearchNone: (query: string) => string;
+  qSearchMostly: (category: string) => string;
+  qSearchCount: (count: number) => string;
+  toolConfirm: string;
+  toolConfirmUndo: string;
+  toolGoalTitle: string;
+  toolGoalDefaultName: string;
+  toolGoalName: string;
+  toolGoalInBudget: (month: string) => string;
+  toolPerMonth: (amount: string) => string;
+  toolGoalFailed: string;
+  debtTry: string;
+  debtTryLead: string;
+  debtTryAmount: string;
+  debtTryDebtFree: string;
+  debtTryInterest: string;
+  debtTryNever: string;
+  debtTrySaves: (amount: string) => string;
+  debtTryCosts: (amount: string) => string;
+  debtTryUse: (amount: string) => string;
+  debtTryTitle: string;
+  debtTryExtra: string;
   qGoalNone: string;
   qBasisMonths: (covered: number, asked: number) => string;
   qBasisUnsorted: (amount: string, count: number) => string;
@@ -1666,6 +1714,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'resetCustom') return 'Anpassad började om från början';
       if (action === 'deleteWallet') return 'En plånbok togs bort';
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
+      if (action === 'createGoal') return 'Ett sparmål skapades';
+      if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -1880,6 +1930,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Redan nått 🎉',
     qGoalNoMonthly: (month) => `Inget sparbelopp för målet i budgeten för ${month}.`,
     qGoalRule: 'Räknar med att du sparar samma belopp varje månad, utan ränta eller avkastning.',
+    qWhatIf: 'Vad händer om…?',
+    qWhatIfLead: (month) => `Provräkna en ändring i budgeten för ${month}. Inget sparas.`,
+    qWhatIfWhat: 'Vad ändras',
+    qWhatIfIncome: 'Inkomst',
+    qWhatIfAmount: 'Ändring per månad',
+    qWhatIfHint: 'Minus för en sänkning, till exempel −500.',
+    qWhatIfRemaining: 'Kvar',
+    qWhatIfPerDay: 'Kvar att leva på per dag',
+    qWhatIfSavings: 'Sparande',
+    qWhatIfSame: 'oförändrat',
+    qNeedToSave: 'Vad behöver jag spara?',
+    qNeedName: 'Vad sparar du till?',
+    qNeedNamePlaceholder: 'Resa',
+    qNeedTarget: 'Mål',
+    qNeedBy: 'Senast',
+    qNeedSaved: 'Redan sparat',
+    qNeedAnswer: (perMonth) => `${perMonth} per månad`,
+    qNeedSub: (left, months) => `${left} kvar att spara på ${months === 1 ? '1 månad' : `${months} månader`}, den här inräknad`,
+    qNeedShare: (pct, month) => `Det är ${pct} % av det som är kvar i budgeten för ${month}.`,
+    qNeedReached: 'Du har redan sparat ihop till målet.',
+    qNeedPast: 'Den månaden har redan varit. Välj en senare.',
+    qNeedCreate: 'Skapa som sparmål',
+    qSearch: 'Sök bland köpen',
+    qSearchPlaceholder: 'ICA, kafé, gym …',
+    qSearchSub: (count) => `${count === 1 ? '1 köp' : `${count} köp`} de senaste 12 månaderna`,
+    qSearchNone: (query) => `Inga köp med ”${query}” de senaste 12 månaderna.`,
+    qSearchMostly: (category) => `Oftast under ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 köp' : `${count} köp`),
+    toolConfirm: 'Bekräfta',
+    toolConfirmUndo: 'Du kan ångra det direkt efteråt.',
+    toolGoalTitle: 'Skapa sparmål',
+    toolGoalDefaultName: 'Sparmål',
+    toolGoalName: 'Namn',
+    toolGoalInBudget: (month) => `I budgeten för ${month}`,
+    toolPerMonth: (amount) => `${amount} per månad`,
+    toolGoalFailed: 'Sparmålet kunde inte sparas. Ingenting har ändrats.',
+    debtTry: 'Prova ett belopp',
+    debtTryLead: 'Se vad ett annat extrabelopp gör innan du ändrar något.',
+    debtTryAmount: 'Extra per månad att prova',
+    debtTryDebtFree: 'Skuldfri',
+    debtTryInterest: 'Ränta på vägen',
+    debtTryNever: 'inte inom 50 år',
+    debtTrySaves: (amount) => `${amount} mindre i ränta`,
+    debtTryCosts: (amount) => `${amount} mer i ränta`,
+    debtTryUse: (amount) => `Använd ${amount}`,
+    debtTryTitle: 'Ändra extrabeloppet',
+    debtTryExtra: 'Extra per månad',
     qGoalNone: 'Du har inga sparmål än. Lägg till ett under Plan.',
     qBasisMonths: (covered, asked) => `Bygger på ${covered} av ${asked} månader. De andra har inga importerade poster.`,
     qBasisUnsorted: (amount, count) => `${amount} i ${count} ${count === 1 ? 'osorterad post' : 'osorterade poster'} kan ändra svaret.`,
@@ -2556,6 +2653,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'resetCustom') return 'Custom was started over';
       if (action === 'deleteWallet') return 'A wallet was removed';
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
+      if (action === 'createGoal') return 'A savings goal was created';
+      if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -2769,6 +2868,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Already reached 🎉',
     qGoalNoMonthly: (month) => `No amount saved towards it in the budget for ${month}.`,
     qGoalRule: 'Assumes you save the same amount every month, with no interest or returns.',
+    qWhatIf: 'What if…?',
+    qWhatIfLead: (month) => `Try a change to the budget for ${month}. Nothing is saved.`,
+    qWhatIfWhat: 'What changes',
+    qWhatIfIncome: 'Income',
+    qWhatIfAmount: 'Change per month',
+    qWhatIfHint: 'Minus for a cut, for example −50.',
+    qWhatIfRemaining: 'Remaining',
+    qWhatIfPerDay: 'Left to live on per day',
+    qWhatIfSavings: 'Savings',
+    qWhatIfSame: 'unchanged',
+    qNeedToSave: 'What do I need to save?',
+    qNeedName: 'What are you saving for?',
+    qNeedNamePlaceholder: 'Trip',
+    qNeedTarget: 'Goal',
+    qNeedBy: 'By',
+    qNeedSaved: 'Already saved',
+    qNeedAnswer: (perMonth) => `${perMonth} a month`,
+    qNeedSub: (left, months) => `${left} left to save over ${months === 1 ? '1 month' : `${months} months`}, this one included`,
+    qNeedShare: (pct, month) => `That is ${pct}% of what is left in the budget for ${month}.`,
+    qNeedReached: 'You have already saved enough for this goal.',
+    qNeedPast: 'That month is already over. Pick a later one.',
+    qNeedCreate: 'Create as savings goal',
+    qSearch: 'Search your purchases',
+    qSearchPlaceholder: 'Grocery, café, gym …',
+    qSearchSub: (count) => `${count === 1 ? '1 purchase' : `${count} purchases`} in the last 12 months`,
+    qSearchNone: (query) => `No purchases with “${query}” in the last 12 months.`,
+    qSearchMostly: (category) => `Mostly under ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 purchase' : `${count} purchases`),
+    toolConfirm: 'Confirm',
+    toolConfirmUndo: 'You can undo it right afterwards.',
+    toolGoalTitle: 'Create savings goal',
+    toolGoalDefaultName: 'Savings goal',
+    toolGoalName: 'Name',
+    toolGoalInBudget: (month) => `In the budget for ${month}`,
+    toolPerMonth: (amount) => `${amount} a month`,
+    toolGoalFailed: 'The savings goal could not be saved. Nothing has changed.',
+    debtTry: 'Try an amount',
+    debtTryLead: 'See what a different extra amount does before you change anything.',
+    debtTryAmount: 'Extra per month to try',
+    debtTryDebtFree: 'Debt-free',
+    debtTryInterest: 'Interest on the way',
+    debtTryNever: 'not within 50 years',
+    debtTrySaves: (amount) => `${amount} less in interest`,
+    debtTryCosts: (amount) => `${amount} more in interest`,
+    debtTryUse: (amount) => `Use ${amount}`,
+    debtTryTitle: 'Change the extra amount',
+    debtTryExtra: 'Extra a month',
     qGoalNone: 'You have no savings goals yet. Add one under Plan.',
     qBasisMonths: (covered, asked) => `Based on ${covered} of ${asked} months. The others have nothing imported.`,
     qBasisUnsorted: (amount, count) => `${amount} in ${count} unsorted ${count === 1 ? 'entry' : 'entries'} could change the answer.`,
@@ -3445,6 +3591,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
       if (action === 'deleteWallet') return 'Se eliminó una cartera';
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
+      if (action === 'createGoal') return 'Se creó una meta de ahorro';
+      if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
@@ -3658,6 +3806,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Ya alcanzada 🎉',
     qGoalNoMonthly: (month) => `No hay importe de ahorro para ella en el presupuesto de ${month}.`,
     qGoalRule: 'Supone que ahorras lo mismo cada mes, sin intereses ni rentabilidad.',
+    qWhatIf: '¿Qué pasa si…?',
+    qWhatIfLead: (month) => `Prueba un cambio en el presupuesto de ${month}. No se guarda nada.`,
+    qWhatIfWhat: 'Qué cambia',
+    qWhatIfIncome: 'Ingresos',
+    qWhatIfAmount: 'Cambio al mes',
+    qWhatIfHint: 'Negativo para una bajada, por ejemplo −50.',
+    qWhatIfRemaining: 'Restante',
+    qWhatIfPerDay: 'Para vivir por día',
+    qWhatIfSavings: 'Ahorro',
+    qWhatIfSame: 'sin cambios',
+    qNeedToSave: '¿Cuánto necesito ahorrar?',
+    qNeedName: '¿Para qué ahorras?',
+    qNeedNamePlaceholder: 'Viaje',
+    qNeedTarget: 'Meta',
+    qNeedBy: 'Como tarde',
+    qNeedSaved: 'Ya ahorrado',
+    qNeedAnswer: (perMonth) => `${perMonth} al mes`,
+    qNeedSub: (left, months) => `Quedan ${left} por ahorrar en ${months === 1 ? '1 mes' : `${months} meses`}, contando este`,
+    qNeedShare: (pct, month) => `Es el ${pct} % de lo que queda en el presupuesto de ${month}.`,
+    qNeedReached: 'Ya has ahorrado lo suficiente para esta meta.',
+    qNeedPast: 'Ese mes ya ha pasado. Elige uno posterior.',
+    qNeedCreate: 'Crear como meta de ahorro',
+    qSearch: 'Buscar en tus compras',
+    qSearchPlaceholder: 'Supermercado, café, gimnasio …',
+    qSearchSub: (count) => `${count === 1 ? '1 compra' : `${count} compras`} en los últimos 12 meses`,
+    qSearchNone: (query) => `No hay compras con «${query}» en los últimos 12 meses.`,
+    qSearchMostly: (category) => `Sobre todo en ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 compra' : `${count} compras`),
+    toolConfirm: 'Confirmar',
+    toolConfirmUndo: 'Puedes deshacerlo justo después.',
+    toolGoalTitle: 'Crear meta de ahorro',
+    toolGoalDefaultName: 'Meta de ahorro',
+    toolGoalName: 'Nombre',
+    toolGoalInBudget: (month) => `En el presupuesto de ${month}`,
+    toolPerMonth: (amount) => `${amount} al mes`,
+    toolGoalFailed: 'No se pudo guardar la meta de ahorro. No ha cambiado nada.',
+    debtTry: 'Probar un importe',
+    debtTryLead: 'Mira qué hace otro importe extra antes de cambiar nada.',
+    debtTryAmount: 'Extra al mes para probar',
+    debtTryDebtFree: 'Sin deudas',
+    debtTryInterest: 'Intereses por el camino',
+    debtTryNever: 'no en 50 años',
+    debtTrySaves: (amount) => `${amount} menos de intereses`,
+    debtTryCosts: (amount) => `${amount} más de intereses`,
+    debtTryUse: (amount) => `Usar ${amount}`,
+    debtTryTitle: 'Cambiar el importe extra',
+    debtTryExtra: 'Extra al mes',
     qGoalNone: 'Aún no tienes metas de ahorro. Añade una en Plan.',
     qBasisMonths: (covered, asked) => `Basado en ${covered} de ${asked} meses. Los demás no tienen nada importado.`,
     qBasisUnsorted: (amount, count) => `${amount} en ${count} ${count === 1 ? 'movimiento' : 'movimientos'} sin ordenar podrían cambiar la respuesta.`,

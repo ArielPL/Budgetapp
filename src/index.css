@@ -5723,6 +5723,50 @@ a:focus-visible,
 }
 .q-note-warn { color: var(--caution); }
 
+/* ── Tools (tools.ts): try a change; a confirmed step makes it real ───────── */
+.q-form {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.q-form input, .q-form select { width: 100%; min-width: 0; }
+.q-act { margin-top: 6px; }
+.q-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.q-search-label { font-size: 0.85rem; font-weight: 600; color: var(--text-dim); }
+.q-search .q-headline { margin: 4px 0 6px; }
+.confirm-change {
+  width: min(420px, calc(100vw - 32px));
+  padding: 18px 20px;
+}
+.confirm-change-title { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.confirm-change-before { font-weight: 400; color: var(--text-muted); }
+.confirm-change-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.debt-try {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+}
+.debt-try-title { margin: 0 0 2px; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.debt-try .goal-form-field { margin: 8px 0; }
+.debt-try-diff { margin: 4px 0 10px; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); }
+.debt-try-diff.is-good { color: var(--positive); }
+
 .spending-card {
   margin: 0 0 14px;
   padding: 14px 16px;
@@ -6550,5 +6594,14 @@ td.num[style*="color: rgb"],
   .followup-row .num {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+
+  /* On a phone the confirmation is a bottom sheet like every other panel:
+     the full width, not the desktop box's (tools, 2026-10-17). */
+  .theme-panel.confirm-change {
+    width: 100%;
+    /* Clear of the phone's home bar / Android's gesture handle, as the
+       other sheets' bodies are. */
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   }
 }

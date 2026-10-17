@@ -38,12 +38,13 @@ import { shortWhen, longDate, inSentence } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
+import type { NewGoalRequest } from './components/QuestionCards';
 import { goalsJustReached, celebrate } from './rewards';
 import { tellNativeLang, tellNativeTheme } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
 import {
   loadThemeState,
@@ -1345,6 +1346,7 @@ function App({ startupRepair = null }: AppProps) {
   };
   const commitDebts = (
     change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number },
+    undo?: UndoAction,
   ): Promise<boolean> => {
     const atYear = year;
     const atMonth = month;
@@ -1356,6 +1358,7 @@ function App({ startupRepair = null }: AppProps) {
       if (next === prev && withRow === stored) return true;
       const changes: StorageChange[] = [debtsChange(next)];
       if (withRow !== stored) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
+      const before = undo ? captureKeys(appStorage, changes.map(c => c.key)) : null;
       const outcome = await commitStorageChangesOutcome(appStorage, changes);
       if (outcome !== 'stored') {
         reloadDebts();
@@ -1364,6 +1367,7 @@ function App({ startupRepair = null }: AppProps) {
       }
       debtsStored.current = next;
       setDebtState(next);
+      if (undo && before) recordUndo({ at: new Date().toISOString(), action: undo, changes: before });
       // Into the screen's copy only if it still shows that month — see stillShows.
       if (row && withRow !== stored && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
       return true;
@@ -1636,6 +1640,50 @@ function App({ startupRepair = null }: AppProps) {
     rewardReachedGoals(oldGoals, newGoals);
   };
 
+  /**
+   * A goal made by "What do I need to save?" (tools.ts), after the user
+   * confirmed it: the goal itself, and the monthly amount in the savings row
+   * of the month the tool worked from — in ONE write, with a step back. The
+   * month is the stored one, or the screen's copy when it is the month on
+   * screen, so nothing typed there is lost.
+   */
+  const createGoalFromTool = async (g: NewGoalRequest): Promise<boolean> => {
+    const monthKey = storageKey(g.at.year, g.at.month);
+    const before = captureKeys(appStorage, ['budget_plan', monthKey]);
+    const goal: SavingsGoal = {
+      id: generateId(),
+      budgetRowId: generateId(),
+      name: g.name,
+      userNamed: true,
+      targetAmount: g.target,
+      currentAmount: g.saved,
+      deadline: g.deadline,
+      color: makeGoalColor(planData.goals.length),
+    };
+    const nextPlan: PlanData = { ...planData, goals: [...planData.goals, goal] };
+    const here = stillShows(g.at.year, g.at.month);
+    const base = here ? data : loadMonthData(g.at.year, g.at.month, lang);
+    const linked = ensureGoalLinkedBudgetRows(base, nextPlan.goals, lang);
+    const withAmount: MonthData = {
+      ...linked,
+      expenses: linked.expenses.map(c => (c.id !== 'sparande' ? c : {
+        ...c, rows: c.rows.map(r => (r.id === goal.budgetRowId ? { ...r, amount: g.monthly } : r)),
+      })),
+    };
+    const outcome = await commitStorageChangesOutcome(appStorage, [
+      { key: 'budget_plan', value: JSON.stringify(nextPlan) },
+      { key: monthKey, value: JSON.stringify(withAmount) },
+    ]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.toolGoalFailed);
+      return false;
+    }
+    setPlanData(nextPlan);
+    if (here && stillShows(g.at.year, g.at.month)) setData(withAmount);
+    recordUndo({ at: new Date().toISOString(), action: 'createGoal', changes: before });
+    return true;
+  };
+
   /** A goal the user's own change just completed: say so, and buzz a phone. */
   const rewardReachedGoals = (before: SavingsGoal[], after: SavingsGoal[]) => {
     const reached = goalsJustReached(before, after);
@@ -1825,6 +1873,7 @@ function App({ startupRepair = null }: AppProps) {
         planNamedCategory={planNamedCategory}
         onRecordUndo={recordUndo}
         onActualsChanged={bumpActuals}
+        onCreateGoal={createGoalFromTool}
       />
     </Suspense>
   );

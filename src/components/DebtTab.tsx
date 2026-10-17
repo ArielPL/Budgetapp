@@ -12,6 +12,7 @@ import {
 import type { DebtState } from '../debtStore';
 import type { BudgetRow } from '../types';
 import { justPaidOff, celebrate } from '../rewards';
+import { ConfirmChange } from './ConfirmChange';
 
 // ── Skuld — the way out of debt ────────────────────────────────────────────
 //
@@ -41,7 +42,10 @@ interface Props {
    *  may be a step behind while an earlier change is still being written — and
    *  with `row`, also put that row in the month on screen. Resolves to whether
    *  it was stored. */
-  onSave: (change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number }) => Promise<boolean>;
+  onSave: (
+    change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number },
+    undo?: 'debtExtra',
+  ) => Promise<boolean>;
   /** Remove a debt; with `removeRow`, its row in the month on screen too.
    *  Resolves to what to tell the user, or null when nothing was stored. */
   onDelete: (id: string, removeRow: boolean) => Promise<string | null>;
@@ -73,6 +77,10 @@ export const DebtTab = ({
     if (said) setNotice(said);
   };
   const [extraText, setExtraText] = useState(String(state.extraPerMonth || ''));
+  // "Try an amount": a what-if beside the real extra, stored only through
+  // the confirmation box (tools, 2026-10-17).
+  const [tryText, setTryText] = useState('');
+  const [confirmTry, setConfirmTry] = useState(false);
   // The field follows what is stored: a refused save leaves `state` as it
   // was on disk, and the field must not go on showing an amount that is not.
   const [shownFor, setShownFor] = useState(state);
@@ -127,6 +135,63 @@ export const DebtTab = ({
   };
   const choose = (strategy: Strategy) => {
     if (strategy !== state.strategy) void onSave(s => ({ ...s, strategy }));
+  };
+
+  const tryBox = () => {
+    const parsed = parseMoneyInput(tryText);
+    const value = parsed.ok ? parsed.value : null;
+    const tried = value !== null && value !== state.extraPerMonth
+      ? compareStrategies(state.debts, value, now)[state.strategy]
+      : null;
+    const freeAt = (p: typeof chosen) => (p.debtFree ? when(p.debtFree) : t.debtTryNever);
+    const saved = tried ? chosen.totalInterest - tried.totalInterest : 0;
+    return (
+      <div className="debt-try">
+        <h3 className="debt-try-title">🧮 {t.debtTry}</h3>
+        <p className="debt-note">{t.debtTryLead}</p>
+        <div className="goal-form-field">
+          <label htmlFor="debt-try">{t.debtTryAmount}</label>
+          <input id="debt-try" className="label-input" inputMode="decimal" placeholder={String(state.extraPerMonth + 500)}
+            value={tryText} onChange={e => setTryText(e.target.value)} />
+        </div>
+        {tried && value !== null && (
+          <>
+            <ul className="q-lines">
+              <li>
+                <span className="q-line-label">{t.debtTryDebtFree}</span>
+                <span className="q-line-value">{freeAt(chosen)} → {freeAt(tried)}</span>
+              </li>
+              <li>
+                <span className="q-line-label">{t.debtTryInterest}</span>
+                <span className="q-line-value">{money(chosen.totalInterest)} → {money(tried.totalInterest)}</span>
+              </li>
+            </ul>
+            {saved !== 0 && (
+              <p className={`debt-try-diff${saved > 0 ? ' is-good' : ''}`}>
+                {saved > 0 ? t.debtTrySaves(money(saved)) : t.debtTryCosts(money(-saved))}
+              </p>
+            )}
+            <button className="custom-primary-btn" onClick={() => setConfirmTry(true)}>{t.debtTryUse(money(value))}</button>
+            {confirmTry && (
+              <ConfirmChange
+                title={t.debtTryTitle}
+                lines={[
+                  { label: t.debtTryExtra, before: money(state.extraPerMonth), after: money(value) },
+                  { label: t.debtTryDebtFree, before: freeAt(chosen), after: freeAt(tried) },
+                  { label: t.debtTryInterest, before: money(chosen.totalInterest), after: money(tried.totalInterest) },
+                ]}
+                onClose={() => setConfirmTry(false)}
+                onConfirm={async () => {
+                  const ok = await onSave(s => ({ ...s, extraPerMonth: value }), undefined, 'debtExtra');
+                  if (ok) setTryText('');
+                  return ok;
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   const strategyCard = (strategy: Strategy, title: string, sub: string) => {
@@ -374,6 +439,7 @@ export const DebtTab = ({
               ? t.debtMinimumLine(when(plans.minimum.debtFree), money(plans.minimum.totalInterest))
               : t.debtMinimumNever}
           </p>
+          {tryBox()}
           {/* When each is paid, soonest first. It used to follow the order the
               extra money goes in, which read as a timeline out of order: a 0 %
               instalment the extra reaches last is still paid off early by its
