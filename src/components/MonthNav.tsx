@@ -35,10 +35,15 @@ export const MonthNav = ({
           title={MONTHS[lang][month]}
         >
           <span className="month-title-text month-title-full">{monthTitle(month, year, lang)}</span>
-          {/* Japanese and Chinese have no shorter month name than "10月": the
-              year-first title is already short. */}
-          <span className="month-title-text month-title-short">
-            {lang === 'ja' || lang === 'zh' ? monthTitle(month, year, lang) : `${MONTHS_SHORT[lang][month]} ${year}`}
+          {/* Narrow screens: month and year as two parts, which stack — month
+              over a smaller year — where one line cannot hold them: always for
+              Japanese and Chinese ("2026年10月" needs 148px, a 320px phone gives
+              the title 104), and at larger text sizes for every language. Both
+              are always shown; an ellipsis must never eat the month or the year
+              (review 2026-10-17, P2). */}
+          <span className={`month-title-text month-title-short${lang === 'ja' || lang === 'zh' ? ' is-cjk' : ''}`}>
+            <span className="mt-month">{lang === 'ja' || lang === 'zh' ? MONTHS[lang][month] : MONTHS_SHORT[lang][month]}</span>
+            <span className="mt-year">{year}</span>
           </span>
           <span className="month-title-caret">{pickerOpen ? '▴' : '▾'}</span>
         </button>

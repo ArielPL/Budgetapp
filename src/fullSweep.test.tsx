@@ -456,3 +456,44 @@ describe('Months in Japanese and Chinese are written year first (2026-10-17)', (
     expect(monthInText(9, 2026, 'es')).toBe('octubre 2026');
   });
 });
+
+// ── Review 2026-10-17, P0: the giving category vanished on reload ───────────
+describe('Gåvor & givande survives a reload and a later edit', () => {
+  const GIVING = {
+    id: 'givande', name: 'Gåvor & givande', icon: '🎁', color: '#84cc16',
+    rows: [{ id: 'tionde', label: 'Tionde & kollekt', amount: 1234 }],
+  };
+  const WITH_GIVING = JSON.stringify({ ...JSON.parse(SEPT), expenses: [...JSON.parse(SEPT).expenses, GIVING] });
+  const editAmountHere = (label: string, from: number, to: string) => {
+    fireEvent.click(document.querySelector(`[aria-label="${sv.ariaEditAmount(label, formatMoney(from, 'sek'))}"]`)!);
+    const input = document.activeElement as HTMLInputElement;
+    fireEvent.change(input, { target: { value: to } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  };
+
+  it('save then load gives the category back unchanged', async () => {
+    const { loadMonthData, saveMonthData } = await import('./defaults');
+    await boot({});
+    const m = { ...JSON.parse(SEPT), expenses: [...JSON.parse(SEPT).expenses, GIVING] };
+    saveMonthData(2026, 9, m);
+    const back = loadMonthData(2026, 9, 'sv');
+    expect(back.expenses.find(c => c.id === 'givande')).toMatchObject({ name: 'Gåvor & givande', rows: [{ label: 'Tionde & kollekt', amount: 1234 }] });
+  });
+
+  it('is shown after a reload, and an unrelated edit keeps it stored', async () => {
+    await boot({ budget_2026_8: WITH_GIVING });
+    await waitFor(() => expect(document.body.textContent).toContain('Gåvor & givande'));
+    expect(document.body.textContent).toContain(formatMoney(1234, 'sek'));
+    editAmountHere('Hyra', 9000, '9100');
+    await waitFor(() => expect(b.disk.get('budget_2026_8')).toContain('9100'));
+    const stored = JSON.parse(b.disk.get('budget_2026_8')!) as { expenses: { id: string; rows: { amount: number }[] }[] };
+    expect(stored.expenses.find(c => c.id === 'givande')?.rows[0].amount).toBe(1234);
+  });
+
+  it('the retired giving category of the first version stays hidden', async () => {
+    const { isRetiredGiving } = await import('./defaults');
+    expect(isRetiredGiving({ id: 'givande', name: 'Givande & Välgörenhet', icon: '🤲' })).toBe(true);
+    expect(isRetiredGiving({ id: 'givande', name: 'Gåvor & givande', icon: '🎁' })).toBe(false);
+    expect(isRetiredGiving({ id: 'givande', name: 'Giving', icon: '🎁' })).toBe(false);
+  });
+});

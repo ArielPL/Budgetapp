@@ -447,6 +447,19 @@ export function isHistoricMonth(year: number, monthIndex: number, now = new Date
   return year * 12 + monthIndex < nowYM;
 }
 
+/**
+ * The giving category of the first version (until June 2026): "Givande &
+ * Välgörenhet", 🤲, its rows mirrored from a plan field that no longer exists.
+ * Months from then may still hold it, and it stays hidden there.
+ *
+ * Only THAT one. The 1.13.0 template's "Gåvor & givande" (🎁) reuses the id,
+ * and hiding every `givande` made the new category vanish on the next load —
+ * and a later edit to the month wrote it away for good (review 2026-10-17, P0).
+ */
+export function isRetiredGiving(c: { id: string; icon?: string; name?: string }): boolean {
+  return c.id === 'givande' && (c.icon === '🤲' || c.name === 'Givande & Välgörenhet');
+}
+
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
   const key = storageKey(year, month);
   const raw = appStorage.getItem(key);
@@ -455,12 +468,11 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
     const parsed = JSON.parse(raw) as MonthData;
     // Preserve existing saved months EXACTLY — no auto-seeding of default
     // categories (that's now opt-in via the starter pack). Only normalize shape
-    // (guard against a missing array) and strip the long-removed 'givande'
-    // category, neither of which destroys any user data.
+    // (guard against a missing array) and hide the RETIRED giving category.
     if (!Array.isArray(parsed.income)) parsed.income = [];
     if (!Array.isArray(parsed.savings)) parsed.savings = [];
     if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
-    else parsed.expenses = parsed.expenses.filter(c => c.id !== 'givande');
+    else parsed.expenses = parsed.expenses.filter(c => !isRetiredGiving(c));
     // Defensive read: a build before the shared money validation could store an
     // amount as `null` (JSON.stringify's rendering of Infinity/NaN). One null
     // would turn every total that touched it into NaN, so amounts are coerced

@@ -47,38 +47,16 @@ export function deviceLang(): Lang {
   return pickLang(tags);
 }
 
-/**
- * The currency to start with, from the same signal.
- *
- * Symbol and formatting only — it never converts an amount, here or anywhere
- * else. English text next to "kr" was the old default's other half: coherent
- * for a Swede, puzzling for anyone else.
- */
-export function pickCurrency(tags: readonly string[]): Currency {
-  for (const tag of tags) {
-    const lower = tag.toLowerCase();
-    const [base, region] = lower.split('-');
-    if (base === 'sv') return 'sek';
-    if (base === 'es') return 'eur';
-    if (base === 'en') return region === 'gb' ? 'gbp' : 'usd';
-    if (base === 'ja') return 'jpy';
-    // Somebody else's European locale: the euro is the better guess than kronor.
-    if (['de', 'fr', 'it', 'pt', 'nl', 'fi', 'el', 'ga', 'et', 'lv', 'lt', 'sk', 'sl'].includes(base)) {
-      return 'eur';
-    }
-  }
-  // Nothing to go on. Dollars rather than kronor, to match the language this
-  // same silence gets: English text beside "kr" is the incoherent pair, and a
-  // device that tells us nothing is not more likely to be Swedish than not.
-  return 'usd';
-}
+/** The language list (menu and first-run step), each language named in itself. */
+export const LANG_CHOICES: [Lang, string][] = [
+  ['sv', '🇸🇪 Svenska'], ['en', '🇬🇧 English'], ['es', '🇪🇸 Español'],
+  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
+];
 
-export function deviceCurrency(): Currency {
-  const nav: Navigator | undefined = globalThis.navigator;
-  const tags = nav?.languages?.length ? [...nav.languages]
-    : (nav?.language ? [nav.language] : []);
-  return pickCurrency(tags);
-}
+// No guessed currency. The language follows the phone, but a currency guessed
+// from it was wrong exactly where it mattered — es-MX got euros, fr-CA euros,
+// zh-CN dollars (review 2026-10-17, P1). A new user picks it on the first-run
+// step instead (Intro.tsx), from symbols that say what they stand for.
 
 export const MONTHS: Record<Lang, string[]> = {
   sv: [
@@ -710,6 +688,13 @@ export interface Translations {
   /** Normal, large, larger — read aloud for the three "A" buttons. */
   textSizeName: [string, string, string];
   currencyHint: string;
+  /** What each symbol stands for, in brackets after it: the symbol is all the
+   *  app shows, so "$" serves the peso as well as the dollar. */
+  currencyNames: Record<Currency, string>;
+  /** The first-run step that asks for the currency (and offers the language). */
+  introSetupTitle: string;
+  introSetupBody: string;
+  introPickCurrency: string;
   theme: string;
   whatsNew: string;
   whatsNewLatest: string;
@@ -1662,6 +1647,10 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Textstorlek',
     textSizeName: ['Normal', 'Stor', 'Störst'],
     currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
+    currencyNames: { sek: 'kronor – svenska, norska, danska', eur: 'euro', usd: 'dollar, peso m.fl.', gbp: 'pund', jpy: 'yen, yuan' },
+    introSetupTitle: 'Språk och valuta',
+    introSetupBody: 'Välj språk och den valuta du använder. Du kan ändra båda i menyn senare.',
+    introPickCurrency: 'Välj en valuta för att fortsätta',
     theme: 'Tema',
     whatsNew: 'Nyheter',
     whatsNewLatest: 'Senaste',
@@ -2603,6 +2592,10 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Text size',
     textSizeName: ['Normal', 'Large', 'Larger'],
     currencyHint: "Changes only the symbol and format — amounts aren't converted",
+    currencyNames: { sek: 'Swedish, Norwegian, Danish krona', eur: 'euro', usd: 'dollar, peso and more', gbp: 'pound', jpy: 'yen, yuan' },
+    introSetupTitle: 'Language and currency',
+    introSetupBody: 'Choose your language and the currency you use. You can change both in the menu later.',
+    introPickCurrency: 'Choose a currency to continue',
     theme: 'Theme',
     whatsNew: "What's new",
     whatsNewLatest: 'Latest',
@@ -3544,6 +3537,10 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Tamaño del texto',
     textSizeName: ['Normal', 'Grande', 'Más grande'],
     currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
+    currencyNames: { sek: 'corona sueca, noruega, danesa', eur: 'euro', usd: 'dólar, peso y otros', gbp: 'libra', jpy: 'yen, yuan' },
+    introSetupTitle: 'Idioma y moneda',
+    introSetupBody: 'Elige tu idioma y la moneda que usas. Puedes cambiar ambos en el menú más tarde.',
+    introPickCurrency: 'Elige una moneda para continuar',
     theme: 'Tema',
     whatsNew: 'Novedades',
     whatsNewLatest: 'Último',

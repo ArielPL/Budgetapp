@@ -5431,6 +5431,78 @@ a:focus-visible,
   background: var(--accent-brand-strong);
 }
 
+.intro-next:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The first-run language-and-currency step. Taller than the cards, so it
+   scrolls inside the card rather than pushing "Next" off a short phone. */
+.intro-setup {
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.intro-setup-label {
+  align-self: stretch;
+  margin-top: 6px;
+  text-align: start;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.intro-lang { width: 100%; }
+
+.intro-setup .intro-emoji { font-size: 2rem; }
+
+.intro-currencies {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+}
+
+.intro-currency {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  text-align: start;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.intro-currency.is-on {
+  border-color: var(--accent-brand);
+  box-shadow: inset 0 0 0 1px var(--accent-brand);
+}
+
+.intro-currency-symbol {
+  min-width: 1.6em;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.intro-currency-name {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.intro-currency-hint {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.intro-currency-need {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* ── Triage: the leftover pile as a worklist ─────────────────────────────
    Sits above the table because it is work to DO, not a number to read. Closed
    by default — an open list of 34 unsorted places on every visit reads as an
@@ -6267,6 +6339,25 @@ a:focus-visible,
 @media (max-width: 400px) {
   .month-title-full { display: none; }
   .month-title-short { display: inline; }
+  .month-title-short .mt-year::before { content: ' '; }
+  /* Month over a smaller year, where one line would not fit: Japanese and
+     Chinese at any size, every language at the larger text sizes. Never an
+     ellipsis over the month or the year (review 2026-10-17, P2). */
+  .month-title-short.is-cjk,
+  :root[data-text-size="large"] .month-title-short,
+  :root[data-text-size="larger"] .month-title-short {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.05;
+    overflow: visible;
+  }
+  .month-title-short.is-cjk .mt-year::before,
+  :root[data-text-size="large"] .month-title-short .mt-year::before,
+  :root[data-text-size="larger"] .month-title-short .mt-year::before { content: none; }
+  .month-title-short.is-cjk .mt-year,
+  :root[data-text-size="large"] .month-title-short .mt-year,
+  :root[data-text-size="larger"] .month-title-short .mt-year { font-size: 0.62em; font-weight: 600; opacity: 1; color: var(--text-dim); }
 }
 
 /* Very narrow phones (320px class): the category header carries icon + name +

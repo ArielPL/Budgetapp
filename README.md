@@ -2,7 +2,8 @@
 
 A personal monthly budget. Track income, expenses and savings per month, set
 savings goals, follow up what was actually spent, review the whole year, and
-build a fully custom budget dashboard — in Swedish, English or Spanish.
+build a fully custom budget dashboard — in Swedish, English, Spanish, French,
+German, Japanese or Simplified Chinese.
 
 One code base, three apps:
 

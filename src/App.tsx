@@ -45,7 +45,7 @@ import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
+import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, LANG_CHOICES, CURRENCIES, type Lang, type Currency } from './i18n';
 import { applyTextSize, loadTextSize, TEXT_SIZES, TEXT_SIZE_KEY, type TextSize } from './textSize';
 import {
   loadThemeState,
@@ -110,11 +110,6 @@ interface AppProps {
 }
 
 
-/** The language list in the menu, each language named in itself. */
-const LANG_CHOICES: [Lang, string][] = [
-  ['sv', '🇸🇪 Svenska'], ['en', '🇬🇧 English'], ['es', '🇪🇸 Español'],
-  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
-];
 
 function App({ startupRepair = null }: AppProps) {
   const now = new Date();
@@ -155,7 +150,10 @@ function App({ startupRepair = null }: AppProps) {
   const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize(appStorage));
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
-    return isCurrency(stored) ? stored : deviceCurrency();
+    // Nothing stored means a brand-new install, which the first-run step asks
+    // (currencyPending below) — kronor only stands behind that question, or in
+    // for data so old it predates the setting, from when the app was Swedish.
+    return isCurrency(stored) ? stored : 'sek';
   });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).
@@ -256,6 +254,13 @@ function App({ startupRepair = null }: AppProps) {
     return true;
   });
   const dismissIntro = () => { safeSetItem(appStorage, 'budget_welcome_seen', '1'); setIntroOpen(false); };
+  // A new user chooses the currency; the app does not guess it (review
+  // 2026-10-17, P1). Nothing is stored until they have, so a first run that is
+  // closed before the choice asks again. Anyone with a stored currency —
+  // everyone updating — is never asked.
+  const [currencyPending, setCurrencyPending] = useState(
+    () => introOpen && !isCurrency(appStorage.getItem('budget_currency')));
+  const chooseCurrency = (c: Currency) => { setCurrency(c); setCurrencyPending(false); };
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => setWelcomeOpen(false);
@@ -387,8 +392,9 @@ function App({ startupRepair = null }: AppProps) {
 
   // ── Currency (symbol/format only — never converts amounts) ─────────
   useEffect(() => {
+    if (currencyPending) return;
     if (!safeSetItem(appStorage, 'budget_currency', currency)) setSaveFailed(true);
-  }, [currency]);
+  }, [currency, currencyPending]);
 
   // ── Budget tab layout (classic / combined) ─────────────────────────
   useEffect(() => {
@@ -2033,41 +2039,16 @@ function App({ startupRepair = null }: AppProps) {
                   <div className="utils-row">
                     <span className="utils-row-label">{t.currency}</span>
                     <div className="utils-seg">
-                      <button
-                        className={`seg-btn${currency === 'sek' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('sek')}
-                        title="Svenska kronor"
-                      >
-                        kr
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'eur' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('eur')}
-                        title="Euro"
-                      >
-                        €
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'usd' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('usd')}
-                        title="US Dollar"
-                      >
-                        $
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'gbp' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('gbp')}
-                        title="British Pound"
-                      >
-                        £
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'jpy' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('jpy')}
-                        title="Japanese yen"
-                      >
-                        ¥
-                      </button>
+                      {(Object.keys(CURRENCIES) as Currency[]).map(c => (
+                        <button
+                          key={c}
+                          className={`seg-btn${currency === c ? ' seg-active' : ''}`}
+                          onClick={() => setCurrency(c)}
+                          title={t.currencyNames[c]}
+                        >
+                          {CURRENCIES[c].symbol}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
@@ -2264,7 +2245,7 @@ function App({ startupRepair = null }: AppProps) {
         )}
       </header>
 
-      {introOpen && <Intro onDone={dismissIntro} />}
+      {introOpen && <Intro onDone={dismissIntro} askCurrency={currencyPending} onCurrency={chooseCurrency} />}
 
       {welcomeOpen && (
         <>
