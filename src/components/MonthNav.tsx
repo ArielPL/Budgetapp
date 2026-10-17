@@ -1,3 +1,4 @@
+import { monthTitle } from '../dateLabel';
 import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 import { PeriodLabel } from './PeriodLabel';
 import type { PeriodLocks } from '../periodLabel';
@@ -33,8 +34,12 @@ export const MonthNav = ({
           aria-expanded={pickerOpen}
           title={MONTHS[lang][month]}
         >
-          <span className="month-title-text month-title-full">{MONTHS[lang][month]} {year}</span>
-          <span className="month-title-text month-title-short">{MONTHS_SHORT[lang][month]} {year}</span>
+          <span className="month-title-text month-title-full">{monthTitle(month, year, lang)}</span>
+          {/* Japanese and Chinese have no shorter month name than "10月": the
+              year-first title is already short. */}
+          <span className="month-title-text month-title-short">
+            {lang === 'ja' || lang === 'zh' ? monthTitle(month, year, lang) : `${MONTHS_SHORT[lang][month]} ${year}`}
+          </span>
           <span className="month-title-caret">{pickerOpen ? '▴' : '▾'}</span>
         </button>
         <button className="nav-btn" onClick={onNext} aria-label={t.nextMonth}>›</button>
@@ -46,7 +51,7 @@ export const MonthNav = ({
         locks={periodLocks}
         year={year}
         month={month}
-        monthName={`${MONTHS[lang][month]} ${year}`}
+        monthName={monthTitle(month, year, lang)}
         onChange={onPeriodLabelChange}
       />
     </div>

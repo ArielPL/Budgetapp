@@ -15,16 +15,21 @@ describe('pickLang — what a brand-new install opens in', () => {
   });
 
   it('walks the list until it finds one it has', () => {
-    // A phone set to German with Swedish second should get Swedish, not the
+    // A phone set to Polish with Swedish second should get Swedish, not the
     // fallback — the owner told it they read Swedish.
-    expect(pickLang(['de-DE', 'sv-SE', 'en-US'])).toBe('sv');
+    expect(pickLang(['pl-PL', 'sv-SE', 'en-US'])).toBe('sv');
+    // German, French, Japanese and Chinese are languages of their own now.
+    expect(pickLang(['de-DE', 'sv-SE'])).toBe('de');
+    expect(pickLang(['zh-Hans-CN'])).toBe('zh');
+    expect(pickLang(['ja-JP'])).toBe('ja');
+    expect(pickLang(['fr-CA'])).toBe('fr');
     expect(pickLang(['fi-FI', 'en-GB'])).toBe('en');
   });
 
   it('falls back to English, not Swedish', () => {
     // The whole point. A device that says nothing useful is far more likely to
     // belong to someone who reads English than someone who reads Swedish.
-    expect(pickLang(['de-DE'])).toBe('en');
+    expect(pickLang(['pl-PL'])).toBe('en');
     expect(pickLang([])).toBe('en');
     expect(pickLang(['xx'])).toBe('en');
   });

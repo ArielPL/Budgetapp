@@ -233,11 +233,11 @@ export function classifyLabel(label: string): Kind | undefined {
   return undefined;
 }
 
-/** The app's own default labels, in all three languages, to their category —
+/** The app's own default labels, in every language, to their category —
  *  a budget exported from this app, or typed from its template, comes home. */
 const DEFAULT_LABELS: Map<string, Kind> = (() => {
   const map = new Map<string, Kind>();
-  for (const lang of ['sv', 'en', 'es'] as Lang[]) {
+  for (const lang of ['sv', 'en', 'es', 'fr', 'de', 'ja', 'zh'] as Lang[]) {
     const starter = starterMonthData(lang);
     for (const r of starter.income) map.set(fold(r.label), 'income');
     for (const c of starter.expenses) {

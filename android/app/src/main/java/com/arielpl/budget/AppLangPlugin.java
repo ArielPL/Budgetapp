@@ -37,12 +37,17 @@ public class AppLangPlugin extends Plugin {
         if ("sv".equals(lang)) return "Avbryt";
         if ("en".equals(lang)) return "Cancel";
         if ("es".equals(lang)) return "Cancelar";
+        if ("fr".equals(lang)) return "Annuler";
+        if ("de".equals(lang)) return "Abbrechen";
+        if ("ja".equals(lang)) return "キャンセル";
+        if ("zh".equals(lang)) return "取消";
         return context.getString(android.R.string.cancel);
     }
 
     static String ok(Context context) {
         if ("es".equals(lang)) return "Aceptar";
-        if ("sv".equals(lang) || "en".equals(lang)) return "OK";
+        if ("zh".equals(lang)) return "确定";
+        if ("sv".equals(lang) || "en".equals(lang) || "fr".equals(lang) || "de".equals(lang) || "ja".equals(lang)) return "OK";
         return context.getString(android.R.string.ok);
     }
 }

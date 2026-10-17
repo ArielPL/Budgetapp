@@ -28,7 +28,7 @@ import {
 } from '../spendingPrefs';
 import type { ActualEntry, BudgetCategory } from '../types';
 import { isValidIsoDate } from '../date';
-import { inSentence } from '../dateLabel';
+import { monthInText, monthTitle } from '../dateLabel';
 
 // ── Follow-up — what the plan said, next to what happened ──────────────────
 //
@@ -552,7 +552,7 @@ export const FollowUpTab = ({
   const clearMonth = async () => {
     const n = entries.length;
     if (n === 0) return;
-    if (!window.confirm(t.followUpClearConfirm(n, `${inSentence(MONTHS[lang][month], lang)} ${year}`))) return;
+    if (!window.confirm(t.followUpClearConfirm(n, monthInText(month, year, lang)))) return;
     // persist captures the step back from the exact keys it writes, so undo
     // restores exactly what was emptied.
     if (await persist(() => [], { action: 'clearActuals', count: n })) {
@@ -907,7 +907,7 @@ export const FollowUpTab = ({
           <span className="followup-span-range">
             {t.followUpSpanRange(
               `${MONTHS[lang][months[0].month]} ${months[0].year}`,
-              `${MONTHS[lang][month]} ${year}`,
+              monthTitle(month, year, lang),
             )}
           </span>
         )}
@@ -974,7 +974,7 @@ export const FollowUpTab = ({
                 className="followup-toast-go"
                 onClick={() => onGoToMonth(m.year, m.month)}
               >
-                {t.csvGoToMonth(`${inSentence(MONTHS[lang][m.month], lang)} ${m.year}`)}
+                {t.csvGoToMonth(monthInText(m.month, m.year, lang))}
               </button>
             ))}
         </p>

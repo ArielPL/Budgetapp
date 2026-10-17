@@ -1,3 +1,4 @@
+import { monthInText } from '../dateLabel';
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import type { BudgetCategory, BudgetRow, MonthData, SavingsGoal } from '../types';
 import { useLang, MONTHS } from '../i18n';
@@ -261,7 +262,7 @@ export const CustomLinked = ({
     if (plan.months.length === 0) return;
     const first = plan.months[0];
     const last = plan.months[plan.months.length - 1];
-    const span = (m: StoredMonth) => `${inSentence(MONTHS[lang][m.month], lang)} ${m.year}`;
+    const span = (m: StoredMonth) => monthInText(m.month, m.year, lang);
     const names = data.expenses.filter(c => plan.names.includes(c.name)).map(c => shownName(c, lang));
     if (!window.confirm(t.linkedCarryConfirm(
       names, monthLabel, plan.months.length, span(first), span(last),
@@ -509,7 +510,7 @@ export const CustomLinked = ({
                             <button className="custom-secondary-btn cv3-linked-fetch"
                               onClick={() => onAddCategory(found.cat)}>
                               📋 {t.linkedFetchFrom(shownName(found.cat, lang),
-                                `${inSentence(MONTHS[lang][found.month], lang)} ${found.year}`)}
+                                monthInText(found.month, found.year, lang))}
                             </button>
                           )}
                         </>

@@ -6,8 +6,8 @@
 //
 // Date formatting lives in dateLabel.ts, which is not about undo.
 
-import { MONTHS, type Lang } from './i18n';
-import { inSentence } from './dateLabel';
+import type { Lang } from './i18n';
+import { monthInText } from './dateLabel';
 import type { UndoEntry } from './undo';
 
 /** "september 2026" (sv/es) or "September 2026" (en), or empty when the action
@@ -15,5 +15,5 @@ import type { UndoEntry } from './undo';
  *  2026"), so the month takes the language's in-sentence casing. */
 export function undoWhere(entry: UndoEntry, lang: Lang): string {
   if (entry.year === undefined || entry.month === undefined) return '';
-  return `${inSentence(MONTHS[lang][entry.month], lang)} ${entry.year}`;
+  return monthInText(entry.month, entry.year, lang);
 }

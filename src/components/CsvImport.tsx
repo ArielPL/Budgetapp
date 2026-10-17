@@ -1,3 +1,4 @@
+import { monthTitle } from '../dateLabel';
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { appStorage } from '../storage';
@@ -20,7 +21,7 @@ import {
 } from '../actuals';
 import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
-import { useLang, MONTHS } from '../i18n';
+import { useLang } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
 import type { ActualEntry, BudgetCategory } from '../types';
 
@@ -322,7 +323,7 @@ export const CsvImport = ({
         value: JSON.stringify([...existing, ...fresh]),
       });
       added += fresh.length;
-      touched.push(`${MONTHS[lang][bucket.month]} ${bucket.year}`);
+      touched.push(monthTitle(bucket.month, bucket.year, lang));
       written.push({ year: bucket.year, month: bucket.month });
     }
 

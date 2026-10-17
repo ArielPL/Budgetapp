@@ -444,3 +444,15 @@ describe('The budget template has a place for giving (tester, 2026-10-17)', () =
     expect(m.expenses.find(c => c.id === 'fritid')!.rows.map(r => r.label)).not.toContain('Gåvor & Välgörenhet');
   });
 });
+
+describe('Months in Japanese and Chinese are written year first (2026-10-17)', () => {
+  it('2026年10月, not 10月 2026; other languages unchanged', async () => {
+    const { monthTitle, monthInText } = await import('./dateLabel');
+    expect(monthTitle(9, 2026, 'zh')).toBe('2026年10月');
+    expect(monthInText(9, 2026, 'ja')).toBe('2026年10月');
+    expect(monthTitle(9, 2026, 'sv')).toBe('Oktober 2026');
+    expect(monthInText(9, 2026, 'sv')).toBe('oktober 2026');
+    expect(monthInText(9, 2026, 'de')).toBe('Oktober 2026');
+    expect(monthInText(9, 2026, 'es')).toBe('octubre 2026');
+  });
+});

@@ -34,7 +34,7 @@ import { UndoBar } from './components/UndoBar';
 import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
-import { shortWhen, longDate, inSentence } from './dateLabel';
+import { shortWhen, longDate, inSentence, monthInText, monthTitle } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
@@ -107,6 +107,13 @@ interface AppProps {
    *  bar, so the move is seen and can be taken back. See filingRepair.ts. */
   startupRepair?: UndoEntry | null;
 }
+
+
+/** The language list in the menu, each language named in itself. */
+const LANG_CHOICES: [Lang, string][] = [
+  ['sv', '🇸🇪 Svenska'], ['en', '🇬🇧 English'], ['es', '🇪🇸 Español'],
+  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
+];
 
 function App({ startupRepair = null }: AppProps) {
   const now = new Date();
@@ -802,7 +809,7 @@ function App({ startupRepair = null }: AppProps) {
       key: PERIOD_LOCKS_KEY,
       value: Object.keys(next).length === 0 ? null : JSON.stringify(next),
     };
-    if (!(await applyPeriodChange(periodStartDay, next, `${inSentence(MONTHS[lang][m], lang)} ${y}`, setting))) return;
+    if (!(await applyPeriodChange(periodStartDay, next, monthInText(m, y, lang), setting))) return;
     setPeriodLocks(next);
   };
 
@@ -899,7 +906,7 @@ function App({ startupRepair = null }: AppProps) {
     // and all of it about to be replaced.
     if (hasBudgetContent(data) && !window.confirm(
       // Both months sit mid-sentence: lower case in sv and es (inSentence).
-      t.copyPrevMonthConfirm(inSentence(prevName, lang), `${inSentence(MONTHS[lang][month], lang)} ${year}`),
+      t.copyPrevMonthConfirm(inSentence(prevName, lang), monthInText(month, year, lang)),
     )) return;
 
     // Captured before setData, like every other step back here: the save effect
@@ -998,7 +1005,7 @@ function App({ startupRepair = null }: AppProps) {
     const nextMth  = month === 11 ? 0 : month + 1;
     // Ask before replacing a month the user has already built.
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
-      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${inSentence(MONTHS[lang][month], lang)} ${year}`),
+      t.copyOverwriteOne(monthTitle(nextMth, nextYear, lang), monthInText(month, year, lang)),
     )) return;
     if (!(await applyCopy([{ y: nextYear, m: nextMth }]))) return;
     setMenuOpen(false);
@@ -1026,7 +1033,7 @@ function App({ startupRepair = null }: AppProps) {
   const resetCurrentMonth = () => {
     // Name the exact month in the confirm so the user knows what's being wiped.
     // Mid-sentence ('för oktober 2026'): lower case in sv and es.
-    const name = `${inSentence(MONTHS[lang][month], lang)} ${year}`;
+    const name = monthInText(month, year, lang);
     // The month's RECORDED ENTRIES are deliberately not cleared. A plan can be
     // retyped in a minute; the record of what was actually spent has to be
     // imported from the bank again. But the dialog has to say so — it used to
@@ -1974,27 +1981,17 @@ function App({ startupRepair = null }: AppProps) {
                   <div className="utils-menu-scroll">
                   {/* Language */}
                   <div className="utils-row">
-                    <span className="utils-row-label">{t.language}</span>
-                    <div className="utils-seg">
-                      <button
-                        className={`seg-btn${lang === 'sv' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('sv')}
-                      >
-                        🇸🇪 SV
-                      </button>
-                      <button
-                        className={`seg-btn${lang === 'en' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('en')}
-                      >
-                        🇬🇧 EN
-                      </button>
-                      <button
-                        className={`seg-btn${lang === 'es' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('es')}
-                      >
-                        🇪🇸 ES
-                      </button>
-                    </div>
+                    <label className="utils-row-label" htmlFor="lang-pick">{t.language}</label>
+                    {/* A list rather than buttons: seven languages do not fit a row
+                        on a phone. Each in its own name, so anyone can find theirs. */}
+                    <select
+                      id="lang-pick"
+                      className="label-input lang-pick"
+                      value={lang}
+                      onChange={e => { if (isLang(e.target.value)) setLang(e.target.value); }}
+                    >
+                      {LANG_CHOICES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                    </select>
                   </div>
 
                   {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own) */}

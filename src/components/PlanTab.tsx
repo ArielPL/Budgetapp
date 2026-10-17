@@ -1,8 +1,9 @@
+import { monthTitle } from '../dateLabel';
 import { useState, useId, useRef } from 'react';
 import type { MonthData, PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { validateNewGoal, type GoalFormError } from '../goalForm';
-import { useLang, MONTHS, type Translations } from '../i18n';
+import { useLang, type Translations } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 import { SparPlanSection } from './SparPlan';
 
@@ -102,8 +103,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
         {goal.deadline && (
           <div className="goal-deadline">
             📅 {(() => {
-              const [y, m] = goal.deadline.split('-');
-              return `${MONTHS[lang][parseInt(m) - 1]} ${y}`;
+              const [y, m] = goal.deadline.split('-').map(Number);
+              return monthTitle(m - 1, y, lang);
             })()}
           </div>
         )}
@@ -292,7 +293,7 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
   const goalProgress = totalTarget > 0
     ? Math.round((totalCurrent / totalTarget) * 100)
     : null;
-  const monthLabel = `${MONTHS[lang][month]} ${year}`;
+  const monthLabel = monthTitle(month, year, lang);
 
   return (
     <div className="tab-content plan-tab">

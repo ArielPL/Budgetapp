@@ -5,7 +5,7 @@ import { adoptExternalValue } from '../crossTab';
 import { isCustomValues, isCustomStructure } from '../backup';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useLang, MONTHS, type Translations } from '../i18n';
-import { inSentence } from '../dateLabel';
+import { inSentence, monthInText, monthTitle } from '../dateLabel';
 import { ExpenseChart } from './Charts';
 import { useModalFocus } from '../useModalFocus';
 import { parseMoneyOrZero, coerceStoredMoney, toCents } from '../money';
@@ -567,7 +567,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     const hasOwn = appStorage.getItem(valuesKey(year, month)) !== null
       && Object.keys(values).length > 0;
     if (hasOwn && !window.confirm(
-      t.copyOverwriteOne(`${MONTHS[lang][month]} ${year}`, inSentence(MONTHS[lang][pm], lang)),
+      t.copyOverwriteOne(monthTitle(month, year, lang), inSentence(MONTHS[lang][pm], lang)),
     )) return;
     onRecordUndo({
       at: new Date().toISOString(),
@@ -739,7 +739,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     setBlocks(prev => prev.map(b => (b.id === id ? withNoteText(b, year, month, text) : b)));
   const setNoteScope = (id: string, scope: 'month' | 'all') =>
     setBlocks(prev => prev.map(b => (b.id === id ? withNoteScope(b, scope, year, month) : b)));
-  const monthLabel = `${inSentence(MONTHS[lang][month], lang)} ${year}`;
+  const monthLabel = monthInText(month, year, lang);
   const noteScopeLabel = (b: CustomBlock) =>
     (b.noteScope === 'month' ? t.noteScopeMonth(monthLabel) : t.noteScopeAll);
   const addRow = (id: string) =>

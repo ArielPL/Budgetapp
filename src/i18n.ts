@@ -1,8 +1,12 @@
 import { createContext, useContext } from 'react';
 import type { DebtKind } from './debts';
 import type { UndoAction } from './undo';
+import { fr } from './locales/fr';
+import { de } from './locales/de';
+import { ja } from './locales/ja';
+import { zh } from './locales/zh';
 
-export type Lang = 'sv' | 'en' | 'es';
+export type Lang = 'sv' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh';
 
 /** Runtime check for a stored/imported language. A TypeScript `as Lang` cast
  *  proves nothing at runtime: "xx" sailed through it, `translations["xx"]` came
@@ -89,12 +93,26 @@ export const MONTHS: Record<Lang, string[]> = {
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ],
+  fr: [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ],
+  de: [
+    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+  ],
+  ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
 
 export const MONTHS_SHORT: Record<Lang, string[]> = {
   sv: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
   en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   es: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  fr: ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'],
+  de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
 
 // ── Currency ────────────────────────────────────────────────────────
@@ -163,7 +181,9 @@ export function formatMoney(amount: number, currency: Currency): string {
 }
 
 // Language → locale for numeric formatting on chart axes (decimal separator).
-const AXIS_LOCALE: Record<Lang, string> = { sv: 'sv-SE', en: 'en-US', es: 'es-ES' };
+const AXIS_LOCALE: Record<Lang, string> = {
+  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', ja: 'ja-JP', zh: 'zh-CN',
+};
 
 // Magnitude suffixes per language. "Billion" is a false friend: a Swedish
 // "biljon" is 1e12, so sv uses md (miljard) / bn (biljon); es follows the
@@ -172,6 +192,11 @@ const AXIS_SUFFIX: Record<Lang, { m: string; b: string; t: string }> = {
   sv: { m: 'M', b: 'md', t: 'bn' },
   en: { m: 'M', b: 'B', t: 'T' },
   es: { m: 'M', b: 'mil M', t: 'B' },
+  fr: { m: 'M', b: 'Md', t: 'Bn' },
+  de: { m: 'Mio', b: 'Mrd', t: 'Bio' },
+  // Short-scale letters: 万/億 grouping does not fit the thousand-step tiers.
+  ja: { m: 'M', b: 'B', t: 'T' },
+  zh: { m: 'M', b: 'B', t: 'T' },
 };
 
 /**
@@ -2081,10 +2106,10 @@ export const translations: Record<Lang, Translations> = {
       '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
       'Det sista är hela poängen. Efter en månad eller två är listan mest din egen. Den är inte smart — den är bara noggrann, och den lyssnar på dig.',
       '## Sortera resten',
-      'Sortera tar det som ligger i Övrigt och visar det som en lista med störst belopp först och ett förslag per ställe. Ett tryck flyttar hela stället — alla åtta ICA-posterna på en gång — och lär sig valet.',
+      'Sortera tar det som ligger i Other och visar det som en lista med störst belopp först och ett förslag per ställe. Ett tryck flyttar hela stället — alla åtta ICA-posterna på en gång — och lär sig valet.',
       'Förslaget säger varifrån det kommer: din regel, som du gjort förut, eller förslag ur den inbyggda listan. Är den osäker föreslår den ingenting alls.',
-      '## Övrigt och Överföring',
-      'Övrigt är det sorteraren inte kände igen. Överföring är pengar mellan dina egna konton — de räknas inte som utgift, för att flytta 5 000 kr till sparkontot är inte att spendera 5 000 kr.',
+      '## Other och Överföring',
+      'Other är det sorteraren inte kände igen. Överföring är pengar mellan dina egna konton — de räknas inte som utgift, för att flytta 5 000 kr till sparkontot är inte att spendera 5 000 kr.',
       'Båda går att ändra. Ingenting kastas bort.',
       '## Verktygen',
       'Månad / 3 / 6 / 12 summerar över flera månader. Bra för "hur mycket lägger jag egentligen på mat".',
@@ -3016,14 +3041,14 @@ export const translations: Record<Lang, Translations> = {
       '## The sorter',
       'It is not an AI, and nothing is downloaded. It is a list of names of shops, banks and services — from Sweden, the United States, Spain, Australia, South Africa, Mexico, Japan and Colombia, plus international ones — and your own corrections.',
       '1. It reads the text on the row and looks for a name it knows. "ICA NÄRA KUNGSHOLMEN 4711" is ICA.',
-      '2. If it recognises nothing it puts the entry in Övrigt rather than guessing. A wrong category costs more than an empty one.',
+      '2. If it recognises nothing it puts the entry in Other rather than guessing. A wrong category costs more than an empty one.',
       '3. When you move a place to the right category it remembers. Next time your correction outweighs the list.',
       'That last part is the whole point. After a month or two the list is mostly your own. It is not clever — it is only careful, and it listens to you.',
       '## Sorting the rest',
-      'Sort them takes what sits in Övrigt and shows it as a list, biggest first, with a proposal per place. One tap moves the whole place — all eight ICA entries at once — and learns the choice.',
+      'Sort them takes what sits in Other and shows it as a list, biggest first, with a proposal per place. One tap moves the whole place — all eight ICA entries at once — and learns the choice.',
       'The proposal says where it came from: your rule, as you did before, or suggestion from the built-in list. When it is unsure it proposes nothing at all.',
-      '## Övrigt and Transfer',
-      'Övrigt is what the sorter did not recognise. Transfer is money between your own accounts — it does not count as spending, because moving 5 000 kr to your savings account is not spending 5 000 kr.',
+      '## Other and Transfers',
+      'Other is what the sorter did not recognise. Transfer is money between your own accounts — it does not count as spending, because moving 5 000 kr to your savings account is not spending 5 000 kr.',
       'Both can be changed. Nothing is thrown away.',
       '## The tools',
       'Month / 3 / 6 / 12 sums across several months. Good for "how much do I actually spend on food".',
@@ -3955,14 +3980,14 @@ export const translations: Record<Lang, Translations> = {
       '## El clasificador',
       'No es una IA, y no se descarga nada. Es una lista de nombres de tiendas, bancos y servicios — de Suecia, Estados Unidos, España, Australia, Sudáfrica, México, Japón y Colombia, además de internacionales — y tus propias correcciones.',
       '1. Lee el texto de la fila y busca un nombre que conozca. "ICA NÄRA KUNGSHOLMEN 4711" es ICA.',
-      '2. Si no reconoce nada deja el movimiento en Övrigt en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
+      '2. Si no reconoce nada deja el movimiento en Otros en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
       '3. Cuando mueves un sitio a la categoría correcta lo recuerda. La próxima vez tu corrección pesa más que la lista.',
       'Eso último es lo esencial. Al cabo de un mes o dos la lista es sobre todo tuya. No es lista — solo es cuidadosa, y te hace caso.',
       '## Clasificar el resto',
-      'Clasificar toma lo que está en Övrigt y lo muestra como una lista, de mayor a menor, con una propuesta por sitio. Un toque mueve el sitio entero — los ocho movimientos de ICA a la vez — y aprende la elección.',
+      'Clasificar toma lo que está en Otros y lo muestra como una lista, de mayor a menor, con una propuesta por sitio. Un toque mueve el sitio entero — los ocho movimientos de ICA a la vez — y aprende la elección.',
       'La propuesta dice de dónde viene: tu regla, como hiciste antes, o sugerencia de la lista incorporada. Si duda, no propone nada.',
-      '## Övrigt y Transferencia',
-      'Övrigt es lo que el clasificador no reconoció. Transferencia es dinero entre tus propias cuentas — no cuenta como gasto, porque mover 5 000 kr a tu cuenta de ahorro no es gastar 5 000 kr.',
+      '## Otros y Transferencias',
+      'Otros es lo que el clasificador no reconoció. Transferencia es dinero entre tus propias cuentas — no cuenta como gasto, porque mover 5 000 kr a tu cuenta de ahorro no es gastar 5 000 kr.',
       'Los dos se pueden cambiar. No se tira nada.',
       '## Las herramientas',
       'Mes / 3 / 6 / 12 suma varios meses. Útil para "cuánto gasto de verdad en comida".',
@@ -3979,6 +4004,10 @@ export const translations: Record<Lang, Translations> = {
     chartTypeLine: 'Línea',
     chartTypeStacked: 'Apiladas',
   },
+  fr,
+  de,
+  ja,
+  zh,
 };
 
 interface LangContextValue {

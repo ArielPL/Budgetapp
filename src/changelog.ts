@@ -6,12 +6,26 @@
 // badge until the user opens this panel.
 
 import type { Lang } from './i18n';
+import { frChangelog113 } from './locales/fr';
+import { deChangelog113 } from './locales/de';
+import { jaChangelog113 } from './locales/ja';
+import { zhChangelog113 } from './locales/zh';
+
+/** The languages every release is written in. Releases from before French,
+ *  German, Japanese and Chinese (2026-10-17) exist in these only; the others
+ *  read them in English — see releaseText. */
+type FirstLangs = 'sv' | 'en' | 'es';
 
 export interface Release {
   version: string;
   date: string; // ISO yyyy-mm-dd (real commit date)
-  title: Record<Lang, string>;
-  items: Record<Lang, string[]>;
+  title: Record<FirstLangs, string> & Partial<Record<Lang, string>>;
+  items: Record<FirstLangs, string[]> & Partial<Record<Lang, string[]>>;
+}
+
+/** A release's title and items in `lang`, or in English where it has none. */
+export function releaseText(rel: Release, lang: Lang): { title: string; items: string[] } {
+  return { title: rel.title[lang] ?? rel.title.en, items: rel.items[lang] ?? rel.items.en };
 }
 
 export const CHANGELOG: Release[] = [
@@ -22,6 +36,10 @@ export const CHANGELOG: Release[] = [
       sv: 'YourBudget, iPad och en grundlig genomgång',
       en: 'YourBudget, iPad and a thorough check-up',
       es: 'YourBudget, iPad y una revisión a fondo',
+      fr: frChangelog113.title,
+      de: deChangelog113.title,
+      ja: jaChangelog113.title,
+      zh: zhChangelog113.title,
     },
     items: {
       sv: [
@@ -56,6 +74,7 @@ export const CHANGELOG: Release[] = [
         'Ny kategori i budgetmallen, Gåvor & givande, med Tionde & kollekt, Välgörenhet och Presenter. Kyrkor och insamlingar i kontoutdraget hamnar där i stället för under Fritid',
         'Byter du namn på en rad av misstag kan du ångra det direkt, som när du tar bort något',
         'Tydligare namn på en inkomstrad: ”Bidrag (t.ex. barnbidrag)”, och välkomsttexten säger klart att appen aldrig kopplar upp mot banken',
+        'Appen finns nu också på franska, tyska, japanska och förenklad kinesiska. Språket väljer du i en lista i menyn',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -89,6 +108,7 @@ export const CHANGELOG: Release[] = [
         'A new category in the budget template, Giving, with Tithes & offerings, Charity and Gifts. Churches and charities in your bank statement go there instead of under Leisure',
         'Renamed a row by mistake? You can undo it right away, as when you delete something',
         'A clearer name for an income row, “Government benefits”, and the welcome text says plainly that the app never connects to your bank',
+        'The app is now also in French, German, Japanese and Simplified Chinese. Pick the language from a list in the menu',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -122,7 +142,12 @@ export const CHANGELOG: Release[] = [
         'Nueva categoría en la plantilla, Donativos, con Diezmos y ofrendas, Donaciones y Regalos. Las iglesias y organizaciones benéficas del extracto van ahí en lugar de a Ocio',
         '¿Cambiaste el nombre de una fila por error? Puedes deshacerlo enseguida, como al borrar algo',
         'Un nombre más claro para una fila de ingresos, «Ayudas y subsidios», y la bienvenida dice claramente que la app nunca se conecta a tu banco',
+        'La app ya está también en francés, alemán, japonés y chino simplificado. Elige el idioma en una lista del menú',
       ],
+      fr: frChangelog113.items,
+      de: deChangelog113.items,
+      ja: jaChangelog113.items,
+      zh: zhChangelog113.items,
     },
   },
   {

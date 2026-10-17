@@ -172,11 +172,15 @@ public class AppLangPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         call.resolve()
     }
-    /// The same three languages as the app (src/i18n.ts).
+    /// The same languages as the app (src/i18n.ts).
     static let buttons: [String: [String: String]] = [
         "sv": ["Cancel": "Avbryt", "OK": "OK"],
         "en": ["Cancel": "Cancel", "OK": "OK"],
         "es": ["Cancel": "Cancelar", "OK": "Aceptar"],
+        "fr": ["Cancel": "Annuler", "OK": "OK"],
+        "de": ["Cancel": "Abbrechen", "OK": "OK"],
+        "ja": ["Cancel": "キャンセル", "OK": "OK"],
+        "zh": ["Cancel": "取消", "OK": "确定"],
     ]
 
     @objc func set(_ call: CAPPluginCall) {

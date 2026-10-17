@@ -1,9 +1,11 @@
 import { useRef } from 'react';
 import { useLang, type Lang } from '../i18n';
 import { useModalFocus } from '../useModalFocus';
-import { CHANGELOG } from '../changelog';
+import { CHANGELOG, releaseText } from '../changelog';
 
-const DATE_LOCALE: Record<Lang, string> = { sv: 'sv-SE', en: 'en-US', es: 'es-ES' };
+const DATE_LOCALE: Record<Lang, string> = {
+  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', ja: 'ja-JP', zh: 'zh-CN',
+};
 
 // "What's new" — a read-only panel listing releases newest-first. Reuses the
 // theme-panel shell (positioning, backdrop, mobile bottom-sheet, focus trap).
@@ -38,9 +40,9 @@ export const WhatsNew = ({ onClose }: { onClose: () => void }) => {
                 {i === 0 && <span className="whatsnew-latest">{t.whatsNewLatest}</span>}
                 <span className="whatsnew-date">{fmtDate(rel.date)}</span>
               </div>
-              <h3 className="whatsnew-release-title">{rel.title[lang]}</h3>
+              <h3 className="whatsnew-release-title">{releaseText(rel, lang).title}</h3>
               <ul className="whatsnew-items">
-                {rel.items[lang].map((item, j) => <li key={j}>{item}</li>)}
+                {releaseText(rel, lang).items.map((item, j) => <li key={j}>{item}</li>)}
               </ul>
             </section>
           ))}
