@@ -478,6 +478,8 @@ export const fr: Translations = {
   newNoteName: "Note",
   notePlaceholder: "Écrivez une note…",
   currency: "Devise",
+  textSize: 'Taille du texte',
+  textSizeName: ['Normale', 'Grande', 'Très grande'],
   currencyHint: "Change seulement le symbole et le format — les montants ne sont pas convertis",
   theme: "Thème",
   whatsNew: "Nouveautés",
@@ -985,5 +987,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Une ligne renommée par erreur ? Vous pouvez annuler tout de suite, comme quand vous supprimez quelque chose",
     "Un nom plus clair pour une ligne de revenus, « Prestations sociales », et le texte de bienvenue dit clairement que l'app ne se connecte jamais à votre banque",
     "L'app est désormais aussi disponible en français, allemand, japonais et chinois simplifié. Choisissez la langue dans une liste du menu",
+    "Texte plus grand : choisissez l'une des trois tailles dans Taille du texte, dans le menu. Tout grandit, et tout tient même sur un petit téléphone",
   ],
 };

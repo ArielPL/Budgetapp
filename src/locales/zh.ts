@@ -465,6 +465,8 @@ export const zh: Translations = {
   newNoteName: '笔记',
   notePlaceholder: '写点笔记…',
   currency: '货币',
+  textSize: '文字大小',
+  textSizeName: ['标准', '大', '特大'],
   currencyHint: '只改变符号和格式——金额不会换算',
   theme: '主题',
   whatsNew: '新功能',
@@ -972,5 +974,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     '不小心重命名了一行？你可以立即撤销，就像删除东西时一样',
     '收入行有了一个更清楚的名称“政府补贴”，欢迎文字也明确说明应用从不连接你的银行',
     '应用现在也支持法语、德语、日语和简体中文。可以在菜单的列表中选择语言',
+    '更大的文字：在菜单的「文字大小」中选择三种大小之一。应用中的一切都会变大，在小屏手机上也能完整显示',
   ],
 };

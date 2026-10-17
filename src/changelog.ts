@@ -75,6 +75,7 @@ export const CHANGELOG: Release[] = [
         'Byter du namn på en rad av misstag kan du ångra det direkt, som när du tar bort något',
         'Tydligare namn på en inkomstrad: ”Bidrag (t.ex. barnbidrag)”, och välkomsttexten säger klart att appen aldrig kopplar upp mot banken',
         'Appen finns nu också på franska, tyska, japanska och förenklad kinesiska. Språket väljer du i en lista i menyn',
+        'Större text: välj mellan tre storlekar under Textstorlek i menyn. Allt i appen växer, och det får plats även på en liten telefon',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -109,6 +110,7 @@ export const CHANGELOG: Release[] = [
         'Renamed a row by mistake? You can undo it right away, as when you delete something',
         'A clearer name for an income row, “Government benefits”, and the welcome text says plainly that the app never connects to your bank',
         'The app is now also in French, German, Japanese and Simplified Chinese. Pick the language from a list in the menu',
+        'Larger text: pick one of three sizes under Text size in the menu. Everything in the app grows, and it still fits on a small phone',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -143,6 +145,7 @@ export const CHANGELOG: Release[] = [
         '¿Cambiaste el nombre de una fila por error? Puedes deshacerlo enseguida, como al borrar algo',
         'Un nombre más claro para una fila de ingresos, «Ayudas y subsidios», y la bienvenida dice claramente que la app nunca se conecta a tu banco',
         'La app ya está también en francés, alemán, japonés y chino simplificado. Elige el idioma en una lista del menú',
+        'Texto más grande: elige uno de tres tamaños en Tamaño del texto en el menú. Todo en la app crece, y sigue cabiendo en un móvil pequeño',
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

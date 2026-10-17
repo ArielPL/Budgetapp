@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import './index.css'
 import App from './App.tsx'
 import { applyPersistedTheme } from './themes.ts'
+import { applyTextSize, loadTextSize } from './textSize.ts'
 import { appStorage, browserStorage, installStorage } from './storage.ts'
 import { isLang, deviceLang, translations } from './i18n.ts'
 import { repairFiling } from './filingRepair.ts'
@@ -50,6 +51,8 @@ async function start() {
   // Apply the saved theme palette to :root before React renders, so the very
   // first paint already uses the right colors (no flash of the default Sorbet).
   applyPersistedTheme()
+  // The text size too: a large-text user should never see small text first.
+  applyTextSize(loadTextSize(appStorage))
 
   // And the document's language, for the same reason: index.html hard-codes
   // lang="sv", but since v1.12.0 the app opens in the DEVICE's language — so an

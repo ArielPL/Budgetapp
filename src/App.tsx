@@ -46,6 +46,7 @@ import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
 import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
+import { applyTextSize, loadTextSize, TEXT_SIZES, TEXT_SIZE_KEY, type TextSize } from './textSize';
 import {
   loadThemeState,
   resolveVars,
@@ -151,6 +152,7 @@ function App({ startupRepair = null }: AppProps) {
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   /** The wallets as a screen of their own, opened from the menu in any layout. */
   const [walletsScreen, setWalletsScreen] = useState(false);
+  const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize(appStorage));
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
     return isCurrency(stored) ? stored : deviceCurrency();
@@ -376,6 +378,12 @@ function App({ startupRepair = null }: AppProps) {
     // The tab title too — it was Swedish on every device, whatever the UI said.
     document.title = t.appTitle;
   }, [lang, t]);
+
+  // ── Text size (applied to the root, so every rem follows) ──────────
+  useEffect(() => {
+    applyTextSize(textSize);
+    if (!safeSetItem(appStorage, TEXT_SIZE_KEY, textSize)) setSaveFailed(true);
+  }, [textSize]);
 
   // ── Currency (symbol/format only — never converts amounts) ─────────
   useEffect(() => {
@@ -2063,6 +2071,26 @@ function App({ startupRepair = null }: AppProps) {
                     </div>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
+
+                  {/* Text size: the same letter at three sizes, so the choice
+                      reads without words (tester, 2026-10-17). */}
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.textSize}</span>
+                    <div className="utils-seg" role="group" aria-label={t.textSize}>
+                      {TEXT_SIZES.map((s, i) => (
+                        <button
+                          key={s}
+                          className={`seg-btn text-size-btn text-size-${s}${textSize === s ? ' seg-active' : ''}`}
+                          aria-pressed={textSize === s}
+                          aria-label={t.textSizeName[i]}
+                          title={t.textSizeName[i]}
+                          onClick={() => setTextSize(s)}
+                        >
+                          A
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Wallets — a trip's own budget, reachable from every layout */}
                   <button className="utils-action" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>

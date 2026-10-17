@@ -2948,11 +2948,14 @@ a:focus-visible,
   border-radius: var(--radius-lg);
   padding: 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Two side by side while they fit; one column when they do not — at the
+     larger text sizes on a phone (rem, so it follows the setting). */
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
   gap: 16px;
 }
 
 .savings-donut-card {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5723,6 +5726,13 @@ a:focus-visible,
 }
 .q-note-warn { color: var(--caution); }
 
+/* Text size: the same letter at three sizes, in the menu. Fixed px so the
+   buttons keep their relative look at every setting. */
+.text-size-btn { font-weight: 700; line-height: 1; min-width: 40px; }
+.text-size-normal { font-size: 13px; }
+.text-size-large { font-size: 16px; }
+.text-size-larger { font-size: 20px; }
+
 /* ── Tools (tools.ts): try a change; a confirmed step makes it real ───────── */
 .q-form {
   display: grid;
@@ -6487,7 +6497,8 @@ a:focus-visible,
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.cv3-name-input),
   textarea,
   select {
-    font-size: 16px !important;
+    /* Never under 16px (iOS zooms below that), and larger with the text-size setting. */
+    font-size: max(16px, 1rem) !important;
   }
 }
 
@@ -6604,4 +6615,9 @@ td.num[style*="color: rgb"],
        other sheets' bodies are. */
     padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   }
+
+  /* Larger text must not push six tabs past the screen: the labels grow a
+     little, the icons carry the rest, and a label never widens its tab. */
+  .tab-btn { min-width: 0; font-size: min(0.68rem, 12.5px); }
+  .tab-label-short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

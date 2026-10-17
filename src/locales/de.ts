@@ -469,6 +469,8 @@ export const de: Translations = {
   newNoteName: 'Notiz',
   notePlaceholder: 'Schreib eine Notiz…',
   currency: 'Währung',
+  textSize: 'Textgröße',
+  textSizeName: ['Normal', 'Groß', 'Sehr groß'],
   currencyHint: 'Ändert nur Symbol und Format – Beträge werden nicht umgerechnet',
   theme: 'Design',
   whatsNew: 'Neuigkeiten',
@@ -976,5 +978,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Versehentlich eine Zeile umbenannt? Du kannst es sofort rückgängig machen, wie beim Löschen',
     'Ein klarerer Name für eine Einnahmezeile, „Staatliche Leistungen“, und der Willkommenstext sagt deutlich, dass sich die App nie mit deiner Bank verbindet',
     'Die App gibt es jetzt auch auf Französisch, Deutsch, Japanisch und vereinfachtem Chinesisch. Die Sprache wählst du aus einer Liste im Menü',
+    'Größere Schrift: Wähle im Menü unter Textgröße eine von drei Größen. Alles in der App wird größer und passt trotzdem auf ein kleines Handy',
   ],
 };

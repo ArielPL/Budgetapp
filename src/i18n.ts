@@ -706,6 +706,9 @@ export interface Translations {
   newNoteName: string;
   notePlaceholder: string;
   currency: string;
+  textSize: string;
+  /** Normal, large, larger — read aloud for the three "A" buttons. */
+  textSizeName: [string, string, string];
   currencyHint: string;
   theme: string;
   whatsNew: string;
@@ -1656,6 +1659,8 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Anteckning',
     notePlaceholder: 'Skriv en anteckning…',
     currency: 'Valuta',
+    textSize: 'Textstorlek',
+    textSizeName: ['Normal', 'Stor', 'Störst'],
     currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
     theme: 'Tema',
     whatsNew: 'Nyheter',
@@ -2595,6 +2600,8 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Note',
     notePlaceholder: 'Write a note…',
     currency: 'Currency',
+    textSize: 'Text size',
+    textSizeName: ['Normal', 'Large', 'Larger'],
     currencyHint: "Changes only the symbol and format — amounts aren't converted",
     theme: 'Theme',
     whatsNew: "What's new",
@@ -3534,6 +3541,8 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Nota',
     notePlaceholder: 'Escribe una nota…',
     currency: 'Moneda',
+    textSize: 'Tamaño del texto',
+    textSizeName: ['Normal', 'Grande', 'Más grande'],
     currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
     theme: 'Tema',
     whatsNew: 'Novedades',
