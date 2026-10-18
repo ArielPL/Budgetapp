@@ -117,7 +117,7 @@ export const frGuide: Guide = {
       body: [
         "La roue dentée en haut à droite ouvre le menu.",
         '## Apparence',
-        'Langue : sept langues au choix.',
+        'Langue : choisissez la vôtre dans la liste.',
         "Disposition : Classique affiche un onglet à la fois. Combiné affiche tout sur une seule page. Personnalisé vous permet de construire votre propre tableau avec des blocs, relié à votre budget habituel ou comme un budget totalement séparé.",
         'Devise : ne change que le symbole et le format. Les montants ne sont jamais convertis.',
         "Taille du texte : trois tailles. Toute l'app grandit avec le texte.",

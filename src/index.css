@@ -2223,6 +2223,16 @@ a:focus-visible,
 
 /* Rows whose control has long labels (e.g. Layout: Klassisk/Kombinerad/Anpassad)
    stack the segmented control full-width under the label so nothing overflows. */
+/* The menu's lists (language, layout, currency) take the room beside their
+   label and no more: a select is as wide as its longest option by default, and
+   "kr kronor – svenska, norska, danska" pushed the menu sideways on a phone. */
+.utils-row select.label-input {
+  min-width: 0;
+  width: 0;
+  flex: 1;
+  text-overflow: ellipsis;
+}
+
 .utils-row-stack {
   flex-direction: column;
   align-items: stretch;
@@ -6825,6 +6835,8 @@ td.num[style*="color: rgb"],
 
   /* Larger text must not push six tabs past the screen: the labels grow a
      little, the icons carry the rest, and a label never widens its tab. */
-  .tab-btn { min-width: 0; font-size: min(0.68rem, 12.5px); }
+  /* 1px sides, not 4: "Sparande" and "Schulden" lost their last letters to
+     the padding on a 320px phone (languages check, 2026-10-18). */
+  .tab-btn { min-width: 0; font-size: min(0.68rem, 12.5px); padding-inline: 1px; }
   .tab-label-short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

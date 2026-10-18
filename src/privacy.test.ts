@@ -27,23 +27,23 @@ const decoded = page
   .replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
 
 describe('the privacy policy exists in every language', () => {
-  it.each(['sv', 'en', 'es', 'fr', 'de', 'ja', 'zh'] as const)('%s has a title, a body and a date', (lang) => {
+  it.each(['sv', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'tr', 'ja', 'zh'] as const)('%s has a title, a body and a date', (lang) => {
     const t = translations[lang];
     expect(t.privacyTitle.length).toBeGreaterThan(1); // "隐私" is two characters
     expect(t.privacyBody.length).toBeGreaterThan(8);
     expect(t.privacyUpdated).toMatch(/2026/);
   });
 
-  it.each(['sv', 'en', 'es', 'fr', 'de', 'ja', 'zh'] as const)('%s says plainly that nothing is collected', (lang) => {
+  it.each(['sv', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'tr', 'ja', 'zh'] as const)('%s says plainly that nothing is collected', (lang) => {
     // The one sentence Apple's declaration rests on. If it ever stops being
     // true, this test is where someone should have to come and delete it.
     const first = translations[lang].privacyBody[0].toLowerCase();
-    expect(first).toMatch(/samlar inte in|does not collect|no recoge|ne collecte|erhebt[^.]*keinerlei|収集[^。]*しません|不收集/);
+    expect(first).toMatch(/samlar inte in|does not collect|no recoge|ne collecte|erhebt[^.]*keinerlei|non raccoglie|não coleta|не собирает|toplamaz|収集[^。]*しません|不收集/);
   });
 });
 
 describe('the page and the app say the same thing', () => {
-  it.each(['sv', 'en', 'es', 'fr', 'de', 'ja', 'zh'] as const)('every %s paragraph appears on the page', (lang) => {
+  it.each(['sv', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'tr', 'ja', 'zh'] as const)('every %s paragraph appears on the page', (lang) => {
     const missing = translations[lang].privacyBody
       .map(p => (p.startsWith('## ') ? p.slice(3) : p))
       .filter(p => !decoded.includes(p));

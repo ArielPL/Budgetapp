@@ -32,7 +32,7 @@ import { decodeCsv, detectDelimiter, parseCsv, parseAmount } from './csvImport';
 import { seedKind, isStandardCategoryId, type StandardCategoryId } from './categorise';
 import { starterMonthData, withStandardCategories, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import type { BudgetCategory, BudgetRow, MonthData } from './types';
-import type { Lang } from './i18n';
+import { LANG_CHOICES, type Lang } from './i18n';
 
 /** One sheet as text cells, rows of columns. */
 export type Grid = string[][];
@@ -367,9 +367,12 @@ export type Target =
   | { kind: 'custom'; name: string }
   | { kind: 'skip' };
 
+// Letters of every script are kept. It used to keep only a–z, so a Japanese,
+// Chinese or Russian name folded to "" — and "" was in DEFAULT_LABELS, under
+// whichever template name was added last, so "家賃" got a category silently.
 const fold = (s: string) => s.toLowerCase()
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  .replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
 
 type Kind = 'income' | 'total' | 'expenses' | StandardCategoryId;
 
@@ -377,19 +380,27 @@ type Kind = 'income' | 'total' | 'expenses' | StandardCategoryId;
  *  folded (no accents). `prefix` entries also match the start of a word, for
  *  Swedish compounds: "hemförsäkring", "elräkning", "matkostnader". */
 const WORDS: { kind: Kind; words: string[]; prefix?: string[] }[] = [
-  { kind: 'total', words: ['summa', 'totalt', 'total', 'totala', 'sum', 'subtotal', 'kvar', 'over', 'overskott', 'underskott', 'saldo', 'balance', 'resultat', 'netto', 'net', 'differens', 'diff', 'left', 'remaining', 'restante', 'sobrante'] },
-  { kind: 'expenses', words: ['utgifter', 'kostnader', 'expenses', 'costs', 'gastos', 'egresos', 'utgift'] },
-  { kind: 'income', words: ['lon', 'loner', 'salary', 'salario', 'nomina', 'sueldo', 'inkomst', 'inkomster', 'income', 'ingresos', 'ingreso', 'bidrag', 'barnbidrag', 'bonus', 'arvode', 'ersattning', 'a kassa', 'akassa', 'foraldrapenning', 'sjukpenning', 'wages', 'paycheck',
+  { kind: 'total', words: ['toplam', 'kalan', 'summa', 'totalt', 'total', 'totala', 'sum', 'subtotal', 'kvar', 'over', 'overskott', 'underskott', 'saldo', 'balance', 'resultat', 'netto', 'net', 'differens', 'diff', 'left', 'remaining', 'restante', 'sobrante',
+    'totale', 'rimanente', 'residuo', 'sobra', 'итого', 'всего', 'остаток'] },
+  { kind: 'expenses', words: ['gider', 'giderler', 'harcamalar', 'utgifter', 'kostnader', 'expenses', 'costs', 'gastos', 'egresos', 'utgift', 'uscite', 'spese', 'despesas', 'расходы', 'траты'] },
+  { kind: 'income', words: ['maas', 'gelir', 'gelirler', 'lon', 'loner', 'salary', 'salario', 'nomina', 'sueldo', 'inkomst', 'inkomster', 'income', 'ingresos', 'ingreso', 'bidrag', 'barnbidrag', 'bonus', 'arvode', 'ersattning', 'a kassa', 'akassa', 'foraldrapenning', 'sjukpenning', 'wages', 'paycheck',
     // A pension PAID OUT is income. Listed before Sparande, whose 'pension'
     // would otherwise take "Allmän pension" for pension saving (import test,
     // 2026-10-17): a retiree's income became a savings row.
-    'allman pension', 'tjanstepension', 'garantipension', 'inkomstpension', 'premiepension', 'state pension', 'jubilacion'], prefix: ['inkomst', 'sidoinkomst'] },
-  { kind: 'lan', words: ['lan', 'loan', 'loans', 'prestamo', 'prestamos', 'csn', 'studielan', 'bolan', 'mortgage', 'hipoteca', 'amortering', 'ranta', 'kredit', 'krediter', 'kreditkort', 'credit', 'avbetalning', 'skuld', 'skulder', 'debt', 'debts', 'deuda', 'deudas'], prefix: ['bolan', 'studielan', 'billan', 'privatlan', 'amortering', 'skuld'] },
-  { kind: 'sparande', words: ['sparande', 'spara', 'savings', 'ahorro', 'ahorros', 'buffert', 'buffer', 'isk', 'fonder', 'funds', 'aktier', 'stocks', 'pension', 'pensionssparande', 'investeringar', 'investments', 'inversiones', 'sparkonto', 'emergency'], prefix: ['sparande', 'sparkonto', 'buffert', 'pension'] },
-  { kind: 'boende', words: ['hyra', 'rent', 'alquiler', 'el', 'elrakning', 'electricity', 'luz', 'varme', 'heating', 'calefaccion', 'internet', 'bredband', 'wifi', 'hemforsakring', 'boende', 'housing', 'vivienda', 'vatten', 'water', 'agua', 'avgift', 'manadsavgift', 'hushall', 'home', 'hogar', 'comunidad'], prefix: ['hyra', 'hemforsakr', 'elrakn', 'elavtal', 'bostad', 'boende', 'hushall'] },
-  { kind: 'mat', words: ['mat', 'matvaror', 'livsmedel', 'food', 'groceries', 'grocery', 'comida', 'supermercado', 'alimentacion', 'lunch', 'luncher', 'restaurang', 'restaurant', 'restaurante', 'takeaway', 'kaffe', 'fika', 'coffee', 'cafe', 'dining', 'alkohol'], prefix: ['matvar', 'matkost', 'matinkop', 'livsmed', 'restaurang', 'lunch'] },
-  { kind: 'transport', words: ['transport', 'transporte', 'buss', 'sl', 'kollektivtrafik', 'pendel', 'bensin', 'drivmedel', 'fuel', 'gasolina', 'gas station', 'bil', 'car', 'coche', 'parkering', 'parking', 'tag', 'train', 'tren', 'taxi', 'uber', 'cykel', 'bike', 'bilforsakring', 'forsakringar', 'metro'], prefix: ['bilfor', 'bilkost', 'kollektiv', 'pendel', 'parkering', 'busskort'] },
-  { kind: 'prenumerationer', words: ['prenumeration', 'prenumerationer', 'subscription', 'subscriptions', 'suscripcion', 'suscripciones', 'streaming', 'netflix', 'spotify', 'hbo', 'max', 'disney', 'viaplay', 'youtube', 'icloud', 'gym', 'telefon', 'mobil', 'mobilabonnemang', 'phone', 'movil', 'abonnemang', 'appar', 'apps', 'gimnasio'], prefix: ['prenumer', 'abonnemang', 'mobilabon'] },
+    'allman pension', 'tjanstepension', 'garantipension', 'inkomstpension', 'premiepension', 'state pension', 'jubilacion',
+    'stipendio', 'entrate', 'reddito', 'salario liquido', 'renda', 'receitas', 'receita', 'зарплата', 'доход', 'доходы'], prefix: ['inkomst', 'sidoinkomst'] },
+  { kind: 'lan', words: ['kredi', 'krediler', 'borc', 'borclar', 'lan', 'loan', 'loans', 'prestamo', 'prestamos', 'csn', 'studielan', 'bolan', 'mortgage', 'hipoteca', 'amortering', 'ranta', 'kredit', 'krediter', 'kreditkort', 'credit', 'avbetalning', 'skuld', 'skulder', 'debt', 'debts', 'deuda', 'deudas',
+    'prestito', 'prestiti', 'debiti', 'mutuo', 'emprestimo', 'emprestimos', 'divida', 'dividas', 'financiamento', 'кредит', 'кредиты', 'долг', 'долги', 'ипотека'], prefix: ['bolan', 'studielan', 'billan', 'privatlan', 'amortering', 'skuld'] },
+  { kind: 'sparande', words: ['birikim', 'tasarruf', 'yatırım', 'sparande', 'spara', 'savings', 'ahorro', 'ahorros', 'buffert', 'buffer', 'isk', 'fonder', 'funds', 'aktier', 'stocks', 'pension', 'pensionssparande', 'investeringar', 'investments', 'inversiones', 'sparkonto', 'emergency',
+    'risparmi', 'risparmio', 'investimenti', 'poupanca', 'investimentos', 'сбережения', 'накопления', 'инвестиции'], prefix: ['sparande', 'sparkonto', 'buffert', 'pension'] },
+  { kind: 'boende', words: ['kira', 'konut', 'elektrik', 'fatura', 'aidat', 'hyra', 'rent', 'alquiler', 'el', 'elrakning', 'electricity', 'luz', 'varme', 'heating', 'calefaccion', 'internet', 'bredband', 'wifi', 'hemforsakring', 'boende', 'housing', 'vivienda', 'vatten', 'water', 'agua', 'avgift', 'manadsavgift', 'hushall', 'home', 'hogar', 'comunidad',
+    'affitto', 'casa', 'bollette', 'aluguel', 'moradia', 'condominio', 'аренда', 'квартплата', 'жилье', 'коммунальные'], prefix: ['hyra', 'hemforsakr', 'elrakn', 'elavtal', 'bostad', 'boende', 'hushall'] },
+  { kind: 'mat', words: ['market', 'gıda', 'yemek', 'mat', 'matvaror', 'livsmedel', 'food', 'groceries', 'grocery', 'comida', 'supermercado', 'alimentacion', 'lunch', 'luncher', 'restaurang', 'restaurant', 'restaurante', 'takeaway', 'kaffe', 'fika', 'coffee', 'cafe', 'dining', 'alkohol',
+    'cibo', 'alimentari', 'ristorante', 'mercado', 'alimentacao', 'продукты', 'еда'], prefix: ['matvar', 'matkost', 'matinkop', 'livsmed', 'restaurang', 'lunch'] },
+  { kind: 'transport', words: ['ulasım', 'yakıt', 'benzin', 'transport', 'transporte', 'buss', 'sl', 'kollektivtrafik', 'pendel', 'bensin', 'drivmedel', 'fuel', 'gasolina', 'gas station', 'bil', 'car', 'coche', 'parkering', 'parking', 'tag', 'train', 'tren', 'taxi', 'uber', 'cykel', 'bike', 'bilforsakring', 'forsakringar', 'metro',
+    'trasporti', 'benzina', 'combustivel', 'транспорт', 'бензин'], prefix: ['bilfor', 'bilkost', 'kollektiv', 'pendel', 'parkering', 'busskort'] },
+  { kind: 'prenumerationer', words: ['abonelik', 'abonelikler', 'prenumeration', 'prenumerationer', 'subscription', 'subscriptions', 'suscripcion', 'suscripciones', 'streaming', 'netflix', 'spotify', 'hbo', 'max', 'disney', 'viaplay', 'youtube', 'icloud', 'gym', 'telefon', 'mobil', 'mobilabonnemang', 'phone', 'movil', 'abonnemang', 'appar', 'apps', 'gimnasio',
+    'abbonamenti', 'palestra', 'assinaturas', 'academia', 'подписки'], prefix: ['prenumer', 'abonnemang', 'mobilabon'] },
   { kind: 'personligt', words: ['personligt', 'personal', 'klader', 'clothes', 'clothing', 'ropa', 'hygien', 'hygiene', 'frisor', 'hairdresser', 'peluqueria', 'halsa', 'health', 'salud', 'medicin', 'medicine', 'apotek', 'pharmacy', 'farmacia', 'tandlakare', 'dentist', 'dentista', 'glasogon', 'smink', 'kosmetika'], prefix: ['klader', 'hygien', 'tandlak'] },
   { kind: 'fritid', words: ['fritid', 'leisure', 'ocio', 'noje', 'entertainment', 'hobby', 'hobbies', 'semester', 'vacation', 'holiday', 'vacaciones', 'resor', 'travel', 'viajes', 'bio', 'cinema', 'cine', 'konsert', 'spel', 'games', 'sport', 'traning'], prefix: ['semester', 'resor'] },
   { kind: 'givande', words: ['givande', 'giving', 'donativos', 'tionde', 'kollekt', 'offer', 'tithe', 'tithes', 'offering', 'offerings', 'diezmo', 'diezmos', 'ofrenda', 'ofrendas', 'kyrka', 'kyrkan', 'church', 'iglesia', 'forsamling', 'presenter', 'gavor', 'gifts', 'regalos', 'valgorenhet', 'charity', 'donaciones', 'donations', 'insamling', 'bistand'], prefix: ['tionde', 'kollekt', 'present', 'valgoren', 'forsamling', 'donat', 'diezm', 'ofrend'] },
@@ -413,7 +424,7 @@ export function classifyLabel(label: string): Kind | undefined {
  *  a budget exported from this app, or typed from its template, comes home. */
 const DEFAULT_LABELS: Map<string, Kind> = (() => {
   const map = new Map<string, Kind>();
-  for (const lang of ['sv', 'en', 'es', 'fr', 'de', 'ja', 'zh'] as Lang[]) {
+  for (const [lang] of LANG_CHOICES) {
     const starter = starterMonthData(lang);
     for (const r of starter.income) map.set(fold(r.label), 'income');
     for (const c of starter.expenses) {
@@ -422,6 +433,8 @@ const DEFAULT_LABELS: Map<string, Kind> = (() => {
       for (const r of c.rows) map.set(fold(r.label), c.id);
     }
   }
+  // A name that folds to nothing must never match a row that folds to nothing.
+  map.delete('');
   return map;
 })();
 
@@ -433,19 +446,22 @@ export function proposeFor(label: string): Kind | undefined {
 
 // ── Months in a header ─────────────────────────────────────────────────────
 
+// Folded (lower case, no accents), as fold() leaves a header: "Março" is
+// "marco", "Июнь" is "июнь". Swedish, English, Spanish, French, German,
+// Italian, Portuguese, Russian and Turkish ("Mayıs" keeps its dotless ı); Japanese and Chinese "1月" are read apart.
 const MONTH_NAMES: string[][] = [
-  ['jan', 'januari', 'january', 'ene', 'enero'],
-  ['feb', 'februari', 'february', 'febrero'],
-  ['mar', 'mars', 'march', 'marzo'],
-  ['apr', 'april', 'abr', 'abril'],
-  ['maj', 'may', 'mayo'],
-  ['jun', 'juni', 'june', 'junio'],
-  ['jul', 'juli', 'july', 'julio'],
-  ['aug', 'augusti', 'august', 'ago', 'agosto'],
-  ['sep', 'sept', 'september', 'septiembre', 'setiembre'],
-  ['okt', 'oct', 'oktober', 'october', 'octubre'],
-  ['nov', 'november', 'noviembre'],
-  ['dec', 'december', 'dic', 'diciembre'],
+  ['jan', 'januari', 'january', 'ene', 'enero', 'janv', 'janvier', 'januar', 'gen', 'gennaio', 'janeiro', 'янв', 'январь', 'января', 'ocak', 'oca'],
+  ['feb', 'februari', 'february', 'febrero', 'fevr', 'fevrier', 'februar', 'febbraio', 'fev', 'fevereiro', 'фев', 'февраль', 'февраля', 'subat', 'sub'],
+  ['mar', 'mars', 'march', 'marzo', 'marz', 'marco', 'мар', 'март', 'марта', 'mart'],
+  ['apr', 'april', 'abr', 'abril', 'avr', 'avril', 'aprile', 'апр', 'апрель', 'апреля', 'nisan', 'nis'],
+  ['maj', 'may', 'mayo', 'mai', 'mag', 'maggio', 'maio', 'маи', 'мая', 'mayıs'],  // "май" folds to "маи": й loses its breve
+  ['jun', 'juni', 'june', 'junio', 'juin', 'giu', 'giugno', 'junho', 'июн', 'июнь', 'июня', 'haziran', 'haz'],
+  ['jul', 'juli', 'july', 'julio', 'juil', 'juillet', 'lug', 'luglio', 'julho', 'июл', 'июль', 'июля', 'temmuz', 'tem'],
+  ['aug', 'augusti', 'august', 'ago', 'agosto', 'aout', 'авг', 'август', 'августа', 'agustos', 'agu'],
+  ['sep', 'sept', 'september', 'septiembre', 'setiembre', 'septembre', 'set', 'settembre', 'setembro', 'сен', 'сентябрь', 'сентября', 'eylul', 'eyl'],
+  ['okt', 'oct', 'oktober', 'october', 'octubre', 'octobre', 'ott', 'ottobre', 'out', 'outubro', 'окт', 'октябрь', 'октября', 'ekim', 'eki'],
+  ['nov', 'november', 'noviembre', 'novembre', 'novembro', 'ноя', 'ноябрь', 'ноября', 'kasım', 'kas'],
+  ['dec', 'december', 'dic', 'diciembre', 'dez', 'dezember', 'decembre', 'dicembre', 'dezembro', 'дек', 'декабрь', 'декабря', 'aralık', 'ara'],
 ];
 
 /** The month a header cell names — "Jan", "januari 2026", "2026-01",
@@ -453,6 +469,9 @@ const MONTH_NAMES: string[][] = [
 export function monthOfHeader(cell: string): { month: number; year?: number } | null {
   const s = fold(cell);
   if (!s) return null;
+  // Japanese and Chinese: "1月", "2026年1月".
+  const cjk = /^(?:(\d{4}) ?年 ?)?(\d{1,2}) ?月$/.exec(s);
+  if (cjk && +cjk[2] >= 1 && +cjk[2] <= 12) return cjk[1] ? { month: +cjk[2] - 1, year: +cjk[1] } : { month: +cjk[2] - 1 };
   let m = /^(\d{4}) (\d{1,2})$/.exec(s) ?? /^(\d{4})(\d{2})$/.exec(s);
   if (m && +m[2] >= 1 && +m[2] <= 12) return { month: +m[2] - 1, year: +m[1] };
   m = /^(\d{1,2}) (\d{4})$/.exec(s);

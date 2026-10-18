@@ -5,8 +5,12 @@ import { fr } from './locales/fr';
 import { de } from './locales/de';
 import { ja } from './locales/ja';
 import { zh } from './locales/zh';
+import { it } from './locales/it';
+import { pt } from './locales/pt';
+import { ru } from './locales/ru';
+import { tr } from './locales/tr';
 
-export type Lang = 'sv' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh';
+export type Lang = 'sv' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru' | 'tr' | 'ja' | 'zh';
 
 /** Runtime check for a stored/imported language. A TypeScript `as Lang` cast
  *  proves nothing at runtime: "xx" sailed through it, `translations["xx"]` came
@@ -50,7 +54,8 @@ export function deviceLang(): Lang {
 /** The language list (menu and first-run step), each language named in itself. */
 export const LANG_CHOICES: [Lang, string][] = [
   ['sv', '🇸🇪 Svenska'], ['en', '🇬🇧 English'], ['es', '🇪🇸 Español'],
-  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
+  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['it', '🇮🇹 Italiano'], ['pt', '🇧🇷 Português (Brasil)'],
+  ['ru', '🇷🇺 Русский'], ['tr', '🇹🇷 Türkçe'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
 ];
 
 // No guessed currency. The language follows the phone, but a currency guessed
@@ -79,6 +84,24 @@ export const MONTHS: Record<Lang, string[]> = {
     'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
     'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
   ],
+  it: [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
+  ],
+  pt: [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ],
+  // Nominative, as a heading says it ("Октябрь 2026"). A month inside a
+  // sentence takes another case; dateLabel.ts gives those (RU_MONTH_IN).
+  ru: [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  ],
+  tr: [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  ],
   ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
   zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
@@ -89,6 +112,10 @@ export const MONTHS_SHORT: Record<Lang, string[]> = {
   es: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
   fr: ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'],
   de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  it: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+  pt: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+  ru: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+  tr: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
   ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
   zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
@@ -96,10 +123,10 @@ export const MONTHS_SHORT: Record<Lang, string[]> = {
 // ── Currency ────────────────────────────────────────────────────────
 // Switching currency changes the SYMBOL/FORMAT ONLY — amounts are never
 // converted (no exchange rates). The user's numbers stay the same.
-export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy';
+export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy' | 'rub' | 'brl' | 'inr' | 'try';
 
 interface CurrencyConfig {
-  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY';
+  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY' | 'RUB' | 'BRL' | 'INR' | 'TRY';
   locale: string;
   symbol: string;
   /** The yen has no smaller unit: its amounts are always shown whole. */
@@ -114,6 +141,14 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   // en-US rather than ja-JP: Japanese formatting writes the full-width "￥",
   // and the symbol asked for is the ordinary ¥ (Ariel, 2026-10-03).
   jpy: { code: 'JPY', locale: 'en-US', symbol: '¥', wholeOnly: true },
+  // With Russian and Brazilian Portuguese (2026-10-18): each written the way
+  // its own country writes it — "1 234 ₽", "R$ 1.234,50".
+  rub: { code: 'RUB', locale: 'ru-RU', symbol: '₽' },
+  brl: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },
+  // With Turkish (2026-10-18): the Indian rupee groups in lakhs as India does
+  // ("₹1,23,456"), the lira as Turkey does ("₺1.234,50").
+  inr: { code: 'INR', locale: 'en-IN', symbol: '₹' },
+  try: { code: 'TRY', locale: 'tr-TR', symbol: '₺' },
 };
 
 /** Runtime check for a stored/imported currency — same story as isLang: an
@@ -160,7 +195,8 @@ export function formatMoney(amount: number, currency: Currency): string {
 
 // Language → locale for numeric formatting on chart axes (decimal separator).
 const AXIS_LOCALE: Record<Lang, string> = {
-  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', ja: 'ja-JP', zh: 'zh-CN',
+  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+  it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU', tr: 'tr-TR', ja: 'ja-JP', zh: 'zh-CN',
 };
 
 // Magnitude suffixes per language. "Billion" is a false friend: a Swedish
@@ -172,6 +208,10 @@ const AXIS_SUFFIX: Record<Lang, { m: string; b: string; t: string }> = {
   es: { m: 'M', b: 'mil M', t: 'B' },
   fr: { m: 'M', b: 'Md', t: 'Bn' },
   de: { m: 'Mio', b: 'Mrd', t: 'Bio' },
+  it: { m: 'Mln', b: 'Mld', t: 'Bln' },
+  pt: { m: 'mi', b: 'bi', t: 'tri' },
+  ru: { m: 'млн', b: 'млрд', t: 'трлн' },
+  tr: { m: 'Mn', b: 'Mr', t: 'Tn' },
   // Short-scale letters: 万/億 grouping does not fit the thousand-step tiers.
   ja: { m: 'M', b: 'B', t: 'T' },
   zh: { m: 'M', b: 'B', t: 'T' },
@@ -210,10 +250,12 @@ export function formatAxisTick(value: number, lang: Lang): string {
  */
 export function formatMoneyCompact(amount: number, currency: Currency, lang: Lang): string {
   const compact = formatAxisTick(amount, lang);
-  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£', jpy: '¥' };
-  return currency === 'usd' || currency === 'gbp' || currency === 'jpy'
-    ? `${symbol[currency]}${compact}`
-    : `${compact} ${symbol[currency]}`;
+  const symbol = CURRENCIES[currency].symbol;
+  // Before the number where the country writes it before: $10B, R$ 10 bi.
+  return currency === 'usd' || currency === 'gbp' || currency === 'jpy' || currency === 'brl'
+    || currency === 'inr' || currency === 'try'
+    ? `${symbol}${currency === 'brl' ? ' ' : ''}${compact}`
+    : `${compact} ${symbol}`;
 }
 
 export interface Translations {
@@ -1662,7 +1704,7 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Textstorlek',
     textSizeName: ['Normal', 'Stor', 'Störst'],
     currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
-    currencyNames: { sek: 'kronor – svenska, norska, danska', eur: 'euro', usd: 'dollar, peso m.fl.', gbp: 'pund', jpy: 'yen, yuan' },
+    currencyNames: { sek: 'kronor – svenska, norska, danska', eur: 'euro', usd: 'dollar, peso m.fl.', gbp: 'pund', jpy: 'yen, yuan', rub: 'rubel', brl: 'brasiliansk real', inr: 'indisk rupie', try: 'turkisk lira' },
     introSetupTitle: 'Språk och valuta',
     introSetupBody: 'Välj språk och den valuta du använder. Du kan ändra båda i menyn senare.',
     introPickCurrency: 'Välj en valuta för att fortsätta',
@@ -2345,7 +2387,7 @@ export const translations: Record<Lang, Translations> = {
     followUpUnsorted: 'Other',
     followUpUnsortedHint: 'Purchases the app could not place. Move them to a category — it remembers the choice for next time.',
     followUpTransfer: 'Transfers',
-    followUpTransferHint: 'Money between your own accounts, Swish to and from people, withdrawals. Not counted as spending — it is the same money in another pocket.',
+    followUpTransferHint: 'Money between your own accounts, payments to and from people, withdrawals. Not counted as spending — it is the same money in another pocket.',
     followUpMoveTo: (place) => `Move ${place} to another category`,
     followUpNewCategory: '+ New category…',
     followUpNewCategoryName: 'What should it be called?',
@@ -2613,7 +2655,7 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Text size',
     textSizeName: ['Normal', 'Large', 'Larger'],
     currencyHint: "Changes only the symbol and format — amounts aren't converted",
-    currencyNames: { sek: 'Swedish, Norwegian, Danish krona', eur: 'euro', usd: 'dollar, peso and more', gbp: 'pound', jpy: 'yen, yuan' },
+    currencyNames: { sek: 'Swedish, Norwegian, Danish krona', eur: 'euro', usd: 'dollar, peso and more', gbp: 'pound', jpy: 'yen, yuan', rub: 'ruble', brl: 'Brazilian real', inr: 'Indian rupee', try: 'Turkish lira' },
     introSetupTitle: 'Language and currency',
     introSetupBody: 'Choose your language and the currency you use. You can change both in the menu later.',
     introPickCurrency: 'Choose a currency to continue',
@@ -3296,7 +3338,7 @@ export const translations: Record<Lang, Translations> = {
     followUpUnsorted: 'Otros',
     followUpUnsortedHint: 'Compras que la app no pudo colocar. Muévelas a una categoría — recordará la elección para la próxima vez.',
     followUpTransfer: 'Transferencias',
-    followUpTransferHint: 'Dinero entre tus propias cuentas, Swish a y desde personas, retiradas. No cuenta como gasto — es el mismo dinero en otro bolsillo.',
+    followUpTransferHint: 'Dinero entre tus propias cuentas, pagos a y de otras personas, retiradas. No cuenta como gasto — es el mismo dinero en otro bolsillo.',
     followUpMoveTo: (place) => `Mover ${place} a otra categoría`,
     followUpNewCategory: '+ Categoría nueva…',
     followUpNewCategoryName: '¿Cómo se va a llamar?',
@@ -3564,7 +3606,7 @@ export const translations: Record<Lang, Translations> = {
     textSize: 'Tamaño del texto',
     textSizeName: ['Normal', 'Grande', 'Más grande'],
     currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
-    currencyNames: { sek: 'corona sueca, noruega, danesa', eur: 'euro', usd: 'dólar, peso y otros', gbp: 'libra', jpy: 'yen, yuan' },
+    currencyNames: { sek: 'corona sueca, noruega, danesa', eur: 'euro', usd: 'dólar, peso y otros', gbp: 'libra', jpy: 'yen, yuan', rub: 'rublo', brl: 'real brasileño', inr: 'rupia india', try: 'lira turca' },
     introSetupTitle: 'Idioma y moneda',
     introSetupBody: 'Elige tu idioma y la moneda que usas. Puedes cambiar ambos en el menú más tarde.',
     introPickCurrency: 'Elige una moneda para continuar',
@@ -4041,6 +4083,10 @@ export const translations: Record<Lang, Translations> = {
   },
   fr,
   de,
+  it,
+  pt,
+  ru,
+  tr,
   ja,
   zh,
 };

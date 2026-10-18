@@ -4,7 +4,8 @@ import { useModalFocus } from '../useModalFocus';
 import { CHANGELOG, releaseText } from '../changelog';
 
 const DATE_LOCALE: Record<Lang, string> = {
-  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', ja: 'ja-JP', zh: 'zh-CN',
+  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+  it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU', tr: 'tr-TR', ja: 'ja-JP', zh: 'zh-CN',
 };
 
 // "What's new" — a read-only panel listing releases newest-first. Reuses the

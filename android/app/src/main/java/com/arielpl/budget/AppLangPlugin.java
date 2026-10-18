@@ -41,13 +41,20 @@ public class AppLangPlugin extends Plugin {
         if ("de".equals(lang)) return "Abbrechen";
         if ("ja".equals(lang)) return "キャンセル";
         if ("zh".equals(lang)) return "取消";
+        if ("it".equals(lang)) return "Annulla";
+        if ("pt".equals(lang)) return "Cancelar";
+        if ("ru".equals(lang)) return "Отмена";
+        if ("tr".equals(lang)) return "İptal";
         return context.getString(android.R.string.cancel);
     }
 
     static String ok(Context context) {
         if ("es".equals(lang)) return "Aceptar";
         if ("zh".equals(lang)) return "确定";
-        if ("sv".equals(lang) || "en".equals(lang) || "fr".equals(lang) || "de".equals(lang) || "ja".equals(lang)) return "OK";
+        if ("pt".equals(lang)) return "OK";
+        if ("ru".equals(lang)) return "ОК";
+        if ("tr".equals(lang)) return "Tamam";
+        if ("sv".equals(lang) || "en".equals(lang) || "fr".equals(lang) || "de".equals(lang) || "ja".equals(lang) || "it".equals(lang)) return "OK";
         return context.getString(android.R.string.ok);
     }
 }

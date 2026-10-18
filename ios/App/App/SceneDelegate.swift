@@ -181,6 +181,10 @@ public class AppLangPlugin: CAPPlugin, CAPBridgedPlugin {
         "de": ["Cancel": "Abbrechen", "OK": "OK"],
         "ja": ["Cancel": "キャンセル", "OK": "OK"],
         "zh": ["Cancel": "取消", "OK": "确定"],
+        "it": ["Cancel": "Annulla", "OK": "OK"],
+        "pt": ["Cancel": "Cancelar", "OK": "OK"],
+        "ru": ["Cancel": "Отмена", "OK": "ОК"],
+        "tr": ["Cancel": "İptal", "OK": "Tamam"],
     ]
 
     @objc func set(_ call: CAPPluginCall) {

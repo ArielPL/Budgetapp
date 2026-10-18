@@ -2031,48 +2031,44 @@ function App({ startupRepair = null }: AppProps) {
                     </select>
                   </div>
 
-                  {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own) */}
-                  <div className="utils-row utils-row-stack">
-                    <span className="utils-row-label">{t.layout}</span>
-                    <div className="utils-seg">
-                      {/* Close the menu after picking a layout so the change
-                          is immediately visible (especially on mobile). */}
-                      <button
-                        className={`seg-btn${layout === 'classic' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('classic'); setMenuOpen(false); }}
-                      >
-                        {t.layoutClassic}
-                      </button>
-                      <button
-                        className={`seg-btn${layout === 'combined' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('combined'); setMenuOpen(false); }}
-                      >
-                        {t.layoutCombined}
-                      </button>
-                      <button
-                        className={`seg-btn${layout === 'custom' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('custom'); setMenuOpen(false); }}
-                      >
-                        {t.layoutCustom}
-                      </button>
-                    </div>
+                  {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own).
+                      A list, like Language and Currency: the same control for
+                      every choice in the menu, and long names in any language
+                      fit (Ariel, 2026-10-18). Picking one closes the menu so the
+                      change is visible at once, especially on a phone. */}
+                  <div className="utils-row">
+                    <label className="utils-row-label" htmlFor="layout-pick">{t.layout}</label>
+                    <select
+                      id="layout-pick"
+                      className="label-input lang-pick"
+                      value={layout}
+                      onChange={e => {
+                        const v = e.target.value;
+                        if (v === 'classic' || v === 'combined' || v === 'custom') { setLayout(v); setMenuOpen(false); }
+                      }}
+                    >
+                      <option value="classic">{t.layoutClassic}</option>
+                      <option value="combined">{t.layoutCombined}</option>
+                      <option value="custom">{t.layoutCustom}</option>
+                    </select>
                   </div>
 
-                  {/* Currency (symbol/format only — amounts are never converted) */}
+                  {/* Currency (symbol/format only — amounts are never converted).
+                      A list with each symbol's name: nine symbols as buttons
+                      were cramped on a phone, and "₹ indisk rupie" says what
+                      a bare ₹ cannot. */}
                   <div className="utils-row">
-                    <span className="utils-row-label">{t.currency}</span>
-                    <div className="utils-seg">
+                    <label className="utils-row-label" htmlFor="currency-pick">{t.currency}</label>
+                    <select
+                      id="currency-pick"
+                      className="label-input lang-pick"
+                      value={currency}
+                      onChange={e => { if (isCurrency(e.target.value)) setCurrency(e.target.value); }}
+                    >
                       {(Object.keys(CURRENCIES) as Currency[]).map(c => (
-                        <button
-                          key={c}
-                          className={`seg-btn${currency === c ? ' seg-active' : ''}`}
-                          onClick={() => setCurrency(c)}
-                          title={t.currencyNames[c]}
-                        >
-                          {CURRENCIES[c].symbol}
-                        </button>
+                        <option key={c} value={c}>{CURRENCIES[c].symbol} {t.currencyNames[c]}</option>
                       ))}
-                    </div>
+                    </select>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
 

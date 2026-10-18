@@ -117,7 +117,7 @@ export const esGuide: Guide = {
       body: [
         'El engranaje de arriba a la derecha abre el menú.',
         '## Apariencia',
-        'Idioma: siete idiomas para elegir.',
+        'Idioma: elige el tuyo en la lista.',
         'Diseño: Clásico muestra una pestaña cada vez. Combinado lo muestra todo en una página. Personalizado te deja crear tu propio panel con bloques, enlazado a tu presupuesto habitual o como un presupuesto totalmente independiente.',
         'Moneda: solo cambia el símbolo y el formato. Los importes nunca se convierten.',
         'Tamaño del texto: tres tamaños. Toda la app crece con el texto.',

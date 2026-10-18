@@ -10,6 +10,10 @@ import { frChangelog113 } from './locales/fr';
 import { deChangelog113 } from './locales/de';
 import { jaChangelog113 } from './locales/ja';
 import { zhChangelog113 } from './locales/zh';
+import { itChangelog113 } from './locales/it';
+import { ptChangelog113 } from './locales/pt';
+import { ruChangelog113 } from './locales/ru';
+import { trChangelog113 } from './locales/tr';
 
 /** The languages every release is written in. Releases from before French,
  *  German, Japanese and Chinese (2026-10-17) exist in these only; the others
@@ -40,6 +44,10 @@ export const CHANGELOG: Release[] = [
       de: deChangelog113.title,
       ja: jaChangelog113.title,
       zh: zhChangelog113.title,
+      it: itChangelog113.title,
+      pt: ptChangelog113.title,
+      ru: ruChangelog113.title,
+      tr: trChangelog113.title,
     },
     items: {
       sv: [
@@ -74,10 +82,10 @@ export const CHANGELOG: Release[] = [
         'Ny kategori i budgetmallen, Gåvor & givande, med Tionde & kollekt, Välgörenhet och Presenter. Kyrkor och insamlingar i kontoutdraget hamnar där i stället för under Fritid',
         'Byter du namn på en rad av misstag kan du ångra det direkt, som när du tar bort något',
         'Tydligare namn på en inkomstrad: ”Bidrag (t.ex. barnbidrag)”, och välkomsttexten säger klart att appen aldrig kopplar upp mot banken',
-        'Appen finns nu också på franska, tyska, japanska och förenklad kinesiska. Språket väljer du i en lista i menyn',
+        'Appen finns nu också på franska, tyska, italienska, portugisiska (Brasilien), ryska, turkiska, japanska och förenklad kinesiska. Språket väljer du i en lista i menyn',
         'Större text: välj mellan tre storlekar under Textstorlek i menyn. Allt i appen växer, och det får plats även på en liten telefon',
         'Kom igång: en guide till varje del av appen, överst i Budget och först i menyn',
-        'Valutan väljer du själv när du öppnar appen första gången. Varje symbol säger vad den står för, till exempel $ (dollar, peso m.fl.)',
+        'Valutan väljer du själv när du öppnar appen första gången. Varje symbol säger vad den står för, till exempel $ (dollar, peso m.fl.). Nya valutor: rubel (₽), brasiliansk real (R$), indisk rupie (₹) och turkisk lira (₺)',
         'Budgetimporten läser också Word-filer (.docx), även en plan med en tabell per månad. En kreditpost dras av från raden ovanför i stället för att bli en kostnad, och pension under Inkomster blir inkomst',
       ],
       en: [
@@ -112,10 +120,10 @@ export const CHANGELOG: Release[] = [
         'A new category in the budget template, Giving, with Tithes & offerings, Charity and Gifts. Churches and charities in your bank statement go there instead of under Leisure',
         'Renamed a row by mistake? You can undo it right away, as when you delete something',
         'A clearer name for an income row, “Government benefits”, and the welcome text says plainly that the app never connects to your bank',
-        'The app is now also in French, German, Japanese and Simplified Chinese. Pick the language from a list in the menu',
+        'The app is now also in French, German, Italian, Portuguese (Brazil), Russian, Turkish, Japanese and Simplified Chinese. Pick the language from a list in the menu',
         'Larger text: pick one of three sizes under Text size in the menu. Everything in the app grows, and it still fits on a small phone',
         'Get started: a guide to every part of the app, at the top of Budget and first in the menu',
-        'You choose the currency the first time you open the app. Each symbol says what it stands for, such as $ (dollar, peso and more)',
+        'You choose the currency the first time you open the app. Each symbol says what it stands for, such as $ (dollar, peso and more). New currencies: ruble (₽), Brazilian real (R$), Indian rupee (₹) and Turkish lira (₺)',
         'Budget import also reads Word files (.docx), including a plan with one table per month. A credit note is taken off the row above instead of becoming a cost, and a pension under Income becomes income',
       ],
       es: [
@@ -150,16 +158,20 @@ export const CHANGELOG: Release[] = [
         'Nueva categoría en la plantilla, Donativos, con Diezmos y ofrendas, Donaciones y Regalos. Las iglesias y organizaciones benéficas del extracto van ahí en lugar de a Ocio',
         '¿Cambiaste el nombre de una fila por error? Puedes deshacerlo enseguida, como al borrar algo',
         'Un nombre más claro para una fila de ingresos, «Ayudas y subsidios», y la bienvenida dice claramente que la app nunca se conecta a tu banco',
-        'La app ya está también en francés, alemán, japonés y chino simplificado. Elige el idioma en una lista del menú',
+        'La app ya está también en francés, alemán, italiano, portugués (Brasil), ruso, turco, japonés y chino simplificado. Elige el idioma en una lista del menú',
         'Texto más grande: elige uno de tres tamaños en Tamaño del texto en el menú. Todo en la app crece, y sigue cabiendo en un móvil pequeño',
         'Primeros pasos: una guía de cada parte de la app, arriba en Presupuesto y la primera en el menú',
-        'La moneda la eliges tú la primera vez que abres la app. Cada símbolo dice qué representa, por ejemplo $ (dólar, peso y otros)',
+        'La moneda la eliges tú la primera vez que abres la app. Cada símbolo dice qué representa, por ejemplo $ (dólar, peso y otros). Monedas nuevas: rublo (₽), real brasileño (R$), rupia india (₹) y lira turca (₺)',
         'La importación de presupuestos también lee archivos de Word (.docx), incluso un plan con una tabla por mes. Un abono se resta de la fila de arriba en vez de convertirse en un gasto, y una pensión bajo Ingresos cuenta como ingreso',
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,
       ja: jaChangelog113.items,
       zh: zhChangelog113.items,
+      it: itChangelog113.items,
+      pt: ptChangelog113.items,
+      ru: ruChangelog113.items,
+      tr: trChangelog113.items,
     },
   },
   {

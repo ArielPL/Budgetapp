@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
-import { readSpreadsheet, analyse, rowsByMonth, SpreadsheetError, type Draft } from './budgetImport';
+import { readSpreadsheet, analyse, rowsByMonth, SpreadsheetError, proposeFor, monthOfHeader, type Draft } from './budgetImport';
 
 // ── Seven made-up annual budgets, read the way the app reads them ───────────
 //
@@ -136,5 +136,27 @@ describe('An .xlsx whose XML has prefixes', () => {
     const b = draftOf(prefixed.buffer as ArrayBuffer, 'prefixed.xlsx');
     expect(b.rows.map(r => [r.label, r.amounts])).toEqual(a.rows.map(r => [r.label, r.amounts]));
     expect(totals(b)).toEqual(totals(a));
+  });
+});
+
+describe('Names and months in every script', () => {
+  it('a Russian or Japanese name is read, not folded to nothing', () => {
+    // Text matching used to keep only a–z: every Cyrillic, Japanese or Chinese
+    // name became "", which matched whatever template name had been added last.
+    expect(proposeFor('Жильё')).toBe('boende');
+    expect(proposeFor('Квартплата')).toBe('boende');
+    expect(proposeFor('住居')).toBe('boende');
+    expect(proposeFor('Неизвестная строка')).toBeUndefined();
+    expect(proposeFor('不明な行')).toBeUndefined();
+  });
+
+  it('reads Italian, Portuguese, Russian and CJK month headers', () => {
+    expect(monthOfHeader('Ottobre 2026')).toEqual({ month: 9, year: 2026 });
+    expect(monthOfHeader('Março 2026')).toEqual({ month: 2, year: 2026 });
+    expect(monthOfHeader('Mai')).toEqual({ month: 4 });
+    expect(monthOfHeader('Июнь')).toEqual({ month: 5 });
+    expect(monthOfHeader('Май 2026')).toEqual({ month: 4, year: 2026 });
+    expect(monthOfHeader('2026年1月')).toEqual({ month: 0, year: 2026 });
+    expect(monthOfHeader('12月')).toEqual({ month: 11 });
   });
 });

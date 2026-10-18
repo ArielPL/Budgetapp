@@ -117,7 +117,7 @@ export const enGuide: Guide = {
       body: [
         'The gear at the top right opens the menu.',
         '## Appearance',
-        'Language: seven languages to choose from.',
+        'Language: pick yours from the list.',
         'Layout: Classic shows one tab at a time. Combined shows everything on one page. Custom lets you build your own panel from blocks, either linked to your regular budget or as a completely separate budget.',
         'Currency: changes only the symbol and format. Amounts are never converted.',
         'Text size: three sizes. The whole app grows with the text.',

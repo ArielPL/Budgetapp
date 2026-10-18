@@ -48,3 +48,17 @@ describe('longDate', () => {
     expect(longDate('not a date', 'sv')).toBe('');
   });
 });
+
+describe('Italian, Portuguese and Russian dates', () => {
+  it('writes each the way the language does', async () => {
+    const { monthInText, monthTitle } = await import('./dateLabel');
+    const at = new Date(2026, 9, 17, 12).getTime();
+    expect(longDate(at, 'it')).toBe('17 ottobre 2026');
+    expect(longDate(at, 'pt')).toBe('17 de outubro de 2026');
+    // A Russian date takes the genitive: "17 октября", never "17 октябрь".
+    expect(longDate(at, 'ru')).toBe('17 октября 2026');
+    expect(monthInText(9, 2026, 'pt')).toBe('outubro de 2026');
+    expect(monthInText(9, 2026, 'ru')).toBe('октябрь 2026');
+    expect(monthTitle(9, 2026, 'ru')).toBe('Октябрь 2026');
+  });
+});

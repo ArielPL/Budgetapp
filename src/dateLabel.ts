@@ -14,12 +14,22 @@ import { MONTHS, MONTHS_SHORT, type Lang } from './i18n';
 
 // English and German keep the capital inside a sentence ("im Oktober");
 // Japanese and Chinese have no case, so lower-casing leaves them alone.
-const KEEPS_CAPITAL: ReadonlySet<Lang> = new Set<Lang>(['en', 'de']);
+// Turkish writes the month of a specific date with a capital: "17 Ekim 2026".
+const KEEPS_CAPITAL: ReadonlySet<Lang> = new Set<Lang>(['en', 'de', 'tr']);
 const lower = (name: string, lang: Lang) => (KEEPS_CAPITAL.has(lang) ? name : name.toLowerCase());
 
 /** Japanese and Chinese write dates year-first with their own units:
  *  2026年10月17日. Their month names in MONTHS are already "10月". */
 const CJK: ReadonlySet<Lang> = new Set<Lang>(['ja', 'zh']);
+
+/** Spanish and Portuguese put "de" between day, month and year:
+ *  "17 de octubre de 2026", "outubro de 2026". */
+const WITH_DE: ReadonlySet<Lang> = new Set<Lang>(['es', 'pt']);
+
+/** Russian dates take the month in the genitive: "17 октября 2026", never
+ *  "17 октябрь". MONTHS keeps the nominative, which titles the month. */
+const RU_GENITIVE = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 /**
  * "25 aug – 24 sep": a pay period, or any stretch of days, on one line.
@@ -49,7 +59,7 @@ export function shortDay(iso: string, lang: Lang): string {
 export function monthYear(at: { year: number; month: number }, lang: Lang): string {
   if (CJK.has(lang)) return `${at.year}年${at.month + 1}月`;
   const name = lower(MONTHS[lang][at.month], lang);
-  return lang === 'es' ? `${name} de ${at.year}` : `${name} ${at.year}`;
+  return WITH_DE.has(lang) ? `${name} de ${at.year}` : `${name} ${at.year}`;
 }
 
 /** "17 sep 13:40" — one line, exact enough to answer "when did I do that?". */
@@ -77,7 +87,8 @@ export function longDate(value: string | number, lang: Lang): string {
   if (CJK.has(lang)) return `${year}年${at.getMonth() + 1}月${day}日`;
   const name = lower(MONTHS[lang][at.getMonth()], lang);
   if (lang === 'de') return `${day}. ${name} ${year}`;
-  return lang === 'es' ? `${day} de ${name} de ${year}` : `${day} ${name} ${year}`;
+  if (lang === 'ru') return `${day} ${RU_GENITIVE[at.getMonth()]} ${year}`;
+  return WITH_DE.has(lang) ? `${day} de ${name} de ${year}` : `${day} ${name} ${year}`;
 }
 
 /** A month name inside a sentence: "Kopiera september", "Copy September".
@@ -94,5 +105,9 @@ export function monthTitle(month: number, year: number, lang: Lang): string {
 
 /** The same inside a sentence: "i oktober 2026", "im Oktober 2026", "2026年10月". */
 export function monthInText(month: number, year: number, lang: Lang): string {
-  return CJK.has(lang) ? `${year}年${month + 1}月` : `${lower(MONTHS[lang][month], lang)} ${year}`;
+  if (CJK.has(lang)) return `${year}年${month + 1}月`;
+  // "outubro de 2026": Portuguese never leaves out the de.
+  return lang === 'pt'
+    ? `${lower(MONTHS[lang][month], lang)} de ${year}`
+    : `${lower(MONTHS[lang][month], lang)} ${year}`;
 }

@@ -117,7 +117,7 @@ export const svGuide: Guide = {
       body: [
         'Kugghjulet uppe till höger öppnar menyn.',
         '## Utseende',
-        'Språk: sju språk att välja mellan.',
+        'Språk: välj ditt språk i listan.',
         'Layout: Klassisk visar en flik i taget. Kombinerad visar allt på en sida. Anpassad låter dig bygga din egen panel med block, antingen kopplad till din vanliga budget eller som en helt fristående budget.',
         'Valuta: byter bara symbolen och formatet. Beloppen räknas aldrig om.',
         'Textstorlek: tre storlekar. Hela appen växer med texten.',

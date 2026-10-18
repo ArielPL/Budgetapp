@@ -117,7 +117,7 @@ export const deGuide: Guide = {
       body: [
         'Das Zahnrad oben rechts öffnet das Menü.',
         '## Darstellung',
-        'Sprache: sieben Sprachen zur Auswahl.',
+        'Sprache: Wähl deine aus der Liste.',
         'Layout: Klassisch zeigt einen Tab nach dem anderen. Kombiniert zeigt alles auf einer Seite. Individuell lässt dich aus Blöcken ein eigenes Panel bauen, entweder verbunden mit deinem normalen Budget oder als völlig eigenes Budget.',
         'Währung: ändert nur Symbol und Format. Beträge werden nie umgerechnet.',
         'Textgröße: drei Größen. Die ganze App wächst mit dem Text.',

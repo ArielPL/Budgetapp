@@ -62,77 +62,77 @@ type LabelEntry = Record<Lang, string>;
 
 const L = {
   // income
-  salary: { sv: 'Lön', en: 'Salary', es: 'Salario', fr: 'Salaire', de: 'Gehalt', ja: '給与', zh: '工资' },
-  sideIncome: { sv: 'Sidoinkomst', en: 'Side income', es: 'Ingreso extra', fr: 'Revenu d\'appoint', de: 'Nebeneinkommen', ja: '副収入', zh: '副业收入' },
+  salary: { sv: 'Lön', en: 'Salary', es: 'Salario', fr: 'Salaire', de: 'Gehalt', it: 'Stipendio', pt: 'Salário', ru: 'Зарплата', tr: 'Maaş', ja: '給与', zh: '工资' },
+  sideIncome: { sv: 'Sidoinkomst', en: 'Side income', es: 'Ingreso extra', fr: 'Revenu d\'appoint', de: 'Nebeneinkommen', it: 'Entrate extra', pt: 'Renda extra', ru: 'Подработка', tr: 'Ek gelir', ja: '副収入', zh: '副业收入' },
   // "Benefits? What do you mean?" (tester, 2026-10-17): said plainly, with an example.
-  benefits: { sv: 'Bidrag (t.ex. barnbidrag)', en: 'Government benefits', es: 'Ayudas y subsidios', fr: 'Prestations sociales', de: 'Staatliche Leistungen', ja: '公的給付', zh: '政府补贴' },
+  benefits: { sv: 'Bidrag (t.ex. barnbidrag)', en: 'Government benefits', es: 'Ayudas y subsidios', fr: 'Prestations sociales', de: 'Staatliche Leistungen', it: 'Sussidi pubblici', pt: 'Benefícios do governo', ru: 'Пособия', tr: 'Devlet yardımları', ja: '公的給付', zh: '政府补贴' },
   // boende
-  boende: { sv: 'Boende', en: 'Housing', es: 'Vivienda', fr: 'Logement', de: 'Wohnen', ja: '住居', zh: '住房' },
-  rent: { sv: 'Hyra/Bolån', en: 'Rent/Mortgage', es: 'Alquiler/Hipoteca', fr: 'Loyer/Prêt immobilier', de: 'Miete/Kredit', ja: '家賃・住宅ローン', zh: '房租/房贷' },
-  electricity: { sv: 'El & Värme', en: 'Electricity & Heating', es: 'Electricidad y calefacción', fr: 'Électricité & chauffage', de: 'Strom & Heizung', ja: '電気・暖房', zh: '水电暖气' },
-  internet: { sv: 'Internet', en: 'Internet', es: 'Internet', fr: 'Internet', de: 'Internet', ja: 'インターネット', zh: '网络' },
-  homeInsurance: { sv: 'Hemförsäkring', en: 'Home insurance', es: 'Seguro de hogar', fr: 'Assurance habitation', de: 'Hausratversicherung', ja: '住宅保険', zh: '家庭保险' },
+  boende: { sv: 'Boende', en: 'Housing', es: 'Vivienda', fr: 'Logement', de: 'Wohnen', it: 'Casa', pt: 'Moradia', ru: 'Жильё', tr: 'Konut', ja: '住居', zh: '住房' },
+  rent: { sv: 'Hyra/Bolån', en: 'Rent/Mortgage', es: 'Alquiler/Hipoteca', fr: 'Loyer/Prêt immobilier', de: 'Miete/Kredit', it: 'Affitto/mutuo', pt: 'Aluguel/financiamento', ru: 'Аренда/ипотека', tr: 'Kira/konut kredisi', ja: '家賃・住宅ローン', zh: '房租/房贷' },
+  electricity: { sv: 'El & Värme', en: 'Electricity & Heating', es: 'Electricidad y calefacción', fr: 'Électricité & chauffage', de: 'Strom & Heizung', it: 'Luce e riscaldamento', pt: 'Luz e gás', ru: 'Электричество и отопление', tr: 'Elektrik ve ısınma', ja: '電気・暖房', zh: '水电暖气' },
+  internet: { sv: 'Internet', en: 'Internet', es: 'Internet', fr: 'Internet', de: 'Internet', it: 'Internet', pt: 'Internet', ru: 'Интернет', tr: 'İnternet', ja: 'インターネット', zh: '网络' },
+  homeInsurance: { sv: 'Hemförsäkring', en: 'Home insurance', es: 'Seguro de hogar', fr: 'Assurance habitation', de: 'Hausratversicherung', it: 'Assicurazione casa', pt: 'Seguro residencial', ru: 'Страхование жилья', tr: 'Konut sigortası', ja: '住宅保険', zh: '家庭保险' },
   // mat
-  mat: { sv: 'Mat & Dryck', en: 'Food & Drink', es: 'Comida y bebida', fr: 'Alimentation', de: 'Essen & Trinken', ja: '食費', zh: '餐饮' },
-  groceries: { sv: 'Matvaror', en: 'Groceries', es: 'Comestibles', fr: 'Courses', de: 'Lebensmittel', ja: '食料品', zh: '日用食品' },
-  restaurant: { sv: 'Restaurang & Takeaway', en: 'Restaurant & Takeaway', es: 'Restaurante y comida para llevar', fr: 'Restaurant & à emporter', de: 'Restaurant & Takeaway', ja: '外食・テイクアウト', zh: '餐厅与外卖' },
-  coffee: { sv: 'Kaffe & Fika', en: 'Coffee & Snacks', es: 'Café y aperitivos', fr: 'Café & en-cas', de: 'Kaffee & Snacks', ja: 'カフェ・軽食', zh: '咖啡与零食' },
+  mat: { sv: 'Mat & Dryck', en: 'Food & Drink', es: 'Comida y bebida', fr: 'Alimentation', de: 'Essen & Trinken', it: 'Cibo e bevande', pt: 'Alimentação', ru: 'Еда и напитки', tr: 'Yiyecek ve içecek', ja: '食費', zh: '餐饮' },
+  groceries: { sv: 'Matvaror', en: 'Groceries', es: 'Comestibles', fr: 'Courses', de: 'Lebensmittel', it: 'Spesa', pt: 'Mercado', ru: 'Продукты', tr: 'Market', ja: '食料品', zh: '日用食品' },
+  restaurant: { sv: 'Restaurang & Takeaway', en: 'Restaurant & Takeaway', es: 'Restaurante y comida para llevar', fr: 'Restaurant & à emporter', de: 'Restaurant & Takeaway', it: 'Ristoranti e asporto', pt: 'Restaurantes e delivery', ru: 'Рестораны и доставка', tr: 'Restoran ve paket servis', ja: '外食・テイクアウト', zh: '餐厅与外卖' },
+  coffee: { sv: 'Kaffe & Fika', en: 'Coffee & Snacks', es: 'Café y aperitivos', fr: 'Café & en-cas', de: 'Kaffee & Snacks', it: 'Caffè e snack', pt: 'Café e lanches', ru: 'Кофе и перекусы', tr: 'Kahve ve atıştırmalık', ja: 'カフェ・軽食', zh: '咖啡与零食' },
   // transport
-  transport: { sv: 'Transport', en: 'Transport', es: 'Transporte', fr: 'Transport', de: 'Verkehr', ja: '交通', zh: '交通' },
-  publicTransit: { sv: 'SL/Kollektivtrafik', en: 'Public transit', es: 'Transporte público', fr: 'Transports en commun', de: 'ÖPNV', ja: '公共交通', zh: '公共交通' },
-  car: { sv: 'Bil', en: 'Car', es: 'Coche', fr: 'Voiture', de: 'Auto', ja: '車', zh: '汽车' },
-  insurances: { sv: 'Försäkringar', en: 'Insurances', es: 'Seguros', fr: 'Assurances', de: 'Versicherungen', ja: '保険', zh: '保险' },
+  transport: { sv: 'Transport', en: 'Transport', es: 'Transporte', fr: 'Transport', de: 'Verkehr', it: 'Trasporti', pt: 'Transporte', ru: 'Транспорт', tr: 'Ulaşım', ja: '交通', zh: '交通' },
+  publicTransit: { sv: 'SL/Kollektivtrafik', en: 'Public transit', es: 'Transporte público', fr: 'Transports en commun', de: 'ÖPNV', it: 'Trasporto pubblico', pt: 'Transporte público', ru: 'Общественный транспорт', tr: 'Toplu taşıma', ja: '公共交通', zh: '公共交通' },
+  car: { sv: 'Bil', en: 'Car', es: 'Coche', fr: 'Voiture', de: 'Auto', it: 'Auto', pt: 'Carro', ru: 'Автомобиль', tr: 'Araba', ja: '車', zh: '汽车' },
+  insurances: { sv: 'Försäkringar', en: 'Insurances', es: 'Seguros', fr: 'Assurances', de: 'Versicherungen', it: 'Assicurazioni', pt: 'Seguros', ru: 'Страховки', tr: 'Sigortalar', ja: '保険', zh: '保险' },
   // prenumerationer
-  subscriptions: { sv: 'Prenumerationer', en: 'Subscriptions', es: 'Suscripciones', fr: 'Abonnements', de: 'Abos', ja: 'サブスク', zh: '订阅' },
-  streaming: { sv: 'Streaming', en: 'Streaming', es: 'Streaming', fr: 'Streaming', de: 'Streaming', ja: '動画・音楽配信', zh: '流媒体' },
-  gym: { sv: 'Gym', en: 'Gym', es: 'Gimnasio', fr: 'Salle de sport', de: 'Fitnessstudio', ja: 'ジム', zh: '健身房' },
-  apps: { sv: 'Appar', en: 'Apps', es: 'Aplicaciones', fr: 'Applis', de: 'Apps', ja: 'アプリ', zh: '应用' },
+  subscriptions: { sv: 'Prenumerationer', en: 'Subscriptions', es: 'Suscripciones', fr: 'Abonnements', de: 'Abos', it: 'Abbonamenti', pt: 'Assinaturas', ru: 'Подписки', tr: 'Abonelikler', ja: 'サブスク', zh: '订阅' },
+  streaming: { sv: 'Streaming', en: 'Streaming', es: 'Streaming', fr: 'Streaming', de: 'Streaming', it: 'Streaming', pt: 'Streaming', ru: 'Стриминг', tr: 'Dijital yayın', ja: '動画・音楽配信', zh: '流媒体' },
+  gym: { sv: 'Gym', en: 'Gym', es: 'Gimnasio', fr: 'Salle de sport', de: 'Fitnessstudio', it: 'Palestra', pt: 'Academia', ru: 'Спортзал', tr: 'Spor salonu', ja: 'ジム', zh: '健身房' },
+  apps: { sv: 'Appar', en: 'Apps', es: 'Aplicaciones', fr: 'Applis', de: 'Apps', it: 'App', pt: 'Aplicativos', ru: 'Приложения', tr: 'Uygulamalar', ja: 'アプリ', zh: '应用' },
   // personligt
-  personligt: { sv: 'Personligt', en: 'Personal', es: 'Personal', fr: 'Personnel', de: 'Persönliches', ja: '個人', zh: '个人' },
-  clothes: { sv: 'Kläder', en: 'Clothes', es: 'Ropa', fr: 'Vêtements', de: 'Kleidung', ja: '衣類', zh: '服装' },
-  hygiene: { sv: 'Hygien', en: 'Hygiene', es: 'Higiene', fr: 'Hygiène', de: 'Hygiene', ja: '日用品', zh: '个人护理' },
-  health: { sv: 'Hälsa', en: 'Health', es: 'Salud', fr: 'Santé', de: 'Gesundheit', ja: '健康', zh: '健康' },
+  personligt: { sv: 'Personligt', en: 'Personal', es: 'Personal', fr: 'Personnel', de: 'Persönliches', it: 'Personale', pt: 'Pessoal', ru: 'Личное', tr: 'Kişisel', ja: '個人', zh: '个人' },
+  clothes: { sv: 'Kläder', en: 'Clothes', es: 'Ropa', fr: 'Vêtements', de: 'Kleidung', it: 'Abbigliamento', pt: 'Roupas', ru: 'Одежда', tr: 'Giyim', ja: '衣類', zh: '服装' },
+  hygiene: { sv: 'Hygien', en: 'Hygiene', es: 'Higiene', fr: 'Hygiène', de: 'Hygiene', it: 'Igiene', pt: 'Higiene', ru: 'Гигиена', tr: 'Kişisel bakım', ja: '日用品', zh: '个人护理' },
+  health: { sv: 'Hälsa', en: 'Health', es: 'Salud', fr: 'Santé', de: 'Gesundheit', it: 'Salute', pt: 'Saúde', ru: 'Здоровье', tr: 'Sağlık', ja: '健康', zh: '健康' },
   // fritid
-  fritid: { sv: 'Fritid', en: 'Leisure', es: 'Ocio', fr: 'Loisirs', de: 'Freizeit', ja: 'レジャー', zh: '休闲' },
-  hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos', fr: 'Hobbies', de: 'Hobby', ja: '趣味', zh: '爱好' },
+  fritid: { sv: 'Fritid', en: 'Leisure', es: 'Ocio', fr: 'Loisirs', de: 'Freizeit', it: 'Tempo libero', pt: 'Lazer', ru: 'Досуг', tr: 'Boş zaman', ja: 'レジャー', zh: '休闲' },
+  hobby: { sv: 'Hobby', en: 'Hobby', es: 'Pasatiempos', fr: 'Hobbies', de: 'Hobby', it: 'Hobby', pt: 'Hobbies', ru: 'Хобби', tr: 'Hobi', ja: '趣味', zh: '爱好' },
   // Read only: older budgets have it under Fritid. New ones give it a category
   // of its own (givande) — a tester looking for tithes did not think of Leisure.
-  giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones', fr: 'Cadeaux & dons', de: 'Geschenke & Spenden', ja: '贈り物・寄付', zh: '礼物与捐赠' },
-  vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones', fr: 'Vacances', de: 'Urlaub', ja: '旅行', zh: '度假' },
+  giftsCharity: { sv: 'Gåvor & Välgörenhet', en: 'Gifts & Charity', es: 'Regalos y donaciones', fr: 'Cadeaux & dons', de: 'Geschenke & Spenden', it: 'Regali e beneficenza', pt: 'Presentes e doações', ru: 'Подарки и благотворительность', tr: 'Hediyeler ve bağışlar', ja: '贈り物・寄付', zh: '礼物与捐赠' },
+  vacation: { sv: 'Semester', en: 'Vacation', es: 'Vacaciones', fr: 'Vacances', de: 'Urlaub', it: 'Vacanze', pt: 'Férias', ru: 'Отпуск', tr: 'Tatil', ja: '旅行', zh: '度假' },
   // givande
-  givande: { sv: 'Gåvor & givande', en: 'Giving', es: 'Donativos', fr: 'Dons', de: 'Geben', ja: '献金・寄付', zh: '奉献与捐赠' },
-  tithes: { sv: 'Tionde & kollekt', en: 'Tithes & offerings', es: 'Diezmos y ofrendas', fr: 'Dîmes & offrandes', de: 'Zehnter & Kollekte', ja: '十分の一献金・献金', zh: '什一奉献与奉献' },
-  charity: { sv: 'Välgörenhet', en: 'Charity', es: 'Donaciones', fr: 'Œuvres caritatives', de: 'Spenden', ja: '寄付', zh: '慈善' },
-  gifts: { sv: 'Presenter', en: 'Gifts', es: 'Regalos', fr: 'Cadeaux', de: 'Geschenke', ja: 'プレゼント', zh: '礼物' },
+  givande: { sv: 'Gåvor & givande', en: 'Giving', es: 'Donativos', fr: 'Dons', de: 'Geben', it: 'Donazioni', pt: 'Doações', ru: 'Пожертвования', tr: 'Bağışlar', ja: '献金・寄付', zh: '奉献与捐赠' },
+  tithes: { sv: 'Tionde & kollekt', en: 'Tithes & offerings', es: 'Diezmos y ofrendas', fr: 'Dîmes & offrandes', de: 'Zehnter & Kollekte', it: 'Decime e offerte', pt: 'Dízimos e ofertas', ru: 'Десятина и пожертвования', tr: 'Ondalık ve sunular', ja: '十分の一献金・献金', zh: '什一奉献与奉献' },
+  charity: { sv: 'Välgörenhet', en: 'Charity', es: 'Donaciones', fr: 'Œuvres caritatives', de: 'Spenden', it: 'Beneficenza', pt: 'Caridade', ru: 'Благотворительность', tr: 'Hayır işleri', ja: '寄付', zh: '慈善' },
+  gifts: { sv: 'Presenter', en: 'Gifts', es: 'Regalos', fr: 'Cadeaux', de: 'Geschenke', it: 'Regali', pt: 'Presentes', ru: 'Подарки', tr: 'Hediyeler', ja: 'プレゼント', zh: '礼物' },
   // lån — a real budget line for most people and, until now, a missing concept:
   // a student-loan repayment fitted none of the other seven and landed in Övrigt.
   // Renamed "Lån & skulder" with the Debt tab (2026-10-03), whose debts each
   // carry a row here. The old name is still READ — see LEGACY_LABELS.
-  lan: { sv: 'Lån & skulder', en: 'Loans & Debts', es: 'Préstamos y deudas', fr: 'Prêts & dettes', de: 'Kredite & Schulden', ja: 'ローン・負債', zh: '贷款与债务' },
-  studyLoan: { sv: 'Studielån (CSN)', en: 'Student loan', es: 'Préstamo estudiantil', fr: 'Prêt étudiant', de: 'Studienkredit', ja: '奨学金返済', zh: '助学贷款' },
-  mortgage: { sv: 'Bolån & amortering', en: 'Mortgage', es: 'Hipoteca', fr: 'Prêt immobilier', de: 'Baufinanzierung', ja: '住宅ローン', zh: '房贷' },
-  otherCredit: { sv: 'Övriga lån & krediter', en: 'Other loans & credit', es: 'Otros créditos', fr: 'Autres crédits', de: 'Sonstige Kredite', ja: 'その他のローン', zh: '其他贷款' },
+  lan: { sv: 'Lån & skulder', en: 'Loans & Debts', es: 'Préstamos y deudas', fr: 'Prêts & dettes', de: 'Kredite & Schulden', it: 'Prestiti e debiti', pt: 'Empréstimos e dívidas', ru: 'Кредиты и долги', tr: 'Krediler ve borçlar', ja: 'ローン・負債', zh: '贷款与债务' },
+  studyLoan: { sv: 'Studielån (CSN)', en: 'Student loan', es: 'Préstamo estudiantil', fr: 'Prêt étudiant', de: 'Studienkredit', it: 'Prestito studentesco', pt: 'Financiamento estudantil', ru: 'Образовательный кредит', tr: 'Öğrenim kredisi', ja: '奨学金返済', zh: '助学贷款' },
+  mortgage: { sv: 'Bolån & amortering', en: 'Mortgage', es: 'Hipoteca', fr: 'Prêt immobilier', de: 'Baufinanzierung', it: 'Mutuo', pt: 'Financiamento imobiliário', ru: 'Ипотека', tr: 'Konut kredisi', ja: '住宅ローン', zh: '房贷' },
+  otherCredit: { sv: 'Övriga lån & krediter', en: 'Other loans & credit', es: 'Otros créditos', fr: 'Autres crédits', de: 'Sonstige Kredite', it: 'Altri prestiti', pt: 'Outros empréstimos', ru: 'Другие кредиты', tr: 'Diğer krediler', ja: 'その他のローン', zh: '其他贷款' },
   // sparande
-  sparande: { sv: 'Sparande', en: 'Savings', es: 'Ahorro', fr: 'Épargne', de: 'Sparen', ja: '貯蓄', zh: '储蓄' },
-  savingsRow: { sv: 'Sparande', en: 'Savings', es: 'Ahorro', fr: 'Épargne', de: 'Sparen', ja: '貯蓄', zh: '储蓄' },
-  investments: { sv: 'Investeringar', en: 'Investments', es: 'Inversiones', fr: 'Investissements', de: 'Investitionen', ja: '投資', zh: '投资' },
+  sparande: { sv: 'Sparande', en: 'Savings', es: 'Ahorro', fr: 'Épargne', de: 'Sparen', it: 'Risparmi', pt: 'Poupança', ru: 'Сбережения', tr: 'Birikim', ja: '貯蓄', zh: '储蓄' },
+  savingsRow: { sv: 'Sparande', en: 'Savings', es: 'Ahorro', fr: 'Épargne', de: 'Sparen', it: 'Risparmi', pt: 'Poupança', ru: 'Сбережения', tr: 'Birikim', ja: '貯蓄', zh: '储蓄' },
+  investments: { sv: 'Investeringar', en: 'Investments', es: 'Inversiones', fr: 'Investissements', de: 'Investitionen', it: 'Investimenti', pt: 'Investimentos', ru: 'Инвестиции', tr: 'Yatırımlar', ja: '投資', zh: '投资' },
   // savings tab
-  sparkonto: { sv: 'Sparkonto', en: 'Savings account', es: 'Cuenta de ahorro', fr: 'Compte épargne', de: 'Sparkonto', ja: '普通預金', zh: '储蓄账户' },
-  mainAccount: { sv: 'Huvudkonto', en: 'Main account', es: 'Cuenta principal', fr: 'Compte principal', de: 'Hauptkonto', ja: 'メイン口座', zh: '主账户' },
-  bufferAccount: { sv: 'Buffertkonto', en: 'Buffer account', es: 'Cuenta de reserva', fr: 'Épargne de précaution', de: 'Notgroschen', ja: '予備資金', zh: '应急账户' },
-  isk: { sv: 'ISK / Aktiedepå', en: 'Investment account', es: 'Cuenta de inversión', fr: 'Compte-titres', de: 'Depot', ja: '投資口座', zh: '投资账户' },
-  stocks: { sv: 'Aktier', en: 'Stocks', es: 'Acciones', fr: 'Actions', de: 'Aktien', ja: '株式', zh: '股票' },
-  etf: { sv: 'ETF:er', en: 'ETFs', es: 'ETF', fr: 'ETF', de: 'ETFs', ja: 'ETF', zh: 'ETF' },
-  fonder: { sv: 'Fonder', en: 'Funds', es: 'Fondos', fr: 'Fonds', de: 'Fonds', ja: '投資信託', zh: '基金' },
-  indexFunds: { sv: 'Indexfonder', en: 'Index funds', es: 'Fondos indexados', fr: 'Fonds indiciels', de: 'Indexfonds', ja: 'インデックスファンド', zh: '指数基金' },
-  activeFunds: { sv: 'Aktivt förvaltade', en: 'Actively managed', es: 'Gestión activa', fr: 'Gestion active', de: 'Aktiv verwaltet', ja: 'アクティブファンド', zh: '主动管理基金' },
-  pension: { sv: 'Pension (extra)', en: 'Pension (extra)', es: 'Pensión (extra)', fr: 'Retraite (en plus)', de: 'Altersvorsorge (zusätzlich)', ja: '年金（追加）', zh: '养老金（额外）' },
-  occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up', es: 'Aporte a pensión laboral', fr: 'Complément retraite pro', de: 'Betriebsrente Zusatz', ja: '企業年金の上乗せ', zh: '职业年金补充' },
-  privatePension: { sv: 'Privat pension', en: 'Private pension', es: 'Pensión privada', fr: 'Retraite privée', de: 'Private Rente', ja: '個人年金', zh: '个人养老金' },
+  sparkonto: { sv: 'Sparkonto', en: 'Savings account', es: 'Cuenta de ahorro', fr: 'Compte épargne', de: 'Sparkonto', it: 'Conto di risparmio', pt: 'Conta poupança', ru: 'Сберегательный счёт', tr: 'Birikim hesabı', ja: '普通預金', zh: '储蓄账户' },
+  mainAccount: { sv: 'Huvudkonto', en: 'Main account', es: 'Cuenta principal', fr: 'Compte principal', de: 'Hauptkonto', it: 'Conto principale', pt: 'Conta principal', ru: 'Основной счёт', tr: 'Ana hesap', ja: 'メイン口座', zh: '主账户' },
+  bufferAccount: { sv: 'Buffertkonto', en: 'Buffer account', es: 'Cuenta de reserva', fr: 'Épargne de précaution', de: 'Notgroschen', it: 'Fondo di emergenza', pt: 'Reserva de emergência', ru: 'Резервный фонд', tr: 'Acil durum fonu', ja: '予備資金', zh: '应急账户' },
+  isk: { sv: 'ISK / Aktiedepå', en: 'Investment account', es: 'Cuenta de inversión', fr: 'Compte-titres', de: 'Depot', it: 'Conto titoli', pt: 'Conta de investimentos', ru: 'Брокерский счёт', tr: 'Yatırım hesabı', ja: '投資口座', zh: '投资账户' },
+  stocks: { sv: 'Aktier', en: 'Stocks', es: 'Acciones', fr: 'Actions', de: 'Aktien', it: 'Azioni', pt: 'Ações', ru: 'Акции', tr: 'Hisse senetleri', ja: '株式', zh: '股票' },
+  etf: { sv: 'ETF:er', en: 'ETFs', es: 'ETF', fr: 'ETF', de: 'ETFs', it: 'ETF', pt: 'ETFs', ru: 'ETF', tr: 'ETF', ja: 'ETF', zh: 'ETF' },
+  fonder: { sv: 'Fonder', en: 'Funds', es: 'Fondos', fr: 'Fonds', de: 'Fonds', it: 'Fondi', pt: 'Fundos', ru: 'Фонды', tr: 'Fonlar', ja: '投資信託', zh: '基金' },
+  indexFunds: { sv: 'Indexfonder', en: 'Index funds', es: 'Fondos indexados', fr: 'Fonds indiciels', de: 'Indexfonds', it: 'Fondi indicizzati', pt: 'Fundos de índice', ru: 'Индексные фонды', tr: 'Endeks fonları', ja: 'インデックスファンド', zh: '指数基金' },
+  activeFunds: { sv: 'Aktivt förvaltade', en: 'Actively managed', es: 'Gestión activa', fr: 'Gestion active', de: 'Aktiv verwaltet', it: 'Gestione attiva', pt: 'Gestão ativa', ru: 'Активное управление', tr: 'Aktif yönetilen', ja: 'アクティブファンド', zh: '主动管理基金' },
+  pension: { sv: 'Pension (extra)', en: 'Pension (extra)', es: 'Pensión (extra)', fr: 'Retraite (en plus)', de: 'Altersvorsorge (zusätzlich)', it: 'Pensione (integrativa)', pt: 'Previdência (extra)', ru: 'Пенсия (доп.)', tr: 'Emeklilik (ek)', ja: '年金（追加）', zh: '养老金（额外）' },
+  occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up', es: 'Aporte a pensión laboral', fr: 'Complément retraite pro', de: 'Betriebsrente Zusatz', it: 'Pensione aziendale integrativa', pt: 'Previdência corporativa', ru: 'Корпоративная пенсия', tr: 'İşveren emeklilik katkısı', ja: '企業年金の上乗せ', zh: '职业年金补充' },
+  privatePension: { sv: 'Privat pension', en: 'Private pension', es: 'Pensión privada', fr: 'Retraite privée', de: 'Private Rente', it: 'Pensione privata', pt: 'Previdência privada', ru: 'Частная пенсия', tr: 'Bireysel emeklilik', ja: '個人年金', zh: '个人养老金' },
   // placeholders for newly added items / goals
-  newGoal: { sv: 'Nytt mål', en: 'New goal', es: 'Nueva meta', fr: 'Nouvel objectif', de: 'Neues Ziel', ja: '新しい目標', zh: '新目标' },
-  newRow: { sv: 'Ny rad', en: 'New row', es: 'Nueva fila', fr: 'Nouvelle ligne', de: 'Neue Zeile', ja: '新しい行', zh: '新行' },
-  newItem: { sv: 'Ny post', en: 'New item', es: 'Nuevo elemento', fr: 'Nouvel élément', de: 'Neuer Eintrag', ja: '新しい項目', zh: '新项目' },
+  newGoal: { sv: 'Nytt mål', en: 'New goal', es: 'Nueva meta', fr: 'Nouvel objectif', de: 'Neues Ziel', it: 'Nuovo obiettivo', pt: 'Nova meta', ru: 'Новая цель', tr: 'Yeni hedef', ja: '新しい目標', zh: '新目标' },
+  newRow: { sv: 'Ny rad', en: 'New row', es: 'Nueva fila', fr: 'Nouvelle ligne', de: 'Neue Zeile', it: 'Nuova riga', pt: 'Nova linha', ru: 'Новая строка', tr: 'Yeni satır', ja: '新しい行', zh: '新行' },
+  newItem: { sv: 'Ny post', en: 'New item', es: 'Nuevo elemento', fr: 'Nouvel élément', de: 'Neuer Eintrag', it: 'Nuova voce', pt: 'Novo item', ru: 'Новый пункт', tr: 'Yeni öğe', ja: '新しい項目', zh: '新项目' },
 } as const;
 
 const tr = (entry: LabelEntry, lang: Lang) => entry[lang];
@@ -143,13 +143,8 @@ const tr = (entry: LabelEntry, lang: Lang) => entry[lang];
 // are returned unchanged.
 const REVERSE_LABELS: Record<string, LabelEntry> = {};
 for (const entry of Object.values(L)) {
-  REVERSE_LABELS[entry.sv] = entry;
-  REVERSE_LABELS[entry.en] = entry;
-  REVERSE_LABELS[entry.es] = entry;
-  REVERSE_LABELS[entry.fr] = entry;
-  REVERSE_LABELS[entry.de] = entry;
-  REVERSE_LABELS[entry.ja] = entry;
-  REVERSE_LABELS[entry.zh] = entry;
+  // Every language's name, so a new language cannot be left out of the lookup.
+  for (const name of Object.values(entry)) REVERSE_LABELS[name] = entry;
 }
 // Names a default once had, as saved in older months: they show under the
 // CURRENT name, so a renamed default does not leave two names in one budget.

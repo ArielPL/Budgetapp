@@ -26,6 +26,16 @@ describe('pickLang — what a brand-new install opens in', () => {
     expect(pickLang(['fi-FI', 'en-GB'])).toBe('en');
   });
 
+  it('opens in Italian, Portuguese, Russian and Turkish', () => {
+    expect(pickLang(['it-IT'])).toBe('it');
+    expect(pickLang(['tr-TR'])).toBe('tr');
+    expect(pickLang(['ru-RU'])).toBe('ru');
+    // The app's Portuguese is Brazilian; a phone in Portugal gets it too —
+    // closer to home than English.
+    expect(pickLang(['pt-BR'])).toBe('pt');
+    expect(pickLang(['pt-PT'])).toBe('pt');
+  });
+
   it('falls back to English, not Swedish', () => {
     // The whole point. A device that says nothing useful is far more likely to
     // belong to someone who reads English than someone who reads Swedish.
