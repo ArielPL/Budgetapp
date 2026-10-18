@@ -83,7 +83,8 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
   const failureText = (reason: string) => (
     reason === 'too-big' ? t.bimErrTooBig
       : reason === 'too-large-table' ? t.bimErrTooLarge
-        : reason === 'empty' ? t.bimErrEmpty : t.bimErrUnreadable);
+        : reason === 'empty' ? t.bimErrEmpty
+          : reason === 'convert' ? t.bimErrConvert : t.bimErrUnreadable);
   const readPaste = () => {
     let rows;
     try {
@@ -143,7 +144,7 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
                 <button className="csv-pick" onClick={() => fileRef.current?.click()}>{t.bimPick}</button>
                 <input
                   ref={fileRef} type="file" hidden
-                  accept=".xlsx,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values,text/plain"
+                  accept=".xlsx,.docx,.csv,.tsv,.txt,.xls,.doc,.numbers,.pages,.ods,.odt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/tab-separated-values,text/plain"
                   onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void readFile(f); }}
                 />
               </div>
@@ -193,6 +194,13 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
                       <span className="csv-group-text">
                         {r.label}
                         {r.section && <span className="bim-section"> · {r.section}</span>}
+                        {r.credit && (
+                          <span className="bim-credit">
+                            {r.credit.into && r.credit.taken > 0 && t.bimCreditTaken(money(-r.credit.taken), r.credit.into)}
+                            {r.credit.left > 0 && ` ${t.bimCreditLeft(money(-r.credit.left))}`}
+                          </span>
+                        )}
+                        {r.negativeRead && <span className="bim-credit">{t.bimNegativeRead}</span>}
                       </span>
                       <span className="csv-group-sum">
                         {draft.layout === 'list'

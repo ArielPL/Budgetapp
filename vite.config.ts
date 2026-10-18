@@ -46,6 +46,8 @@ export default defineConfig({
   test: {
     // `.claude` holds Claude Code's session worktrees — full copies of this
     // repo, whose tests would otherwise run alongside ours.
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    // `outputs` is a scratch folder other tools write into, tests included —
+    // a stray one there failed the app's suite (2026-10-17).
+    exclude: [...configDefaults.exclude, '.claude/**', 'outputs/**'],
   },
 })

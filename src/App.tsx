@@ -24,6 +24,7 @@ const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: 
 // should have to download.
 const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
+const Guide = lazy(() => import('./components/Guide').then(m => ({ default: m.Guide })));
 const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ default: m.WalletArea })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
@@ -77,6 +78,7 @@ import {
 import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
+import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
 
 
 
@@ -261,6 +263,14 @@ function App({ startupRepair = null }: AppProps) {
   const [currencyPending, setCurrencyPending] = useState(
     () => introOpen && !isCurrency(appStorage.getItem('budget_currency')));
   const chooseCurrency = (c: Currency) => { setCurrency(c); setCurrencyPending(false); };
+  // "Get started": the guide to every part of the app. Its row at the top of
+  // Budget can be hidden; the first item in the menu always stays.
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideRowHidden, setGuideRowHidden] = useState(() => appStorage.getItem(GUIDE_ROW_HIDDEN_KEY) === '1');
+  const hideGuideRow = () => {
+    setGuideRowHidden(true);
+    if (!safeSetItem(appStorage, GUIDE_ROW_HIDDEN_KEY, '1')) setSaveFailed(true);
+  };
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => setWelcomeOpen(false);
@@ -1806,6 +1816,16 @@ function App({ startupRepair = null }: AppProps) {
   // Same components/data/handlers either way — no duplication.
   const budgetView = (
     <>
+      {!guideRowHidden && (
+        <div className="guide-row">
+          <button className="guide-row-open" onClick={() => setGuideOpen(true)}>
+            <span aria-hidden="true">📖</span>
+            <span className="guide-row-text">{t.guideEntry}</span>
+            <span className="guide-row-chevron" aria-hidden="true">›</span>
+          </button>
+          <button className="guide-row-hide" onClick={hideGuideRow} aria-label={t.guideHide} title={t.guideHide}>✕</button>
+        </div>
+      )}
       {budgetHero}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
       {/* Says something about the numbers instead of only showing them. Names
@@ -1993,6 +2013,9 @@ function App({ startupRepair = null }: AppProps) {
                   {/* Scrollable body — the drag handle + header above stay put
                       on mobile so the ✕ is always reachable (UX review §14). */}
                   <div className="utils-menu-scroll">
+                  <button className="utils-guide-btn" onClick={() => { setMenuOpen(false); setGuideOpen(true); }}>
+                    <span aria-hidden="true">📖</span> {t.guideEntry}
+                  </button>
                   {/* Language */}
                   <div className="utils-row">
                     <label className="utils-row-label" htmlFor="lang-pick">{t.language}</label>
@@ -2245,6 +2268,11 @@ function App({ startupRepair = null }: AppProps) {
         )}
       </header>
 
+      {guideOpen && (
+        <Suspense fallback={null}>
+          <Guide onClose={() => setGuideOpen(false)} />
+        </Suspense>
+      )}
       {introOpen && <Intro onDone={dismissIntro} askCurrency={currencyPending} onCurrency={chooseCurrency} />}
 
       {welcomeOpen && (

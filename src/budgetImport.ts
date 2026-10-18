@@ -9,6 +9,11 @@
 // planImport() returns the months as they would be, and the caller stores
 // them in one confirmed write.
 //
+// A Word document (.docx) is read for its tables: a budget typed as a table
+// in Word, Pages or Google Docs and saved as .docx. One table per month, each
+// under its month's name ("Januari 2026"), is put together into the same
+// months-as-columns table a spreadsheet gives (2026-10-17).
+//
 // Two layouts cover how budgets are actually kept:
 //
 //   · a LIST: a name and an amount, often under headings ("Boende", "Inkomster")
@@ -57,7 +62,10 @@ export const MAX_SHEETS = 50;
 
 // ── Reading ────────────────────────────────────────────────────────────────
 
-export type SpreadsheetFailure = 'too-big' | 'too-large-table' | 'unreadable' | 'empty';
+/** `convert`: a format the app cannot read directly — old binary Word and
+ *  Excel (.doc, .xls), Apple's Pages and Numbers files, OpenDocument — which
+ *  every one of those programs can save or export as .docx, .xlsx or CSV. */
+export type SpreadsheetFailure = 'too-big' | 'too-large-table' | 'unreadable' | 'empty' | 'convert';
 
 export class SpreadsheetError extends Error {
   readonly reason: SpreadsheetFailure;
@@ -67,13 +75,18 @@ export class SpreadsheetError extends Error {
   }
 }
 
-/** The sheets of an .xlsx, .csv, .tsv or .txt file. */
+/** The sheets of an .xlsx, .docx, .csv, .tsv or .txt file. */
 export function readSpreadsheet(bytes: ArrayBuffer, fileName: string): Sheet[] {
   if (bytes.byteLength > MAX_FILE_BYTES) throw new SpreadsheetError('too-big');
   const u8 = new Uint8Array(bytes);
-  // A zip file starts "PK": an .xlsx whatever it is called.
+  // Old binary Office (.doc, .xls) is a compound file: D0 CF 11 E0. Read as
+  // text it is noise, and the honest answer is to save it in a newer format.
+  if (u8.length > 4 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) {
+    throw new SpreadsheetError('convert');
+  }
+  // A zip file starts "PK": an .xlsx or a .docx, whatever it is called.
   const isZip = u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b;
-  const sheets = isZip ? readXlsx(u8) : [{ name: fileName, rows: readText(decodeCsv(bytes)) }];
+  const sheets = isZip ? readZip(u8, fileName) : [{ name: fileName, rows: readText(decodeCsv(bytes)) }];
   if (sheets.length > MAX_SHEETS) throw new SpreadsheetError('too-large-table');
   const kept = sheets.filter(s => s.rows.some(r => r.some(c => c.trim() !== '')));
   if (kept.length === 0) throw new SpreadsheetError('empty');
@@ -111,7 +124,34 @@ const numberCell = (raw: string) => {
   return (Math.round(n * 100) / 100).toString().replace('.', ',');
 };
 
-function readXlsx(u8: Uint8Array): Sheet[] {
+/** Elements by LOCAL name, whatever prefix the file gives them. Excel writes
+ *  <sheet>; other writers write the same element as <x:sheet>, and a lookup
+ *  by the plain name found nothing — a valid file answered "unreadable"
+ *  (import test, 2026-10-17). */
+const els = (node: Document | Element, name: string): Element[] =>
+  [...node.getElementsByTagNameNS('*', name)];
+
+/** What kind of zip this is, from the names in its directory alone. */
+function readZip(u8: Uint8Array, fileName: string): Sheet[] {
+  const names: string[] = [];
+  try {
+    unzipSync(u8, { filter: f => { names.push(f.name); return false; } });
+  } catch {
+    throw new SpreadsheetError('unreadable');
+  }
+  if (names.includes('word/document.xml')) return readDocx(u8, fileName);
+  if (names.includes('xl/workbook.xml')) return readXlsx(u8);
+  // Pages and Numbers (Index/*.iwa), OpenDocument (content.xml): real
+  // documents, in formats the app does not read. Saying so beats "unreadable".
+  if (names.some(n => n.startsWith('Index/')) || names.includes('content.xml')) {
+    throw new SpreadsheetError('convert');
+  }
+  throw new SpreadsheetError('unreadable');
+}
+
+/** The parts of a zip that `wanted` names, with the same size limits for
+ *  every format: judged from the zip's own directory, before unpacking. */
+function unpack(u8: Uint8Array, wanted: (name: string) => boolean, isSheet: (name: string) => boolean): Record<string, Uint8Array> {
   let files: Record<string, Uint8Array>;
   let unpacked = 0;
   let sheetFiles = 0;
@@ -119,14 +159,10 @@ function readXlsx(u8: Uint8Array): Sheet[] {
   let tooMany = false;
   try {
     files = unzipSync(u8, {
-      // Only the parts a budget lives in; images and the like are left packed.
-      // Sizes are judged here, from the zip's directory, before unpacking.
       filter: f => {
-        const wanted = f.name === 'xl/workbook.xml' || f.name === 'xl/sharedStrings.xml'
-          || f.name === 'xl/_rels/workbook.xml.rels' || f.name.startsWith('xl/worksheets/sheet');
-        if (!wanted || tooBig || tooMany) return false;
+        if (!wanted(f.name) || tooBig || tooMany) return false;
         unpacked += f.originalSize;
-        if (f.name.startsWith('xl/worksheets/sheet')) sheetFiles += 1;
+        if (isSheet(f.name)) sheetFiles += 1;
         if (sheetFiles > MAX_SHEETS) { tooMany = true; return false; }
         if (f.originalSize > MAX_PART_BYTES || unpacked > MAX_UNPACKED_BYTES) { tooBig = true; return false; }
         return true;
@@ -137,41 +173,52 @@ function readXlsx(u8: Uint8Array): Sheet[] {
   }
   if (tooBig) throw new SpreadsheetError('too-big');
   if (tooMany) throw new SpreadsheetError('too-large-table');
-  const xml = (name: string) => {
-    const f = files[name];
-    return f ? new DOMParser().parseFromString(strFromU8(f), 'application/xml') : null;
-  };
+  return files;
+}
+
+const parseXml = (f: Uint8Array | undefined) =>
+  f ? new DOMParser().parseFromString(strFromU8(f), 'application/xml') : null;
+
+function readXlsx(u8: Uint8Array): Sheet[] {
+  // Only the parts a budget lives in; images and the like are left packed.
+  const files = unpack(u8,
+    name => name === 'xl/workbook.xml' || name === 'xl/sharedStrings.xml'
+      || name === 'xl/_rels/workbook.xml.rels' || name.startsWith('xl/worksheets/sheet'),
+    name => name.startsWith('xl/worksheets/sheet'));
+  const xml = (name: string) => parseXml(files[name]);
   const workbook = xml('xl/workbook.xml');
   if (!workbook) throw new SpreadsheetError('unreadable');
 
   // Shared strings: a <si> is either one <t> or several rich-text runs.
-  const shared = [...(xml('xl/sharedStrings.xml')?.getElementsByTagName('si') ?? [])]
-    .map(si => [...si.getElementsByTagName('t')].map(t => t.textContent ?? '').join(''));
+  const sharedDoc = xml('xl/sharedStrings.xml');
+  const shared = (sharedDoc ? els(sharedDoc, 'si') : [])
+    .map(si => els(si, 't').map(t => t.textContent ?? '').join(''));
 
   // Sheet names, in workbook order, to their files.
   const rels = new Map<string, string>();
-  for (const r of xml('xl/_rels/workbook.xml.rels')?.getElementsByTagName('Relationship') ?? []) {
+  const relDoc = xml('xl/_rels/workbook.xml.rels');
+  for (const r of relDoc ? els(relDoc, 'Relationship') : []) {
     const target = r.getAttribute('Target') ?? '';
     rels.set(r.getAttribute('Id') ?? '', target.replace(/^\/?(xl\/)?/, 'xl/'));
   }
   const sheets: Sheet[] = [];
-  for (const s of workbook.getElementsByTagName('sheet')) {
+  for (const s of els(workbook, 'sheet')) {
     if (s.getAttribute('state') === 'hidden' || s.getAttribute('state') === 'veryHidden') continue;
     const rid = s.getAttribute('r:id') ?? s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') ?? '';
     const doc = xml(rels.get(rid) ?? '');
     if (!doc) continue;
     const rows: Grid = [];
-    for (const row of doc.getElementsByTagName('row')) {
+    for (const row of els(doc, 'row')) {
       if (rows.length >= MAX_ROWS) throw new SpreadsheetError('too-large-table');
       const cells: string[] = [];
-      for (const c of row.getElementsByTagName('c')) {
+      for (const c of els(row, 'c')) {
         const i = colIndex(c.getAttribute('r') ?? '');
         if (i >= MAX_COLUMNS) throw new SpreadsheetError('too-large-table');
         const type = c.getAttribute('t');
-        const v = c.getElementsByTagName('v')[0]?.textContent ?? '';
+        const v = els(c, 'v')[0]?.textContent ?? '';
         let text: string;
         if (type === 's') text = shared[Number(v)] ?? '';
-        else if (type === 'inlineStr') text = [...c.getElementsByTagName('t')].map(t => t.textContent ?? '').join('');
+        else if (type === 'inlineStr') text = els(c, 't').map(t => t.textContent ?? '').join('');
         else if (type === 'str' || type === 'b' || type === 'e') text = v;
         else text = v === '' ? '' : numberCell(v);
         while (cells.length < i) cells.push('');
@@ -182,6 +229,131 @@ function readXlsx(u8: Uint8Array): Sheet[] {
     sheets.push({ name: s.getAttribute('name') ?? '', rows });
   }
   if (sheets.length === 0) throw new SpreadsheetError('unreadable');
+  return sheets;
+}
+
+// ── Word documents ─────────────────────────────────────────────────────────
+
+/** A cell's text: its paragraphs, runs and tabs. A lone dash is how a paper
+ *  plan writes "nothing this month", and it means an empty cell here. */
+function cellText(tc: Element): string {
+  const paragraphs = els(tc, 'p').map(p => {
+    let text = '';
+    for (const n of els(p, '*')) {
+      if (n.localName === 't') text += n.textContent ?? '';
+      else if (n.localName === 'tab') text += ' ';
+    }
+    return text;
+  });
+  const text = paragraphs.join(' ').replace(/\s+/g, ' ').trim();
+  return /^[-–—]$/.test(text) ? '' : text;
+}
+
+/** A table's rows as cells. Only its own rows: a table inside a cell is not
+ *  read twice. */
+function tableGrid(tbl: Element): Grid {
+  const rows: Grid = [];
+  for (const tr of [...tbl.children].filter(n => n.localName === 'tr')) {
+    if (rows.length >= MAX_ROWS) throw new SpreadsheetError('too-large-table');
+    const cells = [...tr.children].filter(n => n.localName === 'tc').map(cellText);
+    if (cells.length > MAX_COLUMNS) throw new SpreadsheetError('too-large-table');
+    rows.push(cells);
+  }
+  return rows;
+}
+
+const amountLike = (c: string) => c.trim() !== '' && parseAmount(c) !== null;
+
+/**
+ * The tables of a .docx, as sheets. A table that already has months as
+ * columns is a sheet as it stands. A table without them that comes under a
+ * month's name ("Januari 2026") is one month of a paper plan: those are put
+ * together into one months-as-columns table, rows in the order they first
+ * appear, each kept under its own heading so "El" under Boende in January is
+ * the same row as in February. Any other table is a list.
+ */
+function readDocx(u8: Uint8Array, fileName: string): Sheet[] {
+  const files = unpack(u8, name => name === 'word/document.xml', () => false);
+  const doc = parseXml(files['word/document.xml']);
+  const body = doc ? els(doc, 'body')[0] : undefined;
+  if (!body) throw new SpreadsheetError('unreadable');
+
+  let title = '';
+  let monthHere: { month: number; year?: number } | null = null;
+  const others: Sheet[] = [];
+  // One month at a time: key → amount; and every key in first-seen order.
+  const months: { month: number; year?: number; cells: Map<string, string> }[] = [];
+  const order: { key: string; label: string; heading: boolean }[] = [];
+  const seen = new Set<string>();
+
+  const takeMonthTable = (grid: Grid, at: { month: number; year?: number }) => {
+    // The amount column: the first that holds an amount; the label is left of it.
+    const width = Math.max(0, ...grid.map(r => r.length));
+    let amountCol = -1;
+    for (let i = 1; i < width && amountCol < 0; i++) if (grid.some(r => amountLike(r[i] ?? ''))) amountCol = i;
+    if (amountCol < 0) return false;
+    const cells = new Map<string, string>();
+    let heading = '';
+    let prev = -1;
+    grid.forEach((r, i) => {
+      const label = (r[0] ?? '').trim();
+      if (!label) return;
+      const amount = (r[amountCol] ?? '').trim();
+      // The table's own header ("Post | Budget"): before any amount, no amount in it.
+      if (!amountLike(amount) && i === 0 && r.filter(c => c.trim()).length >= 2) return;
+      const isHeading = amount === '';
+      if (isHeading) heading = label;
+      const key = isHeading ? `h\u0000${label}` : `${heading}\u0000${label}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        // After the row it followed here, so a row new in March sits in place.
+        const after = prev >= 0 ? order.findIndex(o => o.key === [...cells.keys()][prev]) : -1;
+        order.splice(after >= 0 ? after + 1 : order.length, 0, { key, label, heading: isHeading });
+      }
+      if (!isHeading && !cells.has(key)) cells.set(key, amount);
+      if (!cells.has(key)) cells.set(key, '');
+      prev = [...cells.keys()].indexOf(key);
+    });
+    months.push({ ...at, cells });
+    return true;
+  };
+
+  const walk = (node: Element) => {
+    for (const child of [...node.children]) {
+      if (child.localName === 'p') {
+        const text = els(child, 't').map(t => t.textContent ?? '').join('').trim();
+        if (!text) continue;
+        if (!title) title = text;
+        const hit = monthOfHeader(text);
+        if (hit) monthHere = hit;
+      } else if (child.localName === 'tbl') {
+        const grid = tableGrid(child);
+        if (grid.some(r => r.filter(c => monthOfHeader(c)).length >= 2)) {
+          others.push({ name: title || fileName, rows: grid });
+        } else if (!(monthHere && takeMonthTable(grid, monthHere))) {
+          others.push({ name: title || fileName, rows: grid });
+        }
+        monthHere = null;
+      } else {
+        walk(child);
+      }
+    }
+  };
+  walk(body);
+
+  const sheets: Sheet[] = [];
+  if (months.length > 0) {
+    const header = ['', ...months.map(m => (m.year !== undefined
+      ? `${m.year}-${String(m.month + 1).padStart(2, '0')}`
+      : MONTH_NAMES[m.month][1]))];
+    const rows: Grid = [header];
+    for (const o of order) {
+      rows.push([o.label, ...months.map(m => (o.heading ? '' : m.cells.get(o.key) ?? ''))]);
+    }
+    sheets.push({ name: title || fileName, rows });
+  }
+  sheets.push(...others);
+  if (sheets.length === 0) throw new SpreadsheetError('empty');
   return sheets;
 }
 
@@ -207,7 +379,11 @@ type Kind = 'income' | 'total' | 'expenses' | StandardCategoryId;
 const WORDS: { kind: Kind; words: string[]; prefix?: string[] }[] = [
   { kind: 'total', words: ['summa', 'totalt', 'total', 'totala', 'sum', 'subtotal', 'kvar', 'over', 'overskott', 'underskott', 'saldo', 'balance', 'resultat', 'netto', 'net', 'differens', 'diff', 'left', 'remaining', 'restante', 'sobrante'] },
   { kind: 'expenses', words: ['utgifter', 'kostnader', 'expenses', 'costs', 'gastos', 'egresos', 'utgift'] },
-  { kind: 'income', words: ['lon', 'loner', 'salary', 'salario', 'nomina', 'sueldo', 'inkomst', 'inkomster', 'income', 'ingresos', 'ingreso', 'bidrag', 'barnbidrag', 'bonus', 'arvode', 'ersattning', 'a kassa', 'akassa', 'foraldrapenning', 'sjukpenning', 'wages', 'paycheck'], prefix: ['inkomst', 'sidoinkomst'] },
+  { kind: 'income', words: ['lon', 'loner', 'salary', 'salario', 'nomina', 'sueldo', 'inkomst', 'inkomster', 'income', 'ingresos', 'ingreso', 'bidrag', 'barnbidrag', 'bonus', 'arvode', 'ersattning', 'a kassa', 'akassa', 'foraldrapenning', 'sjukpenning', 'wages', 'paycheck',
+    // A pension PAID OUT is income. Listed before Sparande, whose 'pension'
+    // would otherwise take "Allmän pension" for pension saving (import test,
+    // 2026-10-17): a retiree's income became a savings row.
+    'allman pension', 'tjanstepension', 'garantipension', 'inkomstpension', 'premiepension', 'state pension', 'jubilacion'], prefix: ['inkomst', 'sidoinkomst'] },
   { kind: 'lan', words: ['lan', 'loan', 'loans', 'prestamo', 'prestamos', 'csn', 'studielan', 'bolan', 'mortgage', 'hipoteca', 'amortering', 'ranta', 'kredit', 'krediter', 'kreditkort', 'credit', 'avbetalning', 'skuld', 'skulder', 'debt', 'debts', 'deuda', 'deudas'], prefix: ['bolan', 'studielan', 'billan', 'privatlan', 'amortering', 'skuld'] },
   { kind: 'sparande', words: ['sparande', 'spara', 'savings', 'ahorro', 'ahorros', 'buffert', 'buffer', 'isk', 'fonder', 'funds', 'aktier', 'stocks', 'pension', 'pensionssparande', 'investeringar', 'investments', 'inversiones', 'sparkonto', 'emergency'], prefix: ['sparande', 'sparkonto', 'buffert', 'pension'] },
   { kind: 'boende', words: ['hyra', 'rent', 'alquiler', 'el', 'elrakning', 'electricity', 'luz', 'varme', 'heating', 'calefaccion', 'internet', 'bredband', 'wifi', 'hemforsakring', 'boende', 'housing', 'vivienda', 'vatten', 'water', 'agua', 'avgift', 'manadsavgift', 'hushall', 'home', 'hogar', 'comunidad'], prefix: ['hyra', 'hemforsakr', 'elrakn', 'elavtal', 'bostad', 'boende', 'hushall'] },
@@ -309,6 +485,15 @@ export interface DraftRow {
   /** One per ImportColumn; null where the cell is empty. */
   amounts: (number | null)[];
   target: Target;
+  /** A credit — a minus in a sheet whose costs are plus — taken off the row
+   *  above it, month by month, so the month's total stays the source's. A
+   *  budget row cannot be negative, and silently dropping the minus made
+   *  April 490 kr too high (import test, 2026-10-17). `left` is what could
+   *  not be taken off anywhere, and is not imported. */
+  credit?: { into?: string; taken: number; left: number };
+  /** A minus read as a cost ("Hyra −9 000" among plus amounts): said in the
+   *  dialog, so a sign is never changed without a word. */
+  negativeRead?: boolean;
 }
 
 export interface Draft {
@@ -396,9 +581,7 @@ export function analyse(grid: Grid, at: { year: number; month: number }, other: 
     if (!label) return;
     const amounts = columns.map(c => {
       const cell = r[c.index] ?? '';
-      const n = isNumberCell(cell) ? parseAmount(cell) : null;
-      // Expenses are often kept as negatives; a budget line is an amount.
-      return n === null ? null : Math.abs(n);
+      return isNumberCell(cell) ? parseAmount(cell) : null;
     });
     // A heading: a name with no amount anywhere in the row. Except a title —
     // "Min budget 2026", "Budget for 2026" — which names the sheet, not a
@@ -412,7 +595,10 @@ export function analyse(grid: Grid, at: { year: number; month: number }, other: 
     // Money in and money out never follow each other's heading: "Hyra" right
     // after the salary under "Inkomster" is an expense whose heading was
     // simply never written, and "Lön" under "Boende" is still income.
-    const crosses = section !== undefined && own !== undefined && own !== 'total' && own !== 'expenses'
+    // Except a pension under an income heading: that is a pension being paid
+    // out ("Pension" under "Inkomster"), not one being saved for.
+    const pensionPaid = section?.kind === 'income' && own === 'sparande' && /pension/.test(fold(label));
+    const crosses = !pensionPaid && section !== undefined && own !== undefined && own !== 'total' && own !== 'expenses'
       && (section.kind === 'income') !== (own === 'income');
     let target: Target;
     if (own === 'total') target = { kind: 'skip' };
@@ -434,7 +620,68 @@ export function analyse(grid: Grid, at: { year: number; month: number }, other: 
     out.push({ key: `r${dataFrom + i}`, label, section: section?.name, amounts, target });
   });
 
+  settleSigns(out);
   return { layout, columns, amountChoices, rows: out };
+}
+
+/** Rows whose name says they give money back. Only these are credits: a
+ *  plain "Hyra −9 000" among plus amounts is a cost written as a minus. */
+const CREDIT_WORDS = ['credit note', 'creditnote', 'kreditnota', 'kreditering', 'refund', 'refunds', 'aterbetalning',
+  'retur', 'rabatt', 'discount', 'avdrag', 'reembolso', 'devolucion', 'abono', 'nota de credito', 'gutschrift',
+  'erstattung', 'avoir', 'remboursement', 'rimborso'];
+const isCreditLabel = (label: string) => {
+  const text = ` ${fold(label)} `;
+  return CREDIT_WORDS.some(w => text.includes(` ${w} `));
+};
+
+/**
+ * Minus signs, made into budget amounts. A sheet that keeps its costs as
+ * negatives ("−9 700" for rent) means them as amounts: every sign is dropped,
+ * as before. In a sheet whose costs are plus, a row named as a credit — a
+ * refund, a credit note — is taken off the row above it in the same month,
+ * under the same heading, so the month adds up to what the sheet says. What
+ * cannot be taken off (no row above, or not enough on it) is left out. Any
+ * other minus is read as a cost. Either way the dialog says so: never a minus
+ * turned silently into a plus.
+ */
+function settleSigns(rows: DraftRow[]): void {
+  const signs = rows.filter(r => r.target.kind !== 'income' && r.target.kind !== 'skip')
+    .flatMap(r => r.amounts.filter((a): a is number => a !== null && a !== 0));
+  const negativeCosts = signs.filter(a => a < 0).length > signs.length / 2;
+  if (negativeCosts) {
+    for (const r of rows) r.amounts = r.amounts.map(a => (a === null ? null : Math.abs(a)));
+    return;
+  }
+  rows.forEach((r, i) => {
+    // Totals and "left over" lines are left out anyway; a negative month
+    // there is a deficit, not a credit, and must not touch any row.
+    if (r.target.kind === 'skip') return;
+    if (!r.amounts.some(a => a !== null && a < 0)) return;
+    if (!isCreditLabel(r.label)) {
+      r.amounts = r.amounts.map(a => (a === null ? null : Math.abs(a)));
+      r.negativeRead = true;
+      return;
+    }
+    // The row above under the same heading, that is not itself a credit.
+    let above: DraftRow | undefined;
+    for (let j = i - 1; j >= 0; j--) {
+      if (rows[j].section !== r.section) break;
+      if (rows[j].target.kind !== 'skip' && !rows[j].credit) { above = rows[j]; break; }
+    }
+    let taken = 0;
+    let left = 0;
+    r.amounts = r.amounts.map((a, m) => {
+      if (a === null || a >= 0) return a;
+      const room = above?.amounts[m] ?? 0;
+      const off = Math.min(-a, Math.max(0, room));
+      if (above && off > 0) above.amounts[m] = Math.round((room - off) * 100) / 100;
+      taken += off;
+      left += -a - off;
+      return null;
+    });
+    r.credit = { into: taken > 0 ? above?.label : undefined, taken: Math.round(taken * 100) / 100, left: Math.round(left * 100) / 100 };
+    if (r.amounts.every(a => a === null)) r.target = { kind: 'skip' };
+  });
 }
 
 // ── Into the budget ────────────────────────────────────────────────────────

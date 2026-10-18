@@ -308,6 +308,13 @@ export interface Translations {
   bimErrTooBig: string;
   bimErrTooLarge: string;
   bimErrUnreadable: string;
+  /** .doc, .xls, Pages, Numbers, OpenDocument: save as a format the app reads. */
+  bimErrConvert: string;
+  /** A credit (a minus) taken off the row above it in the same month. */
+  bimCreditTaken: (amount: string, row: string) => string;
+  bimCreditLeft: (amount: string) => string;
+  /** A minus that is not a credit, read as a cost — said, not silent. */
+  bimNegativeRead: string;
   bimErrEmpty: string;
   bimErrNoAmounts: string;
   bimBack: string;
@@ -695,6 +702,10 @@ export interface Translations {
   introSetupTitle: string;
   introSetupBody: string;
   introPickCurrency: string;
+  /** The "Get started" guide's row at the top of Budget and first menu item. */
+  guideEntry: string;
+  /** The ✕ that hides that row; the menu item stays. */
+  guideHide: string;
   theme: string;
   whatsNew: string;
   whatsNewLatest: string;
@@ -1243,7 +1254,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Importera budget',
     bimMenu: '📥 Importera budget från Excel',
     bimHeroButton: '📥 Importera från Excel',
-    bimLead: 'Har du redan en budget i Excel, Google Kalkylark eller Numbers? Välj filen (.xlsx eller CSV), eller markera cellerna där och klistra in dem här.',
+    bimLead: 'Har du redan en budget i Excel, Google Kalkylark, Numbers eller Word? Välj filen (.xlsx, .docx eller CSV), eller markera cellerna där och klistra in dem här.',
     bimPick: 'Välj fil',
     bimPasteLabel: 'Eller klistra in cellerna',
     bimPastePlaceholder: 'Hyra\t9500\nMat\t4000',
@@ -1263,7 +1274,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
     bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
     bimErrTooLarge: 'Tabellen är för stor för att vara en budget (högst 5 000 rader, 200 kolumner och 50 blad).',
-    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx eller CSV och försök igen.',
+    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx, .docx eller CSV och försök igen.',
+    bimErrConvert: 'Appen kan inte läsa det här formatet direkt (till exempel .doc, .xls, .pages eller .numbers). Spara eller exportera filen som .xlsx, .docx eller CSV och försök igen.',
+    bimCreditTaken: (amount, row) => `Minusbelopp i filen: ${amount} dras av från ${row} samma månad.`,
+    bimCreditLeft: (amount) => `${amount} kunde inte dras av någonstans och tas inte med.`,
+    bimNegativeRead: 'Minus i filen läses som en kostnad.',
     bimErrEmpty: 'Hittade inga rader att importera.',
     bimErrNoAmounts: 'Hittade inga belopp. Se till att en kolumn innehåller siffror.',
     bimBack: 'Välj en annan fil',
@@ -1651,6 +1666,8 @@ export const translations: Record<Lang, Translations> = {
     introSetupTitle: 'Språk och valuta',
     introSetupBody: 'Välj språk och den valuta du använder. Du kan ändra båda i menyn senare.',
     introPickCurrency: 'Välj en valuta för att fortsätta',
+    guideEntry: 'Kom igång – så fungerar appen',
+    guideHide: 'Dölj raden. Guiden finns kvar i menyn.',
     theme: 'Tema',
     whatsNew: 'Nyheter',
     whatsNewLatest: 'Senaste',
@@ -2100,10 +2117,10 @@ export const translations: Record<Lang, Translations> = {
       '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
       'Det sista är hela poängen. Efter en månad eller två är listan mest din egen. Den är inte smart — den är bara noggrann, och den lyssnar på dig.',
       '## Sortera resten',
-      'Sortera tar det som ligger i Other och visar det som en lista med störst belopp först och ett förslag per ställe. Ett tryck flyttar hela stället — alla åtta ICA-posterna på en gång — och lär sig valet.',
+      'Sortera tar det som ligger i Övrigt och visar det som en lista med störst belopp först och ett förslag per ställe. Ett tryck flyttar hela stället — alla åtta ICA-posterna på en gång — och lär sig valet.',
       'Förslaget säger varifrån det kommer: din regel, som du gjort förut, eller förslag ur den inbyggda listan. Är den osäker föreslår den ingenting alls.',
-      '## Other och Överföring',
-      'Other är det sorteraren inte kände igen. Överföring är pengar mellan dina egna konton — de räknas inte som utgift, för att flytta 5 000 kr till sparkontot är inte att spendera 5 000 kr.',
+      '## Övrigt och Överföring',
+      'Övrigt är det sorteraren inte kände igen. Överföring är pengar mellan dina egna konton — de räknas inte som utgift, för att flytta 5 000 kr till sparkontot är inte att spendera 5 000 kr.',
       'Båda går att ändra. Ingenting kastas bort.',
       '## Verktygen',
       'Månad / 3 / 6 / 12 summerar över flera månader. Bra för "hur mycket lägger jag egentligen på mat".',
@@ -2188,7 +2205,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Import a budget',
     bimMenu: '📥 Import a budget from Excel',
     bimHeroButton: '📥 Import from Excel',
-    bimLead: 'Already have a budget in Excel, Google Sheets or Numbers? Choose the file (.xlsx or CSV), or select the cells there and paste them here.',
+    bimLead: 'Already have a budget in Excel, Google Sheets, Numbers or Word? Choose the file (.xlsx, .docx or CSV), or select the cells there and paste them here.',
     bimPick: 'Choose file',
     bimPasteLabel: 'Or paste the cells',
     bimPastePlaceholder: 'Rent\t1200\nFood\t400',
@@ -2208,7 +2225,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
     bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
     bimErrTooLarge: 'The table is too big to be a budget (at most 5,000 rows, 200 columns and 50 sheets).',
-    bimErrUnreadable: 'The file could not be read. Save it as .xlsx or CSV and try again.',
+    bimErrUnreadable: 'The file could not be read. Save it as .xlsx, .docx or CSV and try again.',
+    bimErrConvert: 'The app can\'t read this format directly (for example .doc, .xls, .pages or .numbers). Save or export the file as .xlsx, .docx or CSV and try again.',
+    bimCreditTaken: (amount, row) => `Negative amount in the file: ${amount} is taken off ${row} in the same month.`,
+    bimCreditLeft: (amount) => `${amount} could not be taken off anywhere and is left out.`,
+    bimNegativeRead: 'The minus in the file is read as a cost.',
     bimErrEmpty: 'Found no rows to import.',
     bimErrNoAmounts: 'Found no amounts. Make sure one column holds numbers.',
     bimBack: 'Choose another file',
@@ -2596,6 +2617,8 @@ export const translations: Record<Lang, Translations> = {
     introSetupTitle: 'Language and currency',
     introSetupBody: 'Choose your language and the currency you use. You can change both in the menu later.',
     introPickCurrency: 'Choose a currency to continue',
+    guideEntry: 'Get started – how the app works',
+    guideHide: 'Hide this row. The guide stays in the menu.',
     theme: 'Theme',
     whatsNew: "What's new",
     whatsNewLatest: 'Latest',
@@ -3133,7 +3156,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Importar presupuesto',
     bimMenu: '📥 Importar presupuesto de Excel',
     bimHeroButton: '📥 Importar de Excel',
-    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google o Numbers? Elige el archivo (.xlsx o CSV), o selecciona las celdas allí y pégalas aquí.',
+    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google, Numbers o Word? Elige el archivo (.xlsx, .docx o CSV), o selecciona las celdas allí y pégalas aquí.',
     bimPick: 'Elegir archivo',
     bimPasteLabel: 'O pega las celdas',
     bimPastePlaceholder: 'Alquiler\t800\nComida\t300',
@@ -3153,7 +3176,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
     bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
     bimErrTooLarge: 'La tabla es demasiado grande para ser un presupuesto (como máximo 5000 filas, 200 columnas y 50 hojas).',
-    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx o CSV e inténtalo de nuevo.',
+    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx, .docx o CSV e inténtalo de nuevo.',
+    bimErrConvert: 'La app no puede leer este formato directamente (por ejemplo .doc, .xls, .pages o .numbers). Guarda o exporta el archivo como .xlsx, .docx o CSV e inténtalo de nuevo.',
+    bimCreditTaken: (amount, row) => `Importe negativo en el archivo: ${amount} se resta de ${row} en el mismo mes.`,
+    bimCreditLeft: (amount) => `${amount} no se pudo restar de ninguna fila y no se importa.`,
+    bimNegativeRead: 'El signo menos del archivo se lee como un gasto.',
     bimErrEmpty: 'No se encontraron filas para importar.',
     bimErrNoAmounts: 'No se encontraron importes. Asegúrate de que una columna tenga números.',
     bimBack: 'Elegir otro archivo',
@@ -3541,6 +3568,8 @@ export const translations: Record<Lang, Translations> = {
     introSetupTitle: 'Idioma y moneda',
     introSetupBody: 'Elige tu idioma y la moneda que usas. Puedes cambiar ambos en el menú más tarde.',
     introPickCurrency: 'Elige una moneda para continuar',
+    guideEntry: 'Primeros pasos: cómo funciona la app',
+    guideHide: 'Ocultar esta fila. La guía sigue en el menú.',
     theme: 'Tema',
     whatsNew: 'Novedades',
     whatsNewLatest: 'Último',

@@ -3468,6 +3468,16 @@ a:focus-visible,
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+/* A credit taken off the row above: said where it went, on its own line —
+   wrapped in full, unlike the row's name, since a cut-off note says nothing. */
+.bim-credit {
+  display: block;
+  margin-top: 2px;
+  white-space: normal;
+  line-height: 1.35;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
 
 /* Suspense placeholder while a lazy view's chunk loads — reserves space so
    the swap-in doesn't shift the page; invisible on purpose (loads are fast,
@@ -5501,6 +5511,112 @@ a:focus-visible,
 .intro-currency-need {
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+/* ── Guide: "Get started" ─────────────────────────────────────────────────
+   The row at the top of Budget (hideable) and the first menu item open the
+   same guide; sections fold so their titles are the table of contents. */
+.guide-row {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 45%, var(--border));
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.guide-row-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  text-align: start;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.guide-row-text { flex: 1; min-width: 0; }
+.guide-row-chevron { color: var(--text-muted); font-size: 1.1rem; }
+.guide-row-hide {
+  flex-shrink: 0;
+  width: 44px;
+  color: var(--text-muted);
+  border-left: 1px solid var(--border);
+}
+@media (hover: hover) {
+  .guide-row-open:hover { background: var(--surface2); }
+  .guide-row-hide:hover { color: var(--text); }
+}
+
+.utils-guide-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-align: start;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 45%, var(--border));
+  border-radius: var(--radius-md);
+}
+
+/* Wider than the welcome letter on a desktop; a phone keeps the bottom sheet
+   every .theme-panel becomes there. */
+@media (min-width: 641px) {
+  .guide-modal { width: 520px; }
+}
+.guide-intro {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.guide-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: start;
+}
+.guide-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.guide-section[open] { background: var(--surface2); }
+.guide-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  list-style: none;
+}
+.guide-summary::-webkit-details-marker { display: none; }
+.guide-summary::after {
+  content: '▾';
+  margin-left: auto;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+.guide-section[open] > .guide-summary::after { transform: rotate(180deg); }
+.guide-body { padding: 0 14px 14px; margin: 0; }
+.guide-body .privacy-heading { margin: 10px 0 0; }
+.guide-tip {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-brand) 12%, transparent);
 }
 
 /* ── Triage: the leftover pile as a worklist ─────────────────────────────
