@@ -131,3 +131,28 @@ describe('the eight lists', () => {
     expect(withYo).toEqual([]);
   });
 });
+
+describe('Swedish regions and operators the testers named (2026-10-19)', () => {
+  it.each([
+    ['VÄSTTRAFIK APP', 'transport'],
+    ['SKÅNETRAFIKEN', 'transport'],
+    ['LÄNSTRAFIKEN NORRBOTTEN', 'transport'],
+    ['DALATRAFIK', 'transport'],
+    ['X-TRAFIK', 'transport'],
+    ['VÄSTERNORRLAND DIN TUR', 'transport'],
+    ['HI3G ACCESS AB', 'prenumerationer'],
+    ['LYCAMOBILE', 'prenumerationer'],
+    ['FAMILJEDOKTORN', 'personligt'],
+  ])('%s → %s', (text, kind) => {
+    expect(seedKind(text)).toBe(kind);
+  });
+
+  it('a cut last word completes only Swedish and international names', () => {
+    // "tur…" must not become Turkcell, nor "miro…" Migros: fragment matching
+    // was measured on Swedish statements, and stays with their names.
+    expect(seedKind('BUSSBOLAGET NORRA TUR')).toBeUndefined();
+    expect(seedKind('FORENINGEN MIGR')).toBeUndefined();
+    // The Swedish behaviour it was built for is unchanged.
+    expect(seedKind('ANTIKA RESTAURAN')).toBe('mat');
+  });
+});

@@ -683,10 +683,16 @@ export const FollowUpTab = ({
     if (diff === 0) return <span className="followup-diff followup-diff-ok">✓</span>;
     // Over the plan is bad for an expense and good for income, so the sign alone
     // cannot decide the colour.
-    const bad = id === INCOME_ACTUAL_ID ? diff < 0 : diff > 0;
+    const income = id === INCOME_ACTUAL_ID;
+    const bad = income ? diff < 0 : diff > 0;
+    // The amount without a sign, and a word that says which way: "−10 450 kr"
+    // read as an overrun to a tester when it meant money left over.
+    const w = t.followUpDiffWords;
+    const word = income ? (diff > 0 ? w.extra : w.short) : (diff > 0 ? w.over : w.left);
     return (
       <span className={`followup-diff ${bad ? 'followup-diff-over' : 'followup-diff-under'}`}>
-        {diff > 0 ? '+' : ''}{money(diff)}
+        {money(Math.abs(diff))}
+        <span className="followup-diff-word">{word}</span>
       </span>
     );
   };

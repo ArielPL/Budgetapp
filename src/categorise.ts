@@ -190,6 +190,9 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
   transport: [
     'sl', 'vasttrafik', 'skanetrafiken', 'ostgotatrafiken', 'lanstrafiken',
     'varmlandstrafik', 'ul', 'sormlandstrafiken', 'jlt', 'dintur',
+    // K (tester, 2026-10-19: "SL is very Stockholm"): the regions the suffix
+    // rule cannot reach, because their names do not end in -trafiken.
+    'dalatrafik', 'x trafik', 'xtrafik', 'din tur', 'lanstrafiken jamtland',
     'sj', 'snalltaget', 'mtr express', 'mtrx', 'vy', 'tagab',
     'taxi stockholm', 'taxi kurir', 'sverigetaxi', 'cabonline',
     'okq8', 'preem', 'ingo', 'tanka', 'qstar',
@@ -217,6 +220,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'actic', 'puls trening', 'gymgrossisten',
     'telenor', 'telia', 'tele2', 'halebop', 'comviq', 'hallon', 'vimla', 'fello',
     'bahnhof', 'bredbandsbolaget', 'ownit', 'boxer', 'chilimobil',
+    'hi3g', 'lycamobile', 'lebara',   // K: Tre's company name, and two prepaid operators
   ],
   personligt: [
     'apotek', 'apoteket', 'apotea', 'kronans apotek', 'lloyds apotek', 'med24',
@@ -226,6 +230,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'frisor', 'fris', 'barberare', 'klippning', 'salong', 'nagelsalong',
     'tandlakare', 'folktandvarden', 'vardcentral', 'capio', 'kry', 'min doktor',
     'naprapat', 'kiropraktor', 'massage', 'sjukvard', 'region',
+    'familjedoktorn',         // K
   ],
   fritid: [
     'filmstaden', 'sf bio', 'biografen', 'bio roy', 'drafthouse',
@@ -736,6 +741,15 @@ const RULES: { words: string[]; kind: StandardCategoryId | null }[] = [
   ...NO_OPINION.map(p => ({ words: p.split(' '), kind: null })),
 ].sort((a, b) => b.words.length - a.words.length || b.words.join('').length - a.words.join('').length);
 
+/** The rules a bank-cut last word may complete: only the Swedish and the
+ *  international names, whose descriptors the sixteen-character ceiling was
+ *  measured on. Every list completing fragments let "Västernorrland Din Tur",
+ *  a bus operator, end in "tur…" — and Turkey's "turkcell" made it a phone
+ *  bill (2026-10-19). A fragment is weak evidence; it stays where it was
+ *  earned. */
+const CUT_SOURCES = new Set([...Object.values(INTERNATIONAL).flat(), ...Object.values(SWEDEN).flat()]);
+const CUT_RULES = RULES.filter(r => r.kind === null || CUT_SOURCES.has(r.words.join(' ')));
+
 /** Japanese names, matched as a run of characters, longest first. */
 const JAPANESE_RULES: { text: string; kind: StandardCategoryId }[] = Object
   .entries(SEED)
@@ -844,7 +858,7 @@ export function seedKind(text: string): StandardCategoryId | undefined {
   // the sixteen-character ceiling: a short description was not truncated and
   // gets no licence to match loosely.
   if (text.trim().length >= 15) {
-    for (const rule of RULES) {
+    for (const rule of CUT_RULES) {
       if (hasWordRun(words, rule.words, true)) return rule.kind ?? undefined;
     }
   }

@@ -111,6 +111,7 @@ export const it: Translations = {
   followUpColPlan: "Piano",
   followUpColActual: "Effettivo",
   followUpColDiff: "Differenza",
+  followUpDiffWords: { left: 'avanzo', over: 'sforato', extra: 'in più', short: 'mancano' },
   followUpTotalOut: "Totale uscite",
   followUpNotRecorded: "Ancora niente registrato qui",
   followUpNoEntries: "Ancora nessun movimento.",
@@ -529,6 +530,26 @@ export const it: Translations = {
   copyAllRemaining: (n) => `Tutti i rimanenti (${n} mesi)`,
   copiedTo: (month) => `✓ Copiato in ${month}`,
   copiedToMonths: (n) => `✓ Copiato in ${n} mesi`,
+  copyOfferTitle: "Lo stesso budget per il resto dell'anno?",
+  copyOfferBody: (n) => `Copia il budget di questo mese nei ${n} mesi che restano quest'anno. Potrai cambiare ogni mese in seguito.`,
+  copyOfferButton: (n) => `Copia in ${n} mesi`,
+  copyOfferDismiss: 'Non ora',
+  startChoiceTitle: "Hai già fatto un budget?",
+  startChoiceBody: "Scegli come iniziare. Potrai cambiare tutto in seguito.",
+  startExpert: "Sì, esploro per conto mio",
+  startExpertSub: "Modello, budget vuoto o importazione",
+  startBeginner: "No, aiutami a iniziare",
+  startBeginnerSub: "Qualche domanda semplice e il budget è pronto",
+  begQuestions: [{ title: "Quanto prendi di stipendio ogni mese?", hint: "Quello che arriva sul conto, al netto delle tasse." }, { title: "Quanto paghi per la casa ogni mese?", hint: "Affitto, spese o mutuo." }, { title: "Quanto costa il tuo piano telefonico?", hint: "Al mese." }, { title: "Quanto costa andare al lavoro o a scuola?", hint: "Abbonamento, treno o carburante, al mese." }, { title: "Stai pagando dei prestiti?", hint: "Per esempio prestito studentesco, prestito auto o carta di credito, al mese." }, { title: "Quanto vuoi risparmiare ogni mese?", hint: "Anche poco conta. Lascia vuoto se non lo sai ancora." }],
+  begSkip: "Salta",
+  begNext: "Avanti",
+  begBack: "Indietro",
+  begSummaryTitle: "Il tuo budget",
+  begLeftover: "Resta per la spesa e tutto il resto",
+  begCreate: (from, to) => `Crea per ${from}–${to}`,
+  begCreateOne: (m) => `Crea per ${m}`,
+  begEmpty: "Non hai ancora compilato nulla. Torna indietro o inizia con il modello.",
+  begTemplate: "Usa il modello",
   copyPrevMonth: (month) => `Riprendi da ${month}`,
   copyPrevMonthConfirm: (from, to) =>
     `Questo sostituisce entrate e spese di ${to} con quelle di ${from}. I risparmi non vengono toccati. Continuare?`,
@@ -567,6 +588,7 @@ export const it: Translations = {
     if (action === 'deleteWalletExpense') return "Una spesa è stata rimossa da un portafoglio";
     if (action === 'createGoal') return "È stato creato un obiettivo di risparmio";
     if (action === 'createWallet') return 'È stato creato un portafoglio';
+    if (action === 'startBudget') return "È stato creato un budget";
     if (action === 'renameRow') return `Una riga è stata rinominata in ${where}`;
     if (action === 'debtExtra') return "L'importo extra per i tuoi debiti è stato cambiato";
     if (count === 1) return "Il periodo di paga è stato cambiato: 1 movimento spostato";
@@ -1003,5 +1025,7 @@ export const itChangelog113: { title: string; items: string[] } = {
     "L'importazione del budget legge anche i file Word (.docx), compreso un piano con una tabella per mese. Una nota di credito viene detratta dalla riga sopra invece di diventare una spesa, e una pensione sotto Entrate diventa un'entrata",
     "Rimane per vivere mostra anche Al mese. Tocca la settimana o il mese per trasformare l'importo in un portafoglio, un piano per le spese quotidiane. Con un periodo di paga viene indicato il periodo invece del mese",
     'Lo smistamento riconosce negozi, distributori, trasporti pubblici e fornitori di energia comuni in Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina. I nomi cinesi vengono trovati anche con la città scritta subito dopo',
+    "Un nuovo inizio per chi non ha mai fatto un budget: dopo lingua e valuta, l'app chiede se ne hai già fatto uno. Da principiante rispondi a qualche domanda semplice, come stipendio, casa e telefono, e ottieni un budget per il resto dell'anno",
+    "Ogni riga si può eliminare, anche quelle del modello. Le categorie chiuse restano chiuse. Il monitoraggio dice «avanzo» e «sforato» invece del segno meno. L'app propone di copiare il budget sul resto dell'anno. Il modello include il piano telefonico",
   ],
 };

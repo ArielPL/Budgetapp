@@ -375,6 +375,10 @@ export interface Translations {
   followUpColPlan: string;
   followUpColActual: string;
   followUpColDiff: string;
+  /** Said under the difference, so it never rests on a sign alone: an expense
+   *  under plan has money LEFT, over plan is OVER; income above plan is EXTRA,
+   *  below is SHORT (tester, 2026-10-19: "minus feels like something good?"). */
+  followUpDiffWords: { left: string; over: string; extra: string; short: string };
   followUpTotalOut: string;
   followUpNotRecorded: string;
   followUpNoEntries: string;
@@ -801,6 +805,29 @@ export interface Translations {
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
+  /** Offered once a month has a budget and the rest of the year is empty. */
+  copyOfferTitle: string;
+  copyOfferBody: (n: number) => string;
+  copyOfferButton: (n: number) => string;
+  copyOfferDismiss: string;
+  /** The first-run question (Ariel, 2026-10-19) and the beginner's questions. */
+  startChoiceTitle: string;
+  startChoiceBody: string;
+  startExpert: string;
+  startExpertSub: string;
+  startBeginner: string;
+  startBeginnerSub: string;
+  /** Salary, housing, phone, getting to work, loans, savings — in that order. */
+  begQuestions: { title: string; hint: string }[];
+  begSkip: string;
+  begNext: string;
+  begBack: string;
+  begSummaryTitle: string;
+  begLeftover: string;
+  begCreate: (from: string, to: string) => string;
+  begCreateOne: (month: string) => string;
+  begEmpty: string;
+  begTemplate: string;
   copyPrevMonth: (month: string) => string;
   copyPrevMonthConfirm: (from: string, to: string) => string;
   copyPrevMonthEmpty: (month: string) => string;
@@ -1350,6 +1377,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Utfall',
     followUpColDiff: 'Skillnad',
+    followUpDiffWords: { left: 'kvar', over: 'över', extra: 'extra', short: 'saknas' },
     followUpTotalOut: 'Totalt ut',
     followUpNotRecorded: 'Inget registrerat här ännu',
     followUpNoEntries: 'Inga poster ännu.',
@@ -1768,6 +1796,26 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
     copiedTo: (month) => `✓ Kopierat till ${month}`,
     copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    copyOfferTitle: 'Samma budget resten av året?',
+    copyOfferBody: (n) => `Kopiera den här månadens budget till de ${n} månader som är kvar i år. Du kan ändra varje månad efteråt.`,
+    copyOfferButton: (n) => `Kopiera till ${n} månader`,
+    copyOfferDismiss: 'Inte nu',
+    startChoiceTitle: "Har du gjort en budget förut?",
+    startChoiceBody: "Välj hur du vill börja. Allt går att ändra efteråt.",
+    startExpert: "Ja, jag utforskar själv",
+    startExpertSub: "Mall, tom budget eller import",
+    startBeginner: "Nej, hjälp mig att börja",
+    startBeginnerSub: "Några enkla frågor, sedan är budgeten klar",
+    begQuestions: [{ title: "Hur mycket får du ut i lön varje månad?", hint: "Det som kommer in på kontot, efter skatt." }, { title: "Vad betalar du för boendet varje månad?", hint: "Hyra, avgift eller lån för bostaden." }, { title: "Vad kostar ditt mobilabonnemang?", hint: "Per månad." }, { title: "Vad kostar resor till jobbet eller skolan?", hint: "Busskort, tåg eller bensin, per månad." }, { title: "Betalar du av på några lån?", hint: "Till exempel studielån, billån eller kreditkort, per månad." }, { title: "Hur mycket vill du spara varje månad?", hint: "Även lite räknas. Lämna tomt om du inte vet än." }],
+    begSkip: "Hoppa över",
+    begNext: "Nästa",
+    begBack: "Tillbaka",
+    begSummaryTitle: "Din budget",
+    begLeftover: "Kvar till mat och allt annat",
+    begCreate: (from, to) => `Skapa för ${from}–${to}`,
+    begCreateOne: (m) => `Skapa för ${m}`,
+    begEmpty: "Du har inte fyllt i något än. Gå tillbaka, eller börja med mallen i stället.",
+    begTemplate: "Använd mallen i stället",
     copyPrevMonth: (month) => `Hämta från ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `Detta ersätter inkomster och utgifter i ${to} med de från ${from}. Sparande rörs inte. Vill du fortsätta?`,
@@ -1805,6 +1853,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (action === 'createGoal') return 'Ett sparmål skapades';
       if (action === 'createWallet') return 'En plånbok skapades';
+      if (action === 'startBudget') return "En budget skapades";
       if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
@@ -2310,6 +2359,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Actual',
     followUpColDiff: 'Difference',
+    followUpDiffWords: { left: 'left', over: 'over', extra: 'extra', short: 'short' },
     followUpTotalOut: 'Total out',
     followUpNotRecorded: 'Nothing recorded here yet',
     followUpNoEntries: 'No entries yet.',
@@ -2728,6 +2778,26 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `All remaining (${n} months)`,
     copiedTo: (month) => `✓ Copied to ${month}`,
     copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    copyOfferTitle: 'Same budget for the rest of the year?',
+    copyOfferBody: (n) => `Copy this month's budget to the ${n} months left this year. You can change any month afterwards.`,
+    copyOfferButton: (n) => `Copy to ${n} months`,
+    copyOfferDismiss: 'Not now',
+    startChoiceTitle: "Have you made a budget before?",
+    startChoiceBody: "Choose how to start. You can change everything later.",
+    startExpert: "Yes, I'll explore on my own",
+    startExpertSub: "Template, empty budget or import",
+    startBeginner: "No, help me get started",
+    startBeginnerSub: "A few simple questions, then your budget is ready",
+    begQuestions: [{ title: "How much salary do you get each month?", hint: "What lands in your account, after tax." }, { title: "What do you pay for housing each month?", hint: "Rent, fees or the mortgage." }, { title: "What does your phone plan cost?", hint: "Per month." }, { title: "What does getting to work or school cost?", hint: "Bus pass, train or fuel, per month." }, { title: "Are you paying off any loans?", hint: "A student loan, car loan or credit card, for example, per month." }, { title: "How much would you like to save each month?", hint: "A little counts too. Leave it empty if you don't know yet." }],
+    begSkip: "Skip",
+    begNext: "Next",
+    begBack: "Back",
+    begSummaryTitle: "Your budget",
+    begLeftover: "Left for food and everything else",
+    begCreate: (from, to) => `Create for ${from}–${to}`,
+    begCreateOne: (m) => `Create for ${m}`,
+    begEmpty: "You haven't filled anything in yet. Go back, or start with the template instead.",
+    begTemplate: "Use the template instead",
     copyPrevMonth: (month) => `Pull from ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `This replaces income and expenses in ${to} with those from ${from}. Savings are left alone. Continue?`,
@@ -2766,6 +2836,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (action === 'createGoal') return 'A savings goal was created';
       if (action === 'createWallet') return 'A wallet was created';
+      if (action === 'startBudget') return "A budget was created";
       if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
@@ -3270,6 +3341,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Real',
     followUpColDiff: 'Diferencia',
+    followUpDiffWords: { left: 'quedan', over: 'de más', extra: 'extra', short: 'faltan' },
     followUpTotalOut: 'Total salidas',
     followUpNotRecorded: 'Aquí no hay nada registrado todavía',
     followUpNoEntries: 'Aún no hay movimientos.',
@@ -3688,6 +3760,26 @@ export const translations: Record<Lang, Translations> = {
     copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
     copiedTo: (month) => `✓ Copiado a ${month}`,
     copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
+    copyOfferTitle: '¿El mismo presupuesto el resto del año?',
+    copyOfferBody: (n) => `Copia el presupuesto de este mes a los ${n} meses que quedan este año. Puedes cambiar cualquier mes después.`,
+    copyOfferButton: (n) => `Copiar a ${n} meses`,
+    copyOfferDismiss: 'Ahora no',
+    startChoiceTitle: "¿Has hecho un presupuesto antes?",
+    startChoiceBody: "Elige cómo empezar. Puedes cambiarlo todo después.",
+    startExpert: "Sí, exploraré por mi cuenta",
+    startExpertSub: "Plantilla, presupuesto vacío o importar",
+    startBeginner: "No, ayúdame a empezar",
+    startBeginnerSub: "Unas preguntas sencillas y el presupuesto estará listo",
+    begQuestions: [{ title: "¿Cuánto cobras de sueldo cada mes?", hint: "Lo que llega a tu cuenta, después de impuestos." }, { title: "¿Cuánto pagas por la vivienda cada mes?", hint: "Alquiler, comunidad o hipoteca." }, { title: "¿Cuánto cuesta tu tarifa del móvil?", hint: "Al mes." }, { title: "¿Cuánto cuesta ir al trabajo o a clase?", hint: "Abono de transporte, tren o gasolina, al mes." }, { title: "¿Estás pagando algún préstamo?", hint: "Por ejemplo, de estudios, del coche o la tarjeta de crédito, al mes." }, { title: "¿Cuánto quieres ahorrar cada mes?", hint: "Un poco también cuenta. Déjalo vacío si aún no lo sabes." }],
+    begSkip: "Omitir",
+    begNext: "Siguiente",
+    begBack: "Atrás",
+    begSummaryTitle: "Tu presupuesto",
+    begLeftover: "Queda para comida y todo lo demás",
+    begCreate: (from, to) => `Crear para ${from}–${to}`,
+    begCreateOne: (m) => `Crear para ${m}`,
+    begEmpty: "Aún no has rellenado nada. Vuelve atrás o empieza con la plantilla.",
+    begTemplate: "Usar la plantilla",
     copyPrevMonth: (month) => `Traer de ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `Esto reemplaza los ingresos y gastos de ${to} con los de ${from}. El ahorro no se toca. ¿Continuar?`,
@@ -3726,6 +3818,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
       if (action === 'createWallet') return 'Se creó una cartera';
+      if (action === 'startBudget') return "Se creó un presupuesto";
       if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';

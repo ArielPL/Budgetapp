@@ -111,6 +111,7 @@ export const pt: Translations = {
   followUpColPlan: 'Planejado',
   followUpColActual: 'Real',
   followUpColDiff: 'Diferença',
+  followUpDiffWords: { left: 'sobra', over: 'acima', extra: 'a mais', short: 'falta' },
   followUpTotalOut: 'Total de saídas',
   followUpNotRecorded: 'Nada registrado aqui ainda',
   followUpNoEntries: 'Nenhum lançamento ainda.',
@@ -529,6 +530,26 @@ export const pt: Translations = {
   copyAllRemaining: (n) => `Todos os restantes (${n} meses)`,
   copiedTo: (month) => `✓ Copiado para ${month}`,
   copiedToMonths: (n) => `✓ Copiado para ${n} meses`,
+  copyOfferTitle: 'O mesmo orçamento no resto do ano?',
+  copyOfferBody: (n) => `Copie o orçamento deste mês para os ${n} meses que faltam no ano. Você pode mudar qualquer mês depois.`,
+  copyOfferButton: (n) => `Copiar para ${n} meses`,
+  copyOfferDismiss: 'Agora não',
+  startChoiceTitle: "Você já fez um orçamento antes?",
+  startChoiceBody: "Escolha como começar. Dá para mudar tudo depois.",
+  startExpert: "Sim, quero explorar por conta própria",
+  startExpertSub: "Modelo, orçamento vazio ou importação",
+  startBeginner: "Não, me ajude a começar",
+  startBeginnerSub: "Algumas perguntas simples e o orçamento fica pronto",
+  begQuestions: [{ title: "Quanto você recebe de salário por mês?", hint: "O que cai na sua conta, depois dos impostos." }, { title: "Quanto você paga pela moradia por mês?", hint: "Aluguel, condomínio ou financiamento." }, { title: "Quanto custa seu plano de celular?", hint: "Por mês." }, { title: "Quanto custa ir ao trabalho ou à escola?", hint: "Passe, trem ou combustível, por mês." }, { title: "Você está pagando algum empréstimo?", hint: "Por exemplo financiamento estudantil, do carro ou cartão de crédito, por mês." }, { title: "Quanto você quer poupar por mês?", hint: "Pouco também conta. Deixe em branco se ainda não sabe." }],
+  begSkip: "Pular",
+  begNext: "Próximo",
+  begBack: "Voltar",
+  begSummaryTitle: "Seu orçamento",
+  begLeftover: "Sobra para comida e todo o resto",
+  begCreate: (from, to) => `Criar para ${from}–${to}`,
+  begCreateOne: (m) => `Criar para ${m}`,
+  begEmpty: "Você ainda não preencheu nada. Volte ou comece com o modelo.",
+  begTemplate: "Usar o modelo",
   copyPrevMonth: (month) => `Trazer de ${month}`,
   copyPrevMonthConfirm: (from, to) =>
     `Isto substitui a renda e as despesas de ${to} pelas de ${from}. A poupança não é alterada. Continuar?`,
@@ -567,6 +588,7 @@ export const pt: Translations = {
     if (action === 'deleteWalletExpense') return 'Uma despesa foi removida de uma carteira';
     if (action === 'createGoal') return 'Uma meta de poupança foi criada';
     if (action === 'createWallet') return 'Uma carteira foi criada';
+    if (action === 'startBudget') return "Um orçamento foi criado";
     if (action === 'renameRow') return `Uma linha foi renomeada em ${where}`;
     if (action === 'debtExtra') return 'O valor extra para as suas dívidas foi alterado';
     if (count === 1) return 'O período de pagamento foi alterado — 1 lançamento movido';
@@ -1002,5 +1024,7 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'A importação de orçamento também lê arquivos do Word (.docx), inclusive um plano com uma tabela por mês. Um crédito é descontado da linha de cima em vez de virar uma despesa, e uma aposentadoria em Renda conta como renda',
     'Sobra para o dia a dia agora também mostra Por mês. Toque na semana ou no mês para transformar o valor em uma carteira, um plano para os gastos do dia a dia. Com período de pagamento, aparece o período em vez do mês',
     'A classificação reconhece lojas, postos, transporte público e companhias de energia comuns no Brasil, em Portugal, na Rússia, na Turquia, na Itália, na França, na Alemanha e na China. Nomes chineses são encontrados mesmo com a cidade escrita logo depois',
+    "Um novo começo para quem nunca fez um orçamento: depois do idioma e da moeda, o app pergunta se você já fez um. Como iniciante, você responde a algumas perguntas simples, como salário, moradia e celular, e recebe um orçamento para o resto do ano",
+    "Toda linha pode ser removida, inclusive as do modelo. Categorias recolhidas continuam recolhidas. O acompanhamento diz “sobra” e “acima” em vez de um sinal de menos. O app oferece copiar o orçamento para o resto do ano. O modelo tem o plano de celular",
   ],
 };

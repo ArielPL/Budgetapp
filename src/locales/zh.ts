@@ -111,6 +111,7 @@ export const zh: Translations = {
   followUpColPlan: '计划',
   followUpColActual: '实际',
   followUpColDiff: '差额',
+  followUpDiffWords: { left: '剩余', over: '超支', extra: '多收', short: '不足' },
   followUpTotalOut: '总支出',
   followUpNotRecorded: '这里还没有记录',
   followUpNoEntries: '还没有条目。',
@@ -525,6 +526,26 @@ export const zh: Translations = {
   copyAllRemaining: (n) => `剩余所有月份（${n} 个月）`,
   copiedTo: (month) => `✓ 已复制到${month}`,
   copiedToMonths: (n) => `✓ 已复制到 ${n} 个月`,
+  copyOfferTitle: '今年剩下的月份用同样的预算？',
+  copyOfferBody: (n) => `把本月预算复制到今年剩下的 ${n} 个月。之后可以修改任何一个月。`,
+  copyOfferButton: (n) => `复制到 ${n} 个月`,
+  copyOfferDismiss: '暂不',
+  startChoiceTitle: "你以前做过预算吗？",
+  startChoiceBody: "选择开始的方式。之后都可以修改。",
+  startExpert: "做过，我自己探索",
+  startExpertSub: "模板、空白预算或导入",
+  startBeginner: "没有，帮我开始",
+  startBeginnerSub: "回答几个简单的问题，预算就做好了",
+  begQuestions: [{ title: "你每月到手工资是多少？", hint: "税后到账的金额。" }, { title: "你每月住房要付多少钱？", hint: "房租、物业费或房贷。" }, { title: "你的手机话费是多少？", hint: "每月。" }, { title: "上班或上学的交通费是多少？", hint: "公交卡、火车或油费，每月。" }, { title: "你在还贷款吗？", hint: "例如助学贷款、车贷或信用卡，每月。" }, { title: "你每月想存多少钱？", hint: "少一点也很好。如果还不确定，可以先空着。" }],
+  begSkip: "跳过",
+  begNext: "下一步",
+  begBack: "返回",
+  begSummaryTitle: "你的预算",
+  begLeftover: "剩下用于吃饭和其他开支",
+  begCreate: (from, to) => `为 ${from}–${to} 创建`,
+  begCreateOne: (m) => `为 ${m} 创建`,
+  begEmpty: "你还没有填写任何内容。返回上一步，或者改用模板开始。",
+  begTemplate: "改用模板",
   copyPrevMonth: (month) => `从${month}带入`,
   copyPrevMonthConfirm: (from, to) =>
     `这会用${from}的收入和支出替换${to}的收入和支出。储蓄保持不变。继续吗？`,
@@ -563,6 +584,7 @@ export const zh: Translations = {
     if (action === 'deleteWalletExpense') return '已从钱包中删除一笔支出';
     if (action === 'createGoal') return '已创建一个储蓄目标';
     if (action === 'createWallet') return '已创建钱包';
+    if (action === 'startBudget') return "已创建预算";
     if (action === 'renameRow') return `已在${where}重命名一行`;
     if (action === 'debtExtra') return '债务的额外还款金额已更改';
     if (count === 1) return '发薪周期已更改——移动了 1 条记录';
@@ -999,5 +1021,7 @@ export const zhChangelog113: { title: string; items: string[] } = {
     '预算导入现在也能读取 Word 文件（.docx），包括每月一张表格的计划。退款或贷记不会变成支出，而是从上一行中扣除；「收入」下的养老金按收入计算',
     '「可用生活费」现在也显示「每月」。点按周或月，即可用这笔金额创建钱包，作为日常开支的计划。设置了发薪周期时，显示的是周期而不是月份',
     '自动分类现在能识别巴西、葡萄牙、俄罗斯、土耳其、意大利、法国、德国和中国常见的商店、加油站、公共交通和能源公司。即使中文店名后面紧跟城市名，也能识别',
+    "为从未做过预算的人提供新的开始方式：选好语言和货币后，应用会问你以前是否做过预算。新手只需回答几个简单问题，比如工资、住房和手机，就能得到今年剩余月份的预算",
+    "所有行都可以删除，包括模板中的行。折叠的分类会保持折叠。收支跟踪用「剩余」和「超支」代替负号。应用会提议把预算复制到今年剩下的月份。模板新增了手机话费",
   ],
 };

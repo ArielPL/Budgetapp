@@ -111,6 +111,7 @@ export const de: Translations = {
   followUpColPlan: 'Plan',
   followUpColActual: 'Ist',
   followUpColDiff: 'Differenz',
+  followUpDiffWords: { left: 'übrig', over: 'drüber', extra: 'extra', short: 'fehlt' },
   followUpTotalOut: 'Ausgaben gesamt',
   followUpNotRecorded: 'Hier ist noch nichts erfasst',
   followUpNoEntries: 'Noch keine Einträge.',
@@ -529,6 +530,26 @@ export const de: Translations = {
   copyAllRemaining: (n) => (n === 1 ? 'Alle übrigen (1 Monat)' : `Alle übrigen (${n} Monate)`),
   copiedTo: (month) => `✓ Nach ${month} kopiert`,
   copiedToMonths: (n) => (n === 1 ? '✓ In 1 Monat kopiert' : `✓ In ${n} Monate kopiert`),
+  copyOfferTitle: 'Dasselbe Budget für den Rest des Jahres?',
+  copyOfferBody: (n) => `Kopier das Budget dieses Monats in die ${n} restlichen Monate des Jahres. Jeden Monat kannst du danach noch ändern.`,
+  copyOfferButton: (n) => `In ${n} Monate kopieren`,
+  copyOfferDismiss: 'Nicht jetzt',
+  startChoiceTitle: "Hast du schon einmal ein Budget gemacht?",
+  startChoiceBody: "Wähl, wie du anfangen willst. Alles lässt sich später ändern.",
+  startExpert: "Ja, ich schaue mich selbst um",
+  startExpertSub: "Vorlage, leeres Budget oder Import",
+  startBeginner: "Nein, hilf mir beim Start",
+  startBeginnerSub: "Ein paar einfache Fragen, dann ist dein Budget fertig",
+  begQuestions: [{ title: "Wie viel Gehalt bekommst du jeden Monat?", hint: "Was auf deinem Konto ankommt, nach Steuern." }, { title: "Was zahlst du jeden Monat fürs Wohnen?", hint: "Miete, Nebenkosten oder Kredit." }, { title: "Was kostet dein Handyvertrag?", hint: "Pro Monat." }, { title: "Was kostet der Weg zur Arbeit oder Schule?", hint: "Monatskarte, Bahn oder Sprit, pro Monat." }, { title: "Zahlst du Kredite ab?", hint: "Zum Beispiel Studienkredit, Autokredit oder Kreditkarte, pro Monat." }, { title: "Wie viel möchtest du jeden Monat sparen?", hint: "Auch wenig zählt. Lass das Feld leer, wenn du es noch nicht weißt." }],
+  begSkip: "Überspringen",
+  begNext: "Weiter",
+  begBack: "Zurück",
+  begSummaryTitle: "Dein Budget",
+  begLeftover: "Übrig für Essen und alles andere",
+  begCreate: (from, to) => `Für ${from}–${to} anlegen`,
+  begCreateOne: (m) => `Für ${m} anlegen`,
+  begEmpty: "Du hast noch nichts ausgefüllt. Geh zurück oder fang lieber mit der Vorlage an.",
+  begTemplate: "Lieber die Vorlage nutzen",
   copyPrevMonth: (month) => `Aus ${month} übernehmen`,
   copyPrevMonthConfirm: (from, to) =>
     `Damit werden Einnahmen und Ausgaben in ${to} durch die aus ${from} ersetzt. Das Sparen bleibt, wie es ist. Fortfahren?`,
@@ -567,6 +588,7 @@ export const de: Translations = {
     if (action === 'deleteWalletExpense') return 'Eine Ausgabe wurde aus einer Geldbörse entfernt';
     if (action === 'createGoal') return 'Ein Sparziel wurde angelegt';
     if (action === 'createWallet') return 'Eine Geldbörse wurde angelegt';
+    if (action === 'startBudget') return "Ein Budget wurde angelegt";
     if (action === 'renameRow') return `Eine Zeile wurde in ${where} umbenannt`;
     if (action === 'debtExtra') return 'Der Extrabetrag für deine Schulden wurde geändert';
     if (count === 1) return 'Der Zahlungszeitraum wurde geändert – 1 Eintrag verschoben';
@@ -1003,5 +1025,7 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Der Budgetimport liest auch Word-Dateien (.docx), auch einen Plan mit einer Tabelle pro Monat. Eine Gutschrift wird von der Zeile darüber abgezogen, statt zur Ausgabe zu werden, und eine Rente unter Einnahmen zählt als Einnahme',
     'Frei verfügbar zeigt jetzt auch Pro Monat. Tipp auf Woche oder Monat, um aus dem Betrag eine Geldbörse zu machen, einen Plan für die Alltagsausgaben. Mit Zahlungszeitraum steht der Zeitraum statt des Monats da',
     'Der Sortierer kennt gängige Geschäfte, Tankstellen, Nahverkehr und Energieversorger in Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China. Chinesische Namen werden auch erkannt, wenn die Stadt direkt dahinter steht',
+    "Ein neuer Start für alle, die noch nie ein Budget gemacht haben: Nach Sprache und Währung fragt die App, ob du schon einmal eins gemacht hast. Als Einsteiger beantwortest du ein paar einfache Fragen, etwa zu Gehalt, Wohnen und Handy, und bekommst ein Budget für den Rest des Jahres",
+    "Jede Zeile lässt sich entfernen, auch die der Vorlage. Eingeklappte Kategorien bleiben eingeklappt. Die Auswertung sagt „übrig“ und „drüber“ statt eines Minus. Die App bietet an, das Budget in den Rest des Jahres zu kopieren. Die Vorlage hat eine Zeile für den Handyvertrag",
   ],
 };

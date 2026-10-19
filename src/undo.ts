@@ -82,6 +82,8 @@ export type UndoAction =
   | 'createGoal'
   /** A wallet made from Left to live on. */
   | 'createWallet'
+  /** A budget built from the beginner's answers, over the rest of the year. */
+  | 'startBudget'
   /** The Debt tab's extra amount, set from "Try an amount". */
   | 'debtExtra';
 
@@ -132,6 +134,7 @@ const ACTIONS: Record<UndoAction, true> = {
   deleteEntry: true,
   deleteGoal: true,
   createWallet: true,
+  startBudget: true,
   deleteDebt: true,
   importBudget: true,
   deleteBlock: true,

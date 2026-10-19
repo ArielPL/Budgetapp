@@ -111,6 +111,7 @@ export const tr: Translations = {
   followUpColPlan: "Plan",
   followUpColActual: "Gerçekleşen",
   followUpColDiff: "Fark",
+  followUpDiffWords: { left: 'kalan', over: 'fazla', extra: 'ek', short: 'eksik' },
   followUpTotalOut: "Toplam çıkan",
   followUpNotRecorded: "Burada henüz kayıt yok",
   followUpNoEntries: "Henüz kayıt yok.",
@@ -529,6 +530,26 @@ export const tr: Translations = {
   copyAllRemaining: (n) => `Kalan tüm aylar (${n} ay)`,
   copiedTo: (month) => `✓ Kopyalandı: ${month}`,
   copiedToMonths: (n) => `✓ ${n} aya kopyalandı`,
+  copyOfferTitle: 'Yılın geri kalanı için aynı bütçe mi?',
+  copyOfferBody: (n) => `Bu ayın bütçesini yılın kalan ${n} ayına kopyalayın. Her ayı daha sonra değiştirebilirsiniz.`,
+  copyOfferButton: (n) => `${n} aya kopyala`,
+  copyOfferDismiss: 'Şimdi değil',
+  startChoiceTitle: "Daha önce bütçe yaptınız mı?",
+  startChoiceBody: "Nasıl başlamak istediğinizi seçin. Her şeyi sonra değiştirebilirsiniz.",
+  startExpert: "Evet, kendim keşfederim",
+  startExpertSub: "Şablon, boş bütçe veya içe aktarma",
+  startBeginner: "Hayır, başlamama yardım edin",
+  startBeginnerSub: "Birkaç basit soru, sonra bütçeniz hazır",
+  begQuestions: [{ title: "Her ay ne kadar maaş alıyorsunuz?", hint: "Vergiden sonra hesabınıza yatan tutar." }, { title: "Konut için her ay ne ödüyorsunuz?", hint: "Kira, aidat veya konut kredisi." }, { title: "Cep telefonu faturanız ne kadar?", hint: "Aylık." }, { title: "İşe veya okula gitmek ne kadar tutuyor?", hint: "Toplu taşıma kartı, tren veya yakıt, aylık." }, { title: "Ödediğiniz kredi var mı?", hint: "Örneğin öğrenim kredisi, taşıt kredisi veya kredi kartı, aylık." }, { title: "Her ay ne kadar biriktirmek istersiniz?", hint: "Az da olsa önemlidir. Henüz bilmiyorsanız boş bırakın." }],
+  begSkip: "Atla",
+  begNext: "İleri",
+  begBack: "Geri",
+  begSummaryTitle: "Bütçeniz",
+  begLeftover: "Yemek ve diğer her şey için kalan",
+  begCreate: (from, to) => `Oluştur: ${from}–${to}`,
+  begCreateOne: (m) => `Oluştur: ${m}`,
+  begEmpty: "Henüz bir şey doldurmadınız. Geri dönün veya şablonla başlayın.",
+  begTemplate: "Şablonu kullan",
   copyPrevMonth: (month) => `Önceki aydan al (${month})`,
   copyPrevMonthConfirm: (from, to) =>
     `${to} için gelir ve giderler, ${from} bütçesindekilerle değiştirilir. Birikimlere dokunulmaz. Devam edilsin mi?`,
@@ -567,6 +588,7 @@ export const tr: Translations = {
     if (action === 'deleteWalletExpense') return "Bir cüzdandan bir gider silindi";
     if (action === 'createGoal') return "Bir birikim hedefi oluşturuldu";
     if (action === 'createWallet') return 'Bir cüzdan oluşturuldu';
+    if (action === 'startBudget') return "Bir bütçe oluşturuldu";
     if (action === 'renameRow') return `Bir satırın adı değiştirildi (${where})`;
     if (action === 'debtExtra') return "Borçlarınız için ek tutar değiştirildi";
     if (count === 1) return "Maaş dönemi değiştirildi — 1 kayıt taşındı";
@@ -1002,5 +1024,7 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Bütçe içe aktarma artık Word dosyalarını (.docx) da okuyor; ay başına bir tablo içeren bir plan da buna dahil. Bir alacak kaydı gider olmak yerine üstündeki satırdan düşülüyor ve Gelir altındaki emeklilik geliri gelir sayılıyor",
     'Geçim için kalan artık Aylık tutarı da gösteriyor. Tutardan bir cüzdan, yani günlük harcamalar için bir plan oluşturmak için haftaya veya aya dokunun. Maaş dönemi açıksa ay yerine dönem gösterilir',
     "Sınıflandırıcı artık Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'deki yaygın mağazaları, akaryakıt istasyonlarını, toplu taşımayı ve enerji şirketlerini tanıyor. Çince adlar, hemen arkasına şehir yazılmış olsa da bulunur",
+    "Hiç bütçe yapmamış olanlar için yeni bir başlangıç: dil ve para biriminden sonra uygulama daha önce bütçe yapıp yapmadığınızı sorar. Yeni başlayan olarak maaş, konut ve telefon gibi birkaç basit soruyu yanıtlarsınız ve yılın geri kalanı için bir bütçe alırsınız",
+    "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var",
   ],
 };

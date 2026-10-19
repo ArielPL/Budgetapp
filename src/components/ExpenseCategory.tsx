@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { isCollapsed, setCollapsedStored } from '../collapsed';
 import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
@@ -46,7 +47,11 @@ interface Props {
 
 export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow', showZero }: Props) => {
   const { t, lang, money, currency } = useLang();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => isCollapsed(category.id));
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+    setCollapsedStored(category.id, !collapsed);
+  };
   const [editing, setEditing] = useState(false);
 
   const protectedCat = isProtectedCategory(category.id);
@@ -98,7 +103,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
         <h2
           className="section-title"
           title={shownName(category, lang)}
-          onClick={() => setCollapsed(c => !c)}
+          onClick={toggleCollapsed}
           style={{ cursor: 'pointer' }}
         >
           {shownName(category, lang)}
@@ -123,7 +128,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
         </button>
         <button
           className="collapse-arrow"
-          onClick={() => setCollapsed(c => !c)}
+          onClick={toggleCollapsed}
           aria-label={collapsed
             ? t.ariaExpand(shownName(category, lang))
             : t.ariaCollapse(shownName(category, lang))}
@@ -211,10 +216,10 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                   </span>
                 )}
                 <span className="row-action">
-                  {row.isCustom && (
-                    <button className="delete-btn" onClick={() => deleteRow(row.id)}
-                      title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
-                  )}
+                  {/* Every row, the template's too: someone with no car or mortgage must
+                      be able to remove them (tester, 2026-10-19). Undoable like any removal. */}
+                  <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                    title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
                 </span>
               </div>
             ))}

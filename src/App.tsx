@@ -25,6 +25,7 @@ const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: 
 const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
 const Guide = lazy(() => import('./components/Guide').then(m => ({ default: m.Guide })));
+const BeginnerStart = lazy(() => import('./components/BeginnerStart').then(m => ({ default: m.BeginnerStart })));
 const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ default: m.WalletArea })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
@@ -45,8 +46,8 @@ import { tellNativeLang, tellNativeTheme } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, LANG_CHOICES, CURRENCIES, type Lang, type Currency } from './i18n';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, beginnerMonthData, type BeginnerAnswers, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { LanguageContext, translations, MONTHS, MONTHS_SHORT, formatMoney, isLang, isCurrency, deviceLang, LANG_CHOICES, CURRENCIES, type Lang, type Currency } from './i18n';
 import { applyTextSize, loadTextSize, TEXT_SIZES, TEXT_SIZE_KEY, type TextSize } from './textSize';
 import {
   loadThemeState,
@@ -80,6 +81,9 @@ import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageC
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
+
+/** The year whose "copy to the rest of the year" offer was declined. */
+const COPY_OFFER_KEY = 'budget_copy_offer_dismissed';
 import { newBlank, loadWallets, walletsChange, walletWeek, isoWeek, isoDay, WALLETS_KEY, OPEN_PANEL_KEY } from './wallets';
 
 
@@ -230,6 +234,29 @@ function App({ startupRepair = null }: AppProps) {
   // A refused flag write is not worth a banner: the only cost is that the hero
   // appears again next launch. The dismissal itself still takes effect now.
   const dismissBudgetHero = () => { safeSetItem(appStorage, 'budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
+
+  /** The beginner's answers, as a budget for this month and every month left
+   *  this year — one confirmed write, one step back. Months that already hold
+   *  a budget are left alone: the question is only asked on an empty start,
+   *  but a restore could have filled one meanwhile. */
+  const createBeginnerBudget = async (answers: BeginnerAnswers): Promise<boolean> => {
+    const built = ensureGoalLinkedBudgetRows(beginnerMonthData(answers, lang), planData.goals, lang);
+    const months = Array.from({ length: 12 - month }, (_, i) => month + i)
+      .filter(m => m === month || !hasBudgetContent(loadMonthData(year, m, lang)));
+    const keys = months.map(m => storageKey(year, m));
+    const before = captureKeys(appStorage, keys);
+    const outcome = await commitStorageChangesOutcome(appStorage, keys.map(key => ({ key, value: JSON.stringify(built) })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    recordUndo({ at: new Date().toISOString(), action: 'startBudget', changes: before });
+    setData(built);
+    dismissBudgetHero();
+    setCopyOfferHidden(true);
+    setStartChoiceOpen(false);
+    return true;
+  };
   const dismissSavingsHero = () => { safeSetItem(appStorage, 'budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
 
   // First-run welcome/introduction — shown once, before anything else, until the
@@ -257,7 +284,14 @@ function App({ startupRepair = null }: AppProps) {
     }
     return true;
   });
-  const dismissIntro = () => { safeSetItem(appStorage, 'budget_welcome_seen', '1'); setIntroOpen(false); };
+  // After the intro, a new install with nothing in its budget is asked whether
+  // it has made a budget before (Ariel, 2026-10-19) — see BeginnerStart.
+  const [startChoiceOpen, setStartChoiceOpen] = useState(false);
+  const dismissIntro = () => {
+    safeSetItem(appStorage, 'budget_welcome_seen', '1');
+    setIntroOpen(false);
+    if (data.income.length === 0 && data.expenses.length === 0) setStartChoiceOpen(true);
+  };
   // A new user chooses the currency; the app does not guess it (review
   // 2026-10-17, P1). Nothing is stored until they have, so a first run that is
   // closed before the choice asks again. Anyone with a stored currency —
@@ -1050,7 +1084,25 @@ function App({ startupRepair = null }: AppProps) {
     // rather than leaving the year half copied and saying it worked.
     if (!(await applyCopy(targets))) return;
     setMenuOpen(false);
+    setCopyOfferHidden(true);
     showMsg(t.copiedToMonths(targets.length));
+  };
+
+  // "A button that copies ALL months" (tester, 2026-10-19) — it existed, deep in
+  // the menu. Offered where the budget is, once: when this month has a budget
+  // and every month left this year is still empty, so nothing is overwritten.
+  const [copyOfferHidden, setCopyOfferHidden] = useState(
+    () => appStorage.getItem(COPY_OFFER_KEY) === String(year));
+  const restOfYearEmpty = useMemo(
+    () => month < 11 && Array.from({ length: 11 - month }, (_, i) => month + 1 + i)
+      .every(m => !hasBudgetContent(loadMonthData(year, m, lang))),
+    // Re-read on a month or year change; a copy hides the offer itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [year, month],
+  );
+  const dismissCopyOffer = () => {
+    setCopyOfferHidden(true);
+    safeSetItem(appStorage, COPY_OFFER_KEY, String(year));
   };
 
   // Reset ONLY the currently-selected month back to fresh defaults, then re-add
@@ -1851,6 +1903,20 @@ function App({ startupRepair = null }: AppProps) {
   // Each tab's content, rendered once and reused by both layouts: Classic
   // shows one at a time (tabbed); Combined stacks all four on one page.
   // Same components/data/handlers either way — no duplication.
+  const copyOffer = !copyOfferHidden && restOfYearEmpty && !isHistoricMonth(year, month)
+    && totalIncome > 0 && totalExpenses > 0 ? (
+      <section className="copy-offer">
+        <div className="copy-offer-text">
+          <strong>{t.copyOfferTitle}</strong>
+          <span>{t.copyOfferBody(11 - month)}</span>
+        </div>
+        <div className="copy-offer-actions">
+          <button className="custom-primary-btn" onClick={() => void copyToAllRemaining()}>{t.copyOfferButton(11 - month)}</button>
+          <button className="custom-secondary-btn" onClick={dismissCopyOffer}>{t.copyOfferDismiss}</button>
+        </div>
+      </section>
+    ) : null;
+
   const budgetView = (
     <>
       {!guideRowHidden && (
@@ -1864,6 +1930,7 @@ function App({ startupRepair = null }: AppProps) {
         </div>
       )}
       {budgetHero}
+      {copyOffer}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
       {/* Says something about the numbers instead of only showing them. Names
           are resolved here so the insight text follows the current language. */}
@@ -2302,6 +2369,19 @@ function App({ startupRepair = null }: AppProps) {
         )}
       </header>
 
+      {startChoiceOpen && (
+        <Suspense fallback={null}>
+          <BeginnerStart
+            span={{
+              from: inSentence(MONTHS_SHORT[lang][month], lang),
+              to: month < 11 ? inSentence(MONTHS_SHORT[lang][11], lang) : null,
+            }}
+            onExpert={() => setStartChoiceOpen(false)}
+            onTemplate={() => { addStarterBudget(); setStartChoiceOpen(false); }}
+            onCreate={createBeginnerBudget}
+          />
+        </Suspense>
+      )}
       {walletDraft && (
         <ConfirmChange
           title={t.wCreate}

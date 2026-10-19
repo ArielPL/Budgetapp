@@ -114,6 +114,7 @@ export const fr: Translations = {
   followUpColPlan: "Prévu",
   followUpColActual: "Réel",
   followUpColDiff: "Écart",
+  followUpDiffWords: { left: 'reste', over: 'dépassé', extra: 'en plus', short: 'manque' },
   followUpTotalOut: "Total des sorties",
   followUpNotRecorded: "Rien d'enregistré ici pour l'instant",
   followUpNoEntries: "Aucune opération pour l'instant.",
@@ -538,6 +539,26 @@ export const fr: Translations = {
   copyAllRemaining: (n) => `Tous les mois restants (${n})`,
   copiedTo: (month) => `✓ Copié vers ${month}`,
   copiedToMonths: (n) => `✓ Copié vers ${n} mois`,
+  copyOfferTitle: "Le même budget pour le reste de l'année ?",
+  copyOfferBody: (n) => `Copiez le budget de ce mois sur les ${n} mois restants de l'année. Vous pourrez modifier chaque mois ensuite.`,
+  copyOfferButton: (n) => `Copier sur ${n} mois`,
+  copyOfferDismiss: 'Pas maintenant',
+  startChoiceTitle: "Avez-vous déjà fait un budget ?",
+  startChoiceBody: "Choisissez comment commencer. Tout pourra être modifié ensuite.",
+  startExpert: "Oui, je découvre par moi-même",
+  startExpertSub: "Modèle, budget vide ou import",
+  startBeginner: "Non, aidez-moi à démarrer",
+  startBeginnerSub: "Quelques questions simples, et votre budget est prêt",
+  begQuestions: [{ title: "Combien touchez-vous de salaire chaque mois ?", hint: "Ce qui arrive sur votre compte, après impôts." }, { title: "Combien payez-vous pour le logement chaque mois ?", hint: "Loyer, charges ou prêt immobilier." }, { title: "Combien coûte votre forfait mobile ?", hint: "Par mois." }, { title: "Combien coûtent vos trajets vers le travail ou l'école ?", hint: "Abonnement de transport, train ou carburant, par mois." }, { title: "Remboursez-vous des prêts ?", hint: "Par exemple un prêt étudiant, un prêt auto ou une carte de crédit, par mois." }, { title: "Combien voulez-vous épargner chaque mois ?", hint: "Même un peu compte. Laissez vide si vous ne savez pas encore." }],
+  begSkip: "Passer",
+  begNext: "Suivant",
+  begBack: "Retour",
+  begSummaryTitle: "Votre budget",
+  begLeftover: "Reste pour les courses et tout le reste",
+  begCreate: (from, to) => `Créer pour ${from}–${to}`,
+  begCreateOne: (m) => `Créer pour ${m}`,
+  begEmpty: "Vous n'avez encore rien rempli. Revenez en arrière ou commencez plutôt avec le modèle.",
+  begTemplate: "Utiliser le modèle",
   copyPrevMonth: (month) => `Reprendre depuis ${month}`,
   copyPrevMonthConfirm: (from, to) =>
     `Cela remplace les revenus et dépenses en ${to} par ceux copiés depuis ${from}. L'épargne n'est pas touchée. Continuer ?`,
@@ -576,6 +597,7 @@ export const fr: Translations = {
     if (action === 'deleteWalletExpense') return "Une dépense a été supprimée d'un portefeuille";
     if (action === 'createGoal') return "Un objectif d'épargne a été créé";
     if (action === 'createWallet') return 'Un portefeuille a été créé';
+    if (action === 'startBudget') return "Un budget a été créé";
     if (action === 'renameRow') return `Une ligne a été renommée (${where})`;
     if (action === 'debtExtra') return "Le montant en plus pour vos dettes a été modifié";
     if (count === 1) return "La période de paie a été modifiée — 1 opération déplacée";
@@ -1012,5 +1034,7 @@ export const frChangelog113: { title: string; items: string[] } = {
     'L\'import de budget lit aussi les fichiers Word (.docx), y compris un plan avec un tableau par mois. Un avoir est déduit de la ligne du dessus au lieu de devenir une dépense, et une retraite sous Revenus compte comme revenu',
     "Reste à vivre affiche aussi Par mois. Touchez la semaine ou le mois pour faire du montant un portefeuille, un plan pour les dépenses du quotidien. Avec une période de paie, c'est la période qui est indiquée, pas le mois",
     "Le trieur reconnaît les commerces, stations-service, transports en commun et fournisseurs d'énergie courants au Brésil, au Portugal, en Russie, en Turquie, en Italie, en France, en Allemagne et en Chine. Les noms chinois sont reconnus même collés au nom de la ville",
+    "Un nouveau départ pour qui n'a jamais fait de budget : après la langue et la devise, l'app demande si vous en avez déjà fait un. En débutant, vous répondez à quelques questions simples, comme le salaire, le logement et le mobile, et obtenez un budget pour le reste de l'année",
+    "Toutes les lignes peuvent être supprimées, celles du modèle aussi. Les catégories repliées restent repliées. Le suivi indique « reste » et « dépassé » au lieu d'un signe moins. L'app propose de copier le budget sur le reste de l'année. Le modèle comprend un forfait mobile",
   ],
 };

@@ -89,6 +89,8 @@ export const CHANGELOG: Release[] = [
         'Budgetimporten läser också Word-filer (.docx), även en plan med en tabell per månad. En kreditpost dras av från raden ovanför i stället för att bli en kostnad, och pension under Inkomster blir inkomst',
         'Kvar att leva på visar också Per månad. Tryck på veckan eller månaden för att göra en plånbok av summan, en plan för vardagsköpen. Med löneperiod står perioden i stället för månadens namn',
         'Sorteraren känner igen vanliga butiker, bensinstationer, kollektivtrafik och elbolag i Brasilien, Portugal, Ryssland, Turkiet, Italien, Frankrike, Tyskland och Kina. Kinesiska namn hittas även när orten står direkt efter',
+        "Ny start för den som aldrig gjort en budget: efter språk och valuta frågar appen om du gjort en budget förut. Som nybörjare svarar du på några enkla frågor, som lön, boende och mobil, och får en budget för resten av året",
+        "Alla rader går att ta bort, även mallens. Hopfällda kategorier förblir hopfällda. Uppföljning skriver ”kvar” och ”över” i stället för minus. Appen erbjuder att kopiera budgeten till resten av året. Mallen har Mobilabonnemang, och SL heter Kollektivtrafik. Sorteraren känner igen fler trafikbolag och mobiloperatörer",
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -129,6 +131,8 @@ export const CHANGELOG: Release[] = [
         'Budget import also reads Word files (.docx), including a plan with one table per month. A credit note is taken off the row above instead of becoming a cost, and a pension under Income becomes income',
         'Left to live on also shows Per month. Tap the week or the month to turn the amount into a wallet, a plan for everyday spending. With a pay period, the period is named instead of the month',
         'The sorter knows common shops, fuel stations, public transport and utilities in Brazil, Portugal, Russia, Turkey, Italy, France, Germany and China. Chinese names are found even with the city written right after them',
+        "A new start for anyone who has never made a budget: after language and currency, the app asks whether you have made one before. As a beginner you answer a few simple questions, such as salary, housing and phone, and get a budget for the rest of the year",
+        "Every row can be removed, the template's too. Folded categories stay folded. Follow-up says “left” and “over” instead of a minus. The app offers to copy the budget to the rest of the year. The template has a phone plan line. The sorter knows more regional transport and phone operators",
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -169,6 +173,8 @@ export const CHANGELOG: Release[] = [
         'La importación de presupuestos también lee archivos de Word (.docx), incluso un plan con una tabla por mes. Un abono se resta de la fila de arriba en vez de convertirse en un gasto, y una pensión bajo Ingresos cuenta como ingreso',
         'Para vivir este mes muestra también Al mes. Toca la semana o el mes para convertir el importe en una cartera, un plan para el día a día. Con periodo de pago, se nombra el periodo en vez del mes',
         'El clasificador reconoce tiendas, gasolineras, transporte público y compañías de luz habituales en Brasil, Portugal, Rusia, Turquía, Italia, Francia, Alemania y China. Los nombres chinos se encuentran aunque la ciudad vaya pegada',
+        "Un nuevo comienzo para quien nunca ha hecho un presupuesto: tras el idioma y la moneda, la app pregunta si ya has hecho uno. Como principiante respondes unas preguntas sencillas, como sueldo, vivienda y móvil, y obtienes un presupuesto para el resto del año",
+        "Todas las filas se pueden borrar, también las de la plantilla. Las categorías plegadas siguen plegadas. Seguimiento dice «quedan» y «de más» en vez de un signo menos. La app ofrece copiar el presupuesto al resto del año. La plantilla incluye la tarifa del móvil",
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

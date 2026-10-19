@@ -111,6 +111,7 @@ export const ja: Translations = {
   followUpColPlan: '計画',
   followUpColActual: '実績',
   followUpColDiff: '差額',
+  followUpDiffWords: { left: '残り', over: '超過', extra: '増加', short: '不足' },
   followUpTotalOut: '支出合計',
   followUpNotRecorded: 'まだ記録はありません',
   followUpNoEntries: 'まだ明細はありません。',
@@ -525,6 +526,26 @@ export const ja: Translations = {
   copyAllRemaining: (n) => `残りすべて（${n}か月）`,
   copiedTo: (month) => `✓ ${month}にコピーしました`,
   copiedToMonths: (n) => `✓ ${n}か月分にコピーしました`,
+  copyOfferTitle: '残りの月も同じ予算にしますか？',
+  copyOfferBody: (n) => `今月の予算を今年の残り${n}か月にコピーします。あとから各月を変更できます。`,
+  copyOfferButton: (n) => `${n}か月にコピー`,
+  copyOfferDismiss: 'あとで',
+  startChoiceTitle: "予算を作ったことはありますか？",
+  startChoiceBody: "始め方を選んでください。あとからすべて変更できます。",
+  startExpert: "はい、自分で使ってみます",
+  startExpertSub: "テンプレート、空の予算、インポート",
+  startBeginner: "いいえ、始め方を教えてください",
+  startBeginnerSub: "いくつかの簡単な質問に答えるだけで予算が完成します",
+  begQuestions: [{ title: "毎月の給与（手取り）はいくらですか？", hint: "税金などが引かれたあと、口座に入る金額です。" }, { title: "住居費は毎月いくら払っていますか？", hint: "家賃、管理費、住宅ローンなど。" }, { title: "携帯電話の料金はいくらですか？", hint: "1か月あたり。" }, { title: "通勤・通学にいくらかかりますか？", hint: "定期券、電車、ガソリン代など、1か月あたり。" }, { title: "返済中のローンはありますか？", hint: "奨学金、自動車ローン、クレジットカードなど、1か月あたり。" }, { title: "毎月いくら貯金したいですか？", hint: "少しでも大丈夫です。まだ分からなければ空欄のままで。" }],
+  begSkip: "スキップ",
+  begNext: "次へ",
+  begBack: "戻る",
+  begSummaryTitle: "あなたの予算",
+  begLeftover: "食費とその他に使えるお金",
+  begCreate: (from, to) => `${from}～${to}の予算を作成`,
+  begCreateOne: (m) => `${m}の予算を作成`,
+  begEmpty: "まだ何も入力されていません。戻るか、テンプレートから始めてください。",
+  begTemplate: "テンプレートを使う",
   copyPrevMonth: (month) => `${month}から取り込む`,
   copyPrevMonthConfirm: (from, to) =>
     `${to}の収入と支出を${from}の内容で置き換えます。貯蓄はそのままです。続けますか？`,
@@ -563,6 +584,7 @@ export const ja: Translations = {
     if (action === 'deleteWalletExpense') return 'ウォレットから支出を削除しました';
     if (action === 'createGoal') return '貯蓄目標を作成しました';
     if (action === 'createWallet') return 'ウォレットを作成しました';
+    if (action === 'startBudget') return "予算を作成しました";
     if (action === 'renameRow') return `${where}の行の名前を変更しました`;
     if (action === 'debtExtra') return '負債の追加返済額を変更しました';
     if (count === 1) return '集計期間を変更しました — 1件を移動';
@@ -999,5 +1021,7 @@ export const jaChangelog113: { title: string; items: string[] } = {
     '予算のインポートでWordファイル（.docx）も読み込めるようになりました。月ごとに表が分かれた計画にも対応します。返金・クレジットは支出にせず上の行から差し引き、「収入」の下の年金は収入として扱います',
     '「使えるお金」に「1か月あたり」も表示されるようになりました。週または月をタップすると、その金額でウォレットを作成でき、日々の支出の計画になります。集計期間を設定している場合は、月ではなく期間が表示されます',
     '自動分類が、ブラジル、ポルトガル、ロシア、トルコ、イタリア、フランス、ドイツ、中国の主な店、ガソリンスタンド、公共交通、電力会社を認識するようになりました。中国語の店名は、すぐ後ろに都市名が続いていても見つかります',
+    "予算を作ったことがない人のための新しい始め方：言語と通貨のあとに、予算を作ったことがあるか尋ねます。初めての方は給与、住居、携帯電話などの簡単な質問に答えるだけで、年末までの予算ができます",
+    "テンプレートの行も含め、すべての行を削除できます。折りたたんだカテゴリは折りたたまれたままです。実績はマイナス記号ではなく「残り」「超過」と表示します。予算を年末までコピーするよう提案します。テンプレートに携帯電話を追加しました",
   ],
 };

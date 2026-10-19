@@ -3877,6 +3877,14 @@ a:focus-visible,
 .followup-planned { color: var(--text-muted); }
 .followup-diff-over { color: var(--negative); }
 .followup-diff-under, .followup-diff-ok { color: var(--positive); }
+/* The word under the difference ("kvar", "över"): small, the same colour. */
+.followup-diff-word {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  opacity: 0.85;
+}
 .followup-total {
   border-top: 1px solid var(--border-strong);
   font-weight: 700;
@@ -5540,6 +5548,59 @@ a:focus-visible,
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+/* ── Beginner's start: the question, then one question at a time ─────────── */
+.beg-body { gap: 10px; }
+.beg-choices { display: grid; gap: 8px; width: 100%; margin-top: 4px; }
+.beg-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  text-align: start;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.beg-choice.is-main { border: 2px solid var(--accent-brand); }
+.beg-choice strong { font-size: 0.95rem; }
+.beg-choice span { font-size: 0.82rem; color: var(--text-dim); }
+.beg-dots { justify-content: center; }
+.beg-input { width: 100%; min-height: 44px; font-size: 1.05rem; text-align: center; }
+.beg-error { margin: 0; font-size: 0.8rem; color: var(--negative); }
+.beg-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; margin-top: 4px; }
+.beg-summary { list-style: none; margin: 0; padding: 0; width: 100%; text-align: start; }
+.beg-summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.beg-summary .beg-left { border-bottom: none; font-weight: 700; color: var(--positive); }
+.beg-summary .beg-left.is-negative { color: var(--negative); }
+
+/* ── "Same budget for the rest of the year?" ─────────────────────────────── */
+.copy-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--accent-brand) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 40%, var(--border));
+  border-radius: var(--radius-lg);
+}
+.copy-offer-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
+.copy-offer-text strong { font-size: 0.92rem; color: var(--text); }
+.copy-offer-text span { font-size: 0.82rem; line-height: 1.45; color: var(--text-dim); }
+.copy-offer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* ── Guide: "Get started" ─────────────────────────────────────────────────
    The row at the top of Budget (hideable) and the first menu item open the

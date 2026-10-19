@@ -79,11 +79,14 @@ const L = {
   coffee: { sv: 'Kaffe & Fika', en: 'Coffee & Snacks', es: 'Café y aperitivos', fr: 'Café & en-cas', de: 'Kaffee & Snacks', it: 'Caffè e snack', pt: 'Café e lanches', ru: 'Кофе и перекусы', tr: 'Kahve ve atıştırmalık', ja: 'カフェ・軽食', zh: '咖啡与零食' },
   // transport
   transport: { sv: 'Transport', en: 'Transport', es: 'Transporte', fr: 'Transport', de: 'Verkehr', it: 'Trasporti', pt: 'Transporte', ru: 'Транспорт', tr: 'Ulaşım', ja: '交通', zh: '交通' },
-  publicTransit: { sv: 'SL/Kollektivtrafik', en: 'Public transit', es: 'Transporte público', fr: 'Transports en commun', de: 'ÖPNV', it: 'Trasporto pubblico', pt: 'Transporte público', ru: 'Общественный транспорт', tr: 'Toplu taşıma', ja: '公共交通', zh: '公共交通' },
+  publicTransit: { sv: 'Kollektivtrafik', en: 'Public transit', es: 'Transporte público', fr: 'Transports en commun', de: 'ÖPNV', it: 'Trasporto pubblico', pt: 'Transporte público', ru: 'Общественный транспорт', tr: 'Toplu taşıma', ja: '公共交通', zh: '公共交通' },
   car: { sv: 'Bil', en: 'Car', es: 'Coche', fr: 'Voiture', de: 'Auto', it: 'Auto', pt: 'Carro', ru: 'Автомобиль', tr: 'Araba', ja: '車', zh: '汽车' },
   insurances: { sv: 'Försäkringar', en: 'Insurances', es: 'Seguros', fr: 'Assurances', de: 'Versicherungen', it: 'Assicurazioni', pt: 'Seguros', ru: 'Страховки', tr: 'Sigortalar', ja: '保険', zh: '保险' },
   // prenumerationer
   subscriptions: { sv: 'Prenumerationer', en: 'Subscriptions', es: 'Suscripciones', fr: 'Abonnements', de: 'Abos', it: 'Abbonamenti', pt: 'Assinaturas', ru: 'Подписки', tr: 'Abonelikler', ja: 'サブスク', zh: '订阅' },
+  // Most people pay for a phone, and the template had no line for it (tester,
+  // 2026-10-19).
+  mobile: { sv: 'Mobilabonnemang', en: 'Phone plan', es: 'Tarifa del móvil', fr: 'Forfait mobile', de: 'Handyvertrag', it: 'Piano telefonico', pt: 'Plano de celular', ru: 'Мобильная связь', tr: 'Cep telefonu faturası', ja: '携帯電話', zh: '手机话费' },
   streaming: { sv: 'Streaming', en: 'Streaming', es: 'Streaming', fr: 'Streaming', de: 'Streaming', it: 'Streaming', pt: 'Streaming', ru: 'Стриминг', tr: 'Dijital yayın', ja: '動画・音楽配信', zh: '流媒体' },
   gym: { sv: 'Gym', en: 'Gym', es: 'Gimnasio', fr: 'Salle de sport', de: 'Fitnessstudio', it: 'Palestra', pt: 'Academia', ru: 'Спортзал', tr: 'Spor salonu', ja: 'ジム', zh: '健身房' },
   apps: { sv: 'Appar', en: 'Apps', es: 'Aplicaciones', fr: 'Applis', de: 'Apps', it: 'App', pt: 'Aplicativos', ru: 'Приложения', tr: 'Uygulamalar', ja: 'アプリ', zh: '应用' },
@@ -129,6 +132,9 @@ const L = {
   pension: { sv: 'Pension (extra)', en: 'Pension (extra)', es: 'Pensión (extra)', fr: 'Retraite (en plus)', de: 'Altersvorsorge (zusätzlich)', it: 'Pensione (integrativa)', pt: 'Previdência (extra)', ru: 'Пенсия (доп.)', tr: 'Emeklilik (ek)', ja: '年金（追加）', zh: '养老金（额外）' },
   occupationalPension: { sv: 'Tjänstepension tillägg', en: 'Occupational pension top-up', es: 'Aporte a pensión laboral', fr: 'Complément retraite pro', de: 'Betriebsrente Zusatz', it: 'Pensione aziendale integrativa', pt: 'Previdência corporativa', ru: 'Корпоративная пенсия', tr: 'İşveren emeklilik katkısı', ja: '企業年金の上乗せ', zh: '职业年金补充' },
   privatePension: { sv: 'Privat pension', en: 'Private pension', es: 'Pensión privada', fr: 'Retraite privée', de: 'Private Rente', it: 'Pensione privata', pt: 'Previdência privada', ru: 'Частная пенсия', tr: 'Bireysel emeklilik', ja: '個人年金', zh: '个人养老金' },
+  // The beginner's start (2026-10-19): one row per question it asks.
+  commute: { sv: 'Resor till jobbet', en: 'Getting to work', es: 'Ir al trabajo', fr: 'Trajets domicile-travail', de: 'Weg zur Arbeit', it: 'Spostamenti per lavoro', pt: 'Ida ao trabalho', ru: 'Дорога на работу', tr: 'İşe ulaşım', ja: '通勤・通学', zh: '通勤交通' },
+  loanPayments: { sv: 'Lån och avbetalningar', en: 'Loans and instalments', es: 'Préstamos y plazos', fr: 'Prêts et mensualités', de: 'Kredite und Raten', it: 'Prestiti e rate', pt: 'Empréstimos e parcelas', ru: 'Кредиты и рассрочки', tr: 'Krediler ve taksitler', ja: 'ローン・分割払い', zh: '贷款与分期' },
   // placeholders for newly added items / goals
   newGoal: { sv: 'Nytt mål', en: 'New goal', es: 'Nueva meta', fr: 'Nouvel objectif', de: 'Neues Ziel', it: 'Nuovo obiettivo', pt: 'Nova meta', ru: 'Новая цель', tr: 'Yeni hedef', ja: '新しい目標', zh: '新目标' },
   newRow: { sv: 'Ny rad', en: 'New row', es: 'Nueva fila', fr: 'Nouvelle ligne', de: 'Neue Zeile', it: 'Nuova riga', pt: 'Nova linha', ru: 'Новая строка', tr: 'Yeni satır', ja: '新しい行', zh: '新行' },
@@ -151,6 +157,8 @@ for (const entry of Object.values(L)) {
 const LEGACY_LABELS: [string, LabelEntry][] = [
   ['Lån & Krediter', L.lan], ['Loans & Credit', L.lan], ['Préstamos y créditos', L.lan],
   ['Bidrag/Ersättning', L.benefits], ['Benefits', L.benefits], ['Prestaciones', L.benefits],
+  // "SL" is Stockholm's operator; Skåne, Västra Götaland and Norrbotten have their own.
+  ['SL/Kollektivtrafik', L.publicTransit],
 ];
 for (const [old, entry] of LEGACY_LABELS) REVERSE_LABELS[old] = entry;
 
@@ -210,6 +218,7 @@ function defaultExpenses(lang: Lang = 'sv'): BudgetCategory[] {
     {
       id: 'prenumerationer', name: tr(L.subscriptions, lang), icon: '📱', color: CATEGORY_COLORS.prenumerationer,
       rows: [
+        { id: makeId(), label: tr(L.mobile, lang), amount: 0 },
         { id: makeId(), label: tr(L.streaming, lang), amount: 0 },
         { id: makeId(), label: tr(L.gym, lang), amount: 0 },
         { id: makeId(), label: tr(L.apps, lang), amount: 0 },
@@ -363,6 +372,42 @@ export function withLoanRow(
 
 // The old default category set, offered as a one-tap "starter pack" so a blank
 // app isn't a dead end. Not auto-applied — only when the user asks for it.
+/** What a beginner answered: each a monthly amount, or absent when skipped. */
+export interface BeginnerAnswers {
+  salary?: number;
+  housing?: number;
+  phone?: number;
+  commute?: number;
+  loans?: number;
+  savings?: number;
+}
+
+/**
+ * A budget from the beginner's answers — only what was answered, nothing
+ * empty to wade through (Ariel, 2026-10-19: "bara det man svarat på"). The
+ * categories are the standard ones, so the sorter, the template and every
+ * language know them; the rows are template names, so they translate too.
+ */
+export function beginnerMonthData(a: BeginnerAnswers, lang: Lang = 'sv'): MonthData {
+  const row = (entry: LabelEntry, amount: number): BudgetRow => ({ id: generateId(), label: tr(entry, lang), amount });
+  const category = (id: string, rows: BudgetRow[]): BudgetCategory[] => {
+    const base = standardExpenseCategory(id, lang);
+    return base && rows.length > 0 ? [{ ...base, rows }] : [];
+  };
+  const has = (n: number | undefined): n is number => typeof n === 'number' && n > 0;
+  return {
+    income: has(a.salary) ? [row(L.salary, a.salary)] : [],
+    expenses: [
+      ...category('boende', has(a.housing) ? [row(L.rent, a.housing)] : []),
+      ...category('transport', has(a.commute) ? [row(L.commute, a.commute)] : []),
+      ...category('prenumerationer', has(a.phone) ? [row(L.mobile, a.phone)] : []),
+      ...category('lan', has(a.loans) ? [row(L.loanPayments, a.loans)] : []),
+      ...category('sparande', has(a.savings) ? [row(L.savingsRow, a.savings)] : []),
+    ],
+    savings: [],
+  };
+}
+
 export function starterMonthData(lang: Lang = 'sv'): MonthData {
   return {
     income: defaultIncome(lang),
