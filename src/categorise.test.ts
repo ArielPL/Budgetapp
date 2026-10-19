@@ -160,10 +160,11 @@ describe('the two halves of the list', () => {
     expect(clashes, clashes.join('\n')).toHaveLength(0);
   });
 
-  it('is exactly the lists together — all nine of them', () => {
+  it('is exactly the lists together — all seventeen of them', () => {
     expect(Object.keys(SEED_LISTS)).toEqual([
       'INTERNATIONAL', 'SWEDEN', 'UNITED_STATES', 'SPAIN',
       'AUSTRALIA', 'SOUTH_AFRICA', 'MEXICO', 'JAPAN', 'COLOMBIA',
+      'BRAZIL', 'PORTUGAL', 'RUSSIA', 'TURKEY', 'ITALY', 'FRANCE', 'GERMANY', 'CHINA',
     ]);
     for (const id of STANDARD_CATEGORY_IDS) {
       expect(SEED[id]).toEqual(Object.values(SEED_LISTS).flatMap(list => list[id]));
@@ -233,13 +234,14 @@ describe('the international half, on statements from elsewhere', () => {
   });
 
   it('stays quiet about a local shop it has no business knowing', () => {
-    // Dutch, Italian, German and Polish grocers. Each is ordinary at home and
-    // unknowable from here — they wait for a country list written against a
-    // real file, or for the user to say so once.
+    // Dutch and Polish grocers, and a local Italian bakery and German
+    // butcher. Each is ordinary at home and unknowable from here — they wait
+    // for a country list, or for the user to say so once. (Esselunga and REWE
+    // used to stand here; Italy and Germany have lists of their own now.)
     expect(seedKind('Albert Heijn 1234')).toBeUndefined();
-    expect(seedKind('ESSELUNGA MILANO')).toBeUndefined();
-    expect(seedKind('REWE SAGT DANKE')).toBeUndefined();
     expect(seedKind('BIEDRONKA 4521')).toBeUndefined();
+    expect(seedKind('PANIFICIO ROSSI MILANO')).toBeUndefined();
+    expect(seedKind('METZGEREI HUBER')).toBeUndefined();
   });
 });
 

@@ -934,7 +934,7 @@ export const de: Translations = {
     'Wenn du am 25. dein Gehalt bekommst, lebst du nicht in Kalendermonaten. Stell den Starttag ein, und die Auswertung zählt von Zahltag zu Zahltag: vom 25. Juli bis 24. August.',
     'Fällt der 25. auf ein Wochenende, geht die App auf den nächsten Werktag davor, weil das Geld dann angekommen ist. Stimmt es immer noch nicht, kannst du einen einzelnen Zeitraum von Hand festlegen – das gilt nur für diesen Monat.',
     '## Die Zuordnung',
-    'Das ist keine KI, und nichts wird heruntergeladen. Es ist eine Liste mit Namen von Geschäften, Banken und Diensten – aus Schweden, den USA, Spanien, Australien, Südafrika, Mexiko, Japan und Kolumbien, dazu internationale – und deine eigenen Korrekturen.',
+    'Das ist keine KI, und nichts wird heruntergeladen. Es ist eine Liste mit Namen von Geschäften, Banken und Diensten – aus Schweden, den USA, Spanien, Australien, Südafrika, Mexiko, Japan, Kolumbien, Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China, dazu internationale – und deine eigenen Korrekturen.',
     '1. Sie liest den Text der Zeile und sucht nach einem Namen, den sie kennt. „ICA NÄRA KUNGSHOLMEN 4711“ ist ICA.',
     '2. Erkennt sie nichts, legt sie den Eintrag unter Sonstiges ab, statt zu raten. Eine falsche Kategorie kostet mehr als eine leere.',
     '3. Wenn du einen Ort in die richtige Kategorie verschiebst, merkt sie sich das. Beim nächsten Mal wiegt deine Korrektur schwerer als die Liste.',
@@ -1002,5 +1002,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Die Währung wählst du selbst, wenn du die App zum ersten Mal öffnest. Jedes Symbol sagt, wofür es steht, zum Beispiel $ (Dollar, Peso u. a.). Neue Währungen: Rubel (₽), Brasilianischer Real (R$), Indische Rupie (₹) und Türkische Lira (₺)',
     'Der Budgetimport liest auch Word-Dateien (.docx), auch einen Plan mit einer Tabelle pro Monat. Eine Gutschrift wird von der Zeile darüber abgezogen, statt zur Ausgabe zu werden, und eine Rente unter Einnahmen zählt als Einnahme',
     'Frei verfügbar zeigt jetzt auch Pro Monat. Tipp auf Woche oder Monat, um aus dem Betrag eine Geldbörse zu machen, einen Plan für die Alltagsausgaben. Mit Zahlungszeitraum steht der Zeitraum statt des Monats da',
+    'Der Sortierer kennt gängige Geschäfte, Tankstellen, Nahverkehr und Energieversorger in Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China. Chinesische Namen werden auch erkannt, wenn die Stadt direkt dahinter steht',
   ],
 };

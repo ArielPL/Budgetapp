@@ -934,7 +934,7 @@ export const pt: Translations = {
     'Se você recebe no dia 25, não vive em meses do calendário. Defina o dia de início, e o Acompanhamento conta de pagamento a pagamento: de 25 de julho a 24 de agosto.',
     'Quando o dia 25 cai num fim de semana, o app passa para o dia útil mais próximo antes dele, porque é quando o dinheiro entrou. Se ainda assim estiver errado, você pode fixar um único período à mão — isso vale só para aquele mês.',
     '## O classificador',
-    'Não é uma IA, e nada é baixado. É uma lista de nomes de lojas, bancos e serviços — da Suécia, dos Estados Unidos, da Espanha, da Austrália, da África do Sul, do México, do Japão e da Colômbia, além de nomes internacionais — mais as suas próprias correções.',
+    'Não é uma IA, e nada é baixado. É uma lista de nomes de lojas, bancos e serviços — da Suécia, dos Estados Unidos, da Espanha, da Austrália, da África do Sul, do México, do Japão, da Colômbia, do Brasil, de Portugal, da Rússia, da Turquia, da Itália, da França, da Alemanha e da China, além de nomes internacionais — mais as suas próprias correções.',
     '1. Ele lê o texto da linha e procura um nome que conhece. "ICA NÄRA KUNGSHOLMEN 4711" é ICA.',
     '2. Se não reconhece nada, coloca o lançamento em Outros em vez de chutar. Uma categoria errada custa mais do que uma vazia.',
     '3. Quando você move um local para a categoria certa, ele lembra. Da próxima vez, sua correção vale mais do que a lista.',
@@ -1001,5 +1001,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'Você escolhe a moeda na primeira vez que abre o app. Cada símbolo diz o que representa, como $ (dólar, peso e outros). Novas moedas: rublo (₽), real (R$), rupia indiana (₹) e lira turca (₺)',
     'A importação de orçamento também lê arquivos do Word (.docx), inclusive um plano com uma tabela por mês. Um crédito é descontado da linha de cima em vez de virar uma despesa, e uma aposentadoria em Renda conta como renda',
     'Sobra para o dia a dia agora também mostra Por mês. Toque na semana ou no mês para transformar o valor em uma carteira, um plano para os gastos do dia a dia. Com período de pagamento, aparece o período em vez do mês',
+    'A classificação reconhece lojas, postos, transporte público e companhias de energia comuns no Brasil, em Portugal, na Rússia, na Turquia, na Itália, na França, na Alemanha e na China. Nomes chineses são encontrados mesmo com a cidade escrita logo depois',
   ],
 };

@@ -88,6 +88,7 @@ export const CHANGELOG: Release[] = [
         'Valutan väljer du själv när du öppnar appen första gången. Varje symbol säger vad den står för, till exempel $ (dollar, peso m.fl.). Nya valutor: rubel (₽), brasiliansk real (R$), indisk rupie (₹) och turkisk lira (₺)',
         'Budgetimporten läser också Word-filer (.docx), även en plan med en tabell per månad. En kreditpost dras av från raden ovanför i stället för att bli en kostnad, och pension under Inkomster blir inkomst',
         'Kvar att leva på visar också Per månad. Tryck på veckan eller månaden för att göra en plånbok av summan, en plan för vardagsköpen. Med löneperiod står perioden i stället för månadens namn',
+        'Sorteraren känner igen vanliga butiker, bensinstationer, kollektivtrafik och elbolag i Brasilien, Portugal, Ryssland, Turkiet, Italien, Frankrike, Tyskland och Kina. Kinesiska namn hittas även när orten står direkt efter',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -127,6 +128,7 @@ export const CHANGELOG: Release[] = [
         'You choose the currency the first time you open the app. Each symbol says what it stands for, such as $ (dollar, peso and more). New currencies: ruble (₽), Brazilian real (R$), Indian rupee (₹) and Turkish lira (₺)',
         'Budget import also reads Word files (.docx), including a plan with one table per month. A credit note is taken off the row above instead of becoming a cost, and a pension under Income becomes income',
         'Left to live on also shows Per month. Tap the week or the month to turn the amount into a wallet, a plan for everyday spending. With a pay period, the period is named instead of the month',
+        'The sorter knows common shops, fuel stations, public transport and utilities in Brazil, Portugal, Russia, Turkey, Italy, France, Germany and China. Chinese names are found even with the city written right after them',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -166,6 +168,7 @@ export const CHANGELOG: Release[] = [
         'La moneda la eliges tú la primera vez que abres la app. Cada símbolo dice qué representa, por ejemplo $ (dólar, peso y otros). Monedas nuevas: rublo (₽), real brasileño (R$), rupia india (₹) y lira turca (₺)',
         'La importación de presupuestos también lee archivos de Word (.docx), incluso un plan con una tabla por mes. Un abono se resta de la fila de arriba en vez de convertirse en un gasto, y una pensión bajo Ingresos cuenta como ingreso',
         'Para vivir este mes muestra también Al mes. Toca la semana o el mes para convertir el importe en una cartera, un plan para el día a día. Con periodo de pago, se nombra el periodo en vez del mes',
+        'El clasificador reconoce tiendas, gasolineras, transporte público y compañías de luz habituales en Brasil, Portugal, Rusia, Turquía, Italia, Francia, Alemania y China. Los nombres chinos se encuentran aunque la ciudad vaya pegada',
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

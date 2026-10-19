@@ -943,7 +943,7 @@ export const fr: Translations = {
     "Si vous êtes payé le 25, vous ne vivez pas en mois calendaires. Réglez le jour de début et Suivi compte d'une paie à l'autre : du 25 juillet au 24 août.",
     "Quand le 25 tombe un week-end, l'app passe au jour ouvré le plus proche avant, car c'est là que l'argent est arrivé. Si ce n'est toujours pas juste, vous pouvez fixer une période à la main — cela ne vaut que pour ce mois-là.",
     "## Le classement",
-    "Ce n'est pas une IA, et rien n'est téléchargé. C'est une liste de noms de commerces, de banques et de services — de Suède, des États-Unis, d'Espagne, d'Australie, d'Afrique du Sud, du Mexique, du Japon et de Colombie, plus des noms internationaux — et vos propres corrections.",
+    "Ce n'est pas une IA, et rien n'est téléchargé. C'est une liste de noms de commerces, de banques et de services — de Suède, des États-Unis, d'Espagne, d'Australie, d'Afrique du Sud, du Mexique, du Japon, de Colombie, du Brésil, du Portugal, de Russie, de Turquie, d'Italie, de France, d'Allemagne et de Chine, plus des noms internationaux — et vos propres corrections.",
     "1. Il lit le texte de la ligne et cherche un nom qu'il connaît. « ICA NÄRA KUNGSHOLMEN 4711 », c'est ICA.",
     "2. S'il ne reconnaît rien, il met l'opération dans Autres plutôt que de deviner. Une mauvaise catégorie coûte plus cher qu'une catégorie vide.",
     "3. Quand vous déplacez un commerce vers la bonne catégorie, il s'en souvient. La fois suivante, votre correction l'emporte sur la liste.",
@@ -1011,5 +1011,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     'Vous choisissez la devise à la première ouverture de l\'app. Chaque symbole indique ce qu\'il représente, par exemple $ (dollar, peso, etc.). Nouvelles devises : rouble (₽), réal brésilien (R$), roupie indienne (₹) et livre turque (₺)',
     'L\'import de budget lit aussi les fichiers Word (.docx), y compris un plan avec un tableau par mois. Un avoir est déduit de la ligne du dessus au lieu de devenir une dépense, et une retraite sous Revenus compte comme revenu',
     "Reste à vivre affiche aussi Par mois. Touchez la semaine ou le mois pour faire du montant un portefeuille, un plan pour les dépenses du quotidien. Avec une période de paie, c'est la période qui est indiquée, pas le mois",
+    "Le trieur reconnaît les commerces, stations-service, transports en commun et fournisseurs d'énergie courants au Brésil, au Portugal, en Russie, en Turquie, en Italie, en France, en Allemagne et en Chine. Les noms chinois sont reconnus même collés au nom de la ville",
   ],
 };

@@ -934,7 +934,7 @@ export const it: Translations = {
     "Se ti pagano il 25, non vivi per mesi di calendario. Imposta il giorno di inizio e Monitoraggio conta da stipendio a stipendio: dal 25 luglio al 24 agosto.",
     "Quando il 25 cade nel fine settimana, l'app passa al giorno feriale più vicino prima di esso, perché è allora che sono arrivati i soldi. Se è ancora sbagliato puoi fissare a mano un singolo periodo: vale solo per quel mese.",
     "## Lo smistatore",
-    "Non è un'IA e non viene scaricato nulla. È un elenco di nomi di negozi, banche e servizi, di Svezia, Stati Uniti, Spagna, Australia, Sudafrica, Messico, Giappone e Colombia, più quelli internazionali, insieme alle tue correzioni.",
+    "Non è un'IA e non viene scaricato nulla. È un elenco di nomi di negozi, banche e servizi, di Svezia, Stati Uniti, Spagna, Australia, Sudafrica, Messico, Giappone, Colombia, Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina, più quelli internazionali, insieme alle tue correzioni.",
     "1. Legge il testo della riga e cerca un nome che conosce. «ICA NÄRA KUNGSHOLMEN 4711» è ICA.",
     "2. Se non riconosce nulla, mette il movimento in Altro invece di tirare a indovinare. Una categoria sbagliata costa più di una vuota.",
     "3. Quando sposti un esercente nella categoria giusta, se lo ricorda. La volta dopo la tua correzione conta più dell'elenco.",
@@ -1002,5 +1002,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Scegli la valuta la prima volta che apri l'app. Ogni simbolo dice cosa rappresenta, per esempio $ (dollaro, peso e altri). Nuove valute: rublo (₽), real brasiliano (R$), rupia indiana (₹) e lira turca (₺)",
     "L'importazione del budget legge anche i file Word (.docx), compreso un piano con una tabella per mese. Una nota di credito viene detratta dalla riga sopra invece di diventare una spesa, e una pensione sotto Entrate diventa un'entrata",
     "Rimane per vivere mostra anche Al mese. Tocca la settimana o il mese per trasformare l'importo in un portafoglio, un piano per le spese quotidiane. Con un periodo di paga viene indicato il periodo invece del mese",
+    'Lo smistamento riconosce negozi, distributori, trasporti pubblici e fornitori di energia comuni in Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina. I nomi cinesi vengono trovati anche con la città scritta subito dopo',
   ],
 };

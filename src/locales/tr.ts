@@ -934,7 +934,7 @@ export const tr: Translations = {
     "Maaşınızı ayın 25'inde alıyorsanız takvim aylarıyla yaşamıyorsunuz demektir. Başlangıç gününü ayarlayın; Takip maaş gününden maaş gününe sayar: 25 Temmuz'dan 24 Ağustos'a.",
     "Ayın 25'i hafta sonuna denk gelirse uygulama ondan önceki en yakın iş gününü alır, çünkü para o gün gelmiştir. Hâlâ yanlışsa tek bir dönemi elle sabitleyebilirsiniz; bu yalnızca o ay için geçerlidir.",
     "## Sınıflandırıcı",
-    "Bir yapay zekâ değildir ve hiçbir şey indirilmez. İsveç, ABD, İspanya, Avustralya, Güney Afrika, Meksika, Japonya ve Kolombiya'dan, ayrıca uluslararası mağaza, banka ve hizmet adlarından oluşan bir listedir; buna sizin kendi düzeltmeleriniz eklenir.",
+    "Bir yapay zekâ değildir ve hiçbir şey indirilmez. İsveç, ABD, İspanya, Avustralya, Güney Afrika, Meksika, Japonya, Kolombiya, Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'den, ayrıca uluslararası mağaza, banka ve hizmet adlarından oluşan bir listedir; buna sizin kendi düzeltmeleriniz eklenir.",
     "1. Satırdaki metni okur ve tanıdığı bir ad arar. “ICA NÄRA KUNGSHOLMEN 4711” ICA demektir.",
     "2. Hiçbir şey tanımazsa tahmin etmek yerine kaydı Diğer'e koyar. Yanlış bir kategori, boş bir kategoriden daha pahalıya mal olur.",
     "3. Bir yeri doğru kategoriye taşıdığınızda bunu hatırlar. Bir dahaki sefere sizin düzeltmeniz listeden ağır basar.",
@@ -1001,5 +1001,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Para birimini uygulamayı ilk açtığınızda siz seçiyorsunuz. Her simge neyi temsil ettiğini söylüyor, örneğin $ (dolar, peso ve diğerleri). Yeni para birimleri: ruble (₽), Brezilya reali (R$), Hindistan rupisi (₹) ve Türk lirası (₺)",
     "Bütçe içe aktarma artık Word dosyalarını (.docx) da okuyor; ay başına bir tablo içeren bir plan da buna dahil. Bir alacak kaydı gider olmak yerine üstündeki satırdan düşülüyor ve Gelir altındaki emeklilik geliri gelir sayılıyor",
     'Geçim için kalan artık Aylık tutarı da gösteriyor. Tutardan bir cüzdan, yani günlük harcamalar için bir plan oluşturmak için haftaya veya aya dokunun. Maaş dönemi açıksa ay yerine dönem gösterilir',
+    "Sınıflandırıcı artık Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'deki yaygın mağazaları, akaryakıt istasyonlarını, toplu taşımayı ve enerji şirketlerini tanıyor. Çince adlar, hemen arkasına şehir yazılmış olsa da bulunur",
   ],
 };
