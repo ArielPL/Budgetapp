@@ -35,7 +35,7 @@ import { UndoBar } from './components/UndoBar';
 import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
-import { shortWhen, longDate, inSentence, monthInText, monthTitle } from './dateLabel';
+import { shortWhen, longDate, inSentence, monthInText, monthTitle, formatPeriodRange } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
@@ -66,8 +66,9 @@ import { savingsStreakFrom } from './insight';
 import { hasBudgetContent } from './monthContent';
 import {
   loadStartDay, isValidStartDay, PERIOD_START_KEY,
-  loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
+  loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, periodRange, type PeriodLocks,
 } from './periodLabel';
+import { ConfirmChange } from './components/ConfirmChange';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
 import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
@@ -79,6 +80,7 @@ import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageC
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
+import { newBlank, loadWallets, walletsChange, walletWeek, isoWeek, isoDay, WALLETS_KEY, OPEN_PANEL_KEY } from './wallets';
 
 
 
@@ -1730,6 +1732,41 @@ function App({ startupRepair = null }: AppProps) {
     return true;
   };
 
+  // ── A wallet from Left to live on (Ariel, 2026-10-18) ────────────────
+  // The week's or the month's amount becomes a wallet: a plan for everyday
+  // spending, filled in as the money goes. A snapshot — the budget is not
+  // touched, and changing the budget later does not change the wallet.
+  const [walletDraft, setWalletDraft] = useState<{ name: string; total: number; from: Date; to: Date } | null>(null);
+  const planWallet = (span: 'week' | 'month', amount: number) => {
+    const monthSpan = periodStartDay !== null || Object.keys(periodLocks).length > 0
+      ? periodRange(year, month, periodStartDay ?? 1, periodLocks)
+      : { from: new Date(year, month, 1), to: new Date(year, month + 1, 0) };
+    if (span === 'month') {
+      setWalletDraft({ name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)), total: amount, ...monthSpan });
+    } else {
+      const week = walletWeek(new Date(), monthSpan);
+      setWalletDraft({ name: t.walletNameWeek(isoWeek(week.from)), total: amount, ...week });
+    }
+  };
+  const createWalletFromBudget = async (): Promise<boolean> => {
+    if (!walletDraft) return false;
+    const before = captureKeys(appStorage, [WALLETS_KEY]);
+    const wallet = newBlank({
+      id: generateId(), name: walletDraft.name, total: walletDraft.total,
+      from: isoDay(walletDraft.from), to: isoDay(walletDraft.to),
+    });
+    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange([...loadWallets(appStorage), wallet])]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    recordUndo({ at: new Date().toISOString(), action: 'createWallet', changes: before });
+    // Straight to it: the wallets screen opens on the wallet just made.
+    safeSetItem(appStorage, OPEN_PANEL_KEY, wallet.id);
+    setWalletsScreen(true);
+    return true;
+  };
+
   /** A goal the user's own change just completed: say so, and buzz a phone. */
   const rewardReachedGoals = (before: SavingsGoal[], after: SavingsGoal[]) => {
     const reached = goalsJustReached(before, after);
@@ -1853,6 +1890,7 @@ function App({ startupRepair = null }: AppProps) {
           month={month}
           periodStartDay={periodStartDay}
           periodLocks={periodLocks}
+          onMakeWallet={planWallet}
         />
       )}
       <div className="budget-grid">
@@ -2264,6 +2302,18 @@ function App({ startupRepair = null }: AppProps) {
         )}
       </header>
 
+      {walletDraft && (
+        <ConfirmChange
+          title={t.wCreate}
+          lines={[
+            { label: t.wName, after: walletDraft.name },
+            { label: t.wTotal, after: money(walletDraft.total) },
+            { label: t.walletPeriod, after: formatPeriodRange(walletDraft, lang) },
+          ]}
+          onConfirm={createWalletFromBudget}
+          onClose={() => setWalletDraft(null)}
+        />
+      )}
       {guideOpen && (
         <Suspense fallback={null}>
           <Guide onClose={() => setGuideOpen(false)} />

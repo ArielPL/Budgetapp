@@ -566,6 +566,7 @@ export const tr: Translations = {
     if (action === 'deleteWallet') return "Bir cüzdan silindi";
     if (action === 'deleteWalletExpense') return "Bir cüzdandan bir gider silindi";
     if (action === 'createGoal') return "Bir birikim hedefi oluşturuldu";
+    if (action === 'createWallet') return 'Bir cüzdan oluşturuldu';
     if (action === 'renameRow') return `Bir satırın adı değiştirildi (${where})`;
     if (action === 'debtExtra') return "Borçlarınız için ek tutar değiştirildi";
     if (count === 1) return "Maaş dönemi değiştirildi — 1 kayıt taşındı";
@@ -663,6 +664,12 @@ export const tr: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `${month} boyunca (${n} gün)`,
   dailyBudgetPerDay: "Günlük",
   dailyBudgetPerWeek: "Haftalık",
+  dailyBudgetPerMonth: 'Aylık',
+  dailyBudgetToWallet: '+ cüzdan',
+  dailyBudgetWalletAria: (amount) => `${amount} ile cüzdan oluştur`,
+  walletPeriod: 'Dönem',
+  walletNameMonth: (month) => `Günlük harcama · ${month}`,
+  walletNameWeek: (week) => `Günlük harcama · ${week}. hafta`,
   sparplanTitle: "Birikim planı",
   sparplanBody: "Aylık birikiminizi ve beklenen getiriyi planlayın; bileşik büyümenin işini yapışını izleyin.",
   sparplanMonthly: "Aylık birikim",
@@ -869,6 +876,8 @@ export const tr: Translations = {
   wStartsIn: (days) => `${days} gün sonra başlıyor`,
   wEnded: "Seyahat bitti",
   wPerDay: (amount) => `Seyahatin geri kalanı için günde ${amount}`,
+  wPerDayPeriod: (amount) => `Dönemin geri kalanı için günde ${amount}`,
+  wEndedPeriod: 'Dönem bitti',
   wOver: (over) => `Bütçenin ${over} üzerinde`,
   wAddExpense: "+ Gider ekle",
   wAmount: "Tutar",
@@ -991,5 +1000,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Başlarken: uygulamanın her bölümü için bir rehber, Bütçe sekmesinin en üstünde ve menüde ilk sırada",
     "Para birimini uygulamayı ilk açtığınızda siz seçiyorsunuz. Her simge neyi temsil ettiğini söylüyor, örneğin $ (dolar, peso ve diğerleri). Yeni para birimleri: ruble (₽), Brezilya reali (R$), Hindistan rupisi (₹) ve Türk lirası (₺)",
     "Bütçe içe aktarma artık Word dosyalarını (.docx) da okuyor; ay başına bir tablo içeren bir plan da buna dahil. Bir alacak kaydı gider olmak yerine üstündeki satırdan düşülüyor ve Gelir altındaki emeklilik geliri gelir sayılıyor",
+    'Geçim için kalan artık Aylık tutarı da gösteriyor. Tutardan bir cüzdan, yani günlük harcamalar için bir plan oluşturmak için haftaya veya aya dokunun. Maaş dönemi açıksa ay yerine dönem gösterilir',
   ],
 };

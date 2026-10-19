@@ -452,8 +452,26 @@ a:focus-visible,
 }
 .daily-budget-tiles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+/* Week and month make a wallet of their amount: a tile that is a button,
+   and says so under the figure. */
+.daily-budget-tile-btn {
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .daily-budget-tile-btn:hover { border-color: color-mix(in srgb, var(--accent-brand) 50%, var(--border)); }
+}
+.daily-budget-make {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-brand-strong);
 }
 .daily-budget-tile {
   background: var(--surface2);
@@ -6838,5 +6856,10 @@ td.num[style*="color: rgb"],
   /* 1px sides, not 4: "Sparande" and "Schulden" lost their last letters to
      the padding on a 320px phone (languages check, 2026-10-18). */
   .tab-btn { min-width: 0; font-size: min(0.68rem, 12.5px); padding-inline: 1px; }
+
+  /* Three tiles do not fit a phone's width with room for "36 000 kr": day and
+     week side by side, the month under them across the whole card. */
+  .daily-budget-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .daily-budget-tile-month { grid-column: 1 / -1; }
   .tab-label-short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

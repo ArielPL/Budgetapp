@@ -926,6 +926,14 @@ export interface Translations {
   dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
   dailyBudgetPerWeek: string;
+  dailyBudgetPerMonth: string;
+  /** The hint on a tile that makes a wallet of its amount ("+ plånbok"). */
+  dailyBudgetToWallet: string;
+  dailyBudgetWalletAria: (amount: string) => string;
+  walletPeriod: string;
+  /** A wallet made from Left to live on: "Vardag oktober", "Vardag v. 42". */
+  walletNameMonth: (month: string) => string;
+  walletNameWeek: (week: number) => string;
   // Sparplan (savings plan projection + plan-vs-actual)
   sparplanTitle: string;
   sparplanBody: string;
@@ -1153,6 +1161,9 @@ export interface Translations {
   wStartsIn: (days: number) => string;
   wEnded: string;
   wPerDay: (amount: string) => string;
+  /** The same for a wallet that is not a trip: a period, not a journey. */
+  wPerDayPeriod: (amount: string) => string;
+  wEndedPeriod: string;
   wOver: (over: string) => string;
   wAddExpense: string;
   wAmount: string;
@@ -1793,6 +1804,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'En plånbok togs bort';
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (action === 'createGoal') return 'Ett sparmål skapades';
+      if (action === 'createWallet') return 'En plånbok skapades';
       if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
@@ -1891,6 +1903,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
+    dailyBudgetPerMonth: 'Per månad',
+    dailyBudgetToWallet: '+ plånbok',
+    dailyBudgetWalletAria: (amount) => `Skapa en plånbok med ${amount}`,
+    walletPeriod: 'Period',
+    walletNameMonth: (month) => `Vardag ${month}`,
+    walletNameWeek: (week) => `Vardag v. ${week}`,
     sparplanTitle: 'Sparplan',
     sparplanBody: 'Planera ditt månadssparande och din förväntade avkastning — och se hur det växer med ränta på ränta.',
     sparplanMonthly: 'Månadssparande',
@@ -2097,6 +2115,8 @@ export const translations: Record<Lang, Translations> = {
     wStartsIn: (days) => `Börjar om ${days} ${days === 1 ? 'dag' : 'dagar'}`,
     wEnded: 'Resan är slut',
     wPerDay: (amount) => `${amount} per dag resten av resan`,
+    wPerDayPeriod: (amount) => `${amount} per dag resten av perioden`,
+    wEndedPeriod: 'Perioden är slut',
     wOver: (over) => `${over} över budgeten`,
     wAddExpense: '+ Lägg till utgift',
     wAmount: 'Belopp',
@@ -2745,6 +2765,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'A wallet was removed';
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (action === 'createGoal') return 'A savings goal was created';
+      if (action === 'createWallet') return 'A wallet was created';
       if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
@@ -2842,6 +2863,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
+    dailyBudgetPerMonth: 'Per month',
+    dailyBudgetToWallet: '+ wallet',
+    dailyBudgetWalletAria: (amount) => `Create a wallet with ${amount}`,
+    walletPeriod: 'Period',
+    walletNameMonth: (month) => `Day to day · ${month}`,
+    walletNameWeek: (week) => `Day to day · week ${week}`,
     sparplanTitle: 'Savings plan',
     sparplanBody: 'Plan your monthly saving and expected return — and watch compound growth do its work.',
     sparplanMonthly: 'Monthly saving',
@@ -3048,6 +3075,8 @@ export const translations: Record<Lang, Translations> = {
     wStartsIn: (days) => `Starts in ${days} ${days === 1 ? 'day' : 'days'}`,
     wEnded: 'The trip is over',
     wPerDay: (amount) => `${amount} a day for the rest of the trip`,
+    wPerDayPeriod: (amount) => `${amount} a day for the rest of the period`,
+    wEndedPeriod: 'The period is over',
     wOver: (over) => `${over} over budget`,
     wAddExpense: '+ Add expense',
     wAmount: 'Amount',
@@ -3696,6 +3725,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteWallet') return 'Se eliminó una cartera';
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
+      if (action === 'createWallet') return 'Se creó una cartera';
       if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
@@ -3793,6 +3823,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',
+    dailyBudgetPerMonth: 'Al mes',
+    dailyBudgetToWallet: '+ cartera',
+    dailyBudgetWalletAria: (amount) => `Crear una cartera con ${amount}`,
+    walletPeriod: 'Periodo',
+    walletNameMonth: (month) => `Día a día · ${month}`,
+    walletNameWeek: (week) => `Día a día · semana ${week}`,
     sparplanTitle: 'Plan de ahorro',
     sparplanBody: 'Planifica tu ahorro mensual y el rendimiento esperado — y mira crecer el interés compuesto.',
     sparplanMonthly: 'Ahorro mensual',
@@ -3999,6 +4035,8 @@ export const translations: Record<Lang, Translations> = {
     wStartsIn: (days) => `Empieza en ${days} ${days === 1 ? 'día' : 'días'}`,
     wEnded: 'El viaje ha terminado',
     wPerDay: (amount) => `${amount} al día el resto del viaje`,
+    wPerDayPeriod: (amount) => `${amount} al día el resto del periodo`,
+    wEndedPeriod: 'El periodo ha terminado',
     wOver: (over) => `${over} por encima del presupuesto`,
     wAddExpense: '+ Añadir gasto',
     wAmount: 'Importe',

@@ -206,3 +206,33 @@ export function walletSummary(w: Wallet, today: string): WalletSummary {
     pots: w.pots.map(pot => ({ pot, spent: toCents(byPot.get(pot.id) ?? 0) })),
   };
 }
+
+// ── A wallet made from Left to live on ─────────────────────────────────────
+
+/** "YYYY-MM-DD" of a local date. */
+export const isoDay = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** The ISO week number (Monday first, week 1 holds the year's first Thursday). */
+export function isoWeek(d: Date): number {
+  const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = x.getUTCDay() || 7;
+  x.setUTCDate(x.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
+  return Math.ceil(((x.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+}
+
+/**
+ * The week a "per week" wallet covers: Monday to Sunday of this week when
+ * today falls in the month being planned, otherwise the month's first seven
+ * days — planning next month on the 28th plans its first week, not this one.
+ */
+export function walletWeek(today: Date, month: { from: Date; to: Date }): { from: Date; to: Date } {
+  const day = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const inMonth = day >= month.from && day <= month.to;
+  const from = inMonth ? new Date(day) : new Date(month.from);
+  if (inMonth) from.setDate(from.getDate() - ((from.getDay() + 6) % 7));
+  const to = new Date(from);
+  to.setDate(to.getDate() + 6);
+  return { from, to };
+}

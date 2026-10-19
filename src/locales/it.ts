@@ -566,6 +566,7 @@ export const it: Translations = {
     if (action === 'deleteWallet') return "Un portafoglio è stato rimosso";
     if (action === 'deleteWalletExpense') return "Una spesa è stata rimossa da un portafoglio";
     if (action === 'createGoal') return "È stato creato un obiettivo di risparmio";
+    if (action === 'createWallet') return 'È stato creato un portafoglio';
     if (action === 'renameRow') return `Una riga è stata rinominata in ${where}`;
     if (action === 'debtExtra') return "L'importo extra per i tuoi debiti è stato cambiato";
     if (count === 1) return "Il periodo di paga è stato cambiato: 1 movimento spostato";
@@ -663,6 +664,12 @@ export const it: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `distribuito su ${month} (${n} giorni)`,
   dailyBudgetPerDay: "Al giorno",
   dailyBudgetPerWeek: "Alla settimana",
+  dailyBudgetPerMonth: 'Al mese',
+  dailyBudgetToWallet: '+ portafoglio',
+  dailyBudgetWalletAria: (amount) => `Crea un portafoglio con ${amount}`,
+  walletPeriod: 'Periodo',
+  walletNameMonth: (month) => `Spese quotidiane · ${month}`,
+  walletNameWeek: (week) => `Spese quotidiane · settimana ${week}`,
   sparplanTitle: "Piano di risparmio",
   sparplanBody: "Pianifica il risparmio mensile e il rendimento atteso, e guarda l'interesse composto fare il suo lavoro.",
   sparplanMonthly: "Risparmio mensile",
@@ -869,6 +876,8 @@ export const it: Translations = {
   wStartsIn: (days) => `Inizia tra ${days} ${days === 1 ? "giorno" : "giorni"}`,
   wEnded: "Il viaggio è finito",
   wPerDay: (amount) => `${amount} al giorno per il resto del viaggio`,
+  wPerDayPeriod: (amount) => `${amount} al giorno per il resto del periodo`,
+  wEndedPeriod: 'Il periodo è finito',
   wOver: (over) => `${over} oltre il budget`,
   wAddExpense: "+ Aggiungi spesa",
   wAmount: "Importo",
@@ -992,5 +1001,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Per iniziare: una guida a ogni parte dell'app, in cima a Budget e per prima nel menu",
     "Scegli la valuta la prima volta che apri l'app. Ogni simbolo dice cosa rappresenta, per esempio $ (dollaro, peso e altri). Nuove valute: rublo (₽), real brasiliano (R$), rupia indiana (₹) e lira turca (₺)",
     "L'importazione del budget legge anche i file Word (.docx), compreso un piano con una tabella per mese. Una nota di credito viene detratta dalla riga sopra invece di diventare una spesa, e una pensione sotto Entrate diventa un'entrata",
+    "Rimane per vivere mostra anche Al mese. Tocca la settimana o il mese per trasformare l'importo in un portafoglio, un piano per le spese quotidiane. Con un periodo di paga viene indicato il periodo invece del mese",
   ],
 };

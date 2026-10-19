@@ -566,6 +566,7 @@ export const pt: Translations = {
     if (action === 'deleteWallet') return 'Uma carteira foi removida';
     if (action === 'deleteWalletExpense') return 'Uma despesa foi removida de uma carteira';
     if (action === 'createGoal') return 'Uma meta de poupança foi criada';
+    if (action === 'createWallet') return 'Uma carteira foi criada';
     if (action === 'renameRow') return `Uma linha foi renomeada em ${where}`;
     if (action === 'debtExtra') return 'O valor extra para as suas dívidas foi alterado';
     if (count === 1) return 'O período de pagamento foi alterado — 1 lançamento movido';
@@ -663,6 +664,12 @@ export const pt: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `distribuído por ${month} (${n} dias)`,
   dailyBudgetPerDay: 'Por dia',
   dailyBudgetPerWeek: 'Por semana',
+  dailyBudgetPerMonth: 'Por mês',
+  dailyBudgetToWallet: '+ carteira',
+  dailyBudgetWalletAria: (amount) => `Criar uma carteira com ${amount}`,
+  walletPeriod: 'Período',
+  walletNameMonth: (month) => `Dia a dia · ${month}`,
+  walletNameWeek: (week) => `Dia a dia · semana ${week}`,
   sparplanTitle: 'Plano de poupança',
   sparplanBody: 'Planeje quanto poupar por mês e o rendimento esperado — e veja os juros compostos trabalharem.',
   sparplanMonthly: 'Poupança mensal',
@@ -869,6 +876,8 @@ export const pt: Translations = {
   wStartsIn: (days) => `Começa em ${days} ${days === 1 ? 'dia' : 'dias'}`,
   wEnded: 'A viagem terminou',
   wPerDay: (amount) => `${amount} por dia no resto da viagem`,
+  wPerDayPeriod: (amount) => `${amount} por dia no resto do período`,
+  wEndedPeriod: 'O período terminou',
   wOver: (over) => `${over} acima do orçamento`,
   wAddExpense: '+ Adicionar despesa',
   wAmount: 'Valor',
@@ -991,5 +1000,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'Comece aqui: um guia de cada parte do app, no topo de Orçamento e em primeiro lugar no menu',
     'Você escolhe a moeda na primeira vez que abre o app. Cada símbolo diz o que representa, como $ (dólar, peso e outros). Novas moedas: rublo (₽), real (R$), rupia indiana (₹) e lira turca (₺)',
     'A importação de orçamento também lê arquivos do Word (.docx), inclusive um plano com uma tabela por mês. Um crédito é descontado da linha de cima em vez de virar uma despesa, e uma aposentadoria em Renda conta como renda',
+    'Sobra para o dia a dia agora também mostra Por mês. Toque na semana ou no mês para transformar o valor em uma carteira, um plano para os gastos do dia a dia. Com período de pagamento, aparece o período em vez do mês',
   ],
 };

@@ -562,6 +562,7 @@ export const zh: Translations = {
     if (action === 'deleteWallet') return '已删除一个钱包';
     if (action === 'deleteWalletExpense') return '已从钱包中删除一笔支出';
     if (action === 'createGoal') return '已创建一个储蓄目标';
+    if (action === 'createWallet') return '已创建钱包';
     if (action === 'renameRow') return `已在${where}重命名一行`;
     if (action === 'debtExtra') return '债务的额外还款金额已更改';
     if (count === 1) return '发薪周期已更改——移动了 1 条记录';
@@ -659,6 +660,12 @@ export const zh: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `分摊到${month}（${n} 天）`,
   dailyBudgetPerDay: '每天',
   dailyBudgetPerWeek: '每周',
+  dailyBudgetPerMonth: '每月',
+  dailyBudgetToWallet: '+ 钱包',
+  dailyBudgetWalletAria: (amount) => `用 ${amount} 创建钱包`,
+  walletPeriod: '期间',
+  walletNameMonth: (month) => `日常开支 · ${month}`,
+  walletNameWeek: (week) => `日常开支 · 第${week}周`,
   sparplanTitle: '储蓄计划',
   sparplanBody: '规划每月储蓄和预期收益——看复利如何发挥作用。',
   sparplanMonthly: '每月储蓄',
@@ -865,6 +872,8 @@ export const zh: Translations = {
   wStartsIn: (days) => `${days} 天后开始`,
   wEnded: '旅行已结束',
   wPerDay: (amount) => `旅途剩余时间每天 ${amount}`,
+  wPerDayPeriod: (amount) => `剩余期间每天 ${amount}`,
+  wEndedPeriod: '期间已结束',
   wOver: (over) => `超出预算 ${over}`,
   wAddExpense: '+ 添加支出',
   wAmount: '金额',
@@ -988,5 +997,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     '入门：介绍应用每个部分的指南，位于「预算」顶部和菜单最上方',
     '第一次打开应用时由你自己选择货币。每个符号都会说明代表什么，例如 $（美元、加元、比索等）。新增货币：卢布（₽）、巴西雷亚尔（R$）、印度卢比（₹）和土耳其里拉（₺）',
     '预算导入现在也能读取 Word 文件（.docx），包括每月一张表格的计划。退款或贷记不会变成支出，而是从上一行中扣除；「收入」下的养老金按收入计算',
+    '「可用生活费」现在也显示「每月」。点按周或月，即可用这笔金额创建钱包，作为日常开支的计划。设置了发薪周期时，显示的是周期而不是月份',
   ],
 };

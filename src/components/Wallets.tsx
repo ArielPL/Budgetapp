@@ -322,9 +322,13 @@ export const WalletView = ({ wallet, onChange, onDelete }: {
       onSave={async change => { if (await onChange(change)) setEditing(false); }} />;
   }
 
+  // A trip ends as a trip; any other wallet — "Vardag oktober" from Left to
+  // live on — as a period. "Resten av resan" under a month's everyday money
+  // read like a mistake (2026-10-18).
+  const trip = wallet.kind === 'trip';
   const timing = s.timing.kind === 'before' ? t.wStartsIn(s.timing.days)
     : s.timing.kind === 'during' ? t.wDaysLeft(s.timing.daysLeft)
-      : s.timing.kind === 'after' ? t.wEnded : null;
+      : s.timing.kind === 'after' ? (trip ? t.wEnded : t.wEndedPeriod) : null;
 
   return (
     <div className="wallet">
@@ -341,7 +345,7 @@ export const WalletView = ({ wallet, onChange, onDelete }: {
           {timing && ` · ${timing}`}
         </div>
         {s.timing.kind === 'during' && s.left > 0 && (
-          <div className="wallet-hero-sub">{t.wPerDay(r(s.left / s.timing.daysLeft))}</div>
+          <div className="wallet-hero-sub">{(trip ? t.wPerDay : t.wPerDayPeriod)(r(s.left / s.timing.daysLeft))}</div>
         )}
       </div>
 

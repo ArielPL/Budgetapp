@@ -575,6 +575,7 @@ export const fr: Translations = {
     if (action === 'deleteWallet') return "Un portefeuille a été supprimé";
     if (action === 'deleteWalletExpense') return "Une dépense a été supprimée d'un portefeuille";
     if (action === 'createGoal') return "Un objectif d'épargne a été créé";
+    if (action === 'createWallet') return 'Un portefeuille a été créé';
     if (action === 'renameRow') return `Une ligne a été renommée (${where})`;
     if (action === 'debtExtra') return "Le montant en plus pour vos dettes a été modifié";
     if (count === 1) return "La période de paie a été modifiée — 1 opération déplacée";
@@ -672,6 +673,12 @@ export const fr: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `réparti sur ${month} (${n} jours)`,
   dailyBudgetPerDay: "Par jour",
   dailyBudgetPerWeek: "Par semaine",
+  dailyBudgetPerMonth: 'Par mois',
+  dailyBudgetToWallet: '+ portefeuille',
+  dailyBudgetWalletAria: (amount) => `Créer un portefeuille de ${amount}`,
+  walletPeriod: 'Période',
+  walletNameMonth: (month) => `Au quotidien · ${month}`,
+  walletNameWeek: (week) => `Au quotidien · semaine ${week}`,
   sparplanTitle: "Plan d'épargne",
   sparplanBody: "Planifiez votre épargne mensuelle et le rendement attendu — et regardez les intérêts composés faire leur travail.",
   sparplanMonthly: "Épargne mensuelle",
@@ -878,6 +885,8 @@ export const fr: Translations = {
   wStartsIn: (days) => `Commence dans ${days} ${days < 2 ? "jour" : "jours"}`,
   wEnded: "Le voyage est terminé",
   wPerDay: (amount) => `${amount} par jour pour le reste du voyage`,
+  wPerDayPeriod: (amount) => `${amount} par jour pour le reste de la période`,
+  wEndedPeriod: 'La période est terminée',
   wOver: (over) => `${over} au-dessus du budget`,
   wAddExpense: "+ Ajouter une dépense",
   wAmount: "Montant",
@@ -1001,5 +1010,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     'Bien démarrer : un guide de chaque partie de l\'app, en haut de Budget et en premier dans le menu',
     'Vous choisissez la devise à la première ouverture de l\'app. Chaque symbole indique ce qu\'il représente, par exemple $ (dollar, peso, etc.). Nouvelles devises : rouble (₽), réal brésilien (R$), roupie indienne (₹) et livre turque (₺)',
     'L\'import de budget lit aussi les fichiers Word (.docx), y compris un plan avec un tableau par mois. Un avoir est déduit de la ligne du dessus au lieu de devenir une dépense, et une retraite sous Revenus compte comme revenu',
+    "Reste à vivre affiche aussi Par mois. Touchez la semaine ou le mois pour faire du montant un portefeuille, un plan pour les dépenses du quotidien. Avec une période de paie, c'est la période qui est indiquée, pas le mois",
   ],
 };

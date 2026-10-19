@@ -566,6 +566,7 @@ export const de: Translations = {
     if (action === 'deleteWallet') return 'Eine Geldbörse wurde entfernt';
     if (action === 'deleteWalletExpense') return 'Eine Ausgabe wurde aus einer Geldbörse entfernt';
     if (action === 'createGoal') return 'Ein Sparziel wurde angelegt';
+    if (action === 'createWallet') return 'Eine Geldbörse wurde angelegt';
     if (action === 'renameRow') return `Eine Zeile wurde in ${where} umbenannt`;
     if (action === 'debtExtra') return 'Der Extrabetrag für deine Schulden wurde geändert';
     if (count === 1) return 'Der Zahlungszeitraum wurde geändert – 1 Eintrag verschoben';
@@ -663,6 +664,12 @@ export const de: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `verteilt auf ${month} (${n} ${n === 1 ? 'Tag' : 'Tage'})`,
   dailyBudgetPerDay: 'Pro Tag',
   dailyBudgetPerWeek: 'Pro Woche',
+  dailyBudgetPerMonth: 'Pro Monat',
+  dailyBudgetToWallet: '+ Geldbörse',
+  dailyBudgetWalletAria: (amount) => `Geldbörse mit ${amount} anlegen`,
+  walletPeriod: 'Zeitraum',
+  walletNameMonth: (month) => `Alltag · ${month}`,
+  walletNameWeek: (week) => `Alltag · KW ${week}`,
   sparplanTitle: 'Sparplan',
   sparplanBody: 'Plane dein monatliches Sparen und die erwartete Rendite – und sieh zu, wie der Zinseszins seine Arbeit macht.',
   sparplanMonthly: 'Monatliche Sparrate',
@@ -869,6 +876,8 @@ export const de: Translations = {
   wStartsIn: (days) => `Beginnt in ${days} ${days === 1 ? 'Tag' : 'Tagen'}`,
   wEnded: 'Die Reise ist vorbei',
   wPerDay: (amount) => `${amount} pro Tag für den Rest der Reise`,
+  wPerDayPeriod: (amount) => `${amount} pro Tag für den Rest des Zeitraums`,
+  wEndedPeriod: 'Der Zeitraum ist vorbei',
   wOver: (over) => `${over} über dem Budget`,
   wAddExpense: '+ Ausgabe hinzufügen',
   wAmount: 'Betrag',
@@ -992,5 +1001,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Erste Schritte: eine Anleitung zu jedem Teil der App, oben im Budget und als Erstes im Menü',
     'Die Währung wählst du selbst, wenn du die App zum ersten Mal öffnest. Jedes Symbol sagt, wofür es steht, zum Beispiel $ (Dollar, Peso u. a.). Neue Währungen: Rubel (₽), Brasilianischer Real (R$), Indische Rupie (₹) und Türkische Lira (₺)',
     'Der Budgetimport liest auch Word-Dateien (.docx), auch einen Plan mit einer Tabelle pro Monat. Eine Gutschrift wird von der Zeile darüber abgezogen, statt zur Ausgabe zu werden, und eine Rente unter Einnahmen zählt als Einnahme',
+    'Frei verfügbar zeigt jetzt auch Pro Monat. Tipp auf Woche oder Monat, um aus dem Betrag eine Geldbörse zu machen, einen Plan für die Alltagsausgaben. Mit Zahlungszeitraum steht der Zeitraum statt des Monats da',
   ],
 };

@@ -562,6 +562,7 @@ export const ja: Translations = {
     if (action === 'deleteWallet') return 'ウォレットを削除しました';
     if (action === 'deleteWalletExpense') return 'ウォレットから支出を削除しました';
     if (action === 'createGoal') return '貯蓄目標を作成しました';
+    if (action === 'createWallet') return 'ウォレットを作成しました';
     if (action === 'renameRow') return `${where}の行の名前を変更しました`;
     if (action === 'debtExtra') return '負債の追加返済額を変更しました';
     if (count === 1) return '集計期間を変更しました — 1件を移動';
@@ -659,6 +660,12 @@ export const ja: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `${month}（${n}日間）で割った額`,
   dailyBudgetPerDay: '1日あたり',
   dailyBudgetPerWeek: '1週間あたり',
+  dailyBudgetPerMonth: '1か月あたり',
+  dailyBudgetToWallet: '+ ウォレット',
+  dailyBudgetWalletAria: (amount) => `${amount}でウォレットを作成`,
+  walletPeriod: '期間',
+  walletNameMonth: (month) => `日々の支出・${month}`,
+  walletNameWeek: (week) => `日々の支出・第${week}週`,
   sparplanTitle: '積立プラン',
   sparplanBody: '毎月の積立額と期待リターンを計画して、複利の効果を確かめましょう。',
   sparplanMonthly: '毎月の積立額',
@@ -865,6 +872,8 @@ export const ja: Translations = {
   wStartsIn: (days) => `${days}日後に開始`,
   wEnded: '旅行は終了しました',
   wPerDay: (amount) => `旅行の残り期間は1日${amount}`,
+  wPerDayPeriod: (amount) => `期間の残りは1日${amount}`,
+  wEndedPeriod: '期間は終了しました',
   wOver: (over) => `予算を${over}超過`,
   wAddExpense: '+ 支出を追加',
   wAmount: '金額',
@@ -988,5 +997,6 @@ export const jaChangelog113: { title: string; items: string[] } = {
     'はじめに：アプリの各部分を説明するガイド。「予算」の上部とメニューのいちばん上にあります',
     '通貨は、アプリを初めて開いたときに自分で選びます。各記号には、$（ドル、ペソなど）のように何を表すかが書かれています。新しい通貨：ルーブル（₽）、ブラジル・レアル（R$）、インド・ルピー（₹）、トルコ・リラ（₺）',
     '予算のインポートでWordファイル（.docx）も読み込めるようになりました。月ごとに表が分かれた計画にも対応します。返金・クレジットは支出にせず上の行から差し引き、「収入」の下の年金は収入として扱います',
+    '「使えるお金」に「1か月あたり」も表示されるようになりました。週または月をタップすると、その金額でウォレットを作成でき、日々の支出の計画になります。集計期間を設定している場合は、月ではなく期間が表示されます',
   ],
 };

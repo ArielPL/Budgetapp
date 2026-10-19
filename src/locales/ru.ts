@@ -574,6 +574,7 @@ export const ru: Translations = {
     if (action === 'deleteWallet') return 'Кошелёк удалён';
     if (action === 'deleteWalletExpense') return 'Расход удалён из кошелька';
     if (action === 'createGoal') return 'Цель сбережений создана';
+    if (action === 'createWallet') return 'Создан кошелёк';
     if (action === 'renameRow') return `Строка переименована в бюджете на ${where}`;
     if (action === 'debtExtra') return 'Дополнительная сумма для долгов изменена';
     if (count === 1) return 'Период зарплаты изменён — 1 запись перенесена';
@@ -671,6 +672,12 @@ export const ru: Translations = {
   dailyBudgetDaysInMonth: (n, month) => `в расчёте на ${month} (${n} ${plural(n, 'день', 'дня', 'дней')})`,
   dailyBudgetPerDay: 'В день',
   dailyBudgetPerWeek: 'В неделю',
+  dailyBudgetPerMonth: 'В месяц',
+  dailyBudgetToWallet: '+ кошелёк',
+  dailyBudgetWalletAria: (amount) => `Создать кошелёк на ${amount}`,
+  walletPeriod: 'Период',
+  walletNameMonth: (month) => `На каждый день · ${month}`,
+  walletNameWeek: (week) => `На каждый день · неделя ${week}`,
   sparplanTitle: 'План сбережений',
   sparplanBody: 'Запланируйте ежемесячные сбережения и ожидаемую доходность — и смотрите, как работает сложный процент.',
   sparplanMonthly: 'Сбережения в месяц',
@@ -877,6 +884,8 @@ export const ru: Translations = {
   wStartsIn: (days) => `Начнётся через ${days} ${plural(days, 'день', 'дня', 'дней')}`,
   wEnded: 'Поездка закончилась',
   wPerDay: (amount) => `${amount} в день до конца поездки`,
+  wPerDayPeriod: (amount) => `${amount} в день до конца периода`,
+  wEndedPeriod: 'Период закончился',
   wOver: (over) => `${over} сверх бюджета`,
   wAddExpense: '+ Добавить расход',
   wAmount: 'Сумма',
@@ -1000,5 +1009,6 @@ export const ruChangelog113: { title: string; items: string[] } = {
     'Начало работы: руководство по каждой части приложения, вверху «Бюджета» и первым пунктом в меню',
     'Валюту вы выбираете при первом открытии приложения. Для каждого символа указано, что он означает, например $ (доллар, песо и др.). Новые валюты: рубль (₽), бразильский реал (R$), индийская рупия (₹) и турецкая лира (₺)',
     'Импорт бюджета теперь читает и файлы Word (.docx), включая план с отдельной таблицей на каждый месяц. Кредит-нота вычитается из строки выше, а не становится расходом, а пенсия в разделе «Доходы» считается доходом',
+    '«Осталось на жизнь» теперь показывает и сумму «В месяц». Нажмите на неделю или месяц, чтобы сделать из суммы кошелёк — план повседневных трат. При периоде выплат указывается период, а не месяц',
   ],
 };
