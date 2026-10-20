@@ -142,7 +142,7 @@ export const YearTab = ({ year, live }: Props) => {
 
       {hasData && (
         <>
-          <div className="charts-container">
+          <div className="charts-container" data-guide="year">
             <div className="chart-block">
               <h3 className="chart-title">{t.yearChartTitle}</h3>
               <ResponsiveContainer width="100%" height={280}>

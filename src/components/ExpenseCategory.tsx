@@ -119,6 +119,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
         </span>
         <button
           className="cat-edit-btn"
+          data-guide="categoryEdit"
           onClick={() => setEditing(e => !e)}
           title={t.editCategory}
           aria-label={t.ariaEditCategory(shownName(category, lang))}

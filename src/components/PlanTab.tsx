@@ -198,7 +198,7 @@ const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: Pla
       <div className="plan-section-header">
         <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
         {!adding && (
-          <button className="add-goal-btn" onClick={() => setAdding(true)}>{t.newGoal}</button>
+          <button className="add-goal-btn" data-guide="goals" onClick={() => setAdding(true)}>{t.newGoal}</button>
         )}
       </div>
 

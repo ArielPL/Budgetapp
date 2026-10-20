@@ -752,6 +752,11 @@ export interface Translations {
   guideEntry: string;
   /** The ✕ that hides that row; the menu item stays. */
   guideHide: string;
+  /** The one-time pointer to the guide after a first budget is made. */
+  guideNudgeTitle: string;
+  guideNudgeBody: string;
+  guideNudgeOpen: string;
+  guideNudgeLater: string;
   theme: string;
   whatsNew: string;
   whatsNewLatest: string;
@@ -1749,6 +1754,10 @@ export const translations: Record<Lang, Translations> = {
     introPickCurrency: 'Välj en valuta för att fortsätta',
     guideEntry: 'Kom igång – så fungerar appen',
     guideHide: 'Dölj raden. Guiden finns kvar i menyn.',
+    guideNudgeTitle: 'Din budget är klar.',
+    guideNudgeBody: 'Här hittar du guiden. Den visar var allt finns, steg för steg.',
+    guideNudgeOpen: 'Öppna guiden',
+    guideNudgeLater: 'Senare',
     theme: 'Tema',
     whatsNew: 'Nyheter',
     whatsNewLatest: 'Senaste',
@@ -2731,6 +2740,10 @@ export const translations: Record<Lang, Translations> = {
     introPickCurrency: 'Choose a currency to continue',
     guideEntry: 'Get started – how the app works',
     guideHide: 'Hide this row. The guide stays in the menu.',
+    guideNudgeTitle: 'Your budget is ready.',
+    guideNudgeBody: 'This is where the guide lives. It shows you where everything is, step by step.',
+    guideNudgeOpen: 'Open the guide',
+    guideNudgeLater: 'Later',
     theme: 'Theme',
     whatsNew: "What's new",
     whatsNewLatest: 'Latest',
@@ -3713,6 +3726,10 @@ export const translations: Record<Lang, Translations> = {
     introPickCurrency: 'Elige una moneda para continuar',
     guideEntry: 'Primeros pasos: cómo funciona la app',
     guideHide: 'Ocultar esta fila. La guía sigue en el menú.',
+    guideNudgeTitle: 'Tu presupuesto está listo.',
+    guideNudgeBody: 'Aquí tienes la guía. Te muestra dónde está cada cosa, paso a paso.',
+    guideNudgeOpen: 'Abrir la guía',
+    guideNudgeLater: 'Más tarde',
     theme: 'Tema',
     whatsNew: 'Novedades',
     whatsNewLatest: 'Último',

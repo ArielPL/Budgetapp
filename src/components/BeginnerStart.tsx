@@ -5,8 +5,8 @@
 // so the app knows what to prioritise". Ariel's answer: one question after the
 // intro. Someone who has done this before gets today's start (template, empty
 // budget, import). A beginner gets six plain questions, one at a time, each
-// skippable, and a budget of exactly what they answered — written for every
-// month left this year, so the salary is typed once, not twelve times.
+// skippable, and a budget of exactly what they answered — for this month, or
+// for every month left this year, so the salary is typed once, not twelve times.
 //
 // Portals to document.body like the other first-run dialogs; nothing is stored
 // until the last button, and that step can be undone.
@@ -26,7 +26,8 @@ interface Props {
   span: { from: string; to: string | null };
   onExpert: () => void;
   onTemplate: () => void;
-  onCreate: (answers: BeginnerAnswers) => Promise<boolean>;
+  /** restOfYear: also every empty month after this one, through December. */
+  onCreate: (answers: BeginnerAnswers, restOfYear: boolean) => Promise<boolean>;
 }
 
 export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate }: Props) => {
@@ -70,10 +71,10 @@ export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate }: Props) =
   const income = sumRows(built.income);
   const out = sumCategories(built.expenses);
 
-  const create = async () => {
+  const create = async (restOfYear: boolean) => {
     if (busy) return;
     setBusy(true);
-    try { await onCreate(answers); } finally { setBusy(false); }
+    try { await onCreate(answers, restOfYear); } finally { setBusy(false); }
   };
 
   let body;
@@ -121,7 +122,13 @@ export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate }: Props) =
             </ul>
             <div className="beg-actions">
               <button type="button" className="custom-secondary-btn" onClick={() => goTo(KEYS.length - 1)}>{t.begBack}</button>
-              <button type="button" className="custom-primary-btn" disabled={busy} onClick={() => void create()}>
+              {span.to && (
+                // Ariel, 2026-10-20: not everyone wants the whole year at once.
+                <button type="button" className="custom-secondary-btn" disabled={busy} onClick={() => void create(false)}>
+                  {t.begCreateOne(span.from)}
+                </button>
+              )}
+              <button type="button" className="custom-primary-btn" disabled={busy} onClick={() => void create(true)}>
                 {span.to ? t.begCreate(span.from, span.to) : t.begCreateOne(span.from)}
               </button>
             </div>

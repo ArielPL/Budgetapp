@@ -221,7 +221,7 @@ export const DebtTab = ({
         <div className="plan-section-header">
           <h2 className="plan-section-title">{t.debtTitle}</h2>
           {!adding && (
-            <button className="add-goal-btn" onClick={() => { setAdding(true); setEditing(null); }}>{t.debtAdd}</button>
+            <button className="add-goal-btn" data-guide="addDebt" onClick={() => { setAdding(true); setEditing(null); }}>{t.debtAdd}</button>
           )}
         </div>
         <p className="debt-intro">{t.debtIntro}</p>
@@ -412,7 +412,7 @@ export const DebtTab = ({
       </section>
 
       {inWay.length > 0 && (
-        <section className="plan-section">
+        <section className="plan-section" data-guide="debtPath">
           <div className="plan-section-header">
             <h2 className="plan-section-title">{t.debtWayTitle}</h2>
           </div>

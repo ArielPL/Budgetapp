@@ -417,7 +417,7 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoa
   };
 
   return (
-    <section className="q-card" aria-label={t.qTitle}>
+    <section className="q-card" data-guide="questions" aria-label={t.qTitle}>
       {open === null ? (
         <>
           <h3 className="q-title">💬 {t.qTitle}</h3>

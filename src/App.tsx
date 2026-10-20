@@ -81,9 +81,12 @@ import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageC
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
+import type { SpotTarget } from './guide/spots';
+import { Spotlight } from './components/Spotlight';
 
 /** The year whose "copy to the rest of the year" offer was declined. */
 const COPY_OFFER_KEY = 'budget_copy_offer_dismissed';
+const GUIDE_NUDGE_KEY = 'budget_guide_nudge_seen';
 import { newBlank, loadWallets, walletsChange, walletWeek, isoWeek, isoDay, WALLETS_KEY, OPEN_PANEL_KEY } from './wallets';
 
 
@@ -239,10 +242,26 @@ function App({ startupRepair = null }: AppProps) {
    *  this year — one confirmed write, one step back. Months that already hold
    *  a budget are left alone: the question is only asked on an empty start,
    *  but a restore could have filled one meanwhile. */
-  const createBeginnerBudget = async (answers: BeginnerAnswers): Promise<boolean> => {
+  // Once, right after a first budget is made: a pointer to the guide's row,
+  // "here is where everything is explained" (Ariel, 2026-10-20). Not when the
+  // row was hidden — someone who hid it knows it is there.
+  const [guideNudge, setGuideNudge] = useState(false);
+  const offerGuideNudge = () => {
+    if (appStorage.getItem(GUIDE_NUDGE_KEY) || appStorage.getItem(GUIDE_ROW_HIDDEN_KEY) === '1') return;
+    setGuideNudge(true);
+  };
+  const closeGuideNudge = (openGuide: boolean) => {
+    setGuideNudge(false);
+    safeSetItem(appStorage, GUIDE_NUDGE_KEY, '1');
+    if (openGuide) setGuideOpen(true);
+  };
+
+  const createBeginnerBudget = async (answers: BeginnerAnswers, restOfYear: boolean): Promise<boolean> => {
     const built = ensureGoalLinkedBudgetRows(beginnerMonthData(answers, lang), planData.goals, lang);
-    const months = Array.from({ length: 12 - month }, (_, i) => month + i)
-      .filter(m => m === month || !hasBudgetContent(loadMonthData(year, m, lang)));
+    const months = restOfYear
+      ? Array.from({ length: 12 - month }, (_, i) => month + i)
+        .filter(m => m === month || !hasBudgetContent(loadMonthData(year, m, lang)))
+      : [month];
     const keys = months.map(m => storageKey(year, m));
     const before = captureKeys(appStorage, keys);
     const outcome = await commitStorageChangesOutcome(appStorage, keys.map(key => ({ key, value: JSON.stringify(built) })));
@@ -255,6 +274,7 @@ function App({ startupRepair = null }: AppProps) {
     dismissBudgetHero();
     setCopyOfferHidden(true);
     setStartChoiceOpen(false);
+    offerGuideNudge();
     return true;
   };
   const dismissSavingsHero = () => { safeSetItem(appStorage, 'budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
@@ -587,7 +607,11 @@ function App({ startupRepair = null }: AppProps) {
   useEffect(() => {
     if (!menuOpen) return;
     const mouseHandler = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current?.contains(e.target as Node)) return;
+      // The guide's bubble and bar, when "Show me" opened the menu: closing it
+      // on mousedown would move the bubble before its own click landed.
+      if (e.target instanceof Element && e.target.closest('.spot-root, .guide-bar')) return;
+      setMenuOpen(false);
     };
     const keyHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false);
@@ -896,6 +920,15 @@ function App({ startupRepair = null }: AppProps) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
+
+  // The guide's "Show me": open the part's tab, and the menu when the control
+  // lives there; null is the way back to the guide, which closes the menu.
+  const showGuideSpot = (target: SpotTarget | null) => {
+    if (!target) { setMenuOpen(false); return; }
+    if (target.tab) changeTab(target.tab);
+    else setWalletsScreen(false);
+    setMenuOpen(!!target.menu);
+  };
 
   // ── Android's Back button ─────────────────────────────────────────────
   // What a user expects, in order: close whatever is on top (any panel, dialog
@@ -1869,7 +1902,7 @@ function App({ startupRepair = null }: AppProps) {
       <h2 className="onboard-title">🚀 {t.onboardBudgetTitle}</h2>
       <p className="onboard-body">{t.onboardBudgetBody}</p>
       <div className="onboard-actions">
-        <button className="custom-primary-btn" onClick={addStarterBudget}>✨ {t.useBudgetTemplate}</button>
+        <button className="custom-primary-btn" onClick={() => { addStarterBudget(); offerGuideNudge(); }}>✨ {t.useBudgetTemplate}</button>
         <button className="custom-secondary-btn" onClick={dismissBudgetHero}>{t.startFromEmpty}</button>
         <button className="custom-secondary-btn" onClick={() => setBudgetImportOpen(true)}>{t.bimHeroButton}</button>
       </div>
@@ -1971,7 +2004,7 @@ function App({ startupRepair = null }: AppProps) {
               onDelete={deleteExpenseCategory}
             />
           ))}
-          <button className="add-category-btn" onClick={addExpenseCategory}>
+          <button className="add-category-btn" data-guide="addCategory" onClick={addExpenseCategory}>
             {t.addCategory}
           </button>
           {budgetStarter}
@@ -2090,6 +2123,7 @@ function App({ startupRepair = null }: AppProps) {
             {copyMsg && <span className="copy-msg">{copyMsg}</span>}
             <button
               className={`menu-btn${menuOpen ? ' menu-btn-open' : ''}`}
+              data-guide="menu"
               onClick={() => setMenuOpen(o => !o)}
               title={t.menuTitle}
               aria-label={t.ariaOpenMenu}
@@ -2122,7 +2156,7 @@ function App({ startupRepair = null }: AppProps) {
                     <span aria-hidden="true">📖</span> {t.guideEntry}
                   </button>
                   {/* Language */}
-                  <div className="utils-row">
+                  <div className="utils-row" data-guide="language">
                     <label className="utils-row-label" htmlFor="lang-pick">{t.language}</label>
                     {/* A list rather than buttons: seven languages do not fit a row
                         on a phone. Each in its own name, so anyone can find theirs. */}
@@ -2198,7 +2232,7 @@ function App({ startupRepair = null }: AppProps) {
                   </div>
 
                   {/* Wallets — a trip's own budget, reachable from every layout */}
-                  <button className="utils-action" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
+                  <button className="utils-action" data-guide="wallets" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
                     ✈️ {t.wMenu}
                   </button>
 
@@ -2237,7 +2271,7 @@ function App({ startupRepair = null }: AppProps) {
                       no amounts, which the hint says out loud so nobody expects
                       their totals to move. */}
                   <div className="utils-group-label">{t.periodSection}</div>
-                  <div className="utils-row">
+                  <div className="utils-row" data-guide="payPeriod">
                     <span className="utils-row-label">{t.periodStartDay}</span>
                     <select
                       className="utils-select"
@@ -2270,7 +2304,7 @@ function App({ startupRepair = null }: AppProps) {
                       <button className="utils-action" onClick={copyFromPrevMonth}>
                         ← {t.copyPrevMonth(inSentence(MONTHS[lang][month === 0 ? 11 : month - 1], lang))}
                       </button>
-                      <button className="utils-action" onClick={copyToNextMonth}>
+                      <button className="utils-action" data-guide="copyBudget" onClick={copyToNextMonth}>
                         → {t.copyNextMonth} ({inSentence(MONTHS[lang][month === 11 ? 0 : month + 1], lang)})
                       </button>
                       <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
@@ -2288,7 +2322,7 @@ function App({ startupRepair = null }: AppProps) {
 
                   {/* Data */}
                   <div className="utils-group-label">{t.backup}</div>
-                  <button className="utils-action" onClick={exportData}>{t.exportData}</button>
+                  <button className="utils-action" data-guide="export" onClick={exportData}>{t.exportData}</button>
                   <button className="utils-action" onClick={() => fileInputRef.current?.click()}>
                     {t.importData}
                   </button>
@@ -2377,7 +2411,7 @@ function App({ startupRepair = null }: AppProps) {
               to: month < 11 ? inSentence(MONTHS_SHORT[lang][11], lang) : null,
             }}
             onExpert={() => setStartChoiceOpen(false)}
-            onTemplate={() => { addStarterBudget(); setStartChoiceOpen(false); }}
+            onTemplate={() => { addStarterBudget(); setStartChoiceOpen(false); offerGuideNudge(); }}
             onCreate={createBeginnerBudget}
           />
         </Suspense>
@@ -2396,8 +2430,20 @@ function App({ startupRepair = null }: AppProps) {
       )}
       {guideOpen && (
         <Suspense fallback={null}>
-          <Guide onClose={() => setGuideOpen(false)} />
+          <Guide onClose={() => setGuideOpen(false)} onShow={showGuideSpot} />
         </Suspense>
+      )}
+      {guideNudge && !guideOpen && (
+        <Spotlight
+          selector=".guide-row"
+          title={t.guideNudgeTitle}
+          text={t.guideNudgeBody}
+          onDismiss={() => closeGuideNudge(false)}
+          actions={[
+            { label: t.guideNudgeLater, onClick: () => closeGuideNudge(false) },
+            { label: t.guideNudgeOpen, onClick: () => closeGuideNudge(true), primary: true },
+          ]}
+        />
       )}
       {introOpen && <Intro onDone={dismissIntro} askCurrency={currencyPending} onCurrency={chooseCurrency} />}
 

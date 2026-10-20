@@ -5490,6 +5490,10 @@ a:focus-visible,
   overflow-y: auto;
 }
 
+/* The card scrolls; its rows must not shrink to fit. Without this a tall
+   currency list squeezed the language list to a sliver in desktop Safari. */
+.intro-setup > * { flex-shrink: 0; }
+
 .intro-setup-label {
   align-self: stretch;
   margin-top: 6px;
@@ -5707,6 +5711,131 @@ a:focus-visible,
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent-brand) 12%, transparent);
 }
+
+/* ── "Show me": the guide's buttons, its bar and side panel, the spotlight ──
+   The guide never closes for "Show me". Beside a wide app it becomes a panel
+   and the app makes room; on a narrower screen it shrinks to a bar (hidden,
+   not unmounted, so it reopens where the reader was). */
+[data-guide] { scroll-margin-top: 96px; scroll-margin-bottom: 150px; }
+
+.guide-spots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 12px;
+}
+.guide-spots-label {
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.guide-spot-btn {
+  padding: 5px 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent-brand);
+  border-radius: 999px;
+}
+.guide-spot-btn.is-on { background: color-mix(in srgb, var(--accent-brand) 16%, var(--surface)); }
+@media (hover: hover) {
+  .guide-spot-btn:hover { background: color-mix(in srgb, var(--accent-brand) 10%, var(--surface)); }
+}
+
+.guide-modal.is-away { visibility: hidden; pointer-events: none; }
+.guide-modal.is-side {
+  z-index: 1002;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: 380px;
+  max-width: none;
+  max-height: none;
+  transform: none;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.18);
+}
+.guide-modal.is-side .welcome-body-wrap { padding: 24px 20px; }
+html.guide-side body { padding-right: 380px; }
+
+.guide-bar {
+  position: fixed;
+  z-index: 1002;
+  left: 12px;
+  right: 12px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.guide-bar-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: none;
+}
+.guide-bar-icon { font-size: 1.2rem; }
+.guide-bar-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.guide-bar-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guide-bar-text small { font-size: 0.75rem; color: var(--text-muted); }
+.guide-bar-chevron { color: var(--accent-brand); }
+.guide-bar-close {
+  padding: 0 16px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border);
+}
+
+.spot-ring {
+  position: fixed;
+  z-index: 1000;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px var(--accent-brand), 0 0 0 9999px rgba(0, 0, 0, 0.45);
+}
+.spot-bubble {
+  position: fixed;
+  z-index: 1001;
+  padding: 12px 14px;
+  text-align: start;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+.spot-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+.spot-arrow.is-up { top: -7px; border-right: none; border-bottom: none; }
+.spot-arrow.is-down { bottom: -7px; border-left: none; border-top: none; }
+.spot-title { display: block; margin-bottom: 4px; }
+.spot-text { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+.spot-missing { margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted); }
+.spot-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 
 /* ── Triage: the leftover pile as a worklist ─────────────────────────────
    Sits above the table because it is work to DO, not a number to read. Closed
@@ -6923,4 +7052,9 @@ td.num[style*="color: rgb"],
   .daily-budget-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .daily-budget-tile-month { grid-column: 1 / -1; }
   .tab-label-short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* The guide's bar sits above the bottom tab bar on a phone. */
+@media (max-width: 640px) {
+  .guide-bar { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px); }
 }

@@ -30,6 +30,7 @@ export const MonthNav = ({
         <button className="nav-btn" onClick={onPrev} aria-label={t.prevMonth}>‹</button>
         <button
           className={`month-title${pickerOpen ? ' month-title-open' : ''}`}
+          data-guide="month"
           onClick={onTogglePicker}
           aria-expanded={pickerOpen}
           title={MONTHS[lang][month]}

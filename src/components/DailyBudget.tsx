@@ -71,7 +71,7 @@ export const DailyBudget = ({ remaining, year, month, periodStartDay = null, per
   };
 
   return (
-    <div className="daily-budget">
+    <div className="daily-budget" data-guide="leftToLive">
       <div className="daily-budget-head">
         <span className="daily-budget-title">💸 {t.dailyBudgetTitle}</span>
         <span className="daily-budget-days">{daysLabel}</span>

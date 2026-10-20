@@ -80,6 +80,19 @@ describe('the first-run question', () => {
     expect(latestUndo(localStorage)?.action).toBe('startBudget');
   });
 
+  it('can create this month only', async () => {
+    await finishIntro();
+    fireEvent.click(document.querySelector('.beg-choice.is-main')!);
+    type('32000'); fireEvent.click(btn(sv.begNext));
+    for (let i = 1; i < 6; i++) fireEvent.click(btn(sv.begSkip));
+    expect(btn(sv.begCreate('okt', 'dec'))).toBeDefined();
+    fireEvent.click(btn(sv.begCreateOne('okt')));
+    await waitFor(() => expect(document.querySelector('.beg-modal')).toBeNull());
+    expect(JSON.parse(localStorage.getItem('budget_2026_9')!).income[0].amount).toBe(32000);
+    expect(localStorage.getItem('budget_2026_10')).toBeNull();
+    expect(localStorage.getItem('budget_2026_11')).toBeNull();
+  });
+
   it('someone experienced gets today\'s start, and nothing is written', async () => {
     await finishIntro();
     fireEvent.click([...document.querySelectorAll('.beg-choice')].find(b => b.textContent?.includes(sv.startExpert))!);

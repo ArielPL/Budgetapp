@@ -125,7 +125,7 @@ export const SavingsTab = ({ categories, onChange, onAddCategory, onDeleteCatego
       <SavingsSummary categories={categories} year={year} currentMonth={currentMonth} snapshotRecorded={snapshotRecorded} />
 
       {/* Main grid: categories left, charts right */}
-      <div className="budget-grid savings-grid">
+      <div className="budget-grid savings-grid" data-guide="savings">
         <div className="budget-left">
           <SavingsCategoryList
             categories={categories}

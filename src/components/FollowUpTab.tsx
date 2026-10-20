@@ -872,7 +872,7 @@ export const FollowUpTab = ({
           {span === 1 && entries.length > 0 && (
             <button className="followup-clear" onClick={clearMonth}>{t.followUpClear}</button>
           )}
-          <button className="followup-import" onClick={() => setImporting(true)}>
+          <button className="followup-import" data-guide="import" onClick={() => setImporting(true)}>
             ⬆ {t.followUpImport}
           </button>
           <button

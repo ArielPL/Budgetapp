@@ -37,7 +37,7 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
   const total = sumRows(rows);
 
   return (
-    <section className="budget-section income-section">
+    <section className="budget-section income-section" data-guide="income">
       <div className="section-header">
         <span className="section-icon">💵</span>
         <h2 className="section-title">{t.incomeSection}</h2>

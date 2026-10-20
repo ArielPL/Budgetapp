@@ -302,7 +302,7 @@ export const SparPlanSection = ({ live }: {
         <h2 className="plan-section-title">📈 {t.sparplanTitle}</h2>
       </div>
 
-      <div className="sparplan-card">
+      <div className="sparplan-card" data-guide="sparplan">
         <p className="sparplan-body">{t.sparplanBody}</p>
         {/* Until a number is changed, nothing here is the user's: the figures
             are defaults, and "143 197 kr in 5 years" on a fresh app read like
