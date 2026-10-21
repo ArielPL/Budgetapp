@@ -14,8 +14,10 @@ android {
         applicationId "com.arielpl.budget"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Play needs a higher versionCode for every upload; versionName is the
+        // version the app shows in What's new (src/changelog.ts, LATEST_VERSION).
+        versionCode 2
+        versionName "1.13.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
