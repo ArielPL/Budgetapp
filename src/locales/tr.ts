@@ -662,7 +662,7 @@ export const tr: Translations = {
   privacyBody: [
     "YourBudget hiçbir kişisel veri toplamaz, iletmez veya paylaşmaz.",
     "## YourBudget bugün nedir",
-    "YourBudget, tarayıcıda açtığınız ve ana ekranınıza ekleyebildiğiniz bir web sayfasıdır. Henüz App Store'da veya Google Play'de bir sürümü yok. Olduğu gün bu metin güncellenecek; o zamana kadar bir web sayfasını anlatır.",
+    "YourBudget, tarayıcıda açtığınız ve ana ekranınıza ekleyebildiğiniz bir web sayfası ve aynı zamanda iPhone, iPad ve Android için bir uygulamadır. Aşağıdakiler her ikisi için de geçerlidir.",
     "## Her şey cihazınızda kalır",
     "Bütçeniz, kaydettiğiniz harcamalar ve içe aktardığınız banka ekstreleri tarayıcınızda yerel olarak işlenir ve saklanır. Hiçbiri geliştiriciye ya da herhangi bir üçüncü tarafa gönderilmez. Hesap yok, giriş yok ve bir şey gönderilebilecek bir veritabanı yok.",
     "## iPhone, iPad ve Android uygulamasında",
@@ -683,7 +683,7 @@ export const tr: Translations = {
     "## Sorular",
     "Uygulamanın verilerinizi nasıl işlediğiyle ilgili bir sorunuz varsa ariel_padilla@hotmail.com adresine e-posta gönderebilirsiniz.",
   ],
-  privacyUpdated: "Son güncelleme: 11 Ekim 2026.",
+  privacyUpdated: "Son güncelleme: 21 Ekim 2026.",
   privacyClose: "Kapat",
   lockTipTitle: "Uygulamayı kilitleyin",
   lockTipIos: "Uygulamanın Face ID istemesini mi istiyorsunuz? Ana ekranda uygulama simgesine dokunup basılı tutun ve Face ID İste (veya Touch ID İste) seçeneğini seçin. iPhone'unuz veya iPad'iniz uygulamayı kilitler ve içeriği uygulama değiştiricide de gizlenir. iOS ve iPadOS 18 ve sonrasında kullanılabilir.",

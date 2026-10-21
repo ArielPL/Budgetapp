@@ -658,7 +658,7 @@ export const zh: Translations = {
   privacyBody: [
     'YourBudget 不收集、不传输、也不分享任何个人数据。',
     '## YourBudget 目前是什么',
-    'YourBudget 是一个在浏览器中打开的网页，你也可以把它添加到主屏幕。目前 App Store 和 Google Play 上还没有它的版本。等到有的那一天，本文会随之更新——在那之前，本文描述的是一个网页。',
+    'YourBudget 是一个在浏览器中打开、可以添加到主屏幕的网页，也是一款适用于 iPhone、iPad 和 Android 的应用。以下内容对两者都适用。',
     '## 一切都留在你的设备上',
     '你的预算、你记录的支出以及你导入的银行账单，都在你的浏览器中本地处理和存储。这些内容都不会发送给开发者或任何第三方。没有账户，无需登录，也没有任何可以接收数据的数据库。',
     '## 在 iPhone、iPad 和 Android 应用中',
@@ -679,7 +679,7 @@ export const zh: Translations = {
     '## 问题',
     '如果你对应用如何处理你的数据有疑问，可以发邮件至 ariel_padilla@hotmail.com。',
   ],
-  privacyUpdated: '最后更新于 2026 年 10 月 11 日。',
+  privacyUpdated: '最后更新于 2026 年 10 月 21 日。',
   privacyClose: '关闭',
   lockTipTitle: '锁定应用',
   lockTipIos: '想让应用需要面容 ID 才能打开？在主屏幕上按住应用图标，选择「需要面容 ID」（或 Touch ID）。之后 iPhone 或 iPad 会锁定这个应用，它的内容在应用切换器中也会被隐藏。适用于 iOS 和 iPadOS 18 及更高版本。',

@@ -658,7 +658,7 @@ export const ja: Translations = {
   privacyBody: [
     'YourBudgetは、個人データを一切収集、送信、共有しません。',
     '## 現在のYourBudget',
-    'YourBudgetは、ブラウザで開いてホーム画面に追加できるWebページです。App StoreやGoogle Playにはまだありません。公開された時点でこの文章は更新されます。それまでは、この文章はWebページについて説明しています。',
+    'YourBudgetは、ブラウザで開いてホーム画面に追加できるWebページであり、iPhone、iPad、Android向けのアプリでもあります。以下の内容はその両方に当てはまります。',
     '## すべてはあなたのデバイスに',
     '予算、記録した支出、取り込んだ銀行の明細は、ブラウザ内でローカルに処理・保存されます。そのどれも、開発者や第三者に送られることはありません。アカウントもサインインもなく、何かを送る先のデータベースもありません。',
     '## iPhone、iPad、Android向けアプリでは',
@@ -679,7 +679,7 @@ export const ja: Translations = {
     '## お問い合わせ',
     'アプリでのデータの扱いについてご質問があれば、ariel_padilla@hotmail.com までメールでお問い合わせください。',
   ],
-  privacyUpdated: '最終更新日：2026年10月11日。',
+  privacyUpdated: '最終更新日：2026年10月21日。',
   privacyClose: '閉じる',
   lockTipTitle: 'アプリをロック',
   lockTipIos: 'アプリを開くときにFace IDを必須にしたいですか？ホーム画面でアプリのアイコンを長押しし、「Face IDを必要にする」（またはTouch ID）を選びます。するとiPhoneやiPadがアプリをロックし、アプリスイッチャーでも内容が隠されます。iOSおよびiPadOS 18以降で利用できます。',

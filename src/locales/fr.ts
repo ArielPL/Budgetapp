@@ -671,7 +671,7 @@ export const fr: Translations = {
   privacyBody: [
     "YourBudget ne collecte, ne transmet et ne partage aucune donnée personnelle.",
     "## Ce qu'est YourBudget aujourd'hui",
-    "YourBudget est une page web que vous ouvrez dans un navigateur et que vous pouvez ajouter à votre écran d'accueil. Il n'existe pas encore de version sur l'App Store ni sur Google Play. Le jour où il y en aura une, ce texte sera mis à jour — d'ici là, il décrit une page web.",
+    "YourBudget est une page web que vous ouvrez dans un navigateur et que vous pouvez ajouter à votre écran d'accueil, ainsi qu'une app pour iPhone, iPad et Android. Ce qui suit vaut pour les deux.",
     "## Tout reste sur votre appareil",
     "Votre budget, les dépenses que vous enregistrez et les relevés bancaires que vous importez sont traités et stockés localement dans votre navigateur. Rien n'est envoyé au développeur ni à aucun tiers. Il n'y a pas de compte, pas de connexion et pas de base de données vers laquelle envoyer quoi que ce soit.",
     "## Dans l'app pour iPhone, iPad et Android",
@@ -692,7 +692,7 @@ export const fr: Translations = {
     "## Questions",
     "Pour toute question sur la façon dont l'app traite vos données, vous pouvez écrire à ariel_padilla@hotmail.com.",
   ],
-  privacyUpdated: "Dernière mise à jour : 11 octobre 2026.",
+  privacyUpdated: "Dernière mise à jour : 21 octobre 2026.",
   privacyClose: "Fermer",
   lockTipTitle: "Verrouiller l'app",
   lockTipIos: "Vous voulez que l'app exige Face ID ? Touchez longuement l'icône de l'app sur l'écran d'accueil et choisissez Exiger Face ID (ou Touch ID). Votre iPhone ou iPad verrouille alors l'app, et son contenu est aussi masqué dans le sélecteur d'apps. Disponible à partir d'iOS et iPadOS 18.",

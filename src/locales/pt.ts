@@ -662,7 +662,7 @@ export const pt: Translations = {
   privacyBody: [
     'O YourBudget não coleta, transmite nem compartilha nenhum dado pessoal.',
     '## O que o YourBudget é hoje',
-    'O YourBudget é uma página da web que você abre no navegador e pode adicionar à tela inicial. Ainda não existe versão na App Store nem no Google Play. No dia em que existir, este texto será atualizado — até lá, ele descreve uma página da web.',
+    'O YourBudget é uma página da web que você abre no navegador e pode adicionar à tela inicial, e também um app para iPhone, iPad e Android. O que vem a seguir vale para os dois.',
     '## Tudo fica no seu dispositivo',
     'Seu orçamento, os gastos que você registra e os extratos bancários que você importa são processados e guardados localmente no seu navegador. Nada disso é enviado ao desenvolvedor nem a terceiros. Não há conta, nem login, nem banco de dados para onde enviar qualquer coisa.',
     '## No app para iPhone, iPad e Android',
@@ -683,7 +683,7 @@ export const pt: Translations = {
     '## Dúvidas',
     'Se tiver uma dúvida sobre como o app trata seus dados, você pode mandar um e-mail para ariel_padilla@hotmail.com.',
   ],
-  privacyUpdated: 'Última atualização em 11 de outubro de 2026.',
+  privacyUpdated: 'Última atualização em 21 de outubro de 2026.',
   privacyClose: 'Fechar',
   lockTipTitle: 'Bloquear o app',
   lockTipIos: 'Quer que o app exija Face ID? Toque e segure o ícone do app na Tela de Início e escolha Exigir Face ID (ou Touch ID). O iPhone ou iPad passa a bloquear o app, e o conteúdo dele também fica oculto no seletor de apps. Disponível no iOS e iPadOS 18 ou posterior.',
