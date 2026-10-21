@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
+import { attachSwipeToClose } from './swipeToClose';
 
 const FOCUSABLE =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -10,7 +11,8 @@ const FOCUSABLE =
  *  - the page behind is `inert` (stress test §10) — the Tab trap alone kept
  *    KEYBOARDS out, but screen-reader virtual cursors walk the DOM, not the
  *    tab order, and could still read and click the background,
- *  - Escape closes it,
+ *  - Escape closes it, and so does swiping it down where it is a sheet on the
+ *    bottom edge (swipeToClose),
  *  - focus returns to the element that opened it.
  *
  * `active` gates everything so the hook can live in components that render
@@ -117,6 +119,7 @@ export function useModalFocus(
 
     // Capture phase so the trap wins over page-level shortcuts.
     document.addEventListener('keydown', onKeyDown, true);
+    const stopSwipe = attachSwipeToClose(container, () => onCloseRef.current());
     const layer = { close: () => onCloseRef.current() };
     layers.push(layer);
     return () => {
@@ -124,6 +127,7 @@ export function useModalFocus(
       if (at >= 0) layers.splice(at, 1);
       clearTimeout(t);
       document.removeEventListener('keydown', onKeyDown, true);
+      stopSwipe();
       // Restore the background BEFORE focus returns — an inert opener ignores
       // .focus(). Runs on unmount too, so a panel that disappears without a
       // clean close can't leave the page dead.

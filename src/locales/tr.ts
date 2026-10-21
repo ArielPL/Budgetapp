@@ -1035,6 +1035,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     'Geçim için kalan artık Aylık tutarı da gösteriyor. Tutardan bir cüzdan, yani günlük harcamalar için bir plan oluşturmak için haftaya veya aya dokunun. Maaş dönemi açıksa ay yerine dönem gösterilir',
     "Sınıflandırıcı artık Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'deki yaygın mağazaları, akaryakıt istasyonlarını, toplu taşımayı ve enerji şirketlerini tanıyor. Çince adlar, hemen arkasına şehir yazılmış olsa da bulunur",
     "Hiç bütçe yapmamış olanlar için yeni bir başlangıç: dil ve para biriminden sonra uygulama daha önce bütçe yapıp yapmadığınızı sorar. Yeni başlayan olarak maaş, konut ve telefon gibi birkaç basit soruyu yanıtlarsınız ve bu ay ya da yılın geri kalanı için bir bütçe alırsınız",
-    "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var",
+    "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var. Alttan açılan pencereler aşağı çekilerek kapatılabilir ve düğmeleri artık telefonun kendi düğmelerinin altında kalmaz",
   ],
 };

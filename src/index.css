@@ -5197,7 +5197,11 @@ a:focus-visible,
   .seg-btn { min-height: 38px; }
   .utils-action { min-height: 44px; }
 
-  /* Theme panel becomes a slide-up sheet on phones, like the utils menu */
+  /* Theme panel becomes a slide-up sheet on phones, like the utils menu.
+     The SHEET clears the phone's own bar at the bottom (Android's three
+     buttons, the home indicator), not one inner part of it: the guide's
+     "Stäng" sat under Android's ||| ○ < because only .theme-panel-body did
+     (tester, 2026-10-21). Every panel inside gets it, whatever its body is. */
   .theme-panel {
     top: auto;
     bottom: 0;
@@ -5206,12 +5210,13 @@ a:focus-visible,
     width: 100%;
     max-width: none;
     max-height: 88dvh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
   }
 
   .theme-panel-body {
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-bottom: 20px;
   }
 
   /* Phones: INPUT-FIRST everywhere — people open the app to enter amounts.
@@ -6911,6 +6916,7 @@ html.guide-side body { padding-right: 380px; }
     transform: translate(-50%, -50%);
     width: min(420px, calc(100% - 32px));
     max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
     border-radius: var(--radius-lg);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   }

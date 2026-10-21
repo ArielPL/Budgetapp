@@ -1035,6 +1035,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'Sobra para o dia a dia agora também mostra Por mês. Toque na semana ou no mês para transformar o valor em uma carteira, um plano para os gastos do dia a dia. Com período de pagamento, aparece o período em vez do mês',
     'A classificação reconhece lojas, postos, transporte público e companhias de energia comuns no Brasil, em Portugal, na Rússia, na Turquia, na Itália, na França, na Alemanha e na China. Nomes chineses são encontrados mesmo com a cidade escrita logo depois',
     "Um novo começo para quem nunca fez um orçamento: depois do idioma e da moeda, o app pergunta se você já fez um. Como iniciante, você responde a algumas perguntas simples, como salário, moradia e celular, e recebe um orçamento para este mês ou o resto do ano",
-    "Toda linha pode ser removida, inclusive as do modelo. Categorias recolhidas continuam recolhidas. O acompanhamento diz “sobra” e “acima” em vez de um sinal de menos. O app oferece copiar o orçamento para o resto do ano. O modelo tem o plano de celular",
+    "Toda linha pode ser removida, inclusive as do modelo. Categorias recolhidas continuam recolhidas. O acompanhamento diz “sobra” e “acima” em vez de um sinal de menos. O app oferece copiar o orçamento para o resto do ano. O modelo tem o plano de celular. Os painéis que sobem de baixo podem ser arrastados para baixo para fechar, e seus botões não ficam mais sob os botões do celular",
   ],
 };

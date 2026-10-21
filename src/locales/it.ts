@@ -1036,6 +1036,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Rimane per vivere mostra anche Al mese. Tocca la settimana o il mese per trasformare l'importo in un portafoglio, un piano per le spese quotidiane. Con un periodo di paga viene indicato il periodo invece del mese",
     'Lo smistamento riconosce negozi, distributori, trasporti pubblici e fornitori di energia comuni in Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina. I nomi cinesi vengono trovati anche con la città scritta subito dopo',
     "Un nuovo inizio per chi non ha mai fatto un budget: dopo lingua e valuta, l'app chiede se ne hai già fatto uno. Da principiante rispondi a qualche domanda semplice, come stipendio, casa e telefono, e ottieni un budget per questo mese o per il resto dell'anno",
-    "Ogni riga si può eliminare, anche quelle del modello. Le categorie chiuse restano chiuse. Il monitoraggio dice «avanzo» e «sforato» invece del segno meno. L'app propone di copiare il budget sul resto dell'anno. Il modello include il piano telefonico",
+    "Ogni riga si può eliminare, anche quelle del modello. Le categorie chiuse restano chiuse. Il monitoraggio dice «avanzo» e «sforato» invece del segno meno. L'app propone di copiare il budget sul resto dell'anno. Il modello include il piano telefonico. I pannelli che salgono dal basso si chiudono trascinandoli verso il basso, e i loro pulsanti non finiscono più sotto quelli del telefono",
   ],
 };

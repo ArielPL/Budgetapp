@@ -68,10 +68,12 @@ describe('every "Show me" finds its control', () => {
     render(<App />);
     await openGuide();
     fireEvent.click(spotButton(id));
-    await waitFor(() => expect(document.querySelector(spotSelector(id)), id).not.toBeNull());
+    // Generous waits: a tab mounts and the spotlight polls for the control, and
+    // with the whole suite running at once one second was not always enough.
+    await waitFor(() => expect(document.querySelector(spotSelector(id)), id).not.toBeNull(), { timeout: 4000 });
     if (SPOT_TARGETS[id].menu) expect(document.querySelector('.utils-menu')).not.toBeNull();
     // The bubble says what it is, beside the control — not "not on screen".
-    await waitFor(() => expect(document.querySelector('.spot-bubble')?.textContent).toContain(svGuide.spots[id].text));
+    await waitFor(() => expect(document.querySelector('.spot-bubble')?.textContent).toContain(svGuide.spots[id].text), { timeout: 4000 });
     expect(document.querySelector('.spot-missing')).toBeNull();
   });
 

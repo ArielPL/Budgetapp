@@ -1036,6 +1036,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Frei verfügbar zeigt jetzt auch Pro Monat. Tipp auf Woche oder Monat, um aus dem Betrag eine Geldbörse zu machen, einen Plan für die Alltagsausgaben. Mit Zahlungszeitraum steht der Zeitraum statt des Monats da',
     'Der Sortierer kennt gängige Geschäfte, Tankstellen, Nahverkehr und Energieversorger in Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China. Chinesische Namen werden auch erkannt, wenn die Stadt direkt dahinter steht',
     "Ein neuer Start für alle, die noch nie ein Budget gemacht haben: Nach Sprache und Währung fragt die App, ob du schon einmal eins gemacht hast. Als Einsteiger beantwortest du ein paar einfache Fragen, etwa zu Gehalt, Wohnen und Handy, und bekommst ein Budget für diesen Monat oder den Rest des Jahres",
-    "Jede Zeile lässt sich entfernen, auch die der Vorlage. Eingeklappte Kategorien bleiben eingeklappt. Die Auswertung sagt „übrig“ und „drüber“ statt eines Minus. Die App bietet an, das Budget in den Rest des Jahres zu kopieren. Die Vorlage hat eine Zeile für den Handyvertrag",
+    "Jede Zeile lässt sich entfernen, auch die der Vorlage. Eingeklappte Kategorien bleiben eingeklappt. Die Auswertung sagt „übrig“ und „drüber“ statt eines Minus. Die App bietet an, das Budget in den Rest des Jahres zu kopieren. Die Vorlage hat eine Zeile für den Handyvertrag. Fenster, die von unten hochkommen, lassen sich nach unten wegziehen, und ihre Schaltflächen liegen nicht mehr unter den Tasten des Telefons",
   ],
 };
