@@ -66,8 +66,8 @@ export const fr: Translations = {
   debtSameOrder: "Ici, les deux méthodes reviennent au même, car les plus petites dettes ont aussi les taux les plus élevés.",
   debtFromBudget: (amount) => `Depuis le budget · ${amount} par mois`,
   bimTitle: "Importer un budget",
-  bimMenu: "📥 Importer un budget depuis Excel",
-  bimHeroButton: "📥 Importer depuis Excel",
+  bimMenu: '📥 Importer un budget depuis un fichier',
+  bimHeroButton: '📥 Importer un budget',
   bimLead: 'Vous avez déjà un budget dans Excel, Google Sheets, Numbers ou Word ? Choisissez le fichier (.xlsx, .docx ou CSV), ou sélectionnez-y les cellules et collez-les ici.',
   bimPick: "Choisir un fichier",
   bimPasteLabel: "Ou collez les cellules",
@@ -78,7 +78,13 @@ export const fr: Translations = {
   bimIntoMonths: (n, from, to) => `Destination : ${n} mois, ${from} – ${to}.`,
   bimAmountColumn: "Montants de la colonne",
   bimColumn: (n) => `Colonne ${n}`,
-  bimNote: "Une ligne déjà présente dans le budget prend le nouveau montant. Rien n'est supprimé, et vous pourrez annuler ensuite.",
+  bimNote: "Seule une ligne portant exactement le même nom au même endroit prend le nouveau montant. Les autres noms sont ajoutés comme nouvelles lignes. Rien n'est supprimé, et vous pourrez annuler ensuite.",
+  bimRowReplaces: (label) => `remplace « ${label} »`,
+  bimRowNew: 'nouvelle ligne',
+  bimNearAsk: (label) => `Ressemble à « ${label} ». Est-ce la même chose ?`,
+  bimNearAdd: 'Non, ajouter une nouvelle ligne',
+  bimNearReplace: (label) => `Oui, remplacer « ${label} »`,
+  bimAfterTitle: (month) => `${month} après l'import`,
   bimSkip: "Ignorer",
   bimOther: "Autres",
   bimNewGroup: "Nouvelle catégorie",
@@ -586,7 +592,7 @@ export const fr: Translations = {
     if (action === 'clearActuals') return count < 2 ? `${count} opération a été supprimée (${where})` : `${count} opérations ont été supprimées (${where})`;
     if (action === 'import') return count < 2 ? `${count} opération a été importée` : `${count} opérations ont été importées`;
     if (action === 'restoreBackup') return "La sauvegarde a été restaurée";
-    if (action === 'copyBudget') return count > 1 ? `Le budget a été remplacé sur ${count} mois` : `Le budget pour ${where} a été remplacé`;
+    if (action === 'copyBudget') return count > 1 ? `Le budget a été copié sur ${count} mois` : `Le budget a été copié vers ${where}`;
     if (action === 'deleteCategory') return `Une catégorie a été supprimée (${where})`;
     if (action === 'deleteRow') return where ? `Une ligne a été supprimée (${where})` : "Une ligne a été supprimée";
     if (action === 'deleteEntry') return `Une opération a été supprimée (${where})`;
@@ -1035,7 +1041,7 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Texte plus grand : choisissez l'une des trois tailles dans Taille du texte, dans le menu. Tout grandit, et tout tient même sur un petit téléphone",
     'Bien démarrer : un guide de chaque partie de l\'app, en haut de Budget et en premier dans le menu. Montrez-moi met en lumière le bon bouton dans l\'appli, et le guide reste là pendant que vous regardez',
     'Vous choisissez la devise à la première ouverture de l\'app. Chaque symbole indique ce qu\'il représente, par exemple $ (dollar, peso, etc.). Nouvelles devises : rouble (₽), réal brésilien (R$), roupie indienne (₹) et livre turque (₺)',
-    'L\'import de budget lit aussi les fichiers Word (.docx), y compris un plan avec un tableau par mois. Un avoir est déduit de la ligne du dessus au lieu de devenir une dépense, et une retraite sous Revenus compte comme revenu',
+    'L\'import de budget lit aussi les fichiers Word (.docx), y compris un plan avec un tableau par mois. Un avoir est déduit de la ligne du dessus au lieu de devenir une dépense, et une retraite sous Revenus compte comme revenu. Avant l\'import, vous voyez ce que fait chaque ligne et à quoi ressemblera le mois, et un nom de ligne proche pose la question au lieu d\'être ajouté deux fois',
     "Reste à vivre affiche aussi Par mois. Touchez la semaine ou le mois pour faire du montant un portefeuille, un plan pour les dépenses du quotidien. Avec une période de paie, c'est la période qui est indiquée, pas le mois",
     "Le trieur reconnaît les commerces, stations-service, transports en commun et fournisseurs d'énergie courants au Brésil, au Portugal, en Russie, en Turquie, en Italie, en France, en Allemagne et en Chine. Les noms chinois sont reconnus même collés au nom de la ville",
     "Un nouveau départ pour qui n'a jamais fait de budget : après la langue et la devise, l'app demande si vous en avez déjà fait un. En débutant, vous répondez à quelques questions simples, comme le salaire, le logement et le mobile, et obtenez un budget pour ce mois-ci ou le reste de l'année",

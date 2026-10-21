@@ -340,6 +340,15 @@ export interface Translations {
   bimAmountColumn: string;
   bimColumn: (n: number) => string;
   bimNote: string;
+  /** The preview, row by row (review 2026-10-21): what the row will do. */
+  bimRowReplaces: (label: string) => string;
+  bimRowNew: string;
+  /** A near name in the same place ("Hyra" beside "Hyra/Bolån"): ask. */
+  bimNearAsk: (label: string) => string;
+  bimNearAdd: string;
+  bimNearReplace: (label: string) => string;
+  /** Above the totals the month will have once imported. */
+  bimAfterTitle: (month: string) => string;
   bimSkip: string;
   bimOther: string;
   bimNewGroup: string;
@@ -1337,8 +1346,8 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Här blir båda vägarna samma, eftersom de minsta skulderna också har högst ränta.',
     debtFromBudget: (amount) => `Från budgeten · ${amount} per månad`,
     bimTitle: 'Importera budget',
-    bimMenu: '📥 Importera budget från Excel',
-    bimHeroButton: '📥 Importera från Excel',
+    bimMenu: '📥 Importera budget från fil',
+    bimHeroButton: '📥 Importera budget',
     bimLead: 'Har du redan en budget i Excel, Google Kalkylark, Numbers eller Word? Välj filen (.xlsx, .docx eller CSV), eller markera cellerna där och klistra in dem här.',
     bimPick: 'Välj fil',
     bimPasteLabel: 'Eller klistra in cellerna',
@@ -1349,7 +1358,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Läggs in i ${n} månader: ${from} – ${to}.`,
     bimAmountColumn: 'Belopp från kolumnen',
     bimColumn: (n) => `Kolumn ${n}`,
-    bimNote: 'Finns raden redan i budgeten får den det nya beloppet. Inget tas bort, och du kan ångra efteråt.',
+    bimNote: 'Bara en rad med exakt samma namn på samma ställe får nytt belopp. Andra namn läggs till som nya rader. Inget tas bort, och du kan ångra efteråt.',
+    bimRowReplaces: (label) => `ersätter ”${label}”`,
+    bimRowNew: 'ny rad',
+    bimNearAsk: (label) => `Liknar ”${label}”. Samma sak?`,
+    bimNearAdd: 'Nej, lägg till som ny rad',
+    bimNearReplace: (label) => `Ja, ersätt ”${label}”`,
+    bimAfterTitle: (month) => `Så blir ${month} efter importen`,
     bimSkip: 'Hoppa över',
     bimOther: 'Övrigt',
     bimNewGroup: 'Ny kategori',
@@ -1802,9 +1817,9 @@ export const translations: Record<Lang, Translations> = {
     saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
     copyNextMonth: 'Nästa månad',
-    copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
+    copyAllRemaining: (n) => (n === 1 ? 'Alla återstående (1 månad)' : `Alla återstående (${n} månader)`),
     copiedTo: (month) => `✓ Kopierat till ${month}`,
-    copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Kopierat till 1 månad' : `✓ Kopierat till ${n} månader`),
     copyOfferTitle: 'Samma budget resten av året?',
     copyOfferBody: (n) => `Kopiera den här månadens budget till de ${n} månader som är kvar i år. Du kan ändra varje månad efteråt.`,
     copyOfferButton: (n) => `Kopiera till ${n} månader`,
@@ -1847,7 +1862,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `1 post togs bort i ${where}` : `${count} poster togs bort i ${where}`;
       if (action === 'import') return count === 1 ? '1 post importerades' : `${count} poster importerades`;
       if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
-      if (action === 'copyBudget') return count > 1 ? `Budgeten skrevs över i ${count} månader` : `Budgeten skrevs över i ${where}`;
+      if (action === 'copyBudget') return count > 1 ? `Budgeten kopierades till ${count} månader` : `Budgeten kopierades till ${where}`;
       if (action === 'deleteCategory') return `En kategori togs bort i ${where}`;
       if (action === 'deleteRow') return where ? `En rad togs bort i ${where}` : 'En rad togs bort';
       if (action === 'deleteEntry') return `En post togs bort i ${where}`;
@@ -2323,8 +2338,8 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Here both ways are the same, because the smallest debts also have the highest interest.',
     debtFromBudget: (amount) => `From the budget · ${amount} a month`,
     bimTitle: 'Import a budget',
-    bimMenu: '📥 Import a budget from Excel',
-    bimHeroButton: '📥 Import from Excel',
+    bimMenu: '📥 Import a budget from a file',
+    bimHeroButton: '📥 Import a budget',
     bimLead: 'Already have a budget in Excel, Google Sheets, Numbers or Word? Choose the file (.xlsx, .docx or CSV), or select the cells there and paste them here.',
     bimPick: 'Choose file',
     bimPasteLabel: 'Or paste the cells',
@@ -2335,7 +2350,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Goes into ${n} months: ${from} – ${to}.`,
     bimAmountColumn: 'Amounts from the column',
     bimColumn: (n) => `Column ${n}`,
-    bimNote: 'A row already in the budget gets the new amount. Nothing is removed, and you can undo it afterwards.',
+    bimNote: 'Only a row with exactly the same name in the same place gets the new amount. Other names are added as new rows. Nothing is removed, and you can undo it afterwards.',
+    bimRowReplaces: (label) => `replaces “${label}”`,
+    bimRowNew: 'new row',
+    bimNearAsk: (label) => `Looks like “${label}”. The same thing?`,
+    bimNearAdd: 'No, add it as a new row',
+    bimNearReplace: (label) => `Yes, replace “${label}”`,
+    bimAfterTitle: (month) => `${month} after the import`,
     bimSkip: 'Leave out',
     bimOther: 'Other',
     bimNewGroup: 'New category',
@@ -2788,9 +2809,9 @@ export const translations: Record<Lang, Translations> = {
     saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
     copyNextMonth: 'Next month',
-    copyAllRemaining: (n) => `All remaining (${n} months)`,
+    copyAllRemaining: (n) => (n === 1 ? 'All remaining (1 month)' : `All remaining (${n} months)`),
     copiedTo: (month) => `✓ Copied to ${month}`,
-    copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Copied to 1 month' : `✓ Copied to ${n} months`),
     copyOfferTitle: 'Same budget for the rest of the year?',
     copyOfferBody: (n) => `Copy this month's budget to the ${n} months left this year. You can change any month afterwards.`,
     copyOfferButton: (n) => `Copy to ${n} months`,
@@ -2834,7 +2855,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `1 entry was removed from ${where}` : `${count} entries were removed from ${where}`;
       if (action === 'import') return count === 1 ? '1 entry was imported' : `${count} entries were imported`;
       if (action === 'restoreBackup') return 'The backup was restored';
-      if (action === 'copyBudget') return count > 1 ? `The budget was written over ${count} months` : `The budget for ${where} was written over`;
+      if (action === 'copyBudget') return count > 1 ? `The budget was copied to ${count} months` : `The budget was copied to ${where}`;
       if (action === 'deleteCategory') return `A category was removed from ${where}`;
       if (action === 'deleteRow') return where ? `A row was removed from ${where}` : 'A row was removed';
       if (action === 'deleteEntry') return `An entry was removed from ${where}`;
@@ -3309,8 +3330,8 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Aquí los dos caminos coinciden, porque las deudas más pequeñas también tienen el interés más alto.',
     debtFromBudget: (amount) => `Del presupuesto · ${amount} al mes`,
     bimTitle: 'Importar presupuesto',
-    bimMenu: '📥 Importar presupuesto de Excel',
-    bimHeroButton: '📥 Importar de Excel',
+    bimMenu: '📥 Importar presupuesto desde un archivo',
+    bimHeroButton: '📥 Importar presupuesto',
     bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google, Numbers o Word? Elige el archivo (.xlsx, .docx o CSV), o selecciona las celdas allí y pégalas aquí.',
     bimPick: 'Elegir archivo',
     bimPasteLabel: 'O pega las celdas',
@@ -3321,7 +3342,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Se añade a ${n} meses: ${from} – ${to}.`,
     bimAmountColumn: 'Importes de la columna',
     bimColumn: (n) => `Columna ${n}`,
-    bimNote: 'Una fila que ya está en el presupuesto recibe el nuevo importe. No se elimina nada y puedes deshacerlo después.',
+    bimNote: 'Solo una fila con exactamente el mismo nombre en el mismo lugar recibe el nuevo importe. Los demás nombres se añaden como filas nuevas. No se elimina nada y puedes deshacerlo después.',
+    bimRowReplaces: (label) => `sustituye a «${label}»`,
+    bimRowNew: 'fila nueva',
+    bimNearAsk: (label) => `Se parece a «${label}». ¿Es lo mismo?`,
+    bimNearAdd: 'No, añadir como fila nueva',
+    bimNearReplace: (label) => `Sí, sustituir «${label}»`,
+    bimAfterTitle: (month) => `Así queda ${month} tras la importación`,
     bimSkip: 'Omitir',
     bimOther: 'Otros',
     bimNewGroup: 'Categoría nueva',
@@ -3774,9 +3801,9 @@ export const translations: Record<Lang, Translations> = {
     saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
     copyNextMonth: 'Mes siguiente',
-    copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
+    copyAllRemaining: (n) => (n === 1 ? 'Todos los restantes (1 mes)' : `Todos los restantes (${n} meses)`),
     copiedTo: (month) => `✓ Copiado a ${month}`,
-    copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Copiado a 1 mes' : `✓ Copiado a ${n} meses`),
     copyOfferTitle: '¿El mismo presupuesto el resto del año?',
     copyOfferBody: (n) => `Copia el presupuesto de este mes a los ${n} meses que quedan este año. Puedes cambiar cualquier mes después.`,
     copyOfferButton: (n) => `Copiar a ${n} meses`,
@@ -3820,7 +3847,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearActuals') return count === 1 ? `Se eliminó 1 movimiento de ${where}` : `Se eliminaron ${count} movimientos de ${where}`;
       if (action === 'import') return count === 1 ? 'Se importó 1 movimiento' : `Se importaron ${count} movimientos`;
       if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
-      if (action === 'copyBudget') return count > 1 ? `El presupuesto se sobrescribió en ${count} meses` : `El presupuesto de ${where} se sobrescribió`;
+      if (action === 'copyBudget') return count > 1 ? `El presupuesto se copió a ${count} meses` : `El presupuesto se copió a ${where}`;
       if (action === 'deleteCategory') return `Se eliminó una categoría de ${where}`;
       if (action === 'deleteRow') return where ? `Se eliminó una fila de ${where}` : 'Se eliminó una fila';
       if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;

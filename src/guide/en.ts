@@ -153,7 +153,7 @@ export const enGuide: Guide = {
         'Pay period: let the month start on payday in Follow-up.',
         'Wallets: small budgets of their own, for a trip or a renovation, for example. They do not affect your regular budget.',
         'Copy budget: to next month or to all remaining months. Pulling from last month does the same in the other direction.',
-        'Import a budget from Excel: read in a budget you already have, from Excel, Google Sheets, Numbers or a table in Word (.docx).',
+        'Import a budget from a file: read in a budget you already have, from Excel, Google Sheets, Numbers or a table in Word (.docx).',
         'Reset month: clears the budget for the month you are looking at. It can be undone.',
         '## Other',
         'What\'s new shows what is new in the app. Privacy and About the app explain how the app handles your data and why it exists.',

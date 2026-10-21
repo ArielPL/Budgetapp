@@ -153,7 +153,7 @@ export const itGuide: Guide = {
         "Periodo di paga: fai iniziare il mese il giorno dello stipendio in Monitoraggio.",
         "Portafogli: piccoli budget a parte, per esempio per un viaggio o una ristrutturazione. Non toccano il tuo budget normale.",
         "Copia budget: nel mese successivo o in tutti i mesi rimanenti. Riprendi dal mese scorso fa lo stesso nella direzione opposta.",
-        "Importa un budget da Excel: carica un budget che hai già, da Excel, Google Sheets, Numbers o da una tabella in Word (.docx).",
+        "Importa un budget da file: carica un budget che hai già, da Excel, Google Sheets, Numbers o da una tabella in Word (.docx).",
         "Azzera il mese: cancella il budget del mese che stai guardando. Si può annullare.",
         "## Altro",
         "Novità mostra cosa c'è di nuovo nell'app. Privacy e Informazioni sull'app spiegano come l'app gestisce i tuoi dati e perché esiste.",

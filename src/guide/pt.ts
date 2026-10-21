@@ -153,7 +153,7 @@ export const ptGuide: Guide = {
         'Período de pagamento: faça o mês começar no dia do pagamento no Acompanhamento.',
         'Carteiras: pequenos orçamentos próprios, para uma viagem ou uma reforma, por exemplo. Elas não afetam o seu orçamento normal.',
         'Copiar orçamento: para o próximo mês ou para todos os meses restantes. Trazer do mês anterior faz o mesmo no sentido contrário.',
-        'Importar orçamento do Excel: traga um orçamento que você já tem, do Excel, Google Planilhas, Numbers ou de uma tabela no Word (.docx).',
+        'Importar orçamento de um arquivo: traga um orçamento que você já tem, do Excel, Google Planilhas, Numbers ou de uma tabela no Word (.docx).',
         'Redefinir mês: limpa o orçamento do mês que você está vendo. Dá para desfazer.',
         '## Outros',
         'Novidades mostra o que há de novo no app. Privacidade e Sobre o app explicam como o app trata seus dados e por que ele existe.',

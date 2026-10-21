@@ -153,7 +153,7 @@ export const deGuide: Guide = {
         'Zahlungszeitraum: Lass den Monat in der Auswertung am Zahltag beginnen.',
         'Geldbörsen: kleine eigene Budgets, zum Beispiel für eine Reise oder eine Renovierung. Sie wirken sich nicht auf dein normales Budget aus.',
         'Budget kopieren: in den nächsten Monat oder in alle übrigen Monate. Aus dem Vormonat übernehmen macht dasselbe in die andere Richtung.',
-        'Budget aus Excel importieren: Lies ein Budget ein, das du schon hast, aus Excel, Google Tabellen, Numbers oder einer Tabelle in Word (.docx).',
+        'Budget aus Datei importieren: Lies ein Budget ein, das du schon hast, aus Excel, Google Tabellen, Numbers oder einer Tabelle in Word (.docx).',
         'Monat zurücksetzen: leert das Budget des angezeigten Monats. Das lässt sich rückgängig machen.',
         '## Sonstiges',
         'Neuigkeiten zeigt, was neu in der App ist. Datenschutz und Über die App erklären, wie die App mit deinen Daten umgeht und warum es sie gibt.',

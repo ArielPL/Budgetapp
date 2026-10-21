@@ -153,7 +153,7 @@ export const esGuide: Guide = {
         'Periodo de pago: haz que el mes empiece el día de cobro en Seguimiento.',
         'Carteras: pequeños presupuestos aparte, por ejemplo para un viaje o una reforma. No afectan a tu presupuesto habitual.',
         'Copiar presupuesto: al mes siguiente o a todos los meses restantes. Traer del mes anterior hace lo mismo en la otra dirección.',
-        'Importar presupuesto de Excel: carga un presupuesto que ya tengas, de Excel, Google Sheets, Numbers o una tabla de Word (.docx).',
+        'Importar presupuesto desde un archivo: carga un presupuesto que ya tengas, de Excel, Google Sheets, Numbers o una tabla de Word (.docx).',
         'Restablecer mes: vacía el presupuesto del mes que estás viendo. Se puede deshacer.',
         '## Otros',
         'Novedades muestra lo nuevo de la app. Privacidad y Sobre la app explican cómo trata la app tus datos y por qué existe.',

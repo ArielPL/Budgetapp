@@ -66,8 +66,8 @@ export const de: Translations = {
   debtSameOrder: 'Hier sind beide Wege gleich, weil die kleinsten Schulden auch die höchsten Zinsen haben.',
   debtFromBudget: (amount) => `Aus dem Budget · ${amount} pro Monat`,
   bimTitle: 'Budget importieren',
-  bimMenu: '📥 Budget aus Excel importieren',
-  bimHeroButton: '📥 Aus Excel importieren',
+  bimMenu: '📥 Budget aus Datei importieren',
+  bimHeroButton: '📥 Budget importieren',
   bimLead: 'Du hast schon ein Budget in Excel, Google Sheets, Numbers oder Word? Wähl die Datei (.xlsx, .docx oder CSV), oder markier dort die Zellen und füg sie hier ein.',
   bimPick: 'Datei wählen',
   bimPasteLabel: 'Oder Zellen einfügen',
@@ -78,7 +78,13 @@ export const de: Translations = {
   bimIntoMonths: (n, from, to) => `Kommt in ${n} Monate: ${from} – ${to}.`,
   bimAmountColumn: 'Beträge aus der Spalte',
   bimColumn: (n) => `Spalte ${n}`,
-  bimNote: 'Eine Zeile, die schon im Budget steht, bekommt den neuen Betrag. Nichts wird entfernt, und du kannst es danach rückgängig machen.',
+  bimNote: 'Nur eine Zeile mit genau demselben Namen an derselben Stelle bekommt den neuen Betrag. Andere Namen werden als neue Zeilen hinzugefügt. Nichts wird entfernt, und du kannst es danach rückgängig machen.',
+  bimRowReplaces: (label) => `ersetzt „${label}“`,
+  bimRowNew: 'neue Zeile',
+  bimNearAsk: (label) => `Ähnelt „${label}“. Dasselbe?`,
+  bimNearAdd: 'Nein, als neue Zeile hinzufügen',
+  bimNearReplace: (label) => `Ja, „${label}“ ersetzen`,
+  bimAfterTitle: (month) => `So sieht ${month} nach dem Import aus`,
   bimSkip: 'Weglassen',
   bimOther: 'Sonstiges',
   bimNewGroup: 'Neue Kategorie',
@@ -577,7 +583,7 @@ export const de: Translations = {
     if (action === 'clearActuals') return count === 1 ? `1 Eintrag wurde aus ${where} entfernt` : `${count} Einträge wurden aus ${where} entfernt`;
     if (action === 'import') return count === 1 ? '1 Eintrag wurde importiert' : `${count} Einträge wurden importiert`;
     if (action === 'restoreBackup') return 'Die Sicherung wurde wiederhergestellt';
-    if (action === 'copyBudget') return count > 1 ? `Das Budget wurde in ${count} Monaten überschrieben` : `Das Budget für ${where} wurde überschrieben`;
+    if (action === 'copyBudget') return count > 1 ? `Das Budget wurde in ${count} Monate kopiert` : `Das Budget wurde nach ${where} kopiert`;
     if (action === 'deleteCategory') return `Eine Kategorie wurde aus ${where} entfernt`;
     if (action === 'deleteRow') return where ? `Eine Zeile wurde aus ${where} entfernt` : 'Eine Zeile wurde entfernt';
     if (action === 'deleteEntry') return `Ein Eintrag wurde aus ${where} entfernt`;
@@ -1026,7 +1032,7 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Größere Schrift: Wähle im Menü unter Textgröße eine von drei Größen. Alles in der App wird größer und passt trotzdem auf ein kleines Handy',
     'Erste Schritte: eine Anleitung zu jedem Teil der App, oben im Budget und als Erstes im Menü. Zeig es mir hebt die richtige Schaltfläche in der App hervor, und die Anleitung bleibt dabei',
     'Die Währung wählst du selbst, wenn du die App zum ersten Mal öffnest. Jedes Symbol sagt, wofür es steht, zum Beispiel $ (Dollar, Peso u. a.). Neue Währungen: Rubel (₽), Brasilianischer Real (R$), Indische Rupie (₹) und Türkische Lira (₺)',
-    'Der Budgetimport liest auch Word-Dateien (.docx), auch einen Plan mit einer Tabelle pro Monat. Eine Gutschrift wird von der Zeile darüber abgezogen, statt zur Ausgabe zu werden, und eine Rente unter Einnahmen zählt als Einnahme',
+    'Der Budgetimport liest auch Word-Dateien (.docx), auch einen Plan mit einer Tabelle pro Monat. Eine Gutschrift wird von der Zeile darüber abgezogen, statt zur Ausgabe zu werden, und eine Rente unter Einnahmen zählt als Einnahme. Vor dem Import siehst du, was jede Zeile bewirkt und wie der Monat danach aussieht, und ein ähnlicher Zeilenname fragt nach, statt doppelt hinzugefügt zu werden',
     'Frei verfügbar zeigt jetzt auch Pro Monat. Tipp auf Woche oder Monat, um aus dem Betrag eine Geldbörse zu machen, einen Plan für die Alltagsausgaben. Mit Zahlungszeitraum steht der Zeitraum statt des Monats da',
     'Der Sortierer kennt gängige Geschäfte, Tankstellen, Nahverkehr und Energieversorger in Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China. Chinesische Namen werden auch erkannt, wenn die Stadt direkt dahinter steht',
     "Ein neuer Start für alle, die noch nie ein Budget gemacht haben: Nach Sprache und Währung fragt die App, ob du schon einmal eins gemacht hast. Als Einsteiger beantwortest du ein paar einfache Fragen, etwa zu Gehalt, Wohnen und Handy, und bekommst ein Budget für diesen Monat oder den Rest des Jahres",

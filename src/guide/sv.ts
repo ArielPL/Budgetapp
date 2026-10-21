@@ -153,7 +153,7 @@ export const svGuide: Guide = {
         'Löneperiod: låt månaden börja på lönedagen i Uppföljning.',
         'Plånböcker: egna små budgetar för till exempel en resa eller en renovering. De påverkar inte din vanliga budget.',
         'Kopiera budget: till nästa månad eller alla återstående månader. Hämta från förra månaden gör samma sak åt andra hållet.',
-        'Importera budget från Excel: läs in en budget du redan har, från Excel, Google Kalkylark, Numbers eller en tabell i Word (.docx).',
+        'Importera budget från fil: läs in en budget du redan har, från Excel, Google Kalkylark, Numbers eller en tabell i Word (.docx).',
         'Återställ månad: tömmer budgeten för månaden du tittar på. Det går att ångra.',
         '## Övrigt',
         'Nyheter visar vad som är nytt i appen. Integritet och Om appen berättar hur appen hanterar dina data och varför den finns.',

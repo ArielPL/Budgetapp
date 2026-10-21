@@ -513,6 +513,9 @@ export interface DraftRow {
   /** A minus read as a cost ("Hyra −9 000" among plus amounts): said in the
    *  dialog, so a sign is never changed without a word. */
   negativeRead?: boolean;
+  /** The user's choice: replace THIS existing row (a near name, "Hyra/Bolån"
+   *  for "Hyra") instead of adding a row. Never set by the import itself. */
+  into?: string;
 }
 
 export interface Draft {
@@ -713,9 +716,34 @@ export interface ImportIds {
 
 const same = (a: string, b: string) => fold(a) === fold(b);
 
+const words = (s: string) => fold(s).split(' ').filter(w => w.length >= 2);
+
+/** Close but not the same: the names share a word ("Hyra" and "Hyra/Bolån",
+ *  "El" and "El & Värme"). Only ever a QUESTION to the user — an import never
+ *  merges two money rows on a guess (review 2026-10-21, P1). */
+export function isNearName(a: string, b: string): boolean {
+  if (same(a, b)) return false;
+  const mine = new Set(words(a));
+  return words(b).some(w => mine.has(w));
+}
+
+/** The rows already in the place `row` would land in `data`: the one with
+ *  its exact name, which it would replace, and any with a near name. */
+export function landingOf(data: MonthData, row: DraftRow): { exact?: BudgetRow; near: BudgetRow[] } {
+  const t = row.target;
+  const list: BudgetRow[] = t.kind === 'skip' ? []
+    : t.kind === 'income' ? data.income
+      : t.kind === 'standard' ? (data.expenses.find(c => c.id === t.id)?.rows ?? [])
+        : (data.expenses.find(c => same(c.name, t.name))?.rows ?? []);
+  return {
+    exact: list.find(r => same(r.label, row.label)),
+    near: list.filter(r => isNearName(r.label, row.label)),
+  };
+}
+
 /** `rows` (with the amount for this month) merged into `data`. A row of the
- *  same name in the same place gets the new amount; any other is added.
- *  Nothing is removed. Pure. */
+ *  same name in the same place gets the new amount — or the row the user
+ *  chose to replace (`into`); any other is added. Nothing is removed. Pure. */
 export function mergeInto(
   data: MonthData,
   rows: { row: DraftRow; amount: number }[],
@@ -724,7 +752,8 @@ export function mergeInto(
 ): MonthData {
   let out = data;
   const upsert = (list: BudgetRow[], row: DraftRow, amount: number): BudgetRow[] => {
-    const at = list.findIndex(r => same(r.label, row.label));
+    const chosen = row.into !== undefined ? list.findIndex(r => same(r.label, row.into!)) : -1;
+    const at = chosen >= 0 ? chosen : list.findIndex(r => same(r.label, row.label));
     if (at >= 0) return list.map((r, i) => (i === at ? { ...r, amount } : r));
     return [...list, { id: ids.row(row.key), label: row.label, amount, isCustom: true, userNamed: true }];
   };

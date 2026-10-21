@@ -66,8 +66,8 @@ export const zh: Translations = {
   debtSameOrder: '这里两种方法结果相同，因为金额最小的债务利率也最高。',
   debtFromBudget: (amount) => `来自预算 · 每月 ${amount}`,
   bimTitle: '导入预算',
-  bimMenu: '📥 从 Excel 导入预算',
-  bimHeroButton: '📥 从 Excel 导入',
+  bimMenu: '📥 从文件导入预算',
+  bimHeroButton: '📥 导入预算',
   bimLead: '已经在 Excel、Google Sheets、Numbers 或 Word 里做了预算？选择文件（.xlsx、.docx 或 CSV），或者在那里选中单元格，粘贴到这里。',
   bimPick: '选择文件',
   bimPasteLabel: '或粘贴单元格',
@@ -78,7 +78,13 @@ export const zh: Translations = {
   bimIntoMonths: (n, from, to) => `导入到 ${n} 个月：${from} – ${to}。`,
   bimAmountColumn: '金额取自列',
   bimColumn: (n) => `第 ${n} 列`,
-  bimNote: '预算中已有的行会更新为新金额。不会删除任何内容，之后也可以撤销。',
+  bimNote: '只有同一位置名称完全相同的行会更新金额。其他名称会作为新行添加。不会删除任何内容，之后也可以撤销。',
+  bimRowReplaces: (label) => `替换“${label}”`,
+  bimRowNew: '新行',
+  bimNearAsk: (label) => `与“${label}”相似。是同一项吗？`,
+  bimNearAdd: '不，作为新行添加',
+  bimNearReplace: (label) => `是，替换“${label}”`,
+  bimAfterTitle: (month) => `导入后的${month}`,
   bimSkip: '不导入',
   bimOther: '其他',
   bimNewGroup: '新分类',
@@ -573,7 +579,7 @@ export const zh: Translations = {
     if (action === 'clearActuals') return `已从${where}删除 ${count} 条记录`;
     if (action === 'import') return `已导入 ${count} 条记录`;
     if (action === 'restoreBackup') return '备份已恢复';
-    if (action === 'copyBudget') return count > 1 ? `已覆盖 ${count} 个月的预算` : `已覆盖${where}的预算`;
+    if (action === 'copyBudget') return count > 1 ? `已将预算复制到 ${count} 个月` : `已将预算复制到${where}`;
     if (action === 'deleteCategory') return `已从${where}删除一个分类`;
     if (action === 'deleteRow') return where ? `已从${where}删除一行` : '已删除一行';
     if (action === 'deleteEntry') return `已从${where}删除一条记录`;
@@ -1022,7 +1028,7 @@ export const zhChangelog113: { title: string; items: string[] } = {
     '更大的文字：在菜单的「文字大小」中选择三种大小之一。应用中的一切都会变大，在小屏手机上也能完整显示',
     '入门：介绍应用每个部分的指南，位于「预算」顶部和菜单最上方。“在应用中查看”会高亮对应的按钮，查看时指南不会关闭',
     '第一次打开应用时由你自己选择货币。每个符号都会说明代表什么，例如 $（美元、加元、比索等）。新增货币：卢布（₽）、巴西雷亚尔（R$）、印度卢比（₹）和土耳其里拉（₺）',
-    '预算导入现在也能读取 Word 文件（.docx），包括每月一张表格的计划。退款或贷记不会变成支出，而是从上一行中扣除；「收入」下的养老金按收入计算',
+    '预算导入现在也能读取 Word 文件（.docx），包括每月一张表格的计划。退款或贷记不会变成支出，而是从上一行中扣除；「收入」下的养老金按收入计算。导入前可以看到每一行会怎样处理以及本月的结果，名称相近的行会先询问，而不会重复添加',
     '「可用生活费」现在也显示「每月」。点按周或月，即可用这笔金额创建钱包，作为日常开支的计划。设置了发薪周期时，显示的是周期而不是月份',
     '自动分类现在能识别巴西、葡萄牙、俄罗斯、土耳其、意大利、法国、德国和中国常见的商店、加油站、公共交通和能源公司。即使中文店名后面紧跟城市名，也能识别',
     "为从未做过预算的人提供新的开始方式：选好语言和货币后，应用会问你以前是否做过预算。新手只需回答几个简单问题，比如工资、住房和手机，就能得到本月或今年剩余月份的预算",

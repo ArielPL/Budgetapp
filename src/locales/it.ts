@@ -66,8 +66,8 @@ export const it: Translations = {
   debtSameOrder: "Qui i due metodi coincidono, perché i debiti più piccoli hanno anche l'interesse più alto.",
   debtFromBudget: (amount) => `Dal budget · ${amount} al mese`,
   bimTitle: "Importa un budget",
-  bimMenu: "📥 Importa un budget da Excel",
-  bimHeroButton: "📥 Importa da Excel",
+  bimMenu: '📥 Importa un budget da file',
+  bimHeroButton: '📥 Importa un budget',
   bimLead: "Hai già un budget in Excel, Google Sheets, Numbers o Word? Scegli il file (.xlsx, .docx o CSV), oppure seleziona lì le celle e incollale qui.",
   bimPick: "Scegli file",
   bimPasteLabel: "Oppure incolla le celle",
@@ -78,7 +78,13 @@ export const it: Translations = {
   bimIntoMonths: (n, from, to) => `Va in ${n} mesi: ${from} – ${to}.`,
   bimAmountColumn: "Importi dalla colonna",
   bimColumn: (n) => `Colonna ${n}`,
-  bimNote: "Una riga già presente nel budget riceve il nuovo importo. Non viene tolto nulla e puoi annullare dopo.",
+  bimNote: 'Solo una riga con esattamente lo stesso nome nello stesso posto riceve il nuovo importo. Gli altri nomi vengono aggiunti come nuove righe. Non viene tolto nulla e puoi annullare dopo.',
+  bimRowReplaces: (label) => `sostituisce «${label}»`,
+  bimRowNew: 'nuova riga',
+  bimNearAsk: (label) => `Somiglia a «${label}». È la stessa cosa?`,
+  bimNearAdd: 'No, aggiungi come nuova riga',
+  bimNearReplace: (label) => `Sì, sostituisci «${label}»`,
+  bimAfterTitle: (month) => `Ecco ${month} dopo l'importazione`,
   bimSkip: "Escludi",
   bimOther: "Altro",
   bimNewGroup: "Nuova categoria",
@@ -531,9 +537,9 @@ export const it: Translations = {
   saveRetry: "Riprova a salvare",
   copyBudget: "Copia budget",
   copyNextMonth: "Mese successivo",
-  copyAllRemaining: (n) => `Tutti i rimanenti (${n} mesi)`,
+  copyAllRemaining: (n) => (n === 1 ? 'Tutti i rimanenti (1 mese)' : `Tutti i rimanenti (${n} mesi)`),
   copiedTo: (month) => `✓ Copiato in ${month}`,
-  copiedToMonths: (n) => `✓ Copiato in ${n} mesi`,
+  copiedToMonths: (n) => (n === 1 ? '✓ Copiato in 1 mese' : `✓ Copiato in ${n} mesi`),
   copyOfferTitle: "Lo stesso budget per il resto dell'anno?",
   copyOfferBody: (n) => `Copia il budget di questo mese nei ${n} mesi che restano quest'anno. Potrai cambiare ogni mese in seguito.`,
   copyOfferButton: (n) => `Copia in ${n} mesi`,
@@ -577,7 +583,7 @@ export const it: Translations = {
     if (action === 'clearActuals') return count === 1 ? `1 movimento è stato rimosso da ${where}` : `${count} movimenti sono stati rimossi da ${where}`;
     if (action === 'import') return count === 1 ? "1 movimento è stato importato" : `${count} movimenti sono stati importati`;
     if (action === 'restoreBackup') return "Il backup è stato ripristinato";
-    if (action === 'copyBudget') return count > 1 ? `Il budget è stato sovrascritto in ${count} mesi` : `Il budget di ${where} è stato sovrascritto`;
+    if (action === 'copyBudget') return count > 1 ? `Il budget è stato copiato in ${count} mesi` : `Il budget è stato copiato in ${where}`;
     if (action === 'deleteCategory') return `Una categoria è stata rimossa da ${where}`;
     if (action === 'deleteRow') return where ? `Una riga è stata rimossa da ${where}` : "Una riga è stata rimossa";
     if (action === 'deleteEntry') return `Un movimento è stato rimosso da ${where}`;
@@ -1026,7 +1032,7 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Testo più grande: scegli una delle tre dimensioni in Dimensione del testo nel menu. Tutto nell'app si ingrandisce, e ci sta anche su un telefono piccolo",
     "Per iniziare: una guida a ogni parte dell'app, in cima a Budget e per prima nel menu. Mostramelo illumina il pulsante giusto nell'app, e la guida resta lì mentre guardi",
     "Scegli la valuta la prima volta che apri l'app. Ogni simbolo dice cosa rappresenta, per esempio $ (dollaro, peso e altri). Nuove valute: rublo (₽), real brasiliano (R$), rupia indiana (₹) e lira turca (₺)",
-    "L'importazione del budget legge anche i file Word (.docx), compreso un piano con una tabella per mese. Una nota di credito viene detratta dalla riga sopra invece di diventare una spesa, e una pensione sotto Entrate diventa un'entrata",
+    "L'importazione del budget legge anche i file Word (.docx), compreso un piano con una tabella per mese. Una nota di credito viene detratta dalla riga sopra invece di diventare una spesa, e una pensione sotto Entrate diventa un'entrata. Prima dell'importazione vedi cosa fa ogni riga e come sarà il mese, e un nome di riga simile chiede invece di essere aggiunto due volte",
     "Rimane per vivere mostra anche Al mese. Tocca la settimana o il mese per trasformare l'importo in un portafoglio, un piano per le spese quotidiane. Con un periodo di paga viene indicato il periodo invece del mese",
     'Lo smistamento riconosce negozi, distributori, trasporti pubblici e fornitori di energia comuni in Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina. I nomi cinesi vengono trovati anche con la città scritta subito dopo',
     "Un nuovo inizio per chi non ha mai fatto un budget: dopo lingua e valuta, l'app chiede se ne hai già fatto uno. Da principiante rispondi a qualche domanda semplice, come stipendio, casa e telefono, e ottieni un budget per questo mese o per il resto dell'anno",

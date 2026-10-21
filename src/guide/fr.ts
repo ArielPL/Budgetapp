@@ -153,7 +153,7 @@ export const frGuide: Guide = {
         'Période de paie : faites commencer le mois le jour de paie dans Suivi.',
         "Portefeuilles : de petits budgets à part, pour un voyage ou des travaux par exemple. Ils n'affectent pas votre budget habituel.",
         "Copier le budget : vers le mois suivant ou tous les mois restants. Reprendre depuis le mois précédent fait l'inverse.",
-        "Importer un budget depuis Excel : chargez un budget que vous avez déjà, depuis Excel, Google Sheets, Numbers ou un tableau Word (.docx).",
+        "Importer un budget depuis un fichier : chargez un budget que vous avez déjà, depuis Excel, Google Sheets, Numbers ou un tableau Word (.docx).",
         "Réinitialiser le mois : vide le budget du mois affiché. C'est réversible.",
         '## Autres',
         "Nouveautés montre ce qui est nouveau dans l'app. Confidentialité et À propos de l'app expliquent comment l'app traite vos données et pourquoi elle existe.",

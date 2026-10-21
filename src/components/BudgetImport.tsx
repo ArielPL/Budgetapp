@@ -2,12 +2,14 @@ import { useMemo, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '../i18n';
 import { useModalFocus } from '../useModalFocus';
-import { standardExpenseCategory } from '../defaults';
+import { standardExpenseCategory, shownName } from '../defaults';
+import { calculateBudgetMetrics } from '../metrics';
+import type { MonthData } from '../types';
 import { STANDARD_CATEGORY_IDS, isStandardCategoryId } from '../categorise';
 import { monthYear } from '../dateLabel';
 import {
-  readSpreadsheet, readText, analyse, rowsByMonth, SpreadsheetError,
-  type Sheet, type Draft, type Target,
+  readSpreadsheet, readText, analyse, rowsByMonth, mergeInto, landingOf, SpreadsheetError,
+  type Sheet, type Draft, type Target, type ImportIds,
 } from '../budgetImport';
 
 // ── Import a budget from a spreadsheet ─────────────────────────────────────
@@ -16,6 +18,11 @@ import {
 // change any of them; then import. Nothing is stored until the last step, and
 // that step is one write the user can undo (App.importBudget). The reading
 // and the proposals are budgetImport.ts, tested there.
+//
+// Review 2026-10-21 (P1): "Hyra" beside an existing "Hyra/Bolån" was added as
+// a second rent, and the month showed a deficit nobody had. Every row now says
+// what it will do (replace or add), a near name asks, and the month's totals
+// after the import are shown before anything is stored.
 
 interface Props {
   /** The month on screen: where a one-month list goes. */
@@ -24,7 +31,12 @@ interface Props {
   onClose: () => void;
   /** Store the draft; resolves to whether it was stored. */
   onImport: (draft: Draft) => Promise<boolean>;
+  /** A month as it stands now — the one on screen as shown, others as stored. */
+  monthData: (year: number, month: number) => MonthData;
 }
+
+/** Ids for the preview only: nothing previewed is ever stored. */
+const PREVIEW_IDS: ImportIds = { row: k => `preview-${k}`, category: n => `preview-${n}` };
 
 const encode = (t: Target): string =>
   t.kind === 'income' ? 'income'
@@ -39,7 +51,7 @@ const decode = (v: string): Target => {
   return { kind: 'custom', name: v.slice(7) };
 };
 
-export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
+export const BudgetImport = ({ year, month, onClose, onImport, monthData }: Props) => {
   const { t, lang, money } = useLang();
   const panel = useRef<HTMLDivElement>(null);
   useModalFocus(panel, true, onClose);
@@ -51,6 +63,8 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
   const [amountIdx, setAmountIdx] = useState<number | undefined>(undefined);
   /** The user's own choices, by row, over the proposals. */
   const [chosen, setChosen] = useState<Record<string, Target>>({});
+  /** For a near name: the existing row the user chose to replace, by row. */
+  const [into, setInto] = useState<Record<string, string>>({});
   const [paste, setPaste] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,8 +72,8 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
   const draft = useMemo<Draft | null>(() => {
     if (!sheets) return null;
     const d = analyse(sheets[sheetIdx].rows, { year, month }, t.bimOther, amountIdx);
-    return { ...d, rows: d.rows.map(r => ({ ...r, target: chosen[r.key] ?? r.target })) };
-  }, [sheets, sheetIdx, amountIdx, chosen, year, month, t.bimOther]);
+    return { ...d, rows: d.rows.map(r => ({ ...r, target: chosen[r.key] ?? r.target, into: into[r.key] || undefined })) };
+  }, [sheets, sheetIdx, amountIdx, chosen, into, year, month, t.bimOther]);
 
   const start = (next: Sheet[]) => {
     const first = analyse(next[0].rows, { year, month }, t.bimOther);
@@ -70,6 +84,7 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
     setSheetIdx(0);
     setAmountIdx(undefined);
     setChosen({});
+    setInto({});
   };
 
   const readFile = async (file: File) => {
@@ -98,6 +113,13 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
   };
 
   const months = draft ? rowsByMonth(draft) : [];
+  // The first month the import reaches is the one the preview speaks for.
+  const first = months[0];
+  const base = useMemo(() => (first ? monthData(first.year, first.month) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the month, not its rows
+    [first?.year, first?.month, monthData]);
+  const before = base ? calculateBudgetMetrics(base) : null;
+  const after = base && first ? calculateBudgetMetrics(mergeInto(base, first.rows, PREVIEW_IDS, lang)) : null;
   const importing = draft ? draft.rows.filter(r => r.target.kind !== 'skip' && r.amounts.some(a => a !== null)) : [];
   const customNames = draft
     ? [...new Set([...draft.rows.flatMap(r => (r.target.kind === 'custom' ? [r.target.name] : [])), t.bimOther])]
@@ -201,6 +223,15 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
                           </span>
                         )}
                         {r.negativeRead && <span className="bim-credit">{t.bimNegativeRead}</span>}
+                        {base && r.target.kind !== 'skip' && (() => {
+                          const land = landingOf(base, r);
+                          const replaces = land.exact ?? (r.into ? land.near.find(n => n.label === r.into) : undefined);
+                          return (
+                            <span className={`bim-status${replaces ? ' is-replace' : ''}`}>
+                              {replaces ? t.bimRowReplaces(shownName(replaces, lang)) : t.bimRowNew}
+                            </span>
+                          );
+                        })()}
                       </span>
                       <span className="csv-group-sum">
                         {draft.layout === 'list'
@@ -225,17 +256,46 @@ export const BudgetImport = ({ year, month, onClose, onImport }: Props) => {
                           {customNames.map(n => <option key={n} value={`custom:${n}`}>+ {n}</option>)}
                         </optgroup>
                       </select>
+                      {base && r.target.kind !== 'skip' && (() => {
+                        const land = landingOf(base, r);
+                        if (land.exact || land.near.length === 0) return null;
+                        const ask = t.bimNearAsk(land.near.map(n => shownName(n, lang)).join(', '));
+                        return (
+                          <div className="bim-near">
+                            <span>{ask}</span>
+                            <select className="csv-group-cat" value={into[r.key] ?? ''} aria-label={`${r.label}: ${ask}`}
+                              onChange={e => setInto(c => ({ ...c, [r.key]: e.target.value }))}>
+                              <option value="">{t.bimNearAdd}</option>
+                              {land.near.map(n => (
+                                <option key={n.id} value={n.label}>{t.bimNearReplace(shownName(n, lang))}</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
               </div>
 
+              {first && before && after && (
+                <div className="bim-after">
+                  <strong>{t.bimAfterTitle(monthYear(first, lang))}</strong>
+                  {([[t.income, before.income, after.income], [t.expenses, before.expenses, after.expenses],
+                    [t.remaining, before.remaining, after.remaining]] as const).map(([label, was, will]) => (
+                    <span key={label} className={`bim-after-row${will < 0 ? ' is-negative' : ''}`}>
+                      <span>{label}</span>
+                      <span>{was === will ? money(will) : `${money(was)} → ${money(will)}`}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
               <p className="csv-hint">{t.bimNote}</p>
               <div className="csv-actions">
                 <button className="csv-primary" disabled={importing.length === 0 || busy} onClick={() => void doImport()}>
                   {t.bimImportN(importing.length)}
                 </button>
-                <button className="csv-secondary" onClick={() => { setSheets(null); setChosen({}); setError(null); }}>
+                <button className="csv-secondary" onClick={() => { setSheets(null); setChosen({}); setInto({}); setError(null); }}>
                   {t.bimBack}
                 </button>
               </div>

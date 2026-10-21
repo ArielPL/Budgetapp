@@ -2183,7 +2183,16 @@ function App({ startupRepair = null }: AppProps) {
                       value={layout}
                       onChange={e => {
                         const v = e.target.value;
-                        if (v === 'classic' || v === 'combined' || v === 'custom') { setLayout(v); setMenuOpen(false); }
+                        if (v !== 'classic' && v !== 'combined' && v !== 'custom') return;
+                        // Choosing Custom shows Custom — its own start, not the
+                        // wallet last opened from the menu (review 2026-10-21,
+                        // P2). Inside Custom the open wallet is remembered as before.
+                        if (v === 'custom' && layout !== 'custom') {
+                          try { appStorage.removeItem(OPEN_PANEL_KEY); } catch { /* opens a wallet; still reachable */ }
+                        }
+                        setLayout(v);
+                        setWalletsScreen(false);
+                        setMenuOpen(false);
                       }}
                     >
                       <option value="classic">{t.layoutClassic}</option>
@@ -2684,6 +2693,7 @@ function App({ startupRepair = null }: AppProps) {
         {budgetImportOpen && (
           <Suspense fallback={null}>
             <BudgetImport year={year} month={month}
+              monthData={(y, m) => (y === year && m === month ? data : loadMonthData(y, m, lang))}
               onClose={() => setBudgetImportOpen(false)} onImport={importBudget} />
           </Suspense>
         )}

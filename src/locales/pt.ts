@@ -66,8 +66,8 @@ export const pt: Translations = {
   debtSameOrder: 'Aqui os dois caminhos são iguais, porque as menores dívidas também têm os juros mais altos.',
   debtFromBudget: (amount) => `Do orçamento · ${amount} por mês`,
   bimTitle: 'Importar orçamento',
-  bimMenu: '📥 Importar orçamento do Excel',
-  bimHeroButton: '📥 Importar do Excel',
+  bimMenu: '📥 Importar orçamento de um arquivo',
+  bimHeroButton: '📥 Importar orçamento',
   bimLead: 'Já tem um orçamento no Excel, Google Planilhas, Numbers ou Word? Escolha o arquivo (.xlsx, .docx ou CSV), ou selecione as células lá e cole aqui.',
   bimPick: 'Escolher arquivo',
   bimPasteLabel: 'Ou cole as células',
@@ -78,7 +78,13 @@ export const pt: Translations = {
   bimIntoMonths: (n, from, to) => `Vai para ${n} meses: ${from} – ${to}.`,
   bimAmountColumn: 'Valores da coluna',
   bimColumn: (n) => `Coluna ${n}`,
-  bimNote: 'Uma linha que já está no orçamento recebe o novo valor. Nada é removido, e você pode desfazer depois.',
+  bimNote: 'Só uma linha com exatamente o mesmo nome no mesmo lugar recebe o novo valor. Outros nomes são adicionados como novas linhas. Nada é removido, e você pode desfazer depois.',
+  bimRowReplaces: (label) => `substitui “${label}”`,
+  bimRowNew: 'nova linha',
+  bimNearAsk: (label) => `Parece com “${label}”. É a mesma coisa?`,
+  bimNearAdd: 'Não, adicionar como nova linha',
+  bimNearReplace: (label) => `Sim, substituir “${label}”`,
+  bimAfterTitle: (month) => `Como fica ${month} depois da importação`,
   bimSkip: 'Deixar de fora',
   bimOther: 'Outros',
   bimNewGroup: 'Nova categoria',
@@ -531,9 +537,9 @@ export const pt: Translations = {
   saveRetry: 'Tentar salvar de novo',
   copyBudget: 'Copiar orçamento',
   copyNextMonth: 'Próximo mês',
-  copyAllRemaining: (n) => `Todos os restantes (${n} meses)`,
+  copyAllRemaining: (n) => (n === 1 ? 'Todos os restantes (1 mês)' : `Todos os restantes (${n} meses)`),
   copiedTo: (month) => `✓ Copiado para ${month}`,
-  copiedToMonths: (n) => `✓ Copiado para ${n} meses`,
+  copiedToMonths: (n) => (n === 1 ? '✓ Copiado para 1 mês' : `✓ Copiado para ${n} meses`),
   copyOfferTitle: 'O mesmo orçamento no resto do ano?',
   copyOfferBody: (n) => `Copie o orçamento deste mês para os ${n} meses que faltam no ano. Você pode mudar qualquer mês depois.`,
   copyOfferButton: (n) => `Copiar para ${n} meses`,
@@ -577,7 +583,7 @@ export const pt: Translations = {
     if (action === 'clearActuals') return count === 1 ? `1 lançamento foi removido de ${where}` : `${count} lançamentos foram removidos de ${where}`;
     if (action === 'import') return count === 1 ? '1 lançamento foi importado' : `${count} lançamentos foram importados`;
     if (action === 'restoreBackup') return 'O backup foi restaurado';
-    if (action === 'copyBudget') return count > 1 ? `O orçamento foi sobrescrito em ${count} meses` : `O orçamento de ${where} foi sobrescrito`;
+    if (action === 'copyBudget') return count > 1 ? `O orçamento foi copiado para ${count} meses` : `O orçamento foi copiado para ${where}`;
     if (action === 'deleteCategory') return `Uma categoria foi removida de ${where}`;
     if (action === 'deleteRow') return where ? `Uma linha foi removida de ${where}` : 'Uma linha foi removida';
     if (action === 'deleteEntry') return `Um lançamento foi removido de ${where}`;
@@ -1025,7 +1031,7 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'Texto maior: escolha um de três tamanhos em Tamanho do texto, no menu. Tudo no app cresce, e ainda cabe em um celular pequeno',
     'Comece aqui: um guia de cada parte do app, no topo de Orçamento e em primeiro lugar no menu. Mostre-me destaca o botão certo no app, e o guia continua lá enquanto você olha',
     'Você escolhe a moeda na primeira vez que abre o app. Cada símbolo diz o que representa, como $ (dólar, peso e outros). Novas moedas: rublo (₽), real (R$), rupia indiana (₹) e lira turca (₺)',
-    'A importação de orçamento também lê arquivos do Word (.docx), inclusive um plano com uma tabela por mês. Um crédito é descontado da linha de cima em vez de virar uma despesa, e uma aposentadoria em Renda conta como renda',
+    'A importação de orçamento também lê arquivos do Word (.docx), inclusive um plano com uma tabela por mês. Um crédito é descontado da linha de cima em vez de virar uma despesa, e uma aposentadoria em Renda conta como renda. Antes de importar, você vê o que cada linha faz e como o mês vai ficar, e um nome de linha parecido pergunta em vez de ser adicionado duas vezes',
     'Sobra para o dia a dia agora também mostra Por mês. Toque na semana ou no mês para transformar o valor em uma carteira, um plano para os gastos do dia a dia. Com período de pagamento, aparece o período em vez do mês',
     'A classificação reconhece lojas, postos, transporte público e companhias de energia comuns no Brasil, em Portugal, na Rússia, na Turquia, na Itália, na França, na Alemanha e na China. Nomes chineses são encontrados mesmo com a cidade escrita logo depois',
     "Um novo começo para quem nunca fez um orçamento: depois do idioma e da moeda, o app pergunta se você já fez um. Como iniciante, você responde a algumas perguntas simples, como salário, moradia e celular, e recebe um orçamento para este mês ou o resto do ano",

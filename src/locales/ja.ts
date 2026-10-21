@@ -66,8 +66,8 @@ export const ja: Translations = {
   debtSameOrder: 'ここではどちらの方式も同じ結果です。残高の少ない負債ほど金利も高いためです。',
   debtFromBudget: (amount) => `予算から · 月${amount}`,
   bimTitle: '予算をインポート',
-  bimMenu: '📥 Excelから予算をインポート',
-  bimHeroButton: '📥 Excelからインポート',
+  bimMenu: '📥 ファイルから予算をインポート',
+  bimHeroButton: '📥 予算をインポート',
   bimLead: 'Excel、Google Sheets、Numbers、Wordですでに予算を作っていますか？ファイル（.xlsx、.docx、CSV）を選ぶか、そこでセルを選択してここに貼り付けてください。',
   bimPick: 'ファイルを選択',
   bimPasteLabel: 'またはセルを貼り付け',
@@ -78,7 +78,13 @@ export const ja: Translations = {
   bimIntoMonths: (n, from, to) => `${n}か月分に入ります：${from} – ${to}。`,
   bimAmountColumn: '金額の列',
   bimColumn: (n) => `${n}列目`,
-  bimNote: 'すでに予算にある行は新しい金額になります。削除されるものはなく、あとから元に戻せます。',
+  bimNote: '同じ場所にまったく同じ名前の行がある場合だけ、新しい金額になります。ほかの名前は新しい行として追加されます。削除されるものはなく、あとから元に戻せます。',
+  bimRowReplaces: (label) => `「${label}」を置き換え`,
+  bimRowNew: '新しい行',
+  bimNearAsk: (label) => `「${label}」と似ています。同じものですか？`,
+  bimNearAdd: 'いいえ、新しい行として追加',
+  bimNearReplace: (label) => `はい、「${label}」を置き換える`,
+  bimAfterTitle: (month) => `取り込み後の${month}`,
   bimSkip: '除外',
   bimOther: 'その他',
   bimNewGroup: '新しいカテゴリ',
@@ -573,7 +579,7 @@ export const ja: Translations = {
     if (action === 'clearActuals') return `${where}から${count}件の明細を削除しました`;
     if (action === 'import') return `${count}件の明細を取り込みました`;
     if (action === 'restoreBackup') return 'バックアップを復元しました';
-    if (action === 'copyBudget') return count > 1 ? `${count}か月分の予算を上書きしました` : `${where}の予算を上書きしました`;
+    if (action === 'copyBudget') return count > 1 ? `${count}か月分に予算をコピーしました` : `${where}に予算をコピーしました`;
     if (action === 'deleteCategory') return `${where}からカテゴリを削除しました`;
     if (action === 'deleteRow') return where ? `${where}から行を削除しました` : '行を削除しました';
     if (action === 'deleteEntry') return `${where}から明細を削除しました`;
@@ -1022,7 +1028,7 @@ export const jaChangelog113: { title: string; items: string[] } = {
     '文字を大きく：メニューの「文字サイズ」で3つの大きさから選べます。アプリ全体が大きくなり、小さなスマホでも収まります',
     'はじめに：アプリの各部分を説明するガイド。「予算」の上部とメニューのいちばん上にあります。「アプリで見る」で該当するボタンが光り、見ている間もガイドは閉じません',
     '通貨は、アプリを初めて開いたときに自分で選びます。各記号には、$（ドル、ペソなど）のように何を表すかが書かれています。新しい通貨：ルーブル（₽）、ブラジル・レアル（R$）、インド・ルピー（₹）、トルコ・リラ（₺）',
-    '予算のインポートでWordファイル（.docx）も読み込めるようになりました。月ごとに表が分かれた計画にも対応します。返金・クレジットは支出にせず上の行から差し引き、「収入」の下の年金は収入として扱います',
+    '予算のインポートでWordファイル（.docx）も読み込めるようになりました。月ごとに表が分かれた計画にも対応します。返金・クレジットは支出にせず上の行から差し引き、「収入」の下の年金は収入として扱います。取り込む前に、各行がどうなるかと月の合計が表示され、似た名前の行は二重に追加せずに確認します',
     '「使えるお金」に「1か月あたり」も表示されるようになりました。週または月をタップすると、その金額でウォレットを作成でき、日々の支出の計画になります。集計期間を設定している場合は、月ではなく期間が表示されます',
     '自動分類が、ブラジル、ポルトガル、ロシア、トルコ、イタリア、フランス、ドイツ、中国の主な店、ガソリンスタンド、公共交通、電力会社を認識するようになりました。中国語の店名は、すぐ後ろに都市名が続いていても見つかります',
     "予算を作ったことがない人のための新しい始め方：言語と通貨のあとに、予算を作ったことがあるか尋ねます。初めての方は給与、住居、携帯電話などの簡単な質問に答えるだけで、今月だけ、または年末までの予算ができます",

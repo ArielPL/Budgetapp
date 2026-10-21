@@ -490,7 +490,6 @@ export function isHistoricMonth(year: number, monthIndex: number, now = new Date
 /**
  * The giving category of the first version (until June 2026): "Givande &
  * Välgörenhet", 🤲, its rows mirrored from a plan field that no longer exists.
- * Months from then may still hold it, and it stays hidden there.
  *
  * Only THAT one. The 1.13.0 template's "Gåvor & givande" (🎁) reuses the id,
  * and hiding every `givande` made the new category vanish on the next load —
@@ -498,6 +497,38 @@ export function isHistoricMonth(year: number, monthIndex: number, now = new Date
  */
 export function isRetiredGiving(c: { id: string; icon?: string; name?: string }): boolean {
   return c.id === 'givande' && (c.icon === '🤲' || c.name === 'Givande & Välgörenhet');
+}
+
+/**
+ * Months from before June 2026 that still hold the retired 🤲 category get its
+ * rows back, inside today's 🎁 "Gåvor & givande" (Ariel, 2026-10-21). Until now
+ * it was hidden on reading, so the next edit to such a month wrote its rows
+ * away without a word (review 2026-10-21, P0). Hidden budget rows are not the
+ * app's to throw out.
+ *
+ * Where the month already has the new 🎁 category (same id), the old rows join
+ * it — one category, no id collision, nothing counted twice. Pure, applied on
+ * READ like the rest of loadMonthData: storage changes only when the user edits
+ * the month, and then the rows are saved where they can be seen and removed.
+ */
+export function adoptRetiredGiving(expenses: BudgetCategory[], lang: Lang): BudgetCategory[] {
+  const old = expenses.find(isRetiredGiving);
+  if (!old) return expenses;
+  const rest = expenses.filter(c => c !== old);
+  const current = rest.find(c => c.id === 'givande');
+  if (!current) {
+    const fresh = standardExpenseCategory('givande', lang);
+    return expenses.map(c => c !== old ? c : {
+      ...old,
+      name: fresh?.name ?? tr(L.givande, lang),
+      icon: fresh?.icon ?? '🎁',
+      color: fresh?.color ?? CATEGORY_COLORS.givande,
+      rows: old.rows ?? [],
+    });
+  }
+  const taken = new Set((current.rows ?? []).map(r => r.id));
+  const moved = (old.rows ?? []).map(r => (taken.has(r.id) ? { ...r, id: makeId() } : r));
+  return rest.map(c => (c === current ? { ...c, rows: [...(c.rows ?? []), ...moved] } : c));
 }
 
 export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): MonthData {
@@ -508,11 +539,12 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
     const parsed = JSON.parse(raw) as MonthData;
     // Preserve existing saved months EXACTLY — no auto-seeding of default
     // categories (that's now opt-in via the starter pack). Only normalize shape
-    // (guard against a missing array) and hide the RETIRED giving category.
+    // (guard against a missing array) and bring the RETIRED giving category's
+    // rows into today's one (adoptRetiredGiving).
     if (!Array.isArray(parsed.income)) parsed.income = [];
     if (!Array.isArray(parsed.savings)) parsed.savings = [];
     if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
-    else parsed.expenses = parsed.expenses.filter(c => !isRetiredGiving(c));
+    else parsed.expenses = adoptRetiredGiving(parsed.expenses, lang);
     // Defensive read: a build before the shared money validation could store an
     // amount as `null` (JSON.stringify's rendering of Infinity/NaN). One null
     // would turn every total that touched it into NaN, so amounts are coerced

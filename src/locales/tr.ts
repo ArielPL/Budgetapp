@@ -66,8 +66,8 @@ export const tr: Translations = {
   debtSameOrder: "Burada iki yöntem de aynı, çünkü en küçük borçlar aynı zamanda en yüksek faizli olanlar.",
   debtFromBudget: (amount) => `Bütçeden · ayda ${amount}`,
   bimTitle: "Bütçe içe aktar",
-  bimMenu: "📥 Excel'den bütçe içe aktar",
-  bimHeroButton: "📥 Excel'den içe aktar",
+  bimMenu: '📥 Dosyadan bütçe içe aktar',
+  bimHeroButton: '📥 Bütçe içe aktar',
   bimLead: "Excel, Google Sheets, Numbers veya Word'de zaten bir bütçeniz mi var? Dosyayı seçin (.xlsx, .docx veya CSV) ya da oradaki hücreleri seçip buraya yapıştırın.",
   bimPick: "Dosya seç",
   bimPasteLabel: "Ya da hücreleri yapıştırın",
@@ -78,7 +78,13 @@ export const tr: Translations = {
   bimIntoMonths: (n, from, to) => `Hedef: ${n} ay, ${from} – ${to}.`,
   bimAmountColumn: "Tutarların alınacağı sütun",
   bimColumn: (n) => `Sütun ${n}`,
-  bimNote: "Bütçede zaten olan bir satır yeni tutarı alır. Hiçbir şey silinmez ve sonradan geri alabilirsiniz.",
+  bimNote: 'Yalnızca aynı yerde tam olarak aynı ada sahip satır yeni tutarı alır. Diğer adlar yeni satır olarak eklenir. Hiçbir şey silinmez ve sonradan geri alabilirsiniz.',
+  bimRowReplaces: (label) => `“${label}” yerine geçer`,
+  bimRowNew: 'yeni satır',
+  bimNearAsk: (label) => `“${label}” ile benzer. Aynı şey mi?`,
+  bimNearAdd: 'Hayır, yeni satır olarak ekle',
+  bimNearReplace: (label) => `Evet, “${label}” yerine koy`,
+  bimAfterTitle: (month) => `İçe aktarmadan sonra ${month}`,
   bimSkip: "Dahil etme",
   bimOther: "Diğer",
   bimNewGroup: "Yeni kategori",
@@ -577,7 +583,7 @@ export const tr: Translations = {
     if (action === 'clearActuals') return count === 1 ? `1 kayıt silindi (${where})` : `${count} kayıt silindi (${where})`;
     if (action === 'import') return count === 1 ? "1 kayıt içe aktarıldı" : `${count} kayıt içe aktarıldı`;
     if (action === 'restoreBackup') return "Yedek geri yüklendi";
-    if (action === 'copyBudget') return count > 1 ? `${count} ayın bütçesinin üzerine yazıldı` : `Bütçenin üzerine yazıldı (${where})`;
+    if (action === 'copyBudget') return count > 1 ? `Bütçe ${count} aya kopyalandı` : `Bütçe kopyalandı (${where})`;
     if (action === 'deleteCategory') return `Bir kategori silindi (${where})`;
     if (action === 'deleteRow') return where ? `Bir satır silindi (${where})` : "Bir satır silindi";
     if (action === 'deleteEntry') return `Bir kayıt silindi (${where})`;
@@ -1025,7 +1031,7 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Daha büyük yazı: menüdeki Yazı boyutu altında üç boyuttan birini seçin. Uygulamadaki her şey büyüyor ve küçük bir telefona bile sığıyor",
     "Başlarken: uygulamanın her bölümü için bir rehber, Bütçe sekmesinin en üstünde ve menüde ilk sırada. Uygulamada göster doğru düğmeyi vurgular, siz bakarken rehber açık kalır",
     "Para birimini uygulamayı ilk açtığınızda siz seçiyorsunuz. Her simge neyi temsil ettiğini söylüyor, örneğin $ (dolar, peso ve diğerleri). Yeni para birimleri: ruble (₽), Brezilya reali (R$), Hindistan rupisi (₹) ve Türk lirası (₺)",
-    "Bütçe içe aktarma artık Word dosyalarını (.docx) da okuyor; ay başına bir tablo içeren bir plan da buna dahil. Bir alacak kaydı gider olmak yerine üstündeki satırdan düşülüyor ve Gelir altındaki emeklilik geliri gelir sayılıyor",
+    "Bütçe içe aktarma artık Word dosyalarını (.docx) da okuyor; ay başına bir tablo içeren bir plan da buna dahil. Bir alacak kaydı gider olmak yerine üstündeki satırdan düşülüyor ve Gelir altındaki emeklilik geliri gelir sayılıyor. İçe aktarmadan önce her satırın ne yapacağını ve ayın nasıl olacağını görürsünüz; benzer bir satır adı iki kez eklenmek yerine size sorulur",
     'Geçim için kalan artık Aylık tutarı da gösteriyor. Tutardan bir cüzdan, yani günlük harcamalar için bir plan oluşturmak için haftaya veya aya dokunun. Maaş dönemi açıksa ay yerine dönem gösterilir',
     "Sınıflandırıcı artık Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'deki yaygın mağazaları, akaryakıt istasyonlarını, toplu taşımayı ve enerji şirketlerini tanıyor. Çince adlar, hemen arkasına şehir yazılmış olsa da bulunur",
     "Hiç bütçe yapmamış olanlar için yeni bir başlangıç: dil ve para biriminden sonra uygulama daha önce bütçe yapıp yapmadığınızı sorar. Yeni başlayan olarak maaş, konut ve telefon gibi birkaç basit soruyu yanıtlarsınız ve bu ay ya da yılın geri kalanı için bir bütçe alırsınız",

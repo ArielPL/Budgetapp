@@ -153,7 +153,7 @@ export const trGuide: Guide = {
         "Maaş dönemi: Takip'te ayın maaş gününde başlamasını sağlar.",
         "Cüzdanlar: örneğin bir seyahat veya tadilat için kendi başına küçük bütçeler. Normal bütçenizi etkilemezler.",
         "Bütçeyi kopyala: gelecek aya ya da kalan tüm aylara. Önceki aydan al aynı işi ters yönde yapar.",
-        "Excel'den bütçe içe aktar: zaten sahip olduğunuz bir bütçeyi Excel, Google Sheets, Numbers veya Word'deki (.docx) bir tablodan okur.",
+        "Dosyadan bütçe içe aktar: zaten sahip olduğunuz bir bütçeyi Excel, Google Sheets, Numbers veya Word'deki (.docx) bir tablodan okur.",
         "Ayı sıfırla: baktığınız ayın bütçesini temizler. Geri alınabilir.",
         "## Diğer",
         "Yenilikler, uygulamadaki yenilikleri gösterir. Gizlilik ve Uygulama hakkında, uygulamanın verilerinizi nasıl işlediğini ve neden var olduğunu açıklar.",
