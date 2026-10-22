@@ -39,7 +39,8 @@ they adapt to for THIS project.
 - App: React 19 + Vite + TypeScript PWA. All data in localStorage
   (per device, **accountless by product decision** — no accounts/email/backend).
   i18n sv/en/es via typed `Translations` in `src/i18n.ts`; currency kr/€/$/£/¥ (format only).
-- Live (production, `main`): https://budgetapp-indol.vercel.app
+- Live (production, `main`): https://www.yourofflinebudget.com (the apex redirects there;
+  the old https://budgetapp-indol.vercel.app still works)
   Preview per branch: `https://budgetapp-git-<branch>-ariel-p-projects.vercel.app`
   Both auto-build on push to GitHub `ArielPL/Budgetapp`.
 - Commands are ordinary npm scripts — `npm run dev`, `npm test`, `npm run lint`,
