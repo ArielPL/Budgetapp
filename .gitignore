@@ -25,3 +25,4 @@ dist-ssr
 
 # Local Claude config (machine-specific paths)
 .claude/
+dist-site

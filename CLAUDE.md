@@ -26,9 +26,18 @@ they adapt to for THIS project.
    commits, pushes. Vercel CI (same strict build, on Linux) is the final gate on every push.
 3. **Only Sara commits & pushes**, and only after the user's explicit OK. Batch pushes: one
    push per coherent, testable chunk — not per tiny fix.
-4. **Branch workflow:** work lands on `development` → user tests on its Vercel preview →
-   merge to `main` ONLY on the user's explicit word (that deploys production). Never push to
-   `main` directly. `authorization` branch = parked accounts/cloud-sync work; don't touch it.
+4. **Branch workflow — two tracks that never mix (Ariel, 2026-10-23):**
+   - **`development` = the app.** App work lands here and is tested on its Vercel preview,
+     in the simulator and emulator, and through TestFlight and Play. Native builds come
+     from here. **`development` is never merged into `main` again**: that would make
+     production a web app.
+   - **`website` = www.yourofflinebudget.com**, meaning the homepage, privacy and support.
+     It is built by `scripts/build-home.mjs` into `dist-site/` (see `vercel.json`, which
+     exists on this branch only). Website work lands here, the user checks its preview,
+     and it merges to `main` ONLY on the user's explicit word. That deploys production,
+     which from 2 November 2026 is the website only.
+   - Never push to `main` directly. `authorization` = parked accounts/cloud-sync work;
+     don't touch it.
 5. **Every release adds a changelog entry** in `src/changelog.ts` (sv/en/es) — that IS the
    version bump; it drives the in-app "What's new" badge (`LATEST_VERSION`).
 6. Commit trailer: `Co-Authored-By:` the active Claude model. New/renamed agent files are
@@ -40,7 +49,8 @@ they adapt to for THIS project.
   (per device, **accountless by product decision** — no accounts/email/backend).
   i18n sv/en/es via typed `Translations` in `src/i18n.ts`; currency kr/€/$/£/¥ (format only).
 - Live (production, `main`): https://www.yourofflinebudget.com (the apex redirects there;
-  the old https://budgetapp-indol.vercel.app still works)
+  the old https://budgetapp-indol.vercel.app still works). Until 2 November 2026 it serves
+  the web app; from then on it serves the website only (from the `website` branch).
   Preview per branch: `https://budgetapp-git-<branch>-ariel-p-projects.vercel.app`
   Both auto-build on push to GitHub `ArielPL/Budgetapp`.
 - Commands are ordinary npm scripts — `npm run dev`, `npm test`, `npm run lint`,
