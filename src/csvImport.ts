@@ -113,6 +113,10 @@ function looksMisread(latin: string): boolean {
   return symbols.length / nonAscii.length >= 0.3;
 }
 
+/** The largest statement read at all. A year of a busy account is a few
+ *  hundred kB; the same ceiling as the budget import (budgetImport.ts). */
+export const MAX_CSV_BYTES = 10 * 1024 * 1024;
+
 /**
  * Read the bytes as text: UTF-8, then Japanese Shift-JIS, then Windows-1252.
  *

@@ -1491,3 +1491,31 @@ describe('the savings plan shows only what is stored (deep review 2026-10-04, P1
     expect(buttonWith(sv.sparplanDelete)).toBeTruthy();
   });
 });
+
+describe('App Store review, 2026-10-23', () => {
+  it('a statement over the size limit is refused before it is read, with a reason', async () => {
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(buttonWith(sv.followUpImport)).toBeTruthy());
+    fireEvent.click(buttonWith(sv.followUpImport)!);
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('input[type=file][accept*=csv]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    const file = new File([CSV], 'synt.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'size', { value: 10 * 1024 * 1024 + 1 });
+    const read = vi.spyOn(file, 'arrayBuffer');
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(document.body.textContent).toContain(sv.csvErrTooBig));
+    expect(read).not.toHaveBeenCalled();
+    expect(document.querySelector('.csv-cols, .csv-groups')).toBeNull();
+  });
+
+  it('the menu says, next to Export, that the backup is the whole budget in readable form', async () => {
+    await openApp();
+    openMenu();
+    const hint = [...document.querySelectorAll('.utils-hint')].find(el => el.textContent === sv.backupPlainHint);
+    expect(hint).toBeTruthy();
+  });
+});

@@ -450,6 +450,8 @@ export interface Translations {
   /** The file's text encoding is none the app can read (see decodeCsv). */
   csvUnknownEncoding: string;
   csvNoRows: string;
+  /** A CSV over the import's size limit. */
+  csvErrTooBig: string;
   csvNoText: string;
   csvColumnsLead: string;
   csvRoleDate: string;
@@ -1261,6 +1263,8 @@ export interface Translations {
   /** Always visible in the menu, so the user never has to guess. */
   backupLast: (date: string) => string;
   backupNever: string;
+  /** Under Export in the menu: the file is the whole budget, unencrypted. */
+  backupPlainHint: string;
   /** Shown after a plain browser download, which the web platform cannot report
    *  on. The date in the menu is a promise that a file exists, so it is only
    *  written on a yes (review 2026-09-18, F5). */
@@ -1468,6 +1472,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
     csvUnknownEncoding: 'Filen är sparad i en teckenkodning appen inte kan läsa, så texten skulle bli fel. Spara den som UTF-8 (i Excel: "CSV UTF-8") och försök igen.',
     csvNoRows: 'Hittade inga transaktioner i filen.',
+    csvErrTooBig: 'Filen är för stor för att vara ett kontoutdrag (högst 10 MB).',
     csvNoText: '(utan text)',
     csvColumnsLead: 'Stämmer det här? Välj vad varje kolumn innehåller.',
     csvRoleDate: 'Datum',
@@ -2252,6 +2257,7 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Din senaste säkerhetskopia är ${months} månader gammal. Försvinner enheten finns ingenting att återställa från.`,
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
+    backupPlainHint: 'Säkerhetskopian innehåller hela din budget i läsbar form. Spara eller skicka den bara dit du litar på.',
     backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
     backupConfirmShared: 'Kontrollera att filen kom fram dit du skickade den.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om den inte sparades där — då står datumet kvar som förut.',
     backupShareTitle: 'YourBudget – säkerhetskopia',
@@ -2472,6 +2478,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
     csvUnknownEncoding: 'The file is saved in a text encoding the app cannot read, so the text would come out wrong. Save it as UTF-8 (in Excel: "CSV UTF-8") and try again.',
     csvNoRows: 'No transactions found in the file.',
+    csvErrTooBig: 'The file is too big to be a bank statement (10 MB at most).',
     csvNoText: '(no text)',
     csvColumnsLead: 'Is this right? Choose what each column holds.',
     csvRoleDate: 'Date',
@@ -3256,6 +3263,7 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Your last backup is ${months} months old. If the device goes, there is nothing to restore from.`,
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
+    backupPlainHint: 'The backup holds your whole budget in readable form. Only save or send it somewhere you trust.',
     backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
     backupConfirmShared: 'Check that the file arrived where you sent it.\n\nPress OK and the app will record that you have a backup from today. Cancel if it was not saved there — the previous date then stays as it was.',
     backupShareTitle: 'YourBudget – backup',
@@ -3476,6 +3484,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
     csvUnknownEncoding: 'El archivo está guardado en una codificación que la app no puede leer, así que el texto saldría mal. Guárdalo como UTF-8 (en Excel: "CSV UTF-8") e inténtalo de nuevo.',
     csvNoRows: 'No se encontraron movimientos en el archivo.',
+    csvErrTooBig: 'El archivo es demasiado grande para ser un extracto (10 MB como máximo).',
     csvNoText: '(sin texto)',
     csvColumnsLead: '¿Es correcto? Elige qué contiene cada columna.',
     csvRoleDate: 'Fecha',
@@ -4260,6 +4269,7 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Tu última copia de seguridad tiene ${months} meses. Si el dispositivo desaparece, no hay nada que restaurar.`,
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
+    backupPlainHint: 'La copia de seguridad contiene todo tu presupuesto en forma legible. Guárdala o envíala solo a un sitio de confianza.',
     backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
     backupConfirmShared: 'Comprueba que el archivo llegó a donde lo enviaste.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si no se guardó allí — entonces la fecha anterior se queda como estaba.',
     backupShareTitle: 'YourBudget – copia de seguridad',

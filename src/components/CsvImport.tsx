@@ -7,7 +7,7 @@ import { generateId, shownName, standardExpenseCategory, storageKey } from '../d
 import {
   decodeCsv, CsvEncodingError, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
-  parseDate,
+  parseDate, MAX_CSV_BYTES,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
 import { loadCsvMaps, csvMapChange, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
@@ -140,6 +140,10 @@ export const CsvImport = ({
 
   const readFile = async (file: File) => {
     setError(null);
+    // Checked before reading: the whole file is read into memory, and a bank's
+    // statement is a few hundred kB. Anything this big is the wrong file, and
+    // reading it first could stall a phone before the user hears so.
+    if (file.size > MAX_CSV_BYTES) { setError(t.csvErrTooBig); return; }
     try {
       const text = decodeCsv(await file.arrayBuffer());
       const rows = parseCsv(text, detectDelimiter(text));

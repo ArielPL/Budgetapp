@@ -2340,6 +2340,9 @@ function App({ startupRepair = null }: AppProps) {
                   <p className={`utils-backup-age${lastBackup.level === 'urgent' || lastBackup.level === 'never' ? ' is-late' : ''}`}>
                     {lastBackup.at === null ? t.backupNever : t.backupLast(longDate(lastBackup.at, lang))}
                   </p>
+                  {/* The file is the whole budget, unencrypted (App Store review,
+                      2026-10-23): said where the export is chosen, not after. */}
+                  <div className="utils-hint">{t.backupPlainHint}</div>
 
                   {/* The way back, offered next to the buttons that need it.
                       Shows WHAT and WHEN, because a bare "Undo" a week after
