@@ -65,6 +65,8 @@ export type UndoAction =
   | 'deleteBlock'
   /** Every Custom amount, across every month. */
   | 'clearCustom'
+  /** Every recorded entry, in every month (Follow-up's "Clear all actuals"). */
+  | 'clearAllActuals'
   /** Entries the app itself moved to the month the pay-period rule says they
    *  belong to, because they were stored somewhere else — see filingRepair.ts. */
   | 'refileRepair'
@@ -139,6 +141,7 @@ const ACTIONS: Record<UndoAction, true> = {
   startBudget: true,
   deleteDebt: true,
   deleteCustomBudget: true,
+  clearAllActuals: true,
   importBudget: true,
   deleteBlock: true,
   clearCustom: true,

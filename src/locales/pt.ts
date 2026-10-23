@@ -206,6 +206,8 @@ export const pt: Translations = {
   followUpClear: 'Limpar os valores reais deste mês',
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `Isto remove o único lançamento de ${monthName}` : `Isto remove todos os ${n} lançamentos de ${monthName}`}.\n\nO orçamento não é afetado, e você pode desfazer logo em seguida.\n\nContinuar?`,
   followUpClearDone: (n) => (n === 1 ? '1 lançamento removido' : `${n} lançamentos removidos`),
+  followUpClearAll: 'Limpar todos os valores reais',
+  followUpClearAllConfirm: (n, m) => `Isto remove TODOS os valores reais: ${n === 1 ? '1 lançamento' : `${n} lançamentos`} ${m === 1 ? 'em 1 mês' : `em ${m} meses`}.\n\nSeus orçamentos não são afetados, e o que o app aprendeu sobre suas lojas é mantido. Você pode desfazer logo em seguida. Para garantir, salve antes um backup em Menu → Exportar dados.\n\nContinuar?`,
   followUpSpan: (n) => (n === 1 ? 'Mês' : `${n} meses`),
   followUpSpanAria: 'Quantos meses são exibidos',
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -582,6 +584,7 @@ export const pt: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `O orçamento de ${where} foi redefinido`;
     if (action === 'clearActuals') return count === 1 ? `1 lançamento foi removido de ${where}` : `${count} lançamentos foram removidos de ${where}`;
+    if (action === 'clearAllActuals') return count === 1 ? 'Todos os valores reais foram limpos (1 lançamento)' : `Todos os valores reais foram limpos (${count} lançamentos)`;
     if (action === 'import') return count === 1 ? '1 lançamento foi importado' : `${count} lançamentos foram importados`;
     if (action === 'restoreBackup') return 'O backup foi restaurado';
     if (action === 'copyBudget') return count > 1 ? `O orçamento foi copiado para ${count} meses` : `O orçamento foi copiado para ${where}`;
@@ -1046,5 +1049,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     "Um novo começo para quem nunca fez um orçamento: depois do idioma e da moeda, o app pergunta se você já fez um. Como iniciante, você responde a algumas perguntas simples, como salário, moradia e celular, e recebe um orçamento para este mês ou o resto do ano",
     "Toda linha pode ser removida, inclusive as do modelo. Categorias recolhidas continuam recolhidas. O acompanhamento diz “sobra” e “acima” em vez de um sinal de menos. O app oferece copiar o orçamento para o resto do ano. O modelo tem o plano de celular. Os painéis que sobem de baixo podem ser arrastados para baixo para fechar, e seus botões não ficam mais sob os botões do celular",
     'Mais orçamentos em Personalizado: escolha + Novo orçamento no seletor no topo, por exemplo para um pequeno negócio. Cada orçamento tem os próprios meses e nunca entra no seu orçamento normal. Com ✏️ você renomeia um orçamento, Meu orçamento também, e um orçamento adicionado pode ser excluído e recuperado com Desfazer',
+    'O acompanhamento tem o botão ⚠️ Limpar todos os valores reais, para quem quer recomeçar do zero. Ele remove todos os lançamentos de todos os meses de uma vez, mas nunca seus orçamentos nem o que o app aprendeu sobre suas lojas. O app pergunta antes e diz quantos lançamentos são, e Desfazer traz tudo de volta',
   ],
 };

@@ -206,6 +206,8 @@ export const tr: Translations = {
   followUpClear: "Bu ayın gerçekleşenlerini temizle",
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `Bu işlem, ${monthName} için tek kaydı siler` : `Bu işlem, ${monthName} için ${n} kaydın tümünü siler`}.\n\nBütçe etkilenmez ve hemen ardından geri alabilirsiniz.\n\nDevam edilsin mi?`,
   followUpClearDone: (n) => (n === 1 ? "1 kayıt silindi" : `${n} kayıt silindi`),
+  followUpClearAll: "Tüm gerçekleşenleri temizle",
+  followUpClearAllConfirm: (n, m) => `Bu işlem TÜM gerçekleşenleri siler: ${m} aydaki ${n} kayıt.\n\nBütçeleriniz etkilenmez ve uygulamanın mağazalarınız hakkında öğrendikleri korunur. Hemen ardından geri alabilirsiniz. Emin olmak için önce Menü → Verileri dışa aktar ile bir yedek kaydedin.\n\nDevam edilsin mi?`,
   followUpSpan: (n) => (n === 1 ? "Ay" : `${n} ay`),
   followUpSpanAria: "Kaç ay gösteriliyor",
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -582,6 +584,7 @@ export const tr: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `Bütçe sıfırlandı (${where})`;
     if (action === 'clearActuals') return count === 1 ? `1 kayıt silindi (${where})` : `${count} kayıt silindi (${where})`;
+    if (action === 'clearAllActuals') return `Tüm gerçekleşenler temizlendi (${count} kayıt)`;
     if (action === 'import') return count === 1 ? "1 kayıt içe aktarıldı" : `${count} kayıt içe aktarıldı`;
     if (action === 'restoreBackup') return "Yedek geri yüklendi";
     if (action === 'copyBudget') return count > 1 ? `Bütçe ${count} aya kopyalandı` : `Bütçe kopyalandı (${where})`;
@@ -1046,5 +1049,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Hiç bütçe yapmamış olanlar için yeni bir başlangıç: dil ve para biriminden sonra uygulama daha önce bütçe yapıp yapmadığınızı sorar. Yeni başlayan olarak maaş, konut ve telefon gibi birkaç basit soruyu yanıtlarsınız ve bu ay ya da yılın geri kalanı için bir bütçe alırsınız",
     "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var. Alttan açılan pencereler aşağı çekilerek kapatılabilir ve düğmeleri artık telefonun kendi düğmelerinin altında kalmaz",
     'Özel düzende daha fazla bütçe: üstteki seçicide + Yeni bütçe\'yi seçin, örneğin küçük bir işletme için. Her bütçenin kendi ayları vardır ve normal bütçenize asla sayılmaz. ✏️ ile bir bütçeyi, Bütçem\'i de, yeniden adlandırırsınız; eklenen bir bütçe silinebilir ve Geri al ile geri getirilebilir',
+    'Takip bölümünde, baştan başlamak isteyenler için ⚠️ Tüm gerçekleşenleri temizle düğmesi var. Tüm aylardaki tüm kayıtları tek seferde siler, ancak bütçelerinize ve uygulamanın mağazalarınız hakkında öğrendiklerine asla dokunmaz. Uygulama önce sorar ve kaç kayıt olduğunu söyler; Geri al her şeyi geri getirir',
   ],
 };

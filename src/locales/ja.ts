@@ -202,6 +202,8 @@ export const ja: Translations = {
   followUpClear: '今月の実績を消去',
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `${monthName}の唯一の明細を削除します` : `${monthName}の明細${n}件をすべて削除します`}。\n\n予算には影響せず、直後なら元に戻せます。\n\n続けますか？`,
   followUpClearDone: (n) => `${n}件を削除しました`,
+  followUpClearAll: 'すべての実績を消去',
+  followUpClearAllConfirm: (n, m) => `すべての実績を削除します：${m}か月分、${n}件。\n\n予算は変わらず、アプリが学習したお店の情報も残ります。削除した直後なら元に戻せます。念のため、先にメニュー → データをエクスポート でバックアップを保存できます。\n\n続けますか？`,
   followUpSpan: (n) => `${n}か月`,
   followUpSpanAria: '表示する月数',
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -578,6 +580,7 @@ export const ja: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `${where}の予算をリセットしました`;
     if (action === 'clearActuals') return `${where}から${count}件の明細を削除しました`;
+    if (action === 'clearAllActuals') return `すべての実績を消去しました（${count}件）`;
     if (action === 'import') return `${count}件の明細を取り込みました`;
     if (action === 'restoreBackup') return 'バックアップを復元しました';
     if (action === 'copyBudget') return count > 1 ? `${count}か月分に予算をコピーしました` : `${where}に予算をコピーしました`;
@@ -1043,5 +1046,6 @@ export const jaChangelog113: { title: string; items: string[] } = {
     "予算を作ったことがない人のための新しい始め方：言語と通貨のあとに、予算を作ったことがあるか尋ねます。初めての方は給与、住居、携帯電話などの簡単な質問に答えるだけで、今月だけ、または年末までの予算ができます",
     "テンプレートの行も含め、すべての行を削除できます。折りたたんだカテゴリは折りたたまれたままです。実績はマイナス記号ではなく「残り」「超過」と表示します。予算を年末までコピーするよう提案します。テンプレートに携帯電話を追加しました。下から出てくる画面は下にスワイプして閉じられ、ボタンがスマホのボタンの下に隠れなくなりました",
     'カスタムで予算を増やせます。上の切り替えから「+ 新しい予算」を選びます。たとえば小さな事業用に。各予算には独自の月があり、いつもの予算には決して含まれません。✏️ で予算の名前を変更でき、マイ予算も変更できます。追加した予算は削除でき、元に戻すで復元できます',
+    '実績に「⚠️ すべての実績を消去」ボタンを追加しました。最初からやり直したいときに。すべての月の明細を一度に削除しますが、予算やアプリが学習したお店の情報は消えません。削除前に件数を示して確認し、元に戻すですべて復元できます',
   ],
 };

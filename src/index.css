@@ -4244,6 +4244,8 @@ a:focus-visible,
 @media (hover: hover) {
   .followup-clear:hover { border-color: var(--negative); color: var(--negative); }
 }
+/* Clearing every month at once: marked as the stronger of the two clears. */
+.followup-clear-all { color: var(--negative); border-color: var(--negative); }
 .followup-toast {
   display: flex;
   align-items: center;

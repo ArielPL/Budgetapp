@@ -5,7 +5,7 @@ import { categoryTotal, calculateBudgetMetrics } from '../metrics';
 import { parseMoneyOrZero, toCents } from '../money';
 import {
   actualsKey, loadActuals, sumByCategory, planPersist, groupByMonth,
-  actualContribution, groupEntriesByText, isBucketId,
+  actualContribution, groupEntriesByText, isBucketId, allActuals,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
 import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
@@ -561,6 +561,31 @@ export const FollowUpTab = ({
     }
   };
 
+  /** Every recorded entry, in every month, in one write (Ariel, 2026-10-23:
+   *  "if you want to clear it completely"). Asked with the count and the
+   *  number of months, never touches a budget or what the sorting has learned,
+   *  and can be undone. Waits for any edit still saving, so nothing lands
+   *  after the clearing and survives it. */
+  const clearAll = async () => {
+    await saving.current.catch(() => undefined);
+    const all = allActuals(appStorage);
+    if (all.entries === 0) return;
+    if (!window.confirm(t.followUpClearAllConfirm(all.entries, all.months))) return;
+    const before = captureKeys(appStorage, all.keys);
+    const outcome = await commitStorageChangesOutcome(appStorage, all.keys.map(key => ({ key, value: null })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return;
+    }
+    reloadLatest.current();
+    setOpenRow(null);
+    onRecordUndo({ at: new Date().toISOString(), action: 'clearAllActuals', count: all.entries, changes: before });
+    setToast({ text: t.followUpClearDone(all.entries), months: [] });
+  };
+  // Shown whenever anything is recorded anywhere, not only in the months on
+  // screen: a month you are not looking at is exactly where it is easy to forget.
+  const anyRecorded = entries.length > 0 || allActuals(appStorage).entries > 0;
+
   // Entries whose category this month's budget does not have. It happens more
   // often than it sounds: importing a statement into a month you have not
   // budgeted yet files everything under categories that exist elsewhere, and a
@@ -871,6 +896,9 @@ export const FollowUpTab = ({
               would empty a year on one click, which is not what the words say. */}
           {span === 1 && entries.length > 0 && (
             <button className="followup-clear" onClick={clearMonth}>{t.followUpClear}</button>
+          )}
+          {anyRecorded && (
+            <button className="followup-clear followup-clear-all" onClick={clearAll}>⚠️ {t.followUpClearAll}</button>
           )}
           <button className="followup-import" data-guide="import" onClick={() => setImporting(true)}>
             ⬆ {t.followUpImport}

@@ -244,6 +244,67 @@ describe('Follow-up', () => {
     expect(undoOnDisk()).toEqual([]);
   });
 
+  describe('"Clear all actuals" (Ariel, 2026-10-23)', () => {
+    const AUGUST = JSON.stringify([
+      { id: 'a1', date: '2026-08-12', text: 'SYNT AUG', amount: 50, direction: 'out', categoryId: 'boende' },
+    ]);
+    const clearAll = () => fireEvent.click(document.querySelector('.followup-clear-all')!);
+
+    it('empties every month, keeps the budgets and what sorting has learned, and can be undone', async () => {
+      b.disk.set('budget_actuals_2026_7', AUGUST);
+      b.disk.set('budget_category_rules', '{"synt a":"boende"}');
+      const budget = b.disk.get('budget_2026_8');
+      await openFollowUp();
+      clearAll();
+      await waitFor(() => expect(b.disk.has('budget_actuals_2026_8')).toBe(false));
+      expect(b.disk.has('budget_actuals_2026_7')).toBe(false);
+      expect(b.disk.get('budget_2026_8')).toBe(budget);
+      expect(b.disk.get('budget_category_rules')).toBe('{"synt a":"boende"}');
+      await waitFor(() => expect(shownEntries()).toEqual([]));
+      await waitFor(() => expect(undoOnDisk().map(u => u.action)).toEqual(['clearAllActuals']));
+      const step = undoOnDisk()[0] as unknown as { count: number; changes: { key: string; value: string }[] };
+      expect(step.count).toBe(4);
+      expect(Object.fromEntries(step.changes.map(c => [c.key, c.value]))).toEqual({
+        budget_actuals_2026_7: AUGUST, budget_actuals_2026_8: ENTRIES,
+      });
+    });
+
+    it('asks first, naming how many entries and months', async () => {
+      b.disk.set('budget_actuals_2026_7', AUGUST);
+      let asked = '';
+      vi.stubGlobal('confirm', (m: string) => { asked = m; return false; });
+      await openFollowUp();
+      clearAll();
+      // Asked once any edit still saving has landed, so it waits a turn.
+      await waitFor(() => expect(asked).toBe(sv.followUpClearAllConfirm(4, 2)));
+      await settle();
+      expect(b.disk.has('budget_actuals_2026_7')).toBe(true);
+      expect(shownEntries()).toHaveLength(3);
+    });
+
+    it('changes nothing, offers no step back and says so when the database refuses', async () => {
+      await openFollowUp();
+      b.refuse.add('budget_actuals_2026_8');
+      clearAll();
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(JSON.parse(b.disk.get('budget_actuals_2026_8')!)).toHaveLength(3);
+      expect(shownEntries()).toHaveLength(3);
+      expect(undoOnDisk()).toEqual([]);
+    });
+
+    it('a delete still saving when it is pressed cannot bring an entry back', async () => {
+      await openFollowUp();
+      b.hold();
+      del('SYNT A');
+      clearAll();
+      b.release();
+      await waitFor(() => expect(b.disk.has('budget_actuals_2026_8')).toBe(false));
+      await settle();
+      expect(b.disk.has('budget_actuals_2026_8')).toBe(false);
+      expect(shownEntries()).toEqual([]);
+    });
+  });
+
   it('loses neither of two quick deletes made while the first is still saving', async () => {
     await openFollowUp();
     b.hold();

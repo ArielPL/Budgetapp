@@ -480,6 +480,9 @@ export interface Translations {
   followUpClear: string;
   followUpClearConfirm: (n: number, monthName: string) => string;
   followUpClearDone: (n: number) => string;
+  /** Every recorded entry in every month, after a question naming how many. */
+  followUpClearAll: string;
+  followUpClearAllConfirm: (entries: number, months: number) => string;
   followUpSpan: (n: number) => string;
   followUpSpanAria: string;
   followUpSpanRange: (from: string, to: string) => string;
@@ -1494,6 +1497,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: 'Rensa månadens utfall',
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `Detta tar bort den enda posten för ${monthName}` : `Detta tar bort alla ${n} poster för ${monthName}`}.\n\nBudgeten påverkas inte, och du kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
     followUpClearDone: (n) => (n === 1 ? '1 post borttagen' : `${n} poster borttagna`),
+    followUpClearAll: 'Rensa allt utfall',
+    followUpClearAllConfirm: (n, m) => `Detta tar bort ALLT utfall: ${n === 1 ? '1 post' : `${n} poster`} ${m === 1 ? 'i 1 månad' : `i ${m} månader`}.\n\nBudgetarna påverkas inte, och det appen lärt sig om dina butiker finns kvar. Du kan ångra det direkt efteråt. Vill du vara extra säker kan du först spara en säkerhetskopia under Meny → Exportera data.\n\nVill du fortsätta?`,
     followUpSpan: (n) => (n === 1 ? 'Månad' : `${n} mån`),
     followUpSpanAria: 'Hur många månader som visas',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -1869,6 +1874,7 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `Budgeten för ${where} nollställdes`;
       if (action === 'clearActuals') return count === 1 ? `1 post togs bort i ${where}` : `${count} poster togs bort i ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'Allt utfall rensades (1 post)' : `Allt utfall rensades (${count} poster)`;
       if (action === 'import') return count === 1 ? '1 post importerades' : `${count} poster importerades`;
       if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
       if (action === 'copyBudget') return count > 1 ? `Budgeten kopierades till ${count} månader` : `Budgeten kopierades till ${where}`;
@@ -2495,6 +2501,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: "Clear this month's actuals",
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `This removes the only entry for ${monthName}` : `This removes all ${n} entries for ${monthName}`}.\n\nThe budget is not affected, and you can undo it straight afterwards.\n\nContinue?`,
     followUpClearDone: (n) => (n === 1 ? '1 entry removed' : `${n} entries removed`),
+    followUpClearAll: 'Clear all actuals',
+    followUpClearAllConfirm: (n, m) => `This removes ALL actuals: ${n === 1 ? '1 entry' : `${n} entries`} ${m === 1 ? 'in 1 month' : `in ${m} months`}.\n\nYour budgets are not affected, and what the app has learned about your shops is kept. You can undo it straight afterwards. To be extra safe, save a backup first under Menu → Export data.\n\nContinue?`,
     followUpSpan: (n) => (n === 1 ? 'Month' : `${n} mo`),
     followUpSpanAria: 'How many months are shown',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -2871,6 +2879,7 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `The budget for ${where} was reset`;
       if (action === 'clearActuals') return count === 1 ? `1 entry was removed from ${where}` : `${count} entries were removed from ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'All actuals were cleared (1 entry)' : `All actuals were cleared (${count} entries)`;
       if (action === 'import') return count === 1 ? '1 entry was imported' : `${count} entries were imported`;
       if (action === 'restoreBackup') return 'The backup was restored';
       if (action === 'copyBudget') return count > 1 ? `The budget was copied to ${count} months` : `The budget was copied to ${where}`;
@@ -3496,6 +3505,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: 'Borrar los movimientos del mes',
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `Esto elimina el único movimiento de ${monthName}` : `Esto elimina los ${n} movimientos de ${monthName}`}.\n\nEl presupuesto no se ve afectado, y puedes deshacerlo justo después.\n\n¿Continuar?`,
     followUpClearDone: (n) => (n === 1 ? '1 movimiento eliminado' : `${n} movimientos eliminados`),
+    followUpClearAll: 'Borrar todos los movimientos',
+    followUpClearAllConfirm: (n, m) => `Esto elimina TODOS los movimientos: ${n === 1 ? '1 movimiento' : `${n} movimientos`} ${m === 1 ? 'en 1 mes' : `en ${m} meses`}.\n\nTus presupuestos no se ven afectados, y lo que la app ha aprendido de tus tiendas se conserva. Puedes deshacerlo justo después. Para ir sobre seguro, guarda antes una copia de seguridad en Menú → Exportar datos.\n\n¿Continuar?`,
     followUpSpan: (n) => (n === 1 ? 'Mes' : `${n} meses`),
     followUpSpanAria: 'Cuántos meses se muestran',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -3872,6 +3883,7 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `El presupuesto de ${where} se restableció`;
       if (action === 'clearActuals') return count === 1 ? `Se eliminó 1 movimiento de ${where}` : `Se eliminaron ${count} movimientos de ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'Se borraron todos los movimientos (1)' : `Se borraron todos los movimientos (${count})`;
       if (action === 'import') return count === 1 ? 'Se importó 1 movimiento' : `Se importaron ${count} movimientos`;
       if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
       if (action === 'copyBudget') return count > 1 ? `El presupuesto se copió a ${count} meses` : `El presupuesto se copió a ${where}`;

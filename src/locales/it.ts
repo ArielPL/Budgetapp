@@ -206,6 +206,8 @@ export const it: Translations = {
   followUpClear: "Cancella l'effettivo di questo mese",
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `Questo rimuove l'unico movimento di ${monthName}` : `Questo rimuove tutti i ${n} movimenti di ${monthName}`}.\n\nIl budget non viene toccato e puoi annullare subito dopo.\n\nContinuare?`,
   followUpClearDone: (n) => (n === 1 ? "1 movimento rimosso" : `${n} movimenti rimossi`),
+  followUpClearAll: "Cancella tutto l'effettivo",
+  followUpClearAllConfirm: (n, m) => `Questo rimuove TUTTO l'effettivo: ${n === 1 ? '1 movimento' : `${n} movimenti`} ${m === 1 ? 'in 1 mese' : `in ${m} mesi`}.\n\nI tuoi budget non cambiano, e ciò che l'app ha imparato sui tuoi negozi resta. Puoi annullare subito dopo. Per stare tranquillo, salva prima un backup da Menu → Esporta dati.\n\nContinuare?`,
   followUpSpan: (n) => (n === 1 ? "Mese" : `${n} mesi`),
   followUpSpanAria: "Quanti mesi vengono mostrati",
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -582,6 +584,7 @@ export const it: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `Il budget di ${where} è stato azzerato`;
     if (action === 'clearActuals') return count === 1 ? `1 movimento è stato rimosso da ${where}` : `${count} movimenti sono stati rimossi da ${where}`;
+    if (action === 'clearAllActuals') return count === 1 ? "Tutto l'effettivo è stato cancellato (1 movimento)" : `Tutto l'effettivo è stato cancellato (${count} movimenti)`;
     if (action === 'import') return count === 1 ? "1 movimento è stato importato" : `${count} movimenti sono stati importati`;
     if (action === 'restoreBackup') return "Il backup è stato ripristinato";
     if (action === 'copyBudget') return count > 1 ? `Il budget è stato copiato in ${count} mesi` : `Il budget è stato copiato in ${where}`;
@@ -1047,5 +1050,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Un nuovo inizio per chi non ha mai fatto un budget: dopo lingua e valuta, l'app chiede se ne hai già fatto uno. Da principiante rispondi a qualche domanda semplice, come stipendio, casa e telefono, e ottieni un budget per questo mese o per il resto dell'anno",
     "Ogni riga si può eliminare, anche quelle del modello. Le categorie chiuse restano chiuse. Il monitoraggio dice «avanzo» e «sforato» invece del segno meno. L'app propone di copiare il budget sul resto dell'anno. Il modello include il piano telefonico. I pannelli che salgono dal basso si chiudono trascinandoli verso il basso, e i loro pulsanti non finiscono più sotto quelli del telefono",
     'Più budget in Personalizzata: scegli + Nuovo budget nel selettore in alto, per esempio per una piccola attività. Ogni budget ha i suoi mesi e non viene mai contato nel tuo budget abituale. Con ✏️ rinomini un budget, anche Il mio budget, e un budget aggiunto si può eliminare e recuperare con Annulla',
+    'Il consuntivo ha il pulsante ⚠️ Cancella tutto l\'effettivo, per ricominciare da zero. Rimuove tutti i movimenti di tutti i mesi in una volta, ma mai i tuoi budget né ciò che l\'app ha imparato sui tuoi negozi. L\'app chiede prima e dice quanti movimenti sono, e Annulla riporta tutto',
   ],
 };

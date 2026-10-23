@@ -206,6 +206,8 @@ export const de: Translations = {
   followUpClear: 'Ist-Werte dieses Monats löschen',
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `Damit wird der einzige Eintrag für ${monthName} entfernt` : `Damit werden alle ${n} Einträge für ${monthName} entfernt`}.\n\nDas Budget bleibt unberührt, und du kannst es direkt danach rückgängig machen.\n\nFortfahren?`,
   followUpClearDone: (n) => (n === 1 ? '1 Eintrag entfernt' : `${n} Einträge entfernt`),
+  followUpClearAll: 'Alle Ist-Werte löschen',
+  followUpClearAllConfirm: (n, m) => `Damit werden ALLE Ist-Werte entfernt: ${n === 1 ? '1 Eintrag' : `${n} Einträge`} ${m === 1 ? 'in 1 Monat' : `in ${m} Monaten`}.\n\nDeine Budgets bleiben unberührt, und was die App über deine Geschäfte gelernt hat, bleibt erhalten. Du kannst es direkt danach rückgängig machen. Ganz sicher gehst du, wenn du vorher unter Menü → Daten exportieren eine Sicherung speicherst.\n\nFortfahren?`,
   followUpSpan: (n) => (n === 1 ? 'Monat' : `${n} Mon.`),
   followUpSpanAria: 'Wie viele Monate angezeigt werden',
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -582,6 +584,7 @@ export const de: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `Das Budget für ${where} wurde zurückgesetzt`;
     if (action === 'clearActuals') return count === 1 ? `1 Eintrag wurde aus ${where} entfernt` : `${count} Einträge wurden aus ${where} entfernt`;
+    if (action === 'clearAllActuals') return count === 1 ? 'Alle Ist-Werte wurden gelöscht (1 Eintrag)' : `Alle Ist-Werte wurden gelöscht (${count} Einträge)`;
     if (action === 'import') return count === 1 ? '1 Eintrag wurde importiert' : `${count} Einträge wurden importiert`;
     if (action === 'restoreBackup') return 'Die Sicherung wurde wiederhergestellt';
     if (action === 'copyBudget') return count > 1 ? `Das Budget wurde in ${count} Monate kopiert` : `Das Budget wurde nach ${where} kopiert`;
@@ -1047,5 +1050,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     "Ein neuer Start für alle, die noch nie ein Budget gemacht haben: Nach Sprache und Währung fragt die App, ob du schon einmal eins gemacht hast. Als Einsteiger beantwortest du ein paar einfache Fragen, etwa zu Gehalt, Wohnen und Handy, und bekommst ein Budget für diesen Monat oder den Rest des Jahres",
     "Jede Zeile lässt sich entfernen, auch die der Vorlage. Eingeklappte Kategorien bleiben eingeklappt. Die Auswertung sagt „übrig“ und „drüber“ statt eines Minus. Die App bietet an, das Budget in den Rest des Jahres zu kopieren. Die Vorlage hat eine Zeile für den Handyvertrag. Fenster, die von unten hochkommen, lassen sich nach unten wegziehen, und ihre Schaltflächen liegen nicht mehr unter den Tasten des Telefons",
     'Mehr Budgets in Individuell: Wähle oben im Umschalter + Neues Budget, zum Beispiel für ein kleines Unternehmen. Jedes Budget hat eigene Monate und zählt nie zu deinem normalen Budget. Mit ✏️ benennst du ein Budget um, auch Mein Budget, und ein hinzugefügtes Budget lässt sich löschen und mit Rückgängig zurückholen',
+    'Die Auswertung hat die Schaltfläche ⚠️ Alle Ist-Werte löschen, für alle, die ganz von vorn anfangen wollen. Sie entfernt alle Einträge aller Monate auf einmal, aber nie deine Budgets oder das, was die App über deine Geschäfte gelernt hat. Die App fragt vorher und nennt die Zahl der Einträge, und Rückgängig holt alles zurück',
   ],
 };

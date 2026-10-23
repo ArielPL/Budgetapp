@@ -211,6 +211,8 @@ export const fr: Translations = {
   followUpClear: "Effacer le réel de ce mois",
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `Cela supprime la seule opération pour ${monthName}` : `Cela supprime les ${n} opérations pour ${monthName}`}.\n\nLe budget n'est pas touché, et vous pouvez annuler juste après.\n\nContinuer ?`,
   followUpClearDone: (n) => (n < 2 ? `${n} opération supprimée` : `${n} opérations supprimées`),
+  followUpClearAll: "Effacer tout le réel",
+  followUpClearAllConfirm: (n, m) => `Cela supprime TOUT le réel : ${n < 2 ? `${n} opération` : `${n} opérations`} ${m < 2 ? `sur ${m} mois` : `sur ${m} mois`}.\n\nVos budgets ne sont pas touchés, et ce que l'app a appris sur vos commerces est conservé. Vous pouvez annuler juste après. Pour plus de sûreté, enregistrez d'abord une sauvegarde via Menu → Exporter les données.\n\nContinuer ?`,
   followUpSpan: (n) => (n === 1 ? "Mois" : `${n} mois`),
   followUpSpanAria: "Nombre de mois affichés",
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -591,6 +593,7 @@ export const fr: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `Le budget pour ${where} a été réinitialisé`;
     if (action === 'clearActuals') return count < 2 ? `${count} opération a été supprimée (${where})` : `${count} opérations ont été supprimées (${where})`;
+    if (action === 'clearAllActuals') return count < 2 ? `Tout le réel a été effacé (${count} opération)` : `Tout le réel a été effacé (${count} opérations)`;
     if (action === 'import') return count < 2 ? `${count} opération a été importée` : `${count} opérations ont été importées`;
     if (action === 'restoreBackup') return "La sauvegarde a été restaurée";
     if (action === 'copyBudget') return count > 1 ? `Le budget a été copié sur ${count} mois` : `Le budget a été copié vers ${where}`;
@@ -1056,5 +1059,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Un nouveau départ pour qui n'a jamais fait de budget : après la langue et la devise, l'app demande si vous en avez déjà fait un. En débutant, vous répondez à quelques questions simples, comme le salaire, le logement et le mobile, et obtenez un budget pour ce mois-ci ou le reste de l'année",
     "Toutes les lignes peuvent être supprimées, celles du modèle aussi. Les catégories repliées restent repliées. Le suivi indique « reste » et « dépassé » au lieu d'un signe moins. L'app propose de copier le budget sur le reste de l'année. Le modèle comprend un forfait mobile. Les panneaux qui montent du bas se ferment en les faisant glisser vers le bas, et leurs boutons ne sont plus cachés sous ceux du téléphone",
     'Plus de budgets dans Personnalisé : choisissez + Nouveau budget dans le sélecteur en haut, par exemple pour une petite entreprise. Chaque budget a ses propres mois et n\'est jamais compté dans votre budget habituel. Avec ✏️ vous renommez un budget, Mon budget aussi, et un budget ajouté peut être supprimé puis récupéré avec Annuler',
+    'Le suivi a un bouton ⚠️ Effacer tout le réel, pour repartir de zéro. Il supprime toutes les opérations de tous les mois d\'un coup, mais jamais vos budgets ni ce que l\'app a appris sur vos commerces. L\'app demande d\'abord en indiquant combien d\'opérations sont concernées, et Annuler remet tout',
   ],
 };

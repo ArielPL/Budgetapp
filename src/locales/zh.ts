@@ -202,6 +202,8 @@ export const zh: Translations = {
   followUpClear: '清除本月实际收支',
   followUpClearConfirm: (n, monthName) => `${n === 1 ? `这会删除${monthName}唯一的一条记录` : `这会删除${monthName}全部 ${n} 条记录`}。\n\n预算不受影响，删除后可以立即撤销。\n\n继续吗？`,
   followUpClearDone: (n) => `已删除 ${n} 条记录`,
+  followUpClearAll: '清除全部实际收支',
+  followUpClearAllConfirm: (n, m) => `这将删除全部实际收支：${m} 个月中的 ${n} 条记录。\n\n预算不受影响，应用对你常去商家的学习也会保留。删除后可以立即撤销。为保险起见，可以先在 菜单 → 导出数据 中保存一份备份。\n\n要继续吗？`,
   followUpSpan: (n) => (n === 1 ? '单月' : `${n} 个月`),
   followUpSpanAria: '显示几个月',
   followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -578,6 +580,7 @@ export const zh: Translations = {
   undoWhat: (action, where, count) => {
     if (action === 'resetMonth') return `${where}的预算已重置`;
     if (action === 'clearActuals') return `已从${where}删除 ${count} 条记录`;
+    if (action === 'clearAllActuals') return `已清除全部实际收支（${count} 条记录）`;
     if (action === 'import') return `已导入 ${count} 条记录`;
     if (action === 'restoreBackup') return '备份已恢复';
     if (action === 'copyBudget') return count > 1 ? `已将预算复制到 ${count} 个月` : `已将预算复制到${where}`;
@@ -1043,5 +1046,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     "为从未做过预算的人提供新的开始方式：选好语言和货币后，应用会问你以前是否做过预算。新手只需回答几个简单问题，比如工资、住房和手机，就能得到本月或今年剩余月份的预算",
     "所有行都可以删除，包括模板中的行。折叠的分类会保持折叠。收支跟踪用「剩余」和「超支」代替负号。应用会提议把预算复制到今年剩下的月份。模板新增了手机话费。从底部弹出的面板可以向下拖动关闭，按钮也不会再被手机自带的按键挡住",
     '自定义中可以有更多预算：在顶部的切换器中选择“+ 新预算”，例如用于小生意。每个预算都有自己的月份，绝不会计入你的常规预算。用 ✏️ 可以重命名预算，包括我的预算；添加的预算可以删除，并可用撤销恢复',
+    '实际收支页新增“⚠️ 清除全部实际收支”按钮，方便你从头开始。它会一次删除所有月份的全部记录，但绝不会动你的预算，也不会删除应用对商家的学习结果。应用会先询问并说明涉及多少条记录，撤销可以全部恢复',
   ],
 };
