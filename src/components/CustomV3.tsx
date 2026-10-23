@@ -13,7 +13,7 @@ import {
   EXPENSE_CHART_STYLES, defaultChart, normalizeBlockChart,
   type ExpenseChartStyle, type BlockChart, type ChartSize, type ChartPosition,
 } from '../blockChart';
-import { customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
+import { MAIN_CUSTOM_NS, customValuesKey, customSnapshotKey, snapshotToWrite, loadSnapshot, migrateLegacySnapshots, monthsHoldingRows } from '../customYear';
 import { CustomYear } from './CustomYear';
 import { appStorage, settleStorage, storageMark, usesNativeStorage } from '../storage';
 
@@ -140,10 +140,10 @@ export interface CustomBlock {
 // Common emoji palette for the per-block icon picker.
 const BLOCK_EMOJIS = ['🏠','🍔','🚗','🎉','💰','🏦','📈','🎯','✈️','🛒','🏥','📚','🎁','💡','☕','🐾','👶','🎮'];
 
-const LS_STRUCT = 'budget_custom_v3';
 // Key formula lives in customYear.ts so the year aggregation and this component
-// can never drift apart on where a month's amounts are stored.
-const valuesKey = customValuesKey;
+// can never drift apart on where a month's amounts are stored. The structure
+// sits under the namespace itself: `budget_custom_v3` for the panel's own
+// budget, `budget_cb_<id>` for each budget added beside it (customBudgets.ts).
 
 function uid(): string {
   try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); }
@@ -278,9 +278,9 @@ function chartHeightPx(size: ChartSize): number {
 }
 
 // ── Persistence ─────────────────────────────────────────────────────
-export function loadStructure(): CustomBlock[] | null {
+export function loadStructure(ns: string = MAIN_CUSTOM_NS): CustomBlock[] | null {
   try {
-    const raw = appStorage.getItem(LS_STRUCT);
+    const raw = appStorage.getItem(ns);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -327,9 +327,9 @@ export function loadStructure(): CustomBlock[] | null {
   } catch { return null; }
 }
 
-function loadValues(y: number, m: number): Record<string, number> {
+function loadValues(y: number, m: number, ns: string): Record<string, number> {
   try {
-    const raw = appStorage.getItem(valuesKey(y, m));
+    const raw = appStorage.getItem(customValuesKey(y, m, ns));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -357,15 +357,19 @@ interface Props {
   onRecordUndo: (entry: UndoEntry) => void;
   /** Back to the choice between a linked and a standalone panel. */
   onStartOver?: () => void;
+  /** Where this budget's data lives. Fixed for the component's life: a budget
+   *  added beside the panel's own is mounted with its namespace as React key,
+   *  so switching budgets never carries one budget's state into another's. */
+  ns?: string;
 }
 
-export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver }: Props) => {
+export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver, ns = MAIN_CUSTOM_NS }: Props) => {
   const { t, lang, money, currency } = useLang();
   const isPhone = useIsPhone();
 
-  const [blocks, setBlocks] = useState<CustomBlock[]>(() => loadStructure() ?? []);
-  const [started, setStarted] = useState<boolean>(() => loadStructure() !== null);
-  const [values, setValues] = useState<Record<string, number>>(() => loadValues(year, month));
+  const [blocks, setBlocks] = useState<CustomBlock[]>(() => loadStructure(ns) ?? []);
+  const [started, setStarted] = useState<boolean>(() => loadStructure(ns) !== null);
+  const [values, setValues] = useState<Record<string, number>>(() => loadValues(year, month, ns));
 
   // Budget canvas or the year overview. Deliberately NOT persisted: the month
   // selector still drives the app, and coming back to a saved "year" view would
@@ -403,8 +407,8 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   const loadedBlocks = useRef(blocks);
   useEffect(() => {
     if (blocks === loadedBlocks.current) return;
-    if (started && !safeSetItem(appStorage, LS_STRUCT, JSON.stringify(blocks))) onSaveFailed();
-  }, [blocks, started, onSaveFailed]);
+    if (started && !safeSetItem(appStorage, ns, JSON.stringify(blocks))) onSaveFailed();
+  }, [blocks, started, onSaveFailed, ns]);
 
   // Give months recorded before snapshots existed the structure record they
   // never got, BEFORE the user can delete or retag anything — from this mount
@@ -412,8 +416,8 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // mount only, reading the structure as it was loaded; it is idempotent, so
   // StrictMode's second invocation is a no-op rather than a second write.
   useEffect(() => {
-    migrateLegacySnapshots(appStorage, loadedBlocks.current);
-  }, []);
+    migrateLegacySnapshots(appStorage, loadedBlocks.current, ns);
+  }, [ns]);
 
   // Guard so the save effect doesn't immediately rewrite freshly loaded values
   // into the NEW month's key on a month switch (data-bleed). Declared before the
@@ -441,11 +445,11 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // instead of writing the previous month's values into the new month's key.
   useEffect(() => {
     skipSave.current = true;
-    const fresh = loadValues(year, month);
+    const fresh = loadValues(year, month, ns);
     baselineEpoch.current += 1;
     savedValues.current = fresh;
     setValues(fresh);
-  }, [year, month]);
+  }, [year, month, ns]);
 
   // Persist amounts for the active month. Don't CREATE a key for an untouched
   // (empty) month — avoids littering blank entries while navigating. An existing
@@ -458,7 +462,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // because `blocks` is a new array then: the month on screen follows the
     // current structure, which is what the year view expects.
     if (values === savedValues.current && blocks === savedBlocks.current) return;
-    const key = valuesKey(year, month);
+    const key = customValuesKey(year, month, ns);
     if (Object.keys(values).length === 0 && appStorage.getItem(key) === null) return;
     // Two writes, one meaning. If the amounts land but the snapshot does not,
     // the month's money is recorded with no record of how it was filed — so the
@@ -471,8 +475,8 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // on its own — a month with no amounts has no history to protect.
     ok = safeSetItem(
       appStorage,
-      customSnapshotKey(year, month),
-      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month))),
+      customSnapshotKey(year, month, ns),
+      JSON.stringify(snapshotToWrite(blocks, values, loadSnapshot(appStorage, year, month, ns))),
     ) && ok;
     if (!ok) { onSaveFailed(); return; }
     // What is on disk now. A refused write deliberately does NOT update these:
@@ -488,7 +492,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     void settleStorage(mark).then(stored => {
       if (stored && epoch === baselineEpoch.current) landed();
     });
-  }, [values, year, month, blocks, onSaveFailed]);
+  }, [values, year, month, blocks, onSaveFailed, ns]);
 
   // ── Another tab edited this month, or the structure ──────────────────────
   //
@@ -503,7 +507,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // identity, so both see "nothing has changed" and stay quiet. A storage event
   // only fires in OTHER tabs, so this cannot react to its own writes.
   useEffect(() => {
-    const key = valuesKey(year, month);
+    const key = customValuesKey(year, month, ns);
     const onStorage = (e: StorageEvent) => {
       const incoming = adoptExternalValue<Record<string, number>>(
         e, key, JSON.stringify(savedValues.current), isCustomValues,
@@ -515,7 +519,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
         return;
       }
       const structure = adoptExternalValue<CustomBlock[]>(
-        e, LS_STRUCT, JSON.stringify(loadedBlocks.current), isCustomStructure,
+        e, ns, JSON.stringify(loadedBlocks.current), isCustomStructure,
       );
       if (structure) {
         loadedBlocks.current = structure.data;
@@ -526,7 +530,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [year, month]);
+  }, [year, month, ns]);
 
   const setAmount = useCallback((rowId: string, amount: number) => {
     setValues(v => ({ ...v, [rowId]: amount }));
@@ -556,7 +560,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // Nothing recorded last month means nothing to copy. Copying it anyway
     // wrote `{}` over this month — every amount gone behind a "Copied" toast
     // (full sweep 2026-10-08). The Classic pull refuses the same way.
-    const source = loadValues(py, pm);
+    const source = loadValues(py, pm, ns);
     if (Object.keys(source).length === 0) {
       showToast(t.copyPrevMonthEmpty(MONTHS[lang][pm]));
       return;
@@ -564,7 +568,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     // This month's amounts are about to be replaced wholesale. Ask first when
     // there is something there — an explicitly recorded 0 included, since the
     // user typed that too.
-    const hasOwn = appStorage.getItem(valuesKey(year, month)) !== null
+    const hasOwn = appStorage.getItem(customValuesKey(year, month, ns)) !== null
       && Object.keys(values).length > 0;
     if (hasOwn && !window.confirm(
       t.copyOverwriteOne(monthTitle(month, year, lang), inSentence(MONTHS[lang][pm], lang)),
@@ -575,7 +579,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       year,
       month,
       count: 1,
-      changes: captureKeys(appStorage, [valuesKey(year, month), customSnapshotKey(year, month)]),
+      changes: captureKeys(appStorage, [customValuesKey(year, month, ns), customSnapshotKey(year, month, ns)]),
     });
     setValues(source); // the save effect persists it to this month's key
     showToast(t.copiedLastMonth);
@@ -594,7 +598,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     const doomed: string[] = [];
     for (let i = 0; i < appStorage.length; i++) {
       const k = appStorage.key(i);
-      if (k && (k.startsWith('budget_custom_v3_values') || k.startsWith('budget_custom_v3_meta_'))) doomed.push(k);
+      if (k && (k.startsWith(`${ns}_values_`) || k.startsWith(`${ns}_meta_`))) doomed.push(k);
     }
     // Review 2026-09-18, F3. This reaches EVERY month at once — a bigger
     // intervention than several actions that already had a way back. Captured
@@ -614,7 +618,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
       at: new Date().toISOString(),
       action: 'clearCustom',
       // Value keys only: the meta keys describe the same months.
-      count: doomed.filter(k => k.startsWith('budget_custom_v3_values')).length,
+      count: doomed.filter(k => k.startsWith(`${ns}_values_`)).length,
       changes: before,
     });
     setValues({});
@@ -678,7 +682,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // Lives in customYear.ts so the rule is unit-testable without a DOM — the
   // active month and the recorded-0 decisions are documented there.
   const monthsHolding = (rowIds: string[]): number =>
-    monthsHoldingRows(appStorage, rowIds);
+    monthsHoldingRows(appStorage, rowIds, ns);
 
   /**
    * Remember the Custom LAYOUT before it changes.
@@ -694,7 +698,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
     onRecordUndo({
       at: new Date().toISOString(),
       action,
-      changes: captureKeys(appStorage, [LS_STRUCT]),
+      changes: captureKeys(appStorage, [ns]),
     });
   };
 
@@ -808,7 +812,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
   // ── Previous-month comparison (the +/− "vs prev" delta, like Classic) ──
   const prevYear = month === 0 ? year - 1 : year;
   const prevMonth = month === 0 ? 11 : month - 1;
-  const prevValues = useMemo(() => loadValues(prevYear, prevMonth), [prevYear, prevMonth]);
+  const prevValues = useMemo(() => loadValues(prevYear, prevMonth, ns), [prevYear, prevMonth, ns]);
   const blockPrev = (b: CustomBlock) => toCents(b.rows.reduce((s, r) => s + (prevValues[r.id] || 0), 0));
   const prevSumTag = (tag: BlockTag) =>
     toCents(blocks.filter(b => b.kind === 'block' && b.tag === tag).reduce((s, b) => s + blockPrev(b), 0));
@@ -963,7 +967,7 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver 
           </div>
         )}
 
-        {view === 'year' && <CustomYear blocks={blocks} year={year} />}
+        {view === 'year' && <CustomYear blocks={blocks} year={year} ns={ns} />}
 
         {view === 'budget' && viewBlocks.map((b, index) => {
           const isSummary = b.kind === 'summary';

@@ -596,6 +596,7 @@ export const tr: Translations = {
     if (action === 'refileRepair') return count === 1 ? "1 kayıt doğru aya taşındı" : `${count} kayıt doğru aya taşındı`;
     if (action === 'resetCustom') return "Özel düzen baştan başlatıldı";
     if (action === 'deleteWallet') return "Bir cüzdan silindi";
+    if (action === 'deleteCustomBudget') return 'Bir bütçe silindi';
     if (action === 'deleteWalletExpense') return "Bir cüzdandan bir gider silindi";
     if (action === 'createGoal') return "Bir birikim hedefi oluşturuldu";
     if (action === 'createWallet') return 'Bir cüzdan oluşturuldu';
@@ -882,6 +883,13 @@ export const tr: Translations = {
   wTagSeparate: "Ayrı cüzdan",
   wNew: "Yeni cüzdan",
   wNewLead: "Kendi tutarları vardır. Bütçenizi etkilemez.",
+  cbNew: 'Yeni bütçe',
+  cbNewLead: 'Kendi aylarıyla ayrı bir bütçe, örneğin küçük bir işletme için. Normal bütçenize sayılmaz.',
+  cbNamePlaceholder: 'İşletme',
+  cbCreate: 'Bütçe oluştur',
+  cbRename: 'Yeniden adlandır',
+  cbDelete: 'Bütçeyi sil',
+  cbDeleteConfirm: (name) => `“${name}” bütçesi tüm aylarıyla silinsin mi? Hemen ardından geri alabilirsiniz.`,
   wName: "Ad",
   wNamePlaceholder: "Japonya 2027",
   wTotal: "Toplam bütçe",
@@ -1037,5 +1045,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Sınıflandırıcı artık Brezilya, Portekiz, Rusya, Türkiye, İtalya, Fransa, Almanya ve Çin'deki yaygın mağazaları, akaryakıt istasyonlarını, toplu taşımayı ve enerji şirketlerini tanıyor. Çince adlar, hemen arkasına şehir yazılmış olsa da bulunur",
     "Hiç bütçe yapmamış olanlar için yeni bir başlangıç: dil ve para biriminden sonra uygulama daha önce bütçe yapıp yapmadığınızı sorar. Yeni başlayan olarak maaş, konut ve telefon gibi birkaç basit soruyu yanıtlarsınız ve bu ay ya da yılın geri kalanı için bir bütçe alırsınız",
     "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var. Alttan açılan pencereler aşağı çekilerek kapatılabilir ve düğmeleri artık telefonun kendi düğmelerinin altında kalmaz",
+    'Özel düzende daha fazla bütçe: üstteki seçicide + Yeni bütçe\'yi seçin, örneğin küçük bir işletme için. Her bütçenin kendi ayları vardır ve normal bütçenize asla sayılmaz. ✏️ ile bir bütçeyi, Bütçem\'i de, yeniden adlandırırsınız; eklenen bir bütçe silinebilir ve Geri al ile geri getirilebilir',
   ],
 };

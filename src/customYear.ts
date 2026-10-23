@@ -43,9 +43,18 @@ export interface CustomYearTotals {
   archived: number;
 }
 
+/**
+ * Where a standalone budget keeps its data: its structure under the namespace
+ * itself, and each month under `<ns>_values_<y>_<m>` and `<ns>_meta_<y>_<m>`.
+ * The first standalone budget has always lived at `budget_custom_v3`; every
+ * budget added since gets its own namespace (see customBudgets.ts), so two
+ * budgets can never read or clear each other's months.
+ */
+export const MAIN_CUSTOM_NS = 'budget_custom_v3';
+
 /** The per-month amounts key. Exported so CustomV3 and this module cannot drift. */
-export const customValuesKey = (year: number, month: number): string =>
-  `budget_custom_v3_values_${year}_${month}`;
+export const customValuesKey = (year: number, month: number, ns: string = MAIN_CUSTOM_NS): string =>
+  `${ns}_values_${year}_${month}`;
 
 /**
  * The per-month STRUCTURE snapshot: which block each row belonged to when the
@@ -60,8 +69,8 @@ export const customValuesKey = (year: number, month: number): string =>
  * A separate key rather than a new field inside the values object: every values
  * record already on a real device stays readable exactly as it is.
  */
-export const customSnapshotKey = (year: number, month: number): string =>
-  `budget_custom_v3_meta_${year}_${month}`;
+export const customSnapshotKey = (year: number, month: number, ns: string = MAIN_CUSTOM_NS): string =>
+  `${ns}_meta_${year}_${month}`;
 
 export interface MonthSnapshot {
   /** Bumped only if this shape changes in a way an older build cannot read. */
@@ -107,13 +116,13 @@ export function snapshotToWrite(
 
 /** The snapshot stored for a month, or null when there is none. */
 export function loadSnapshot(
-  storage: StorageLike, year: number, month: number,
+  storage: StorageLike, year: number, month: number, ns: string = MAIN_CUSTOM_NS,
 ): MonthSnapshot | null {
-  return readSnapshot(storage, year, month);
+  return readSnapshot(storage, year, month, ns);
 }
 
-function readSnapshot(storage: StorageLike, year: number, month: number): MonthSnapshot | null {
-  const raw = storage.getItem(customSnapshotKey(year, month));
+function readSnapshot(storage: StorageLike, year: number, month: number, ns: string): MonthSnapshot | null {
+  const raw = storage.getItem(customSnapshotKey(year, month, ns));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -135,9 +144,9 @@ export function isMonthSnapshot(v: unknown): boolean {
   return Object.values(o.tags as Record<string, unknown>).every(isTag);
 }
 
-function readValues(storage: StorageLike, year: number, month: number):
+function readValues(storage: StorageLike, year: number, month: number, ns: string):
   Record<string, number> | null {
-  const raw = storage.getItem(customValuesKey(year, month));
+  const raw = storage.getItem(customValuesKey(year, month, ns));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -152,8 +161,9 @@ function readValues(storage: StorageLike, year: number, month: number):
   } catch { return null; }
 }
 
-/** Matches a per-month amounts key and captures its year and month. */
-const VALUES_KEY_RE = /^budget_custom_v3_values_(\d+)_(\d+)$/;
+/** Matches a per-month amounts key of one namespace and captures its year and
+ *  month. Namespaces are letters, digits and underscores, so nothing to escape. */
+const valuesKeyRe = (ns: string) => new RegExp(`^${ns}_values_(\\d+)_(\\d+)$`);
 
 /**
  * How many stored months hold a recorded amount for any of these rows.
@@ -175,12 +185,13 @@ const VALUES_KEY_RE = /^budget_custom_v3_values_(\d+)_(\d+)$/;
  * insists on a real finite number. A stored null or string is evidence of a bad
  * write, not of anything a person did.
  */
-export function monthsHoldingRows(storage: StorageLike, rowIds: string[]): number {
+export function monthsHoldingRows(storage: StorageLike, rowIds: string[], ns: string = MAIN_CUSTOM_NS): number {
   if (rowIds.length === 0) return 0;
+  const re = valuesKeyRe(ns);
   let count = 0;
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i);
-    if (!key || !VALUES_KEY_RE.test(key)) continue;
+    if (!key || !re.test(key)) continue;
     try {
       const vals = JSON.parse(storage.getItem(key) ?? '{}');
       if (rowIds.some(id => Number.isFinite(vals?.[id]))) count++;
@@ -228,9 +239,11 @@ export function monthsHoldingRows(storage: StorageLike, rowIds: string[]): numbe
 export function migrateLegacySnapshots(
   storage: StorageLike,
   blocks: YearBlockLike[],
+  ns: string = MAIN_CUSTOM_NS,
 ): number {
   const currentTags = snapshotOf(blocks).tags;
   if (Object.keys(currentTags).length === 0) return 0;
+  const re = valuesKeyRe(ns);
 
   // Collect first, write after: mutating storage while walking its index by
   // position can skip entries, and localStorage gives no iteration guarantee.
@@ -238,15 +251,15 @@ export function migrateLegacySnapshots(
 
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i);
-    const match = key && VALUES_KEY_RE.exec(key);
+    const match = key && re.exec(key);
     if (!match) continue;
 
     const year = Number(match[1]);
     const month = Number(match[2]);
     if (!Number.isFinite(year) || month < 0 || month > 11) continue;
-    if (storage.getItem(customSnapshotKey(year, month)) !== null) continue;
+    if (storage.getItem(customSnapshotKey(year, month, ns)) !== null) continue;
 
-    const values = readValues(storage, year, month);
+    const values = readValues(storage, year, month, ns);
     if (!values) continue;
 
     const tags: Record<string, BlockTag> = {};
@@ -256,7 +269,7 @@ export function migrateLegacySnapshots(
     }
     if (Object.keys(tags).length === 0) continue;
 
-    pending.push({ key: customSnapshotKey(year, month), tags });
+    pending.push({ key: customSnapshotKey(year, month, ns), tags });
   }
 
   // safeSetItem: this runs from a mount effect, so a throw here takes the
@@ -289,16 +302,17 @@ export function customYearRows(
   storage: StorageLike,
   blocks: YearBlockLike[],
   year: number,
+  ns: string = MAIN_CUSTOM_NS,
 ): CustomYearRow[] {
   // Today's structure, used only as a fallback for months written before
   // snapshots existed. It must never override a month's own record.
   const currentTags = snapshotOf(blocks).tags;
 
   return Array.from({ length: 12 }, (_, index) => {
-    const values = readValues(storage, year, index);
+    const values = readValues(storage, year, index, ns);
     // The month's OWN structure decides how its money is classified. Editing
     // this month's layout cannot reach backwards and change what September was.
-    const snapshot = readSnapshot(storage, year, index);
+    const snapshot = readSnapshot(storage, year, index, ns);
     const tags = snapshot ? snapshot.tags : currentTags;
 
     let income = 0, expenses = 0, saved = 0, archived = 0;

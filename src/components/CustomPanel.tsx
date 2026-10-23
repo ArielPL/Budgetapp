@@ -98,7 +98,10 @@ export const CustomPanel = ({
   }
   return (
     <WalletArea budget={panel} onRecordUndo={onRecordUndo}
-      budgetTag={mode === 'linked' ? t.wTagLinked : mode === 'standalone' ? t.wTagStandalone : null} />
+      budgetTag={mode === 'linked' ? t.wTagLinked : mode === 'standalone' ? t.wTagStandalone : null}
+      renderBudget={ns => (
+        <CustomV3 ns={ns} year={year} month={month} onSaveFailed={onSaveFailed} onRecordUndo={onRecordUndo} />
+      )} />
   );
 };
 

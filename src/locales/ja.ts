@@ -592,6 +592,7 @@ export const ja: Translations = {
     if (action === 'refileRepair') return `${count}件の明細を正しい月に移動しました`;
     if (action === 'resetCustom') return 'カスタムをやり直しました';
     if (action === 'deleteWallet') return 'ウォレットを削除しました';
+    if (action === 'deleteCustomBudget') return '予算を削除しました';
     if (action === 'deleteWalletExpense') return 'ウォレットから支出を削除しました';
     if (action === 'createGoal') return '貯蓄目標を作成しました';
     if (action === 'createWallet') return 'ウォレットを作成しました';
@@ -878,6 +879,13 @@ export const ja: Translations = {
   wTagSeparate: '別のウォレット',
   wNew: '新しいウォレット',
   wNewLead: '独自の金額を持ち、予算には影響しません。',
+  cbNew: '新しい予算',
+  cbNewLead: '月ごとに管理できる別の予算です。たとえば小さな事業用に。いつもの予算には含まれません。',
+  cbNamePlaceholder: '事業',
+  cbCreate: '予算を作成',
+  cbRename: '名前を変更',
+  cbDelete: '予算を削除',
+  cbDeleteConfirm: (name) => `予算「${name}」をすべての月ごと削除しますか？削除した直後なら元に戻せます。`,
   wName: '名前',
   wNamePlaceholder: '京都 2027',
   wTotal: '予算総額',
@@ -1034,5 +1042,6 @@ export const jaChangelog113: { title: string; items: string[] } = {
     '自動分類が、ブラジル、ポルトガル、ロシア、トルコ、イタリア、フランス、ドイツ、中国の主な店、ガソリンスタンド、公共交通、電力会社を認識するようになりました。中国語の店名は、すぐ後ろに都市名が続いていても見つかります',
     "予算を作ったことがない人のための新しい始め方：言語と通貨のあとに、予算を作ったことがあるか尋ねます。初めての方は給与、住居、携帯電話などの簡単な質問に答えるだけで、今月だけ、または年末までの予算ができます",
     "テンプレートの行も含め、すべての行を削除できます。折りたたんだカテゴリは折りたたまれたままです。実績はマイナス記号ではなく「残り」「超過」と表示します。予算を年末までコピーするよう提案します。テンプレートに携帯電話を追加しました。下から出てくる画面は下にスワイプして閉じられ、ボタンがスマホのボタンの下に隠れなくなりました",
+    'カスタムで予算を増やせます。上の切り替えから「+ 新しい予算」を選びます。たとえば小さな事業用に。各予算には独自の月があり、いつもの予算には決して含まれません。✏️ で予算の名前を変更でき、マイ予算も変更できます。追加した予算は削除でき、元に戻すで復元できます',
   ],
 };

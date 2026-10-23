@@ -1204,7 +1204,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   };
   const createTrip = async () => {
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
-    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fireEvent.click(buttonWith(`+ ${sv.wNew}`)!);
     fireEvent.click(buttonWith(sv.wKindTrip)!);
     fill(sv.wName, 'SYNT RESA');
     fill(sv.wTotal, '10000');
@@ -1234,7 +1234,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   it('starts empty unless the trip template is chosen: the user makes the parts', async () => {
     await openCustom();
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
-    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fireEvent.click(buttonWith(`+ ${sv.wNew}`)!);
     fill(sv.wName, 'SYNT RENOVERING');
     fill(sv.wTotal, '25000');
     fireEvent.click(buttonWith(sv.wCreate)!);

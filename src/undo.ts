@@ -74,6 +74,8 @@ export type UndoAction =
   | 'deleteWallet'
   /** One expense in a wallet. */
   | 'deleteWalletExpense'
+  /** A budget added beside the Custom panel's, with all its months. */
+  | 'deleteCustomBudget'
   /** A budget row's name, changed — easily done by a tap on the wrong field
    *  (tester, 2026-10-17). */
   | 'renameRow'
@@ -136,6 +138,7 @@ const ACTIONS: Record<UndoAction, true> = {
   createWallet: true,
   startBudget: true,
   deleteDebt: true,
+  deleteCustomBudget: true,
   importBudget: true,
   deleteBlock: true,
   clearCustom: true,

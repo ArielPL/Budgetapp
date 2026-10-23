@@ -605,6 +605,7 @@ export const fr: Translations = {
     if (action === 'refileRepair') return count < 2 ? `${count} opération a été déplacée vers le bon mois` : `${count} opérations ont été déplacées vers le bon mois`;
     if (action === 'resetCustom') return "Personnalisé a été remis à zéro";
     if (action === 'deleteWallet') return "Un portefeuille a été supprimé";
+    if (action === 'deleteCustomBudget') return 'Un budget a été supprimé';
     if (action === 'deleteWalletExpense') return "Une dépense a été supprimée d'un portefeuille";
     if (action === 'createGoal') return "Un objectif d'épargne a été créé";
     if (action === 'createWallet') return 'Un portefeuille a été créé';
@@ -891,6 +892,13 @@ export const fr: Translations = {
   wTagSeparate: "Portefeuille séparé",
   wNew: "Nouveau portefeuille",
   wNewLead: "Ses propres montants. N'affecte pas votre budget.",
+  cbNew: 'Nouveau budget',
+  cbNewLead: 'Un budget à part, avec ses propres mois, par exemple pour une petite entreprise. Il n\'est pas compté dans votre budget habituel.',
+  cbNamePlaceholder: 'L\'entreprise',
+  cbCreate: 'Créer le budget',
+  cbRename: 'Renommer',
+  cbDelete: 'Supprimer le budget',
+  cbDeleteConfirm: (name) => `Supprimer le budget « ${name} » avec tous ses mois ? Vous pourrez annuler juste après.`,
   wName: "Nom",
   wNamePlaceholder: "Japon 2027",
   wTotal: "Budget total",
@@ -1047,5 +1055,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Le trieur reconnaît les commerces, stations-service, transports en commun et fournisseurs d'énergie courants au Brésil, au Portugal, en Russie, en Turquie, en Italie, en France, en Allemagne et en Chine. Les noms chinois sont reconnus même collés au nom de la ville",
     "Un nouveau départ pour qui n'a jamais fait de budget : après la langue et la devise, l'app demande si vous en avez déjà fait un. En débutant, vous répondez à quelques questions simples, comme le salaire, le logement et le mobile, et obtenez un budget pour ce mois-ci ou le reste de l'année",
     "Toutes les lignes peuvent être supprimées, celles du modèle aussi. Les catégories repliées restent repliées. Le suivi indique « reste » et « dépassé » au lieu d'un signe moins. L'app propose de copier le budget sur le reste de l'année. Le modèle comprend un forfait mobile. Les panneaux qui montent du bas se ferment en les faisant glisser vers le bas, et leurs boutons ne sont plus cachés sous ceux du téléphone",
+    'Plus de budgets dans Personnalisé : choisissez + Nouveau budget dans le sélecteur en haut, par exemple pour une petite entreprise. Chaque budget a ses propres mois et n\'est jamais compté dans votre budget habituel. Avec ✏️ vous renommez un budget, Mon budget aussi, et un budget ajouté peut être supprimé puis récupéré avec Annuler',
   ],
 };

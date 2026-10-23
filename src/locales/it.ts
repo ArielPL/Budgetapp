@@ -596,6 +596,7 @@ export const it: Translations = {
     if (action === 'refileRepair') return count === 1 ? "1 movimento è stato spostato nel mese giusto" : `${count} movimenti sono stati spostati nel mese giusto`;
     if (action === 'resetCustom') return "Personalizzata è stata ricominciata da capo";
     if (action === 'deleteWallet') return "Un portafoglio è stato rimosso";
+    if (action === 'deleteCustomBudget') return 'Un budget è stato eliminato';
     if (action === 'deleteWalletExpense') return "Una spesa è stata rimossa da un portafoglio";
     if (action === 'createGoal') return "È stato creato un obiettivo di risparmio";
     if (action === 'createWallet') return 'È stato creato un portafoglio';
@@ -882,6 +883,13 @@ export const it: Translations = {
   wTagSeparate: "Portafoglio separato",
   wNew: "Nuovo portafoglio",
   wNewLead: "Importi propri. Non tocca il tuo budget.",
+  cbNew: 'Nuovo budget',
+  cbNewLead: 'Un budget a parte, con i suoi mesi, per esempio per una piccola attività. Non viene contato nel tuo budget abituale.',
+  cbNamePlaceholder: 'L\'attività',
+  cbCreate: 'Crea budget',
+  cbRename: 'Rinomina',
+  cbDelete: 'Elimina il budget',
+  cbDeleteConfirm: (name) => `Eliminare il budget «${name}» con tutti i suoi mesi? Puoi annullare subito dopo.`,
   wName: "Nome",
   wNamePlaceholder: "Giappone 2027",
   wTotal: "Budget totale",
@@ -1038,5 +1046,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     'Lo smistamento riconosce negozi, distributori, trasporti pubblici e fornitori di energia comuni in Brasile, Portogallo, Russia, Turchia, Italia, Francia, Germania e Cina. I nomi cinesi vengono trovati anche con la città scritta subito dopo',
     "Un nuovo inizio per chi non ha mai fatto un budget: dopo lingua e valuta, l'app chiede se ne hai già fatto uno. Da principiante rispondi a qualche domanda semplice, come stipendio, casa e telefono, e ottieni un budget per questo mese o per il resto dell'anno",
     "Ogni riga si può eliminare, anche quelle del modello. Le categorie chiuse restano chiuse. Il monitoraggio dice «avanzo» e «sforato» invece del segno meno. L'app propone di copiare il budget sul resto dell'anno. Il modello include il piano telefonico. I pannelli che salgono dal basso si chiudono trascinandoli verso il basso, e i loro pulsanti non finiscono più sotto quelli del telefono",
+    'Più budget in Personalizzata: scegli + Nuovo budget nel selettore in alto, per esempio per una piccola attività. Ogni budget ha i suoi mesi e non viene mai contato nel tuo budget abituale. Con ✏️ rinomini un budget, anche Il mio budget, e un budget aggiunto si può eliminare e recuperare con Annulla',
   ],
 };

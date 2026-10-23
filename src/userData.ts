@@ -30,6 +30,7 @@
 import type { StorageLike } from './storage';
 import { DEBTS_KEY, debtsHaveContent } from './debtStore';
 import { WALLETS_KEY, walletsHaveContent } from './wallets';
+import { CUSTOM_BUDGET_KEY_RE } from './customBudgets';
 import type { PlanData } from './types';
 
 /** `budget_<year>_<month>` — a classic budget month. */
@@ -162,6 +163,15 @@ export function hasRestorableUserData(storage: StorageLike): boolean {
     }
     if (key === 'budget_plan' || key === 'budget_savings_plan') {
       if (planHasContent(storage.getItem(key))) return true;
+      continue;
+    }
+    // A budget added beside the Custom panel's: the same three kinds of key.
+    const added = CUSTOM_BUDGET_KEY_RE.exec(key);
+    if (added) {
+      const raw = storage.getItem(key);
+      if (added[2] === 'values' ? customValuesHaveContent(raw)
+        : added[2] === 'meta' ? customMetaHasContent(raw)
+          : customStructureHasContent(raw)) return true;
       continue;
     }
     if (key === 'budget_custom_v3') {

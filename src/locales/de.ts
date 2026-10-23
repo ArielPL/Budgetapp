@@ -596,6 +596,7 @@ export const de: Translations = {
     if (action === 'refileRepair') return count === 1 ? '1 Eintrag wurde in den richtigen Monat verschoben' : `${count} Einträge wurden in den richtigen Monat verschoben`;
     if (action === 'resetCustom') return 'Das individuelle Layout wurde neu begonnen';
     if (action === 'deleteWallet') return 'Eine Geldbörse wurde entfernt';
+    if (action === 'deleteCustomBudget') return 'Ein Budget wurde entfernt';
     if (action === 'deleteWalletExpense') return 'Eine Ausgabe wurde aus einer Geldbörse entfernt';
     if (action === 'createGoal') return 'Ein Sparziel wurde angelegt';
     if (action === 'createWallet') return 'Eine Geldbörse wurde angelegt';
@@ -882,6 +883,13 @@ export const de: Translations = {
   wTagSeparate: 'Eigene Geldbörse',
   wNew: 'Neue Geldbörse',
   wNewLead: 'Eigene Beträge. Beeinflusst dein Budget nicht.',
+  cbNew: 'Neues Budget',
+  cbNewLead: 'Ein eigenes Budget mit eigenen Monaten, zum Beispiel für ein kleines Unternehmen. Es zählt nicht zu deinem normalen Budget.',
+  cbNamePlaceholder: 'Die Firma',
+  cbCreate: 'Budget erstellen',
+  cbRename: 'Umbenennen',
+  cbDelete: 'Budget löschen',
+  cbDeleteConfirm: (name) => `Das Budget „${name}“ mit allen Monaten löschen? Du kannst es direkt danach rückgängig machen.`,
   wName: 'Name',
   wNamePlaceholder: 'Japan 2027',
   wTotal: 'Gesamtbudget',
@@ -1038,5 +1046,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     'Der Sortierer kennt gängige Geschäfte, Tankstellen, Nahverkehr und Energieversorger in Brasilien, Portugal, Russland, der Türkei, Italien, Frankreich, Deutschland und China. Chinesische Namen werden auch erkannt, wenn die Stadt direkt dahinter steht',
     "Ein neuer Start für alle, die noch nie ein Budget gemacht haben: Nach Sprache und Währung fragt die App, ob du schon einmal eins gemacht hast. Als Einsteiger beantwortest du ein paar einfache Fragen, etwa zu Gehalt, Wohnen und Handy, und bekommst ein Budget für diesen Monat oder den Rest des Jahres",
     "Jede Zeile lässt sich entfernen, auch die der Vorlage. Eingeklappte Kategorien bleiben eingeklappt. Die Auswertung sagt „übrig“ und „drüber“ statt eines Minus. Die App bietet an, das Budget in den Rest des Jahres zu kopieren. Die Vorlage hat eine Zeile für den Handyvertrag. Fenster, die von unten hochkommen, lassen sich nach unten wegziehen, und ihre Schaltflächen liegen nicht mehr unter den Tasten des Telefons",
+    'Mehr Budgets in Individuell: Wähle oben im Umschalter + Neues Budget, zum Beispiel für ein kleines Unternehmen. Jedes Budget hat eigene Monate und zählt nie zu deinem normalen Budget. Mit ✏️ benennst du ein Budget um, auch Mein Budget, und ein hinzugefügtes Budget lässt sich löschen und mit Rückgängig zurückholen',
   ],
 };

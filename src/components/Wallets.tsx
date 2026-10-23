@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useLang } from '../i18n';
 import { parseMoneyInput } from '../money';
 import { generateId } from '../defaults';
@@ -10,6 +10,10 @@ import {
   newTrip, newBlank, walletSummary, loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY,
   type Wallet, type WalletExpense, type WalletKind, type WalletPot,
 } from '../wallets';
+import {
+  loadCustomBudgets, customBudgetsChange, customBudgetKeys, customBudgetNs, newCustomBudgetId,
+  loadMainBudgetName, CUSTOM_BUDGETS_KEY, CUSTOM_NAME_KEY, type CustomBudget,
+} from '../customBudgets';
 
 // ── Wallets: the panel switcher, a new trip, and the wallet itself ─────────
 //
@@ -26,6 +30,11 @@ import {
 
 const ICON: Record<WalletKind, string> = { blank: '👛', trip: '✈️' };
 
+/** How an added budget is named in the open-panel key and the switcher, so a
+ *  budget's id can never be mistaken for a wallet's. */
+const BUDGET_PREFIX = 'cb:';
+const budgetPanelId = (b: CustomBudget) => `${BUDGET_PREFIX}${b.id}`;
+
 const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -33,14 +42,23 @@ const todayIso = () => {
 
 // ── The switcher ───────────────────────────────────────────────────────────
 
-export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
+export const PanelSwitcher = ({
+  wallets, budgets = [], mainName, openId, budgetTag, onOpen, onNew, onNewBudget, onRename,
+}: {
   wallets: Wallet[];
-  /** The wallet on screen, or null for the budget. */
+  /** Budgets added beside the panel's own; only Custom offers them. */
+  budgets?: CustomBudget[];
+  /** What the panel's own budget is called. */
+  mainName?: string;
+  /** The wallet or added budget on screen, or null for the budget. */
   openId: string | null;
   /** "Linked" / "Separate", or null before a kind of panel is chosen. */
   budgetTag: string | null;
   onOpen: (id: string | null) => void;
   onNew: () => void;
+  onNewBudget?: () => void;
+  /** Rename the budget on screen; absent where it cannot be renamed. */
+  onRename?: () => void;
 }) => {
   const { t, money } = useLang();
   const [expanded, setExpanded] = useState(false);
@@ -61,6 +79,8 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
     };
   }, [expanded]);
   const current = wallets.find(w => w.id === openId);
+  const openBudget = budgets.find(b => budgetPanelId(b) === openId);
+  const myBudget = mainName ?? t.wMyBudget;
   const today = todayIso();
   const pick = (id: string | null) => { setExpanded(false); onOpen(id); };
   const row = (w: Wallet) => {
@@ -83,9 +103,12 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
     <div className="wallet-switch" ref={box}>
       <button className="wallet-switch-toggle" aria-expanded={expanded} aria-controls={listId}
         onClick={() => setExpanded(e => !e)}>
-        <span aria-hidden="true">{current ? ICON[current.kind] : '📊'}</span> {current ? current.name : t.wMyBudget}
+        <span aria-hidden="true">{current ? ICON[current.kind] : '📊'}</span> {current ? current.name : openBudget ? openBudget.name : myBudget}
         <span className="wallet-switch-caret" aria-hidden="true">▾</span>
       </button>
+      {onRename && (
+        <button className="wallet-switch-edit" onClick={onRename} aria-label={t.cbRename} title={t.cbRename}>✏️</button>
+      )}
       {expanded && (
         <div className="wallet-switch-panel" id={listId}>
           <div className="wallet-switch-title">{t.wPanels}</div>
@@ -94,13 +117,27 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
               <button className={`wallet-switch-row${openId === null ? ' is-current' : ''}`} onClick={() => pick(null)}
                 aria-current={openId === null ? 'true' : undefined}>
                 <span className="wallet-switch-icon" aria-hidden="true">📊</span>
-                <span className="wallet-switch-text"><span className="wallet-switch-name">{t.wMyBudget}</span></span>
+                <span className="wallet-switch-text"><span className="wallet-switch-name">{myBudget}</span></span>
                 {budgetTag && <span className="wallet-tag wallet-tag-budget">{budgetTag}</span>}
               </button>
             </li>
+            {budgets.map(b => (
+              <li key={b.id}>
+                <button className={`wallet-switch-row${budgetPanelId(b) === openId ? ' is-current' : ''}`}
+                  onClick={() => pick(budgetPanelId(b))}
+                  aria-current={budgetPanelId(b) === openId ? 'true' : undefined}>
+                  <span className="wallet-switch-icon" aria-hidden="true">📊</span>
+                  <span className="wallet-switch-text"><span className="wallet-switch-name">{b.name}</span></span>
+                  <span className="wallet-tag wallet-tag-budget">{t.wTagStandalone}</span>
+                </button>
+              </li>
+            ))}
             {wallets.filter(w => !w.archived).map(row)}
             {wallets.filter(w => w.archived).map(row)}
           </ul>
+          {onNewBudget && (
+            <button className="wallet-switch-new" onClick={() => { setExpanded(false); onNewBudget(); }}>+ {t.cbNew}</button>
+          )}
           <button className="wallet-switch-new" onClick={() => { setExpanded(false); onNew(); }}>+ {t.wNew}</button>
         </div>
       )}
@@ -114,20 +151,30 @@ export const PanelSwitcher = ({ wallets, openId, budgetTag, onOpen, onNew }: {
 // as a screen of its own from the menu (any layout), where "My budget" goes
 // back to the budget (`onLeave`).
 
-export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
+export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBudget }: {
   /** Shown when no wallet is open; null on the menu's own screen. */
   budget: ReactNode | null;
   budgetTag: string | null;
   /** Back to the budget, for the menu's own screen. */
   onLeave?: () => void;
   onRecordUndo: (entry: UndoEntry) => void;
+  /** Draws an added budget from its namespace. Given only in Custom, which is
+   *  where budgets beside the panel's own are offered, named and removed. */
+  renderBudget?: (ns: string) => ReactNode;
 }) => {
   const { t } = useLang();
   const [wallets, setWallets] = useState<Wallet[]>(() => loadWallets(appStorage));
+  const [budgets, setBudgets] = useState<CustomBudget[]>(() => (renderBudget ? loadCustomBudgets(appStorage) : []));
+  // The panel's own budget is named only in Custom: from the menu's screen
+  // "My budget" means the regular budget, whatever Custom calls its own.
+  const [mainName, setMainName] = useState<string | null>(() => (renderBudget ? loadMainBudgetName(appStorage) : null));
+  const [creatingBudget, setCreatingBudget] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [openId, setOpenId] = useState<string | null>(() => {
     const all = loadWallets(appStorage);
     const v = appStorage.getItem(OPEN_PANEL_KEY);
     if (v && all.some(w => w.id === v)) return v;
+    if (v && renderBudget && loadCustomBudgets(appStorage).some(b => budgetPanelId(b) === v)) return v;
     // From the menu there is no budget to show: open a wallet if there is one.
     return budget === null ? (all.find(w => !w.archived) ?? all[0])?.id ?? null : null;
   });
@@ -135,6 +182,8 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
 
   const open = (id: string | null) => {
     setCreating(false);
+    setCreatingBudget(false);
+    setRenaming(false);
     if (id === null && onLeave) { onLeave(); return; }
     setOpenId(id);
     // Where the panel opens next time: a convenience, so a failure is not news.
@@ -175,9 +224,51 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
   const changeWallet = (id: string, change: (w: Wallet) => Wallet, undo?: 'deleteWalletExpense') =>
     save(all => (all.some(w => w.id === id) ? all.map(w => (w.id === id ? change(w) : w)) : all), undo);
   const current = wallets.find(w => w.id === openId) ?? null;
+  const openBudget = budgets.find(b => budgetPanelId(b) === openId) ?? null;
+
+  /** Store the list of added budgets; the screen follows only once stored. */
+  const storeBudgets = async (changes: Parameters<typeof commitStorageChangesOutcome>[1]): Promise<boolean> => {
+    const outcome = await commitStorageChangesOutcome(appStorage, changes);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    return true;
+  };
+  const createBudget = async (name: string): Promise<boolean> => {
+    const b: CustomBudget = { id: newCustomBudgetId(), name };
+    const next = [...budgets, b];
+    if (!(await storeBudgets([customBudgetsChange(next)]))) return false;
+    setBudgets(next);
+    open(budgetPanelId(b));
+    return true;
+  };
+  const rename = async (name: string) => {
+    if (openBudget) {
+      const next = budgets.map(b => (b.id === openBudget.id ? { ...b, name } : b));
+      if (await storeBudgets([customBudgetsChange(next)])) { setBudgets(next); setRenaming(false); }
+      return;
+    }
+    // An empty name, or the default itself, goes back to the translated default.
+    const own = name && name !== t.wMyBudget ? name : null;
+    if (await storeBudgets([{ key: CUSTOM_NAME_KEY, value: own }])) { setMainName(own); setRenaming(false); }
+  };
+  /** An added budget and every month of it, as one write that can be undone. */
+  const removeBudget = async (b: CustomBudget) => {
+    if (!window.confirm(t.cbDeleteConfirm(b.name))) return;
+    const own = customBudgetKeys(appStorage, b.id);
+    const before = captureKeys(appStorage, [CUSTOM_BUDGETS_KEY, ...own]);
+    const next = budgets.filter(x => x.id !== b.id);
+    if (!(await storeBudgets([customBudgetsChange(next), ...own.map(key => ({ key, value: null }))]))) return;
+    setBudgets(next);
+    open(null);
+    onRecordUndo({ at: new Date().toISOString(), action: 'deleteCustomBudget', changes: before });
+  };
 
   let content: ReactNode;
-  if (creating) {
+  if (creatingBudget) {
+    content = <NewBudget onCreate={createBudget} onCancel={() => setCreatingBudget(false)} />;
+  } else if (creating) {
     content = (
       <NewWallet
         onCancel={() => { setCreating(false); if (!current && budget === null) onLeave?.(); }}
@@ -198,15 +289,105 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo }: {
           if (await save(all => all.filter(w => w.id !== id), 'deleteWallet')) open(null);
         }} />
     );
+  } else if (openBudget && renderBudget) {
+    // Keyed by namespace: each budget gets a component of its own, so nothing
+    // one budget holds in memory can be written into another's months.
+    const ns = customBudgetNs(openBudget.id);
+    content = <Fragment key={ns}>{renderBudget(ns)}</Fragment>;
   } else {
     content = budget;
   }
+  const showingBudget = !creating && !creatingBudget && !current;
   return (
     <>
-      <PanelSwitcher wallets={wallets} openId={creating ? null : openId} budgetTag={budgetTag}
-        onOpen={open} onNew={() => setCreating(true)} />
+      <PanelSwitcher wallets={wallets} budgets={budgets} mainName={mainName ?? undefined}
+        openId={creating || creatingBudget ? null : openId} budgetTag={budgetTag}
+        onOpen={open} onNew={() => { setCreatingBudget(false); setCreating(true); }}
+        onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
+        onRename={renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+      {renaming && showingBudget && (
+        <BudgetName key={openBudget?.id ?? 'main'} name={openBudget ? openBudget.name : mainName ?? t.wMyBudget}
+          onSave={rename} onCancel={() => setRenaming(false)}
+          onDelete={openBudget ? () => void removeBudget(openBudget) : undefined} />
+      )}
       {content}
     </>
+  );
+};
+
+// ── An added budget: a name, and nothing else to decide ───────────────────
+
+const NewBudget = ({ onCreate, onCancel }: {
+  onCreate: (name: string) => Promise<boolean>;
+  onCancel: () => void;
+}) => {
+  const { t } = useLang();
+  const fid = useId();
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    if (!name.trim()) { setError(t.wErrName); return; }
+    setBusy(true);
+    try { await onCreate(name.trim()); } finally { setBusy(false); }
+  };
+  return (
+    <div className="wallet">
+      <h2 className="wallet-title">📊 {t.cbNew}</h2>
+      <p className="wallet-lead">{t.cbNewLead}</p>
+      <form className="goal-form" onSubmit={e => { e.preventDefault(); void submit(); }}>
+        <div className="goal-form-field">
+          <label htmlFor={`${fid}-name`}>{t.wName}</label>
+          <input id={`${fid}-name`} className="label-input" value={name} placeholder={t.cbNamePlaceholder}
+            autoFocus onChange={e => { setName(e.target.value); setError(null); }} />
+        </div>
+        {error && <p className="goal-form-error" role="alert">{error}</p>}
+        <div className="goal-form-actions">
+          <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
+          <button type="submit" className="custom-primary-btn" disabled={busy}>{t.cbCreate}</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+/** Rename the budget on screen; an added one can also be removed from here. */
+const BudgetName = ({ name, onSave, onCancel, onDelete }: {
+  name: string;
+  onSave: (name: string) => Promise<void>;
+  onCancel: () => void;
+  onDelete?: () => void;
+}) => {
+  const { t } = useLang();
+  const fid = useId();
+  const [draft, setDraft] = useState(name);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    const next = draft.trim();
+    // The panel's own budget may go back to its default with an empty name;
+    // an added one must keep a name, so an empty field is simply not saved.
+    if (next === name || (!next && onDelete)) { onCancel(); return; }
+    setBusy(true);
+    try { await onSave(next); } finally { setBusy(false); }
+  };
+  return (
+    <form className="budget-name" onSubmit={e => { e.preventDefault(); void submit(); }}>
+      <label htmlFor={`${fid}-name`} className="budget-name-label">{t.cbRename}</label>
+      <div className="budget-name-row">
+        {/* Selected on open, so typing replaces the name rather than adding to it. */}
+        <input id={`${fid}-name`} className="label-input" value={draft} autoFocus
+          onFocus={e => e.currentTarget.select()}
+          placeholder={t.wMyBudget} onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') onCancel(); }} />
+        <button type="submit" className="custom-primary-btn" disabled={busy}>{t.wSave}</button>
+        <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
+      </div>
+      {onDelete && (
+        <button type="button" className="custom-secondary-btn wallet-danger budget-name-delete" onClick={onDelete}>{t.cbDelete}</button>
+      )}
+    </form>
   );
 };
 

@@ -1175,6 +1175,14 @@ export interface Translations {
   wTagSeparate: string;
   wNew: string;
   wNewLead: string;
+  /** A budget added beside the Custom panel's own (customBudgets.ts). */
+  cbNew: string;
+  cbNewLead: string;
+  cbNamePlaceholder: string;
+  cbCreate: string;
+  cbRename: string;
+  cbDelete: string;
+  cbDeleteConfirm: (name: string) => string;
   wName: string;
   wNamePlaceholder: string;
   wTotal: string;
@@ -1875,6 +1883,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (action === 'resetCustom') return 'Anpassad började om från början';
       if (action === 'deleteWallet') return 'En plånbok togs bort';
+      if (action === 'deleteCustomBudget') return 'En budget togs bort';
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
       if (action === 'createGoal') return 'Ett sparmål skapades';
       if (action === 'createWallet') return 'En plånbok skapades';
@@ -2162,6 +2171,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Fristående plånbok',
     wNew: 'Ny plånbok',
     wNewLead: 'Egna belopp. Påverkar inte din budget.',
+    cbNew: 'Ny budget',
+    cbNewLead: 'En egen budget med egna månader, till exempel för ett litet företag. Den räknas inte in i din vanliga budget.',
+    cbNamePlaceholder: 'Firman',
+    cbCreate: 'Skapa budget',
+    cbRename: 'Byt namn',
+    cbDelete: 'Ta bort budgeten',
+    cbDeleteConfirm: (name) => `Ta bort budgeten ”${name}” med alla dess månader? Det går att ångra direkt efteråt.`,
     wName: 'Namn',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
@@ -2869,6 +2885,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (action === 'resetCustom') return 'Custom was started over';
       if (action === 'deleteWallet') return 'A wallet was removed';
+      if (action === 'deleteCustomBudget') return 'A budget was removed';
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
       if (action === 'createGoal') return 'A savings goal was created';
       if (action === 'createWallet') return 'A wallet was created';
@@ -3155,6 +3172,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Separate wallet',
     wNew: 'New wallet',
     wNewLead: 'Its own amounts. Does not affect your budget.',
+    cbNew: 'New budget',
+    cbNewLead: 'A budget of its own with its own months, for a small business, say. It is not counted in your regular budget.',
+    cbNamePlaceholder: 'The business',
+    cbCreate: 'Create budget',
+    cbRename: 'Rename',
+    cbDelete: 'Delete the budget',
+    cbDeleteConfirm: (name) => `Delete the budget “${name}” with all its months? You can undo it right afterwards.`,
     wName: 'Name',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
@@ -3862,6 +3886,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
       if (action === 'deleteWallet') return 'Se eliminó una cartera';
+      if (action === 'deleteCustomBudget') return 'Se eliminó un presupuesto';
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
       if (action === 'createWallet') return 'Se creó una cartera';
@@ -4148,6 +4173,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Cartera independiente',
     wNew: 'Nueva cartera',
     wNewLead: 'Sus propios importes. No afecta a tu presupuesto.',
+    cbNew: 'Nuevo presupuesto',
+    cbNewLead: 'Un presupuesto propio con sus propios meses, por ejemplo para un pequeño negocio. No se cuenta en tu presupuesto habitual.',
+    cbNamePlaceholder: 'El negocio',
+    cbCreate: 'Crear presupuesto',
+    cbRename: 'Cambiar nombre',
+    cbDelete: 'Eliminar el presupuesto',
+    cbDeleteConfirm: (name) => `¿Eliminar el presupuesto «${name}» con todos sus meses? Puedes deshacerlo justo después.`,
     wName: 'Nombre',
     wNamePlaceholder: 'Japón 2027',
     wTotal: 'Presupuesto total',

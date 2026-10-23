@@ -30,6 +30,7 @@ import { isRowPeriod } from './metrics';
 import { isValidBlockChart } from './blockChart';
 import { isMonthSnapshot } from './customYear';
 import { isActualEntry } from './actuals';
+import { CUSTOM_BUDGETS_KEY, CUSTOM_BUDGET_KEY_RE, isCustomBudgetList } from './customBudgets';
 import { CSV_MAPS_KEY } from './csvMaps';
 import { PERIOD_LABEL_MAX } from './periodLabel';
 import { WALLETS_KEY, isWalletStore } from './wallets';
@@ -257,6 +258,15 @@ function isValidValue(key: string, raw: string): boolean {
   // The per-month structure snapshot the year view reads. Rejecting a bad one
   // matters: a wrong tag would refile a month's money into the wrong column.
   if (/^budget_custom_v3_meta_/.test(key)) return parseThen(isMonthSnapshot);
+  // Budgets added beside the Custom panel's own: the list of them, and each
+  // one's structure and months, checked exactly like the panel's.
+  if (key === CUSTOM_BUDGETS_KEY) return parseThen(isCustomBudgetList);
+  const added = CUSTOM_BUDGET_KEY_RE.exec(key);
+  if (added) {
+    if (added[2] === 'values') return parseThen(isCustomValues);
+    if (added[2] === 'meta') return parseThen(isMonthSnapshot);
+    return parseThen(isCustomStructure);
+  }
   return true; // settings & unknown future keys: any string is fine
 }
 

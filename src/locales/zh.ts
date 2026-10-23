@@ -592,6 +592,7 @@ export const zh: Translations = {
     if (action === 'refileRepair') return `已将 ${count} 条记录移到正确的月份`;
     if (action === 'resetCustom') return '自定义已重新开始';
     if (action === 'deleteWallet') return '已删除一个钱包';
+    if (action === 'deleteCustomBudget') return '已删除一个预算';
     if (action === 'deleteWalletExpense') return '已从钱包中删除一笔支出';
     if (action === 'createGoal') return '已创建一个储蓄目标';
     if (action === 'createWallet') return '已创建钱包';
@@ -878,6 +879,13 @@ export const zh: Translations = {
   wTagSeparate: '独立钱包',
   wNew: '新钱包',
   wNewLead: '有自己的金额。不影响你的预算。',
+  cbNew: '新预算',
+  cbNewLead: '一个拥有自己月份的独立预算，例如用于小生意。它不计入你的常规预算。',
+  cbNamePlaceholder: '生意',
+  cbCreate: '创建预算',
+  cbRename: '重命名',
+  cbDelete: '删除预算',
+  cbDeleteConfirm: (name) => `删除预算“${name}”及其所有月份？删除后可以立即撤销。`,
   wName: '名称',
   wNamePlaceholder: '日本 2027',
   wTotal: '总预算',
@@ -1034,5 +1042,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     '自动分类现在能识别巴西、葡萄牙、俄罗斯、土耳其、意大利、法国、德国和中国常见的商店、加油站、公共交通和能源公司。即使中文店名后面紧跟城市名，也能识别',
     "为从未做过预算的人提供新的开始方式：选好语言和货币后，应用会问你以前是否做过预算。新手只需回答几个简单问题，比如工资、住房和手机，就能得到本月或今年剩余月份的预算",
     "所有行都可以删除，包括模板中的行。折叠的分类会保持折叠。收支跟踪用「剩余」和「超支」代替负号。应用会提议把预算复制到今年剩下的月份。模板新增了手机话费。从底部弹出的面板可以向下拖动关闭，按钮也不会再被手机自带的按键挡住",
+    '自定义中可以有更多预算：在顶部的切换器中选择“+ 新预算”，例如用于小生意。每个预算都有自己的月份，绝不会计入你的常规预算。用 ✏️ 可以重命名预算，包括我的预算；添加的预算可以删除，并可用撤销恢复',
   ],
 };

@@ -596,6 +596,7 @@ export const pt: Translations = {
     if (action === 'refileRepair') return count === 1 ? '1 lançamento foi movido para o mês certo' : `${count} lançamentos foram movidos para o mês certo`;
     if (action === 'resetCustom') return 'O Personalizado foi recomeçado';
     if (action === 'deleteWallet') return 'Uma carteira foi removida';
+    if (action === 'deleteCustomBudget') return 'Um orçamento foi excluído';
     if (action === 'deleteWalletExpense') return 'Uma despesa foi removida de uma carteira';
     if (action === 'createGoal') return 'Uma meta de poupança foi criada';
     if (action === 'createWallet') return 'Uma carteira foi criada';
@@ -882,6 +883,13 @@ export const pt: Translations = {
   wTagSeparate: 'Carteira separada',
   wNew: 'Nova carteira',
   wNewLead: 'Valores próprios. Não afeta o seu orçamento.',
+  cbNew: 'Novo orçamento',
+  cbNewLead: 'Um orçamento próprio, com os próprios meses, por exemplo para um pequeno negócio. Ele não entra no seu orçamento normal.',
+  cbNamePlaceholder: 'O negócio',
+  cbCreate: 'Criar orçamento',
+  cbRename: 'Renomear',
+  cbDelete: 'Excluir o orçamento',
+  cbDeleteConfirm: (name) => `Excluir o orçamento “${name}” com todos os meses? Você pode desfazer logo em seguida.`,
   wName: 'Nome',
   wNamePlaceholder: 'Japão 2027',
   wTotal: 'Orçamento total',
@@ -1037,5 +1045,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     'A classificação reconhece lojas, postos, transporte público e companhias de energia comuns no Brasil, em Portugal, na Rússia, na Turquia, na Itália, na França, na Alemanha e na China. Nomes chineses são encontrados mesmo com a cidade escrita logo depois',
     "Um novo começo para quem nunca fez um orçamento: depois do idioma e da moeda, o app pergunta se você já fez um. Como iniciante, você responde a algumas perguntas simples, como salário, moradia e celular, e recebe um orçamento para este mês ou o resto do ano",
     "Toda linha pode ser removida, inclusive as do modelo. Categorias recolhidas continuam recolhidas. O acompanhamento diz “sobra” e “acima” em vez de um sinal de menos. O app oferece copiar o orçamento para o resto do ano. O modelo tem o plano de celular. Os painéis que sobem de baixo podem ser arrastados para baixo para fechar, e seus botões não ficam mais sob os botões do celular",
+    'Mais orçamentos em Personalizado: escolha + Novo orçamento no seletor no topo, por exemplo para um pequeno negócio. Cada orçamento tem os próprios meses e nunca entra no seu orçamento normal. Com ✏️ você renomeia um orçamento, Meu orçamento também, e um orçamento adicionado pode ser excluído e recuperado com Desfazer',
   ],
 };

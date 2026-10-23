@@ -5966,6 +5966,30 @@ html.guide-side body { padding-right: 380px; }
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
+/* Rename the budget on screen: a pencil beside the switcher, and a small form
+   under it (an added budget can also be removed from there). */
+.wallet-switch-edit {
+  margin-left: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.budget-name {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.budget-name-label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--text); }
+.budget-name-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.budget-name-row .label-input { flex: 1 1 200px; min-width: 0; }
+.budget-name-delete { margin-top: 10px; }
 .wallet {
   width: 100%;
   min-width: 0;
@@ -7098,4 +7122,9 @@ td.num[style*="color: rgb"],
 /* The guide's bar sits above the bottom tab bar on a phone. */
 @media (max-width: 640px) {
   .guide-bar { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px); }
+}
+
+/* Renaming a budget on a phone: the name gets the whole row, the buttons share the next. */
+@media (max-width: 640px) {
+  .budget-name-row .label-input { flex-basis: 100%; }
 }
