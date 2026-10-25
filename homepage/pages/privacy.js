@@ -127,7 +127,7 @@ window.YB_PRIVACY = {
  },
  "es": {
   "title": "Privacidad",
-  "intro": "YourBudget no recopila, transmite ni comparte ningún dato personal.",
+  "intro": "YourBudget no recoge, transmite ni comparte ningún dato personal.",
   "updated": "Vigente desde el 2 de noviembre de 2026.",
   "blocks": [
    {
@@ -251,7 +251,7 @@ window.YB_PRIVACY = {
  },
  "de": {
   "title": "Datenschutz",
-  "intro": "YourBudget erhebt, überträgt und teilt keine personenbezogenen Daten.",
+  "intro": "YourBudget erhebt, überträgt und teilt keinerlei personenbezogene Daten.",
   "updated": "Gültig ab 2. November 2026.",
   "blocks": [
    {
