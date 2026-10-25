@@ -93,6 +93,7 @@ export const CHANGELOG: Release[] = [
         "Alla rader går att ta bort, även mallens. Hopfällda kategorier förblir hopfällda. Uppföljning skriver ”kvar” och ”över” i stället för minus. Appen erbjuder att kopiera budgeten till resten av året. Mallen har Mobilabonnemang, och SL heter Kollektivtrafik. Sorteraren känner igen fler trafikbolag och mobiloperatörer. Rutor som kommer upp nerifrån går att dra ner för att stänga, och deras knappar hamnar inte längre under telefonens egna knappar",
         'Fler budgetar i Anpassad: välj + Ny budget i väljaren överst, till exempel för ett litet företag. Varje budget har egna månader och räknas aldrig in i din vanliga budget. Med ✏️ byter du namn på en budget, även på Min budget, och en tillagd budget kan tas bort och tas tillbaka med Ångra',
         'Uppföljning har knappen ⚠️ Rensa allt utfall, för den som vill börja om helt. Den tar bort alla poster i alla månader på en gång, men aldrig budgetarna eller det appen lärt sig om dina butiker. Appen frågar först och säger hur många poster det gäller, och Ångra tar tillbaka allt',
+        'Beloppsfälten förstår alla vanliga sätt att skriva ett tal: 1.500 och 1,500 är tusen femhundra, 1.500,50 och 1,500.50 likaså med ören, och 500 kr, € 20 och 5k går att skriva rakt in. Tidigare blev 1.500 tyst 1,50. Räntor läses alltid som decimaler, så 2,356 % förblir 2,356 %',
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -137,6 +138,7 @@ export const CHANGELOG: Release[] = [
         "Every row can be removed, the template's too. Folded categories stay folded. Follow-up says “left” and “over” instead of a minus. The app offers to copy the budget to the rest of the year. The template has a phone plan line. The sorter knows more regional transport and phone operators. Panels that slide up from the bottom can be pulled down to close, and their buttons no longer sit under the phone's own buttons",
         'More budgets in Custom: choose + New budget in the switcher at the top, for a small business, say. Each budget has its own months and is never counted in your regular budget. With ✏️ you rename a budget, My budget too, and an added budget can be deleted and brought back with Undo',
         'Follow-up has a ⚠️ Clear all actuals button, for anyone who wants to start over completely. It removes every entry in every month at once, but never your budgets or what the app has learned about your shops. The app asks first and says how many entries it means, and Undo brings everything back',
+        'Amount fields understand every usual way of writing a number: 1.500 and 1,500 are one thousand five hundred, 1.500,50 and 1,500.50 likewise with cents, and 500 kr, € 20 and 5k can be typed straight in. Before, 1.500 quietly became 1.50. Interest rates are always read as decimals, so 2,356 % stays 2.356 %',
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -181,6 +183,7 @@ export const CHANGELOG: Release[] = [
         "Todas las filas se pueden borrar, también las de la plantilla. Las categorías plegadas siguen plegadas. Seguimiento dice «quedan» y «de más» en vez de un signo menos. La app ofrece copiar el presupuesto al resto del año. La plantilla incluye la tarifa del móvil. Los paneles que suben desde abajo se pueden arrastrar hacia abajo para cerrarlos, y sus botones ya no quedan bajo los botones del teléfono",
         'Más presupuestos en Personalizado: elige + Nuevo presupuesto en el selector de arriba, por ejemplo para un pequeño negocio. Cada presupuesto tiene sus propios meses y nunca se suma a tu presupuesto habitual. Con ✏️ cambias el nombre de un presupuesto, también de Mi presupuesto, y uno añadido se puede eliminar y recuperar con Deshacer',
         'Seguimiento tiene el botón ⚠️ Borrar todos los movimientos, para quien quiera empezar de cero. Elimina todos los movimientos de todos los meses de una vez, pero nunca tus presupuestos ni lo que la app ha aprendido de tus tiendas. La app pregunta antes y dice cuántos movimientos son, y Deshacer lo recupera todo',
+        'Los campos de importe entienden todas las formas habituales de escribir un número: 1.500 y 1,500 son mil quinientos, 1.500,50 y 1,500.50 también con céntimos, y se puede escribir directamente 500 kr, 20 € o 5k. Antes, 1.500 se convertía sin aviso en 1,50. Los intereses se leen siempre como decimales, así que 2,356 % sigue siendo 2,356 %',
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

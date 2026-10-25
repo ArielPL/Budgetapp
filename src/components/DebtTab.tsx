@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import { useLang } from '../i18n';
 import { appStorage } from '../storage';
 import { generateId, shownName } from '../defaults';
-import { parseMoneyInput } from '../money';
+import { parseMoneyInput, parsePercentInput } from '../money';
 import { longDate, monthYear } from '../dateLabel';
 import { loadActuals, actualContribution } from '../actuals';
 import {
@@ -521,7 +521,8 @@ const DebtForm = ({ initial, draft, canAddRow, rowMonth, onCancel, onSubmit }: F
     if (busy) return;
     if (!name.trim()) { setError(t.debtErrorName); return; }
     const b = parseMoneyInput(balance);
-    const r = parseMoneyInput(rate);
+    // A rate is a percentage: "2,356" is two point something, never thousands.
+    const r = parsePercentInput(rate);
     const p = parseMoneyInput(payment);
     if (!b.ok || !r.ok || !p.ok || r.value >= 100 || !/^\d{4}-\d{2}-\d{2}$/.test(asOf)) {
       setError(t.debtErrorNumbers);

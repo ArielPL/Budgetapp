@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  parseMoneyInput, parseMoneyOrZero, isValidMoney, coerceStoredMoney, MONEY_LIMITS,
+  parseMoneyInput, parseMoneyOrZero, parsePercentInput, isValidMoney, coerceStoredMoney, MONEY_LIMITS,
 } from './money';
 
 /** The value of a successful parse, or the failure reason — compact assertions. */
@@ -80,6 +80,141 @@ describe('parseMoneyInput — the silent-data-loss inputs', () => {
   it('reports an empty or blank field distinctly', () => {
     expect(parse('')).toBe('empty');
     expect(parse('   ')).toBe('empty');
+  });
+});
+
+// ── Every way people write a number (Ariel, 2026-10-25) ────────────────────
+//
+// "1.500" used to become 1,50 without a word: the first comma or dot was taken
+// for the decimal point, whatever followed it. A rent of 1.500 € was stored as
+// 1,50 €. Nobody should have to think about the "right" way to write an amount.
+
+describe('parseMoneyInput — thousands written with a dot or a comma', () => {
+  it('reads a dot or comma before exactly three digits as thousands', () => {
+    expect(parse('1.500')).toBe(1500);   // Spanish, Italian, German, Brazilian
+    expect(parse('1,500')).toBe(1500);   // English
+    expect(parse('12.345')).toBe(12345);
+    expect(parse('999,999')).toBe(999999);
+  });
+
+  it('still reads one or two digits after the separator as decimals', () => {
+    expect(parse('1.5')).toBe(1.5);
+    expect(parse('1,5')).toBe(1.5);
+    expect(parse('1,50')).toBe(1.5);
+    expect(parse('1.05')).toBe(1.05);
+  });
+
+  it('never reads a group that starts with 0 as thousands', () => {
+    // "0,500" has no thousands in it: it is half of one.
+    expect(parse('0,500')).toBe(0.5);
+    expect(parse('0.500')).toBe(0.5);
+  });
+
+  it('reads a longer whole part as decimals, since thousands come in threes', () => {
+    expect(parse('1234,567')).toBe(1234.567);
+    expect(parse('1234.5')).toBe(1234.5);
+  });
+
+  it('with both a dot and a comma, the last one is the decimal point', () => {
+    expect(parse('1.500,50')).toBe(1500.5);
+    expect(parse('1,500.50')).toBe(1500.5);
+    expect(parse('1.234.567,89')).toBe(1234567.89);
+    expect(parse('1,234,567.89')).toBe(1234567.89);
+  });
+
+  it('reads the same separator repeated as thousands', () => {
+    expect(parse('1.000.000')).toBe(1000000);
+    expect(parse('1,000,000')).toBe(1000000);
+  });
+
+  it('keeps reading spaces as thousands, decimals included', () => {
+    expect(parse('1 500,50')).toBe(1500.5);
+    expect(parse('1 500.50')).toBe(1500.5);
+    expect(parse('1 000 000')).toBe(1000000);
+  });
+
+  it('refuses separators that cannot be read one way only, rather than guess', () => {
+    expect(parse('1.50.000')).toBe('format');
+    expect(parse('1,5,0')).toBe('format');
+    expect(parse('1.500.50')).toBe('format');
+    expect(parse('1,50.000,5')).toBe('format');
+    expect(parse('1.500.000.5')).toBe('format');
+    expect(parse('1 2')).toBe('format');         // two numbers, not one
+    expect(parse('1 50')).toBe('format');
+    expect(parse('.5')).toBe('format');
+    expect(parse('5.')).toBe('format');
+    expect(parse('1.,5')).toBe('format');
+  });
+});
+
+describe('parseMoneyInput — currency and "k" around the number', () => {
+  it('drops the currency in front of or behind the number', () => {
+    expect(parse('500 kr')).toBe(500);
+    expect(parse('500kr')).toBe(500);
+    expect(parse('500 kronor')).toBe(500);
+    expect(parse('1 500 kr')).toBe(1500);
+    expect(parse('€1.500,50')).toBe(1500.5);
+    expect(parse('1.500,50 €')).toBe(1500.5);
+    expect(parse('20 euro')).toBe(20);
+    expect(parse('$1,500.50')).toBe(1500.5);
+    expect(parse('£12.99')).toBe(12.99);
+    expect(parse('¥1,500')).toBe(1500);
+    expect(parse('R$ 1.500,00')).toBe(1500);
+    expect(parse('₽ 900')).toBe(900);
+    expect(parse('₹1,200')).toBe(1200);
+    expect(parse('250 ₺')).toBe(250);
+    expect(parse('500 SEK')).toBe(500);
+  });
+
+  it('reads "k" as thousands', () => {
+    expect(parse('5k')).toBe(5000);
+    expect(parse('5K')).toBe(5000);
+    expect(parse('5 k')).toBe(5000);
+    expect(parse('1,5k')).toBe(1500);
+    expect(parse('1.5k')).toBe(1500);
+    expect(parse('1,23k')).toBe(1230);   // rounded to the cent, not 1230.0000000000002
+    expect(parse('5k kr')).toBe(5000);
+  });
+
+  it('still refuses letters inside or around the number that are not a currency', () => {
+    expect(parse('12kr3')).toBe('format');
+    expect(parse('kr')).toBe('format');
+    expect(parse('5kk')).toBe('format');
+    expect(parse('k5')).toBe('format');
+    expect(parse('5 dollars please')).toBe('format');
+    expect(parse('1e3 kr')).toBe('format');
+  });
+
+  it('keeps the ceiling for amounts written with "k"', () => {
+    expect(parse('999999999k')).toBe(999999999000);
+    expect(parse('1000000000k')).toBe('range');
+  });
+});
+
+describe('parsePercentInput (interest rates and expected returns)', () => {
+  const pct = (raw: string) => {
+    const r = parsePercentInput(raw);
+    return r.ok ? r.value : r.reason;
+  };
+
+  it('reads three decimals as decimals: a rate is never thousands', () => {
+    expect(pct('2,356')).toBe(2.356);
+    expect(pct('2.356')).toBe(2.356);
+    expect(pct('7')).toBe(7);
+    expect(pct('7,5')).toBe(7.5);
+  });
+
+  it('drops a percent sign', () => {
+    expect(pct('7,5 %')).toBe(7.5);
+    expect(pct('7.5%')).toBe(7.5);
+  });
+
+  it('refuses what is not one plain number', () => {
+    expect(pct('')).toBe('empty');
+    expect(pct('5k')).toBe('format');
+    expect(pct('1e3')).toBe('format');
+    expect(pct('-2')).toBe('format');
+    expect(pct('1.000,5')).toBe('format');
   });
 });
 

@@ -16,8 +16,15 @@ import {
 
 type VsRow = { label: string } & PlanVsActualPoint;
 import { parseAmount } from '../goalForm';
+import { parsePercentInput } from '../money';
 import { appStorage } from '../storage';
 import { commitStorageChangesOutcome } from '../storageWrite';
+
+/** A typed expected return: a percentage, read without the thousands rule. */
+const parsePercent = (raw: string): number => {
+  const r = parsePercentInput(raw);
+  return r.ok ? r.value : NaN;
+};
 
 const TEAL = '#14b8a6';
 const GRAY = '#888780';
@@ -127,7 +134,8 @@ export const SparPlanSection = ({ live }: {
   const commit = (m: string, r: string, s: string, sy: string, yrs = years) => {
     const next: SavingsPlan = {
       monthlyAmount: parseAmount(m),
-      annualReturnPct: parseAmount(r),
+      // A percentage, so no thousands rule: "7,125" is seven point something.
+      annualReturnPct: parsePercent(r),
       startAmount: s.trim() === '' ? 0 : parseAmount(s),
       startYM: sy,
       years: yrs,

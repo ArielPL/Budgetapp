@@ -1052,5 +1052,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Şablondakiler dahil her satır silinebilir. Daraltılan kategoriler daraltılmış kalır. Takip, eksi işareti yerine «kalan» ve «fazla» yazar. Uygulama bütçeyi yılın geri kalanına kopyalamayı önerir. Şablonda cep telefonu faturası var. Alttan açılan pencereler aşağı çekilerek kapatılabilir ve düğmeleri artık telefonun kendi düğmelerinin altında kalmaz",
     'Özel düzende daha fazla bütçe: üstteki seçicide + Yeni bütçe\'yi seçin, örneğin küçük bir işletme için. Her bütçenin kendi ayları vardır ve normal bütçenize asla sayılmaz. ✏️ ile bir bütçeyi, Bütçem\'i de, yeniden adlandırırsınız; eklenen bir bütçe silinebilir ve Geri al ile geri getirilebilir',
     'Takip bölümünde, baştan başlamak isteyenler için ⚠️ Tüm gerçekleşenleri temizle düğmesi var. Tüm aylardaki tüm kayıtları tek seferde siler, ancak bütçelerinize ve uygulamanın mağazalarınız hakkında öğrendiklerine asla dokunmaz. Uygulama önce sorar ve kaç kayıt olduğunu söyler; Geri al her şeyi geri getirir',
+    'Tutar alanları bir sayıyı yazmanın tüm yaygın yollarını anlar: 1.500 ve 1,500 bin beş yüzdür, 1.500,50 ve 1,500.50 kuruşlarıyla aynıdır; 500 kr, 20 € ve 5k doğrudan yazılabilir. Önceden 1.500 sessizce 1,50 oluyordu. Faiz oranları her zaman ondalık olarak okunur, yani %2,356 %2,356 olarak kalır',
   ],
 };
