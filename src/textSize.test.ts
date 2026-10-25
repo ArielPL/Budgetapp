@@ -23,4 +23,16 @@ describe('text size', () => {
     applyTextSize('normal');
     expect(document.documentElement.style.fontSize).toBe('100%');
   });
+
+  it('on a Mac, scales every step back up from the 77 % macOS draws iPad apps at', () => {
+    // The native side sets the flag before the page loads (MacFit, SceneDelegate.swift).
+    document.documentElement.dataset.macFit = '1';
+    applyTextSize('normal');
+    expect(document.documentElement.style.fontSize).toBe('130%');
+    applyTextSize('larger');
+    expect(document.documentElement.style.fontSize).toBe('169%');
+    delete document.documentElement.dataset.macFit;
+    applyTextSize('normal');
+    expect(document.documentElement.style.fontSize).toBe('100%');
+  });
 });

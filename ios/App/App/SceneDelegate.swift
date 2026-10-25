@@ -79,6 +79,64 @@ final class AppViewController: CAPBridgeViewController {
         let proxy = LocalizedDialogs(original: webView.uiDelegate, presenter: self)
         webView.uiDelegate = proxy
         dialogs = proxy // the web view holds its delegate weakly
+        if MacFit.isOnMac { MacFit.apply(to: webView) }
+    }
+}
+
+// ── The iPad app on a Mac ───────────────────────────────────────────────────
+// On a Mac with Apple silicon the App Store offers this iPad app as it is, and
+// macOS draws it at 77 % of its size: next to the same budget in a browser the
+// text was small and the page sat in a sea of margin (Ariel, 2026-10-25). The
+// page is told it is on a Mac (html[data-mac-fit]) before its first paint, and
+// src/textSize.ts scales the root size up by 1/0.77. WKWebView's own pageZoom
+// was tried first: on iOS it magnifies without reflowing, so the page ran off
+// the right edge.
+//
+// Also the bar iPadOS shows along the bottom while a field has focus — the
+// keyboard's shortcut and form-navigation row. With no on-screen keyboard on a
+// Mac it was an empty grey strip over the budget. It goes on the Mac only: on
+// an iPhone or iPad it belongs to the keyboard.
+
+enum MacFit {
+    static var isOnMac: Bool {
+        #if DEBUG
+        // Lets a simulator show the Mac's fit (launch with -MacFitPreview); release builds never see it.
+        if ProcessInfo.processInfo.arguments.contains("-MacFitPreview") { return true }
+        #endif
+        return ProcessInfo.processInfo.isiOSAppOnMac
+    }
+
+    static func apply(to webView: WKWebView) {
+        // capacitorDidLoad runs before the first page load, so this is in place
+        // when main.tsx applies the text size.
+        let flag = WKUserScript(source: "document.documentElement.dataset.macFit = '1';",
+                                injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        webView.configuration.userContentController.addUserScript(flag)
+        // The content view, not the web view, is what takes focus, and only
+        // exists once the first page has loaded its view hierarchy.
+        DispatchQueue.main.async { hideInputBars(of: webView) }
+    }
+
+    private static func hideInputBars(of webView: WKWebView) {
+        guard let content = webView.scrollView.subviews.first(where: {
+            String(describing: type(of: $0)).hasPrefix("WKContent")
+        }) else { return }
+        // The shortcut row: empty groups mean nothing to show.
+        content.inputAssistantItem.leadingBarButtonGroups = []
+        content.inputAssistantItem.trailingBarButtonGroups = []
+        // The form-navigation row is the content view's inputAccessoryView,
+        // which has no setter: the view gets a subclass whose getter answers nil.
+        guard let base = object_getClass(content) else { return }
+        let name = "\(NSStringFromClass(base))_MacFit"
+        var subclass: AnyClass? = NSClassFromString(name)
+        if subclass == nil, let made = objc_allocateClassPair(base, name, 0) {
+            let none: @convention(block) (AnyObject) -> UIView? = { _ in nil }
+            class_addMethod(made, #selector(getter: UIResponder.inputAccessoryView),
+                            imp_implementationWithBlock(none), "@@:")
+            objc_registerClassPair(made)
+            subclass = made
+        }
+        if let subclass { object_setClass(content, subclass) }
     }
 }
 
