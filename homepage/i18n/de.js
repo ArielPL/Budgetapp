@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).de = {
   htmlLang: 'de', pageTitle: 'YourBudget – Budget offline',
-  nav: { features: 'Funktionen', devices: 'Geräte', start: 'Loslegen', faq: 'FAQ', download: 'Laden' },
+  nav: { features: 'Funktionen', devices: 'Geräte', start: 'Loslegen', faq: 'FAQ', download: 'Die App', langLabel: 'Sprache' },
   chips: ['Kein Konto', 'Keine Werbung', 'Kein Tracking'],
   h1: 'Behalte dein Geld im Griff. Und auf deinem Handy.',
-  lead: 'Plane das Budget für diesen Monat, importiere deinen Kontoauszug und sieh, wohin das Geld gegangen ist. Verfolge dein Sparen, baue Schulden ab und erstelle nie ein Konto. Nichts verlässt dein Handy.',
+  lead: 'Plane das Budget für diesen Monat, importiere deinen Kontoauszug und sieh, wohin das Geld gegangen ist. Verfolge dein Sparen, baue Schulden ab und erstelle nie ein Konto. Die App sendet nichts nach außen.',
   store: { apple: 'Laden im', google: 'Jetzt bei', soon: 'Ab Januar 2027' },
   price: 'Einmalkauf. Kein Abo.',
   phil: { label: 'Haushalterschaft', role: 'Entwickler von YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Fragen',
   faq: [
     { q: 'Muss ich ein Konto erstellen?', a: 'Nein. Es gibt kein Konto, keine Anmeldung und keinen Server. Du öffnest die App und legst los.' },
-    { q: 'Wo werden meine Daten gespeichert?', a: 'Alles wird auf deinem Gerät gespeichert. Niemand sonst, nicht einmal der Entwickler, kann dein Budget sehen.' },
+    { q: 'Wo werden meine Daten gespeichert?', a: 'Alles wird auf deinem Gerät gespeichert. Niemand sonst, nicht einmal der Entwickler, kann dein Budget sehen. Ist die iCloud- oder Google-Sicherung eingeschaltet, kann dein Handy auch eine Kopie in deinem eigenen Konto ablegen.' },
     { q: 'Verbindet sich die App mit meiner Bank?', a: 'Nein. Du exportierst einen CSV-Auszug bei deiner Bank und importierst ihn. Die Datei wird auf deinem Handy gelesen und nirgendwohin gesendet.' },
     { q: 'Was passiert, wenn ich das Handy wechsle?', a: 'Nutze Daten exportieren im Menü, um eine Sicherung zu speichern, und dann Daten importieren auf dem neuen Handy. Auch das iCloud- oder Google-Backup des Handys kann dein Budget enthalten.' },
     { q: 'Wird zwischen Handy und Computer synchronisiert?', a: 'Nein. Die Daten bleiben auf jedem Gerät. Nutze eine Sicherungsdatei, um sie zu übertragen.' },

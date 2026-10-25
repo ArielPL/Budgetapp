@@ -49,6 +49,42 @@ const CSS = `
 @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400 800;font-display:swap;src:url('assets/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+1E00-1E9F,U+20A0-20AB,U+20AD-20C0;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
+.site-header{position:sticky;top:0;z-index:10;background:rgba(251,250,255,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #ece9f5}
+.site-bar{max-width:1320px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;font-size:15px;font-weight:600}
+.site-logo{display:flex;align-items:center;gap:10px;color:#20203a;margin-right:auto}
+.site-logo:hover{text-decoration:none;color:#20203a}
+.site-logo span{font-weight:800;font-size:18px;letter-spacing:-0.01em}
+.site-links{display:flex;align-items:center;gap:24px;white-space:nowrap}
+.site-links a{color:#5d5972}
+.site-cta{background:#7c3aed;color:#fff;padding:10px 18px;border-radius:999px;white-space:nowrap}
+.site-cta:hover{color:#fff;text-decoration:none;background:#6d28d9}
+.lang-code{display:none}
+#top{overflow-x:clip}
+h1,h2,h3{overflow-wrap:break-word}
+section[id]{scroll-margin-top:88px}
+/* The one-line menu needs up to 1290px (Russian), hence the wider bar above.
+   Below that the links get a row of their own, which scrolls sideways if it
+   has to, and the bar lines up with the page again. */
+@media (max-width:1340px){
+  .site-bar{max-width:1160px}
+  .site-links{order:3;flex:1 0 100%;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+  .site-links::-webkit-scrollbar{display:none}
+  section[id]{scroll-margin-top:124px}
+}
+/* On a phone the header scrolls away with the page instead of covering it, and
+   the language button shows just its code. */
+@media (max-width:640px){
+  .site-header{position:static}
+  .site-bar{padding:10px 16px;gap:0 14px;font-size:14px}
+  .site-bar::after{content:'';order:2;flex-basis:100%}
+  .site-links{order:3;flex:1 1 0;min-width:0;gap:18px;margin-top:10px;-webkit-mask-image:linear-gradient(to right,#000 82%,transparent);mask-image:linear-gradient(to right,#000 82%,transparent)}
+  .site-cta{order:4;padding:8px 14px;margin-top:10px}
+  .lang>summary{padding:8px 12px}
+  h1,h2,h3{hyphens:auto;-webkit-hyphens:auto}
+  .lang-name{display:none}
+  .lang-code{display:inline}
+  section[id]{scroll-margin-top:12px}
+}
 body{background:#fbfaff;color:#20203a;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:#7c3aed;text-decoration:none}
 a:hover{color:#6d28d9;text-decoration:underline}
@@ -91,31 +127,30 @@ const langLinks = (cls, code, kind = '') => LANGS.map(([c, n]) =>
 
 /** The header every page shares. The homepage links to its own sections; the
  *  privacy and support pages link back to it instead. */
-const siteHeader = (t, code, kind = '') => `<header style="position:sticky;top:0;z-index:10;background:rgba(251,250,255,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #ece9f5;">
-  <div style="max-width:1160px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-    <a href="${kind ? pageOf(code) : '#top'}" style="display:flex;align-items:center;gap:10px;color:#20203a;text-decoration:none;">
+const siteHeader = (t, code, kind = '') => `<header class="site-header">
+  <div class="site-bar">
+    <a class="site-logo" href="${kind ? pageOf(code) : '#top'}">
       <img src="assets/icon.png" alt="" width="36" height="36" style="border-radius:10px;">
-      <span style="font-weight:800;font-size:18px;letter-spacing:-0.01em;">YourBudget</span>
+      <span>YourBudget</span>
     </a>
-    <nav style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;font-size:15px;font-weight:600;">
-${kind ? `
-      <a href="${pageOf(code)}" style="color:#5d5972;">← YourBudget</a>` : `
-      <a href="#features" style="color:#5d5972;">${esc(t.nav.features)}</a>
-      <a href="#devices" style="color:#5d5972;">${esc(t.nav.devices)}</a>
-      <a href="#start" style="color:#5d5972;">${esc(t.nav.start)}</a>
-      <a href="#faq" style="color:#5d5972;">${esc(t.nav.faq)}</a>`}
-      <a href="${pageOf(code, 'support')}" style="color:#5d5972;"${kind === 'support' ? ' aria-current="page"' : ''}>${esc(t.footer.support)}</a>
-      <a href="${pageOf(code, 'privacy')}" style="color:#5d5972;"${kind === 'privacy' ? ' aria-current="page"' : ''}>${esc(t.footer.privacy)}</a>
-      <details class="lang">
-        <summary aria-label="Language">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle><path d="M2.5 12h19M12 2.5c2.6 2.8 3.9 6 3.9 9.5s-1.3 6.7-3.9 9.5c-2.6-2.8-3.9-6-3.9-9.5s1.3-6.7 3.9-9.5z"></path></svg>
-          <span>${esc(LANGS.find(l => l[0] === code)[1])}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#5d5972" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 3.5l3 3 3-3"></path></svg>
-        </summary>
-        <div class="lang-menu">${langLinks('', code, kind)}</div>
-      </details>
-      <a href="${kind ? pageOf(code) : ''}#download" style="background:#7c3aed;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;">${esc(t.nav.download)}</a>
+    <nav class="site-links">${kind ? `
+      <a href="${pageOf(code)}">← YourBudget</a>` : `
+      <a href="#features">${esc(t.nav.features)}</a>
+      <a href="#devices">${esc(t.nav.devices)}</a>
+      <a href="#start">${esc(t.nav.start)}</a>
+      <a href="#faq">${esc(t.nav.faq)}</a>`}
+      <a href="${pageOf(code, 'support')}"${kind === 'support' ? ' aria-current="page"' : ''}>${esc(t.footer.support)}</a>
+      <a href="${pageOf(code, 'privacy')}"${kind === 'privacy' ? ' aria-current="page"' : ''}>${esc(t.footer.privacy)}</a>
     </nav>
+    <details class="lang">
+      <summary aria-label="${esc(t.nav.langLabel)}: ${esc(LANGS.find(l => l[0] === code)[1])}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle><path d="M2.5 12h19M12 2.5c2.6 2.8 3.9 6 3.9 9.5s-1.3 6.7-3.9 9.5c-2.6-2.8-3.9-6-3.9-9.5s1.3-6.7 3.9-9.5z"></path></svg>
+        <span class="lang-name">${esc(LANGS.find(l => l[0] === code)[1])}</span><span class="lang-code">${code.toUpperCase()}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#5d5972" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 3.5l3 3 3-3"></path></svg>
+      </summary>
+      <div class="lang-menu">${langLinks('', code, kind)}</div>
+    </details>
+    <a class="site-cta" href="${kind ? pageOf(code) : ''}#download">${esc(t.nav.download)}</a>
   </div>
 </header>`;
 
@@ -171,6 +206,7 @@ __REDIRECT__
 
 ${siteHeader(t, code)}
 
+<main>
 <section id="top" style="max-width:1160px;margin:0 auto;padding:72px 24px 88px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:56px;align-items:center;">
   <div style="display:flex;flex-direction:column;gap:28px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">${t.chips.map(c => `
@@ -309,6 +345,7 @@ ${features}
   </div>
   <p style="font-size:14px;color:#6c687f;font-weight:600;">${esc(t.price)}</p>
 </section>
+</main>
 
 ${siteFooter(t, code)}
 
@@ -373,8 +410,9 @@ ${siteFooter(t, code, kind)}
 // whose browser prefers another of the eleven languages to that page. Picking a
 // language in the menu goes to that language's own file, which never redirects.
 // privacy.html and support.html, the addresses the stores link to, do the same,
-// and also honour an old link's #sv-style anchor.
-const redirect = kind => `<script>(function(){var s=${JSON.stringify(LANGS.map(l => l[0]).filter(c => c !== 'en'))};var p=${JSON.stringify(kind ? kind + '-' : '')};function go(c){location.replace(p+c+'.html')}var h=location.hash.slice(1);if(s.indexOf(h)>=0)return go(h);if(h==='en')return;var l=navigator.languages||[navigator.language||''];for(var i=0;i<l.length;i++){var c=String(l[i]).slice(0,2).toLowerCase();if(c==='en')return;if(s.indexOf(c)>=0)return go(c)}})();</script>`;
+// and also honour an old link's #sv-style anchor. Any other anchor, like #faq,
+// comes along to the language's page.
+const redirect = kind => `<script>(function(){var s=${JSON.stringify(LANGS.map(l => l[0]).filter(c => c !== 'en'))};var p=${JSON.stringify(kind ? kind + '-' : '')};var h=location.hash.slice(1);function go(c){location.replace(p+c+'.html'+(c===h?'':location.hash))}if(s.indexOf(h)>=0)return go(h);if(h==='en')return;var l=navigator.languages||[navigator.language||''];for(var i=0;i<l.length;i++){var c=String(l[i]).slice(0,2).toLowerCase();if(c==='en')return;if(s.indexOf(c)>=0)return go(c)}})();</script>`;
 
 // Replaces the web app's service worker on browsers that still have it: it
 // clears its caches and unregisters, so the old app stops being served from a

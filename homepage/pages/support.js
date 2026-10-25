@@ -3,8 +3,8 @@
 window.YB_SUPPORT = {
  "sv": {
   "title": "Support",
-  "intro": "YourBudget är en budgetapp utan konto. Allt du skriver sparas bara på din enhet. Här finns svar på de vanligaste frågorna.",
-  "updated": "Senast uppdaterad 23 oktober 2026.",
+  "intro": "YourBudget är en budgetapp utan konto. Allt du skriver sparas på din enhet, och appen skickar det ingenstans. Här finns svar på de vanligaste frågorna.",
+  "updated": "Senast uppdaterad 25 oktober 2026.",
   "blocks": [
    {
     "h": "Hur kontaktar jag dig?",
@@ -21,7 +21,7 @@ window.YB_SUPPORT = {
    {
     "h": "Var sparas min budget?",
     "ps": [
-     "Bara på din enhet. Det finns inget konto och ingen server, så ingen annan — inte heller utvecklaren — kan se eller återställa din data. Läs mer i {PRIV:integritetspolicyn}."
+     "På din enhet, och appen skickar den ingenstans. Det finns inget konto och ingen server, så ingen annan — inte heller utvecklaren — kan se eller återställa din data. Har du iCloud- eller Google-säkerhetskopiering påslagen kan telefonen också spara en kopia i ditt eget konto. Läs mer i {PRIV:integritetspolicyn}."
     ]
    },
    {
@@ -52,8 +52,8 @@ window.YB_SUPPORT = {
  },
  "en": {
   "title": "Support",
-  "intro": "YourBudget is a budgeting app without an account. Everything you type is saved only on your device. Here are answers to the most common questions.",
-  "updated": "Last updated 23 October 2026.",
+  "intro": "YourBudget is a budgeting app without an account. Everything you type is saved on your device, and the app sends it nowhere. Here are answers to the most common questions.",
+  "updated": "Last updated 25 October 2026.",
   "blocks": [
    {
     "h": "How do I contact you?",
@@ -70,7 +70,7 @@ window.YB_SUPPORT = {
    {
     "h": "Where is my budget saved?",
     "ps": [
-     "Only on your device. There is no account and no server, so nobody else — the developer included — can see or restore your data. Read more in the {PRIV:privacy policy}."
+     "On your device, and the app sends it nowhere. There is no account and no server, so nobody else — the developer included — can see or restore your data. If iCloud or Google backup is turned on, your phone can also keep a copy in your own account. Read more in the {PRIV:privacy policy}."
     ]
    },
    {
@@ -101,8 +101,8 @@ window.YB_SUPPORT = {
  },
  "es": {
   "title": "Soporte",
-  "intro": "YourBudget es una app de presupuesto sin cuenta. Todo lo que escribes se guarda solo en tu dispositivo. Aquí tienes respuestas a las preguntas más comunes.",
-  "updated": "Última actualización: 23 de octubre de 2026.",
+  "intro": "YourBudget es una app de presupuesto sin cuenta. Todo lo que escribes se guarda en tu dispositivo, y la app no lo envía a ninguna parte. Aquí tienes respuestas a las preguntas más comunes.",
+  "updated": "Última actualización: 25 de octubre de 2026.",
   "blocks": [
    {
     "h": "¿Cómo te contacto?",
@@ -119,7 +119,7 @@ window.YB_SUPPORT = {
    {
     "h": "¿Dónde se guarda mi presupuesto?",
     "ps": [
-     "Solo en tu dispositivo. No hay cuenta ni servidor, así que nadie más —ni siquiera el desarrollador— puede ver ni recuperar tus datos. Lee más en la {PRIV:política de privacidad}."
+     "En tu dispositivo, y la app no lo envía a ninguna parte. No hay cuenta ni servidor, así que nadie más —ni siquiera el desarrollador— puede ver ni recuperar tus datos. Si tienes activada la copia de seguridad de iCloud o Google, el teléfono también puede guardar una copia en tu propia cuenta. Lee más en la {PRIV:política de privacidad}."
     ]
    },
    {
@@ -150,8 +150,8 @@ window.YB_SUPPORT = {
  },
  "fr": {
   "title": "Assistance",
-  "intro": "YourBudget est une app de budget sans compte. Tout ce que vous saisissez reste uniquement sur votre appareil. Voici les réponses aux questions les plus fréquentes.",
-  "updated": "Dernière mise à jour : 23 octobre 2026.",
+  "intro": "YourBudget est une app de budget sans compte. Tout ce que vous saisissez est enregistré sur votre appareil, et l'app ne l'envoie nulle part. Voici les réponses aux questions les plus fréquentes.",
+  "updated": "Dernière mise à jour : 25 octobre 2026.",
   "blocks": [
    {
     "h": "Comment vous contacter ?",
@@ -168,7 +168,7 @@ window.YB_SUPPORT = {
    {
     "h": "Où mon budget est-il enregistré ?",
     "ps": [
-     "Uniquement sur votre appareil. Il n'y a ni compte ni serveur : personne d'autre, pas même le développeur, ne peut voir ni restaurer vos données. Pour en savoir plus, lisez la {PRIV:politique de confidentialité}."
+     "Sur votre appareil, et l'app ne l'envoie nulle part. Il n'y a ni compte ni serveur : personne d'autre, pas même le développeur, ne peut voir ni restaurer vos données. Si la sauvegarde iCloud ou Google est activée, votre téléphone peut aussi en garder une copie dans votre propre compte. Pour en savoir plus, lisez la {PRIV:politique de confidentialité}."
     ]
    },
    {
@@ -199,8 +199,8 @@ window.YB_SUPPORT = {
  },
  "de": {
   "title": "Support",
-  "intro": "YourBudget ist eine Budget-App ohne Konto. Alles, was du eingibst, wird nur auf deinem Gerät gespeichert. Hier findest du Antworten auf die häufigsten Fragen.",
-  "updated": "Zuletzt aktualisiert am 23. Oktober 2026.",
+  "intro": "YourBudget ist eine Budget-App ohne Konto. Alles, was du eingibst, wird auf deinem Gerät gespeichert, und die App sendet es nirgendwohin. Hier findest du Antworten auf die häufigsten Fragen.",
+  "updated": "Zuletzt aktualisiert am 25. Oktober 2026.",
   "blocks": [
    {
     "h": "Wie erreiche ich dich?",
@@ -217,7 +217,7 @@ window.YB_SUPPORT = {
    {
     "h": "Wo wird mein Budget gespeichert?",
     "ps": [
-     "Nur auf deinem Gerät. Es gibt kein Konto und keinen Server, also kann niemand sonst – auch nicht der Entwickler – deine Daten sehen oder wiederherstellen. Mehr dazu in der {PRIV:Datenschutzerklärung}."
+     "Auf deinem Gerät, und die App sendet es nirgendwohin. Es gibt kein Konto und keinen Server, also kann niemand sonst – auch nicht der Entwickler – deine Daten sehen oder wiederherstellen. Ist die iCloud- oder Google-Sicherung eingeschaltet, kann dein Handy auch eine Kopie in deinem eigenen Konto ablegen. Mehr dazu in der {PRIV:Datenschutzerklärung}."
     ]
    },
    {
@@ -248,8 +248,8 @@ window.YB_SUPPORT = {
  },
  "it": {
   "title": "Assistenza",
-  "intro": "YourBudget è un'app per il budget senza account. Tutto ciò che scrivi resta solo sul tuo dispositivo. Ecco le risposte alle domande più frequenti.",
-  "updated": "Ultimo aggiornamento: 23 ottobre 2026.",
+  "intro": "YourBudget è un'app per il budget senza account. Tutto ciò che scrivi viene salvato sul tuo dispositivo, e l'app non lo invia da nessuna parte. Ecco le risposte alle domande più frequenti.",
+  "updated": "Ultimo aggiornamento: 25 ottobre 2026.",
   "blocks": [
    {
     "h": "Come ti contatto?",
@@ -266,7 +266,7 @@ window.YB_SUPPORT = {
    {
     "h": "Dove viene salvato il mio budget?",
     "ps": [
-     "Solo sul tuo dispositivo. Non c'è account né server, quindi nessun altro, nemmeno lo sviluppatore, può vedere o recuperare i tuoi dati. Per saperne di più leggi l'{PRIV:informativa sulla privacy}."
+     "Sul tuo dispositivo, e l'app non lo invia da nessuna parte. Non c'è account né server, quindi nessun altro, nemmeno lo sviluppatore, può vedere o recuperare i tuoi dati. Se il backup di iCloud o Google è attivo, il telefono può anche conservarne una copia nel tuo account. Per saperne di più leggi l'{PRIV:informativa sulla privacy}."
     ]
    },
    {
@@ -297,8 +297,8 @@ window.YB_SUPPORT = {
  },
  "pt": {
   "title": "Suporte",
-  "intro": "YourBudget é um app de orçamento sem conta. Tudo o que você digita fica salvo só no seu dispositivo. Aqui estão as respostas para as perguntas mais comuns.",
-  "updated": "Última atualização em 23 de outubro de 2026.",
+  "intro": "YourBudget é um app de orçamento sem conta. Tudo o que você digita fica salvo no seu dispositivo, e o app não o envia para lugar nenhum. Aqui estão as respostas para as perguntas mais comuns.",
+  "updated": "Última atualização em 25 de outubro de 2026.",
   "blocks": [
    {
     "h": "Como entro em contato?",
@@ -315,7 +315,7 @@ window.YB_SUPPORT = {
    {
     "h": "Onde meu orçamento fica salvo?",
     "ps": [
-     "Só no seu dispositivo. Não há conta nem servidor, então ninguém mais — nem o desenvolvedor — pode ver ou recuperar seus dados. Saiba mais na {PRIV:política de privacidade}."
+     "No seu dispositivo, e o app não o envia para lugar nenhum. Não há conta nem servidor, então ninguém mais — nem o desenvolvedor — pode ver ou recuperar seus dados. Se o backup do iCloud ou do Google estiver ativado, o celular também pode guardar uma cópia na sua própria conta. Saiba mais na {PRIV:política de privacidade}."
     ]
    },
    {
@@ -346,8 +346,8 @@ window.YB_SUPPORT = {
  },
  "ru": {
   "title": "Поддержка",
-  "intro": "YourBudget — приложение для бюджета без учётной записи. Всё, что вы вводите, хранится только на вашем устройстве. Здесь ответы на самые частые вопросы.",
-  "updated": "Последнее обновление: 23 октября 2026 г.",
+  "intro": "YourBudget — приложение для бюджета без учётной записи. Всё, что вы вводите, хранится на вашем устройстве, и приложение никуда это не отправляет. Здесь ответы на самые частые вопросы.",
+  "updated": "Последнее обновление: 25 октября 2026 г.",
   "blocks": [
    {
     "h": "Как с вами связаться?",
@@ -364,7 +364,7 @@ window.YB_SUPPORT = {
    {
     "h": "Где хранится мой бюджет?",
     "ps": [
-     "Только на вашем устройстве. Нет ни учётной записи, ни сервера, поэтому никто другой — включая разработчика — не может увидеть или восстановить ваши данные. Подробнее — в {PRIV:политике конфиденциальности}."
+     "На вашем устройстве, и приложение никуда его не отправляет. Нет ни учётной записи, ни сервера, поэтому никто другой — включая разработчика — не может увидеть или восстановить ваши данные. Если включено резервное копирование iCloud или Google, телефон может также хранить копию в вашем собственном аккаунте. Подробнее — в {PRIV:политике конфиденциальности}."
     ]
    },
    {
@@ -395,8 +395,8 @@ window.YB_SUPPORT = {
  },
  "tr": {
   "title": "Destek",
-  "intro": "YourBudget hesap gerektirmeyen bir bütçe uygulamasıdır. Yazdığınız her şey yalnızca cihazınızda saklanır. En sık sorulan soruların yanıtları burada.",
-  "updated": "Son güncelleme: 23 Ekim 2026.",
+  "intro": "YourBudget hesap gerektirmeyen bir bütçe uygulamasıdır. Yazdığınız her şey cihazınızda saklanır ve uygulama bunu hiçbir yere göndermez. En sık sorulan soruların yanıtları burada.",
+  "updated": "Son güncelleme: 25 Ekim 2026.",
   "blocks": [
    {
     "h": "Size nasıl ulaşırım?",
@@ -413,7 +413,7 @@ window.YB_SUPPORT = {
    {
     "h": "Bütçem nerede saklanıyor?",
     "ps": [
-     "Yalnızca cihazınızda. Hesap ve sunucu yoktur; bu yüzden geliştirici dahil hiç kimse verilerinizi göremez veya geri getiremez. Daha fazlası için {PRIV:gizlilik politikasını} okuyun."
+     "Cihazınızda; uygulama onu hiçbir yere göndermez. Hesap ve sunucu yoktur; bu yüzden geliştirici dahil hiç kimse verilerinizi göremez veya geri getiremez. iCloud veya Google yedeklemesi açıksa, cihazınız bütçenizin bir kopyasını kendi hesabınızda da saklayabilir. Daha fazlası için {PRIV:gizlilik politikasını} okuyun."
     ]
    },
    {
@@ -444,8 +444,8 @@ window.YB_SUPPORT = {
  },
  "ja": {
   "title": "サポート",
-  "intro": "YourBudget はアカウント不要の家計簿アプリです。入力した内容はすべてお使いの端末にだけ保存されます。よくある質問への回答をまとめました。",
-  "updated": "最終更新日：2026年10月23日。",
+  "intro": "YourBudget はアカウント不要の家計簿アプリです。入力した内容はすべてお使いの端末に保存され、アプリがどこかへ送信することはありません。よくある質問への回答をまとめました。",
+  "updated": "最終更新日：2026年10月25日。",
   "blocks": [
    {
     "h": "連絡するには？",
@@ -462,7 +462,7 @@ window.YB_SUPPORT = {
    {
     "h": "予算はどこに保存されますか？",
     "ps": [
-     "お使いの端末だけです。アカウントもサーバーもないため、開発者を含めほかの誰もあなたのデータを見たり復元したりできません。詳しくは{PRIV:プライバシーポリシー}をご覧ください。"
+     "お使いの端末に保存され、アプリがどこかへ送信することはありません。アカウントもサーバーもないため、開発者を含めほかの誰もあなたのデータを見たり復元したりできません。iCloud または Google のバックアップをオンにしている場合は、ご自身のアカウントにもコピーが保存されることがあります。詳しくは{PRIV:プライバシーポリシー}をご覧ください。"
     ]
    },
    {
@@ -493,8 +493,8 @@ window.YB_SUPPORT = {
  },
  "zh": {
   "title": "支持",
-  "intro": "YourBudget 是一款无需账户的预算应用。你输入的一切只保存在你的设备上。以下是常见问题的解答。",
-  "updated": "最后更新于 2026 年 10 月 23 日。",
+  "intro": "YourBudget 是一款无需账户的预算应用。你输入的一切都保存在你的设备上，应用不会把它发送到任何地方。以下是常见问题的解答。",
+  "updated": "最后更新于 2026 年 10 月 25 日。",
   "blocks": [
    {
     "h": "如何联系你？",
@@ -511,7 +511,7 @@ window.YB_SUPPORT = {
    {
     "h": "我的预算保存在哪里？",
     "ps": [
-     "只保存在你的设备上。没有账户也没有服务器，所以任何其他人——包括开发者——都无法查看或恢复你的数据。详情请阅读{PRIV:隐私政策}。"
+     "保存在你的设备上，应用不会把它发送到任何地方。没有账户也没有服务器，所以任何其他人——包括开发者——都无法查看或恢复你的数据。如果你开启了 iCloud 或 Google 备份，手机也可能在你自己的账户中保存一份副本。详情请阅读{PRIV:隐私政策}。"
     ]
    },
    {

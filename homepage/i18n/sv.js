@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).sv = {
   htmlLang: 'sv', pageTitle: 'YourBudget – budget offline',
-  nav: { features: 'Funktioner', devices: 'Enheter', start: 'Kom igång', faq: 'Frågor', download: 'Ladda ner' },
+  nav: { features: 'Funktioner', devices: 'Enheter', start: 'Kom igång', faq: 'Frågor', download: 'Appen', langLabel: 'Språk' },
   chips: ['Inget konto', 'Ingen reklam', 'Ingen spårning'],
   h1: 'Ta kontroll över dina pengar. Behåll dem i telefonen.',
-  lead: 'Planera månadens budget, importera ditt kontoutdrag och se vart pengarna tog vägen. Följ ditt sparande, betala av skulder och skapa aldrig ett konto. Ingenting lämnar din telefon.',
+  lead: 'Planera månadens budget, importera ditt kontoutdrag och se vart pengarna tog vägen. Följ ditt sparande, betala av skulder och skapa aldrig ett konto. Appen skickar ingenting någonstans.',
   store: { apple: 'Hämta i', google: 'Ladda ned på', soon: 'Kommer januari 2027' },
   price: 'Engångsköp. Ingen prenumeration.',
   phil: { label: 'Förvaltarskap', role: 'Skapare av YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Frågor',
   faq: [
     { q: 'Behöver jag skapa ett konto?', a: 'Nej. Det finns inget konto, ingen inloggning och ingen server. Du öppnar appen och börjar.' },
-    { q: 'Var sparas min data?', a: 'Allt sparas på din enhet. Ingen annan, inte ens utvecklaren, kan se din budget.' },
+    { q: 'Var sparas min data?', a: 'Allt sparas på din enhet. Ingen annan, inte ens utvecklaren, kan se din budget. Har du iCloud- eller Google-säkerhetskopiering påslagen kan telefonen också spara en kopia i ditt eget konto.' },
     { q: 'Kopplas appen till min bank?', a: 'Nej. Du exporterar ett kontoutdrag som CSV från din bank och importerar det. Filen läses i telefonen och skickas ingenstans.' },
     { q: 'Vad händer om jag byter telefon?', a: 'Använd Exportera data i menyn för att spara en säkerhetskopia, och sedan Importera data på den nya telefonen. Telefonens egen iCloud- eller Google-säkerhetskopia kan också innehålla din budget.' },
     { q: 'Synkas den mellan telefon och dator?', a: 'Nej. Datan stannar på varje enhet. Använd en säkerhetskopia för att flytta den.' },

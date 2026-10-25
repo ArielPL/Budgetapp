@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).en = {
   htmlLang: 'en', pageTitle: 'YourBudget – offline budget',
-  nav: { features: 'Features', devices: 'Devices', start: 'Get started', faq: 'FAQ', download: 'Download' },
+  nav: { features: 'Features', devices: 'Devices', start: 'Get started', faq: 'FAQ', download: 'The app', langLabel: 'Language' },
   chips: ['No account', 'No ads', 'No tracking'],
   h1: 'Take control of your money. Keep it on your phone.',
-  lead: "Plan this month's budget, import your bank statement and see where the money went. Track savings, pay down debt, and never create an account. Nothing ever leaves your phone.",
+  lead: "Plan this month's budget, import your bank statement and see where the money went. Track savings, pay down debt, and never create an account. The app never sends anything anywhere.",
   store: { apple: 'Download on the', google: 'Get it on', soon: 'Coming January 2027' },
   price: 'One-time purchase. No subscription.',
   phil: { label: 'Stewardship', role: 'Creator of YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Questions',
   faq: [
     { q: 'Do I need to create an account?', a: 'No. There is no account, no sign-in and no server. You open the app and start.' },
-    { q: 'Where is my data stored?', a: 'Everything is saved on your device. Nobody else, not even the developer, can see your budget.' },
+    { q: 'Where is my data stored?', a: 'Everything is saved on your device. Nobody else, not even the developer, can see your budget. If iCloud or Google backup is turned on, your phone can also keep a copy in your own account.' },
     { q: 'Does the app connect to my bank?', a: 'No. You export a CSV statement from your bank and import it. The file is read on your phone and sent nowhere.' },
     { q: 'What happens if I change phones?', a: "Use Export data in the menu to save a backup file, then Import data on the new phone. The phone's own iCloud or Google backup may also include your budget." },
     { q: 'Does it sync between my phone and computer?', a: 'No. Data stays on each device. Use a backup file to move it.' },

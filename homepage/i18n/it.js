@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).it = {
   htmlLang: 'it', pageTitle: 'YourBudget – budget offline',
-  nav: { features: 'Funzioni', devices: 'Dispositivi', start: 'Inizia', faq: 'FAQ', download: 'Scarica' },
+  nav: { features: 'Funzioni', devices: 'Dispositivi', start: 'Inizia', faq: 'FAQ', download: 'L’app', langLabel: 'Lingua' },
   chips: ['Nessun account', 'Nessuna pubblicità', 'Nessun tracciamento'],
   h1: 'Prendi il controllo dei tuoi soldi. Tienili sul telefono.',
-  lead: "Pianifica il budget del mese, importa l'estratto conto e scopri dove sono finiti i soldi. Segui i risparmi, estingui i debiti e non creare mai un account. Niente lascia il tuo telefono.",
+  lead: "Pianifica il budget del mese, importa l'estratto conto e scopri dove sono finiti i soldi. Segui i risparmi, estingui i debiti e non creare mai un account. L’app non invia nulla da nessuna parte.",
   store: { apple: 'Scarica su', google: 'Disponibile su', soon: 'In arrivo a gennaio 2027' },
   price: 'Acquisto unico. Nessun abbonamento.',
   phil: { label: 'Amministrazione fedele', role: 'Creatore di YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Domande',
   faq: [
     { q: 'Devo creare un account?', a: "No. Non ci sono account, accessi o server. Apri l'app e inizi." },
-    { q: 'Dove sono salvati i miei dati?', a: 'Tutto è salvato sul tuo dispositivo. Nessun altro, nemmeno lo sviluppatore, può vedere il tuo budget.' },
+    { q: 'Dove sono salvati i miei dati?', a: 'Tutto è salvato sul tuo dispositivo. Nessun altro, nemmeno lo sviluppatore, può vedere il tuo budget. Se il backup di iCloud o Google è attivo, il telefono può anche conservarne una copia nel tuo account.' },
     { q: "L'app si collega alla mia banca?", a: 'No. Esporti un estratto conto CSV dalla banca e lo importi. Il file viene letto sul telefono e non inviato da nessuna parte.' },
     { q: 'Cosa succede se cambio telefono?', a: "Usa Esporta dati nel menu per salvare un backup, poi Importa dati sul nuovo telefono. Anche il backup iCloud o Google del telefono può includere il tuo budget." },
     { q: 'Si sincronizza tra telefono e computer?', a: 'No. I dati restano su ogni dispositivo. Usa un file di backup per spostarli.' },

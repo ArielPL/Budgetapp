@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).tr = {
   htmlLang: 'tr', pageTitle: 'YourBudget – çevrimdışı bütçe',
-  nav: { features: 'Özellikler', devices: 'Cihazlar', start: 'Başlarken', faq: 'SSS', download: 'İndir' },
+  nav: { features: 'Özellikler', devices: 'Cihazlar', start: 'Başlarken', faq: 'SSS', download: 'Uygulama', langLabel: 'Dil' },
   chips: ['Hesap yok', 'Reklam yok', 'Takip yok'],
   h1: 'Paranın kontrolünü al. Telefonunda kalsın.',
-  lead: 'Bu ayın bütçesini planla, banka ekstreni içe aktar ve paranın nereye gittiğini gör. Birikimlerini takip et, borçlarını öde ve asla hesap oluşturma. Hiçbir şey telefonundan çıkmaz.',
+  lead: 'Bu ayın bütçesini planla, banka ekstreni içe aktar ve paranın nereye gittiğini gör. Birikimlerini takip et, borçlarını öde ve asla hesap oluşturma. Uygulama hiçbir şeyi hiçbir yere göndermez.',
   store: { apple: "App Store'dan", google: "Google Play'den", soon: 'Ocak 2027’de geliyor' },
   price: 'Tek seferlik satın alma. Abonelik yok.',
   phil: { label: 'Kâhyalık', role: 'YourBudget’ın yaratıcısı',
@@ -34,7 +34,7 @@
   faqTitle: 'Sorular',
   faq: [
     { q: 'Hesap oluşturmam gerekiyor mu?', a: 'Hayır. Hesap, giriş veya sunucu yok. Uygulamayı açıp başlarsın.' },
-    { q: 'Verilerim nerede saklanıyor?', a: 'Her şey cihazında saklanır. Başka kimse, geliştirici bile, bütçeni göremez.' },
+    { q: 'Verilerim nerede saklanıyor?', a: 'Her şey cihazında saklanır. Başka kimse, geliştirici bile, bütçeni göremez. iCloud veya Google yedeklemesi açıksa, telefonun bütçenin bir kopyasını kendi hesabında da saklayabilir.' },
     { q: 'Uygulama bankama bağlanıyor mu?', a: 'Hayır. Bankandan CSV ekstresi dışa aktarır ve içe aktarırsın. Dosya telefonunda okunur ve hiçbir yere gönderilmez.' },
     { q: 'Telefon değiştirirsem ne olur?', a: "Menüdeki Verileri dışa aktar ile bir yedek dosyası kaydet, sonra yeni telefonda Verileri içe aktar'ı kullan. Telefonun kendi iCloud veya Google yedeği de bütçeni içerebilir." },
     { q: 'Telefon ve bilgisayar arasında senkronize oluyor mu?', a: 'Hayır. Veriler her cihazda kalır. Taşımak için bir yedek dosyası kullan.' },

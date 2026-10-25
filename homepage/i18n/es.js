@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).es = {
   htmlLang: 'es', pageTitle: 'YourBudget – presupuesto sin conexión',
-  nav: { features: 'Funciones', devices: 'Dispositivos', start: 'Empezar', faq: 'Preguntas', download: 'Descargar' },
+  nav: { features: 'Funciones', devices: 'Dispositivos', start: 'Empezar', faq: 'Preguntas', download: 'La app', langLabel: 'Idioma' },
   chips: ['Sin cuenta', 'Sin anuncios', 'Sin rastreo'],
   h1: 'Toma el control de tu dinero. Guárdalo en tu teléfono.',
-  lead: 'Planifica el presupuesto del mes, importa tu extracto bancario y descubre adónde fue el dinero. Sigue tus ahorros, paga tus deudas y nunca crees una cuenta. Nada sale de tu teléfono.',
+  lead: 'Planifica el presupuesto del mes, importa tu extracto bancario y descubre adónde fue el dinero. Sigue tus ahorros, paga tus deudas y nunca crees una cuenta. La app no envía nada a ninguna parte.',
   store: { apple: 'Descárgalo en el', google: 'Disponible en', soon: 'Llega en enero de 2027' },
   price: 'Pago único. Sin suscripción.',
   phil: { label: 'Mayordomía', role: 'Creador de YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Preguntas',
   faq: [
     { q: '¿Tengo que crear una cuenta?', a: 'No. No hay cuenta, ni inicio de sesión, ni servidor. Abres la app y empiezas.' },
-    { q: '¿Dónde se guardan mis datos?', a: 'Todo se guarda en tu dispositivo. Nadie más, ni siquiera el desarrollador, puede ver tu presupuesto.' },
+    { q: '¿Dónde se guardan mis datos?', a: 'Todo se guarda en tu dispositivo. Nadie más, ni siquiera el desarrollador, puede ver tu presupuesto. Si tienes activada la copia de seguridad de iCloud o Google, el teléfono también puede guardar una copia en tu propia cuenta.' },
     { q: '¿La app se conecta a mi banco?', a: 'No. Exportas un extracto CSV desde tu banco y lo importas. El archivo se lee en tu teléfono y no se envía a ningún sitio.' },
     { q: '¿Qué pasa si cambio de teléfono?', a: 'Usa Exportar datos en el menú para guardar una copia de seguridad, y luego Importar datos en el teléfono nuevo. La copia de iCloud o Google del propio teléfono también puede incluir tu presupuesto.' },
     { q: '¿Se sincroniza entre mi teléfono y mi ordenador?', a: 'No. Los datos se quedan en cada dispositivo. Usa una copia de seguridad para moverlos.' },

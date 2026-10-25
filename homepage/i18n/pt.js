@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).pt = {
   htmlLang: 'pt-BR', pageTitle: 'YourBudget – orçamento offline',
-  nav: { features: 'Recursos', devices: 'Dispositivos', start: 'Começar', faq: 'Perguntas', download: 'Baixar' },
+  nav: { features: 'Recursos', devices: 'Dispositivos', start: 'Começar', faq: 'Perguntas', download: 'O app', langLabel: 'Idioma' },
   chips: ['Sem conta', 'Sem anúncios', 'Sem rastreamento'],
   h1: 'Assuma o controle do seu dinheiro. Mantenha-o no seu celular.',
-  lead: 'Planeje o orçamento do mês, importe seu extrato bancário e veja para onde foi o dinheiro. Acompanhe a poupança, quite dívidas e nunca crie uma conta. Nada sai do seu celular.',
+  lead: 'Planeje o orçamento do mês, importe seu extrato bancário e veja para onde foi o dinheiro. Acompanhe a poupança, quite dívidas e nunca crie uma conta. O app não envia nada para lugar nenhum.',
   store: { apple: 'Baixar na', google: 'Disponível no', soon: 'Chega em janeiro de 2027' },
   price: 'Compra única. Sem assinatura.',
   phil: { label: 'Mordomia', role: 'Criador do YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Perguntas',
   faq: [
     { q: 'Preciso criar uma conta?', a: 'Não. Não há conta, login nem servidor. Você abre o app e começa.' },
-    { q: 'Onde meus dados ficam salvos?', a: 'Tudo fica salvo no seu dispositivo. Ninguém mais, nem o desenvolvedor, pode ver seu orçamento.' },
+    { q: 'Onde meus dados ficam salvos?', a: 'Tudo fica salvo no seu dispositivo. Ninguém mais, nem o desenvolvedor, pode ver seu orçamento. Se o backup do iCloud ou do Google estiver ativado, o celular também pode guardar uma cópia na sua própria conta.' },
     { q: 'O app se conecta ao meu banco?', a: 'Não. Você exporta um extrato CSV do seu banco e o importa. O arquivo é lido no celular e não é enviado a lugar nenhum.' },
     { q: 'O que acontece se eu trocar de celular?', a: 'Use Exportar dados no menu para salvar um backup e depois Importar dados no celular novo. O backup do iCloud ou do Google do próprio celular também pode incluir seu orçamento.' },
     { q: 'Sincroniza entre celular e computador?', a: 'Não. Os dados ficam em cada dispositivo. Use um arquivo de backup para transferi-los.' },

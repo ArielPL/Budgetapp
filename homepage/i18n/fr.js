@@ -1,9 +1,9 @@
 (window.YB_I18N = window.YB_I18N || {}).fr = {
   htmlLang: 'fr', pageTitle: 'YourBudget – budget hors ligne',
-  nav: { features: 'Fonctions', devices: 'Appareils', start: 'Commencer', faq: 'FAQ', download: 'Télécharger' },
+  nav: { features: 'Fonctions', devices: 'Appareils', start: 'Commencer', faq: 'FAQ', download: 'L’app', langLabel: 'Langue' },
   chips: ['Sans compte', 'Sans publicité', 'Sans pistage'],
   h1: 'Maîtrisez votre argent. Gardez-le sur votre téléphone.',
-  lead: "Planifiez le budget du mois, importez votre relevé bancaire et voyez où est passé l'argent. Suivez votre épargne, remboursez vos dettes, sans jamais créer de compte. Rien ne quitte votre téléphone.",
+  lead: "Planifiez le budget du mois, importez votre relevé bancaire et voyez où est passé l'argent. Suivez votre épargne, remboursez vos dettes, sans jamais créer de compte. L’app n’envoie rien nulle part.",
   store: { apple: 'Télécharger dans l’', google: 'Disponible sur', soon: 'Disponible en janvier 2027' },
   price: 'Achat unique. Sans abonnement.',
   phil: { label: 'Intendance', role: 'Créateur de YourBudget',
@@ -34,7 +34,7 @@
   faqTitle: 'Questions',
   faq: [
     { q: 'Dois-je créer un compte ?', a: "Non. Il n'y a ni compte, ni connexion, ni serveur. Vous ouvrez l'app et vous commencez." },
-    { q: 'Où sont stockées mes données ?', a: 'Tout est enregistré sur votre appareil. Personne d’autre, pas même le développeur, ne peut voir votre budget.' },
+    { q: 'Où sont stockées mes données ?', a: 'Tout est enregistré sur votre appareil. Personne d’autre, pas même le développeur, ne peut voir votre budget. Si la sauvegarde iCloud ou Google est activée, votre téléphone peut aussi en garder une copie dans votre propre compte.' },
     { q: "L'app se connecte-t-elle à ma banque ?", a: "Non. Vous exportez un relevé CSV depuis votre banque et vous l'importez. Le fichier est lu sur votre téléphone et n'est envoyé nulle part." },
     { q: 'Que se passe-t-il si je change de téléphone ?', a: "Utilisez Exporter les données dans le menu pour enregistrer une sauvegarde, puis Importer les données sur le nouveau téléphone. La sauvegarde iCloud ou Google du téléphone peut aussi inclure votre budget." },
     { q: 'Est-ce synchronisé entre mon téléphone et mon ordinateur ?', a: 'Non. Les données restent sur chaque appareil. Utilisez un fichier de sauvegarde pour les transférer.' },

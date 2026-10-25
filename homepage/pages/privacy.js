@@ -13,7 +13,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Allt stannar på din enhet",
+    "h": "Allt sparas på din enhet",
     "ps": [
      "Din budget, dina registrerade utgifter och de filer du importerar sparas i en databas på din enhet. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen server att skicka något till."
     ]
@@ -75,7 +75,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Everything stays on your device",
+    "h": "Everything is saved on your device",
     "ps": [
      "Your budget, your recorded expenses and the files you import are saved in a database on your device. None of it is sent to the developer or to any third party. There is no account, no sign-in and no server to send anything to."
     ]
@@ -137,7 +137,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Todo se queda en tu dispositivo",
+    "h": "Todo se guarda en tu dispositivo",
     "ps": [
      "Tu presupuesto, tus gastos registrados y los archivos que importas se guardan en una base de datos en tu dispositivo. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, ni inicio de sesión, ni servidor al que enviar nada."
     ]
@@ -199,7 +199,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Tout reste sur votre appareil",
+    "h": "Tout est enregistré sur votre appareil",
     "ps": [
      "Votre budget, vos dépenses enregistrées et les fichiers que vous importez sont enregistrés dans une base de données sur votre appareil. Rien de tout cela n'est envoyé au développeur ni à un tiers. Il n'y a ni compte, ni connexion, ni serveur auquel envoyer quoi que ce soit."
     ]
@@ -261,7 +261,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Alles bleibt auf deinem Gerät",
+    "h": "Alles wird auf deinem Gerät gespeichert",
     "ps": [
      "Dein Budget, deine erfassten Ausgaben und die Dateien, die du importierst, werden in einer Datenbank auf deinem Gerät gespeichert. Nichts davon wird an den Entwickler oder an Dritte gesendet. Es gibt kein Konto, keine Anmeldung und keinen Server, an den etwas gehen könnte."
     ]
@@ -323,7 +323,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Tutto resta sul tuo dispositivo",
+    "h": "Tutto viene salvato sul tuo dispositivo",
     "ps": [
      "Il tuo budget, le spese registrate e i file che importi sono salvati in un database sul tuo dispositivo. Nulla viene inviato allo sviluppatore o a terzi. Non c'è account, né accesso, né server a cui inviare qualcosa."
     ]
@@ -385,7 +385,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Tudo fica no seu dispositivo",
+    "h": "Tudo fica salvo no seu dispositivo",
     "ps": [
      "Seu orçamento, suas despesas registradas e os arquivos que você importa ficam salvos num banco de dados no seu dispositivo. Nada disso é enviado ao desenvolvedor nem a terceiros. Não há conta, login nem servidor para onde enviar algo."
     ]
@@ -447,7 +447,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Всё остаётся на вашем устройстве",
+    "h": "Всё хранится на вашем устройстве",
     "ps": [
      "Ваш бюджет, записанные расходы и импортированные файлы хранятся в базе данных на вашем устройстве. Ничего из этого не отправляется разработчику или третьим лицам. Нет ни учётной записи, ни входа, ни сервера, куда можно что-то отправить."
     ]
@@ -509,7 +509,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Her şey cihazınızda kalır",
+    "h": "Her şey cihazınızda saklanır",
     "ps": [
      "Bütçeniz, kaydettiğiniz harcamalar ve içe aktardığınız dosyalar cihazınızdaki bir veritabanında saklanır. Bunların hiçbiri geliştiriciye veya üçüncü taraflara gönderilmez. Hesap, oturum açma veya bir şey gönderilecek bir sunucu yoktur."
     ]
@@ -571,7 +571,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "すべてはあなたの端末に",
+    "h": "すべてはあなたの端末に保存されます",
     "ps": [
      "予算、記録した支出、取り込んだファイルは、端末内のデータベースに保存されます。開発者や第三者に送られることはありません。アカウントもログインも、送信先のサーバーもありません。"
     ]
@@ -633,7 +633,7 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "一切都留在你的设备上",
+    "h": "一切都保存在你的设备上",
     "ps": [
      "你的预算、记录的支出和导入的文件都保存在你设备上的数据库中。这些内容都不会发送给开发者或任何第三方。没有账户、没有登录，也没有可以发送数据的服务器。"
     ]
