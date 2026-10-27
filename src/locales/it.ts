@@ -679,7 +679,7 @@ export const it: Translations = {
     "## Niente pubblicità, niente analisi, niente tracciamento",
     "Non ci sono reti pubblicitarie, statistiche delle visite o strumenti di tracciamento, né nell'app né sul sito. Lo smistamento che riconosce i negozi è un elenco incluso nell'app, non un servizio che interroga. L'app funziona senza alcuna rete.",
     "## Il sito",
-    "Il sito non ha moduli, cookie o statistiche delle visite, e non scarica nulla da altri server. Come ogni server web, il suo server tiene un registro tecnico delle richieste, che include gli indirizzi IP. Quel registro serve solo al funzionamento. L'app non contatta mai il server web.",
+    "Il sito non ha moduli, cookie o statistiche delle visite, e non scarica nulla da altri server. Riceve solo ciò che ogni browser invia quando chiede una pagina, come il tuo indirizzo IP e il browser che usi. Il sito è ospitato da Vercel, che conserva questi dati per poco tempo in un registro tecnico, per il funzionamento e la sicurezza. Lo sviluppatore non usa quel registro. L'app non contatta mai il server web, quindi non viene inviato nulla quando usi l'app.",
     "## La vecchia web app",
     "Fino al 1° novembre 2026 YourBudget era anche una web app. Ciò che vi hai salvato si trova solo nel tuo browser, finché non cancelli i dati del sito. Lo sviluppatore non ne ha mai avuto una copia.",
     "## Cancellazione",

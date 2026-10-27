@@ -679,7 +679,7 @@ export const tr: Translations = {
     "## Reklam yok, analiz yok, takip yok",
     "Ne uygulamada ne de web sitesinde reklam ağı, ziyaretçi istatistiği veya takip aracı vardır. Mağazaları tanıyan sınıflandırma, uygulamayla birlikte gelen bir listedir; sorgulanan bir hizmet değildir. Uygulama hiç ağ bağlantısı olmadan çalışır.",
     "## Web sitesi",
-    "Web sitesinde form, çerez veya ziyaretçi istatistiği yoktur ve başka sunuculardan hiçbir şey indirmez. Her web sunucusu gibi sunucusu da IP adreslerini içeren teknik bir istek kaydı tutar. Bu kayıt yalnızca işletim için kullanılır. Uygulama web sunucusuna asla bağlanmaz.",
+    "Web sitesinde form, çerez veya ziyaretçi istatistiği yoktur ve başka sunuculardan hiçbir şey indirmez. Site yalnızca her tarayıcının bir sayfa isterken gönderdiklerini alır; örneğin IP adresiniz ve hangi tarayıcıyı kullandığınız. Site Vercel’de barındırılır; Vercel bunları işletim ve güvenlik için kısa bir süre teknik bir kayıtta tutar. Geliştirici bu kaydı kullanmaz. Uygulama web sunucusuna asla bağlanmaz, bu yüzden uygulamayı kullanırken hiçbir şey gönderilmez.",
     "## Eski web uygulaması",
     "YourBudget 1 Kasım 2026’ya kadar bir web uygulaması olarak da vardı. Orada kaydettikleriniz, site verilerini temizleyene kadar yalnızca kendi tarayıcınızda durur. Geliştiricinin hiçbir zaman bir kopyası olmadı.",
     "## Silme",

@@ -679,7 +679,7 @@ export const pt: Translations = {
     "## Sem anúncios, sem análise, sem rastreamento",
     "Não há redes de anúncios, estatísticas de visitas nem ferramentas de rastreamento, nem no app nem no site. A classificação que reconhece as lojas é uma lista que vem com o app, não um serviço que ele consulta. O app funciona sem nenhuma conexão.",
     "## O site",
-    "O site não tem formulários, cookies nem estatísticas de visitas, e não busca nada em outros servidores. Como todo servidor web, o servidor dele mantém um registro técnico das solicitações, que inclui endereços IP. Esse registro é usado só para operação. O app nunca entra em contato com o servidor web.",
+    "O site não tem formulários, cookies nem estatísticas de visitas, e não busca nada em outros servidores. Ele só recebe o que todo navegador envia ao pedir uma página, como seu endereço IP e qual navegador você usa. O site é hospedado pela Vercel, que guarda isso por pouco tempo em um registro técnico, para operação e segurança. O desenvolvedor não usa esse registro. O app nunca entra em contato com o servidor web, então nada é enviado quando você usa o app.",
     "## O antigo app web",
     "Até 1º de novembro de 2026, o YourBudget também existia como app web. O que você salvou lá fica só no seu próprio navegador até você apagar os dados do site. O desenvolvedor nunca teve uma cópia.",
     "## Exclusão",

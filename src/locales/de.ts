@@ -679,7 +679,7 @@ export const de: Translations = {
     "## Keine Werbung, keine Analyse, kein Tracking",
     "Es gibt keine Werbenetzwerke, keine Besucherstatistik und keine Tracking-Werkzeuge, weder in der App noch auf der Website. Die Zuordnung, die Geschäfte erkennt, ist eine Liste, die mit der App kommt, kein Dienst, den sie abfragt. Die App funktioniert ganz ohne Netzwerk.",
     "## Die Website",
-    "Die Website hat keine Formulare, keine Cookies und keine Besucherstatistik, und sie lädt nichts von anderen Servern. Wie jeder Webserver führt ihr Server ein technisches Protokoll der Anfragen, das IP-Adressen enthält. Das Protokoll dient nur dem Betrieb. Die App kontaktiert den Webserver nie.",
+    "Die Website hat keine Formulare, keine Cookies und keine Besucherstatistik, und sie lädt nichts von anderen Servern. Sie empfängt nur, was jeder Browser beim Abruf einer Seite sendet, etwa deine IP-Adresse und welchen Browser du nutzt. Die Website wird bei Vercel gehostet, das diese Angaben kurz in einem technischen Protokoll für Betrieb und Sicherheit speichert. Der Entwickler nutzt dieses Protokoll nicht. Die App kontaktiert den Webserver nie, also wird nichts gesendet, wenn du die App benutzt.",
     "## Die frühere Web-App",
     "Bis zum 1. November 2026 gab es YourBudget auch als Web-App. Was du dort gespeichert hast, liegt nur in deinem eigenen Browser, bis du die Daten der Website löschst. Der Entwickler hatte nie eine Kopie.",
     "## Löschen",

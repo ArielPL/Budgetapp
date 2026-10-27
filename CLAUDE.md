@@ -15,6 +15,15 @@ they adapt to for THIS project.
 | 🐛 Bug fixer | **Buggy** (`buggy`) | Reproduce, diagnose, fix bugs | something broken / weird, fresh-eyes hunts |
 | 🚀 Deploy | **Sara** (`sara`) | Commit + push (the ONLY committer) | "ship it", "push", merges |
 
+Each track also has a chat of its own, with the model that suits it (Ariel, 2026-10-27):
+
+| Chat | Track | Model |
+|------|-------|-------|
+| 👑 **Otto** – the app, and coordination | `development` | Opus |
+| 🌐 **Webby** – www.yourofflinebudget.com | `website` → `main` | Sonnet |
+| 🎨 **Stan** – the app's look | `design` → `development` | Sonnet |
+| 🧪 **Arty** – the offline AI assistant lab | `~/Developer/budget-ai-lab` | Opus |
+
 ## Working rules (efficiency-tuned)
 
 1. **Spawn agents sparingly** — each spawn starts cold and re-reads the repo. Otto does
@@ -36,6 +45,12 @@ they adapt to for THIS project.
      exists on this branch only). Website work lands here, the user checks its preview,
      and it merges to `main` ONLY on the user's explicit word. That deploys production,
      which from 2 November 2026 is the website only.
+   - **`design` = the app's look**: colours, themes, layout, spacing, polish. Driven
+     by Stan in a chat of its own (Ariel, 2026-10-26). It branches from `development`,
+     takes in `development` often, and merges back into **`development`** — never
+     `main` — on the user's explicit word, after he has seen it. It touches styling
+     (`src/index.css`, `src/themes.ts`, component markup for layout); behaviour and
+     data stay on `development`.
    - Never push to `main` directly. `authorization` = parked accounts/cloud-sync work;
      don't touch it.
 5. **Every release adds a changelog entry** in `src/changelog.ts` (sv/en/es) — that IS the

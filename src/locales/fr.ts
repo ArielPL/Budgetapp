@@ -688,7 +688,7 @@ export const fr: Translations = {
     "## Pas de publicité, pas de statistiques, pas de pistage",
     "Il n'y a ni régie publicitaire, ni statistiques de visite, ni outil de pistage, ni dans l'app ni sur le site. Le classement qui reconnaît les commerces est une liste fournie avec l'app, pas un service qu'elle interroge. L'app fonctionne sans aucun réseau.",
     "## Le site web",
-    "Le site n'a ni formulaire, ni cookie, ni statistiques de visite, et ne récupère rien sur d'autres serveurs. Comme tout serveur web, son serveur conserve un journal technique des requêtes, qui contient les adresses IP. Ce journal sert uniquement au fonctionnement. L'app ne contacte jamais le serveur web.",
+    "Le site n'a ni formulaire, ni cookie, ni statistiques de visite, et ne récupère rien sur d'autres serveurs. Il ne reçoit que ce que tout navigateur envoie en demandant une page, comme votre adresse IP et le navigateur que vous utilisez. Le site est hébergé par Vercel, qui le conserve peu de temps dans un journal technique, pour le fonctionnement et la sécurité. Le développeur n'utilise pas ce journal. L'app ne contacte jamais le serveur web : rien n'est envoyé quand vous utilisez l'app.",
     "## L'ancienne app web",
     "Jusqu'au 1er novembre 2026, YourBudget existait aussi en app web. Ce que vous y avez enregistré se trouve uniquement dans votre propre navigateur, jusqu'à ce que vous effaciez les données du site. Le développeur n'en a jamais eu de copie.",
     "## Suppression",
