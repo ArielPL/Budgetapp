@@ -7,7 +7,7 @@ import { appStorage } from '../storage';
 import { commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import {
-  newTrip, newBlank, walletSummary, loadWallets, walletsChange, WALLETS_KEY, OPEN_PANEL_KEY,
+  newTrip, newBlank, walletSummary, loadWallets, walletsChange, previousInSeries, withCarry, WALLETS_KEY, OPEN_PANEL_KEY,
   type Wallet, type WalletExpense, type WalletKind, type WalletPot,
 } from '../wallets';
 import {
@@ -28,7 +28,7 @@ import {
 // put back what the first had removed (deep review 2026-10-04, P1). Changes
 // now wait in line and each is applied to what the one before it stored.
 
-const ICON: Record<WalletKind, string> = { blank: '👛', trip: '✈️' };
+const ICON: Record<WalletKind, string> = { blank: '✉️', trip: '✈️' };
 
 /** How an added budget is named in the open-panel key and the switcher, so a
  *  budget's id can never be mistaken for a wallet's. */
@@ -38,6 +38,23 @@ const budgetPanelId = (b: CustomBudget) => `${BUDGET_PREFIX}${b.id}`;
 const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** The wallets screen shows every wallet side by side from this width up (the
+ *  same 640px the phone overrides in index.css use); below it, a list and one
+ *  wallet at a time. Without matchMedia (tests) it counts as wide. */
+const WIDE = '(min-width: 641px)';
+const useWide = () => {
+  const [wide, setWide] = useState(() => typeof window.matchMedia !== 'function' || window.matchMedia(WIDE).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(WIDE);
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return wide;
 };
 
 // ── The switcher ───────────────────────────────────────────────────────────
@@ -162,7 +179,22 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
    *  where budgets beside the panel's own are offered, named and removed. */
   renderBudget?: (ns: string) => ReactNode;
 }) => {
-  const { t } = useLang();
+  const { t, money } = useLang();
+  const wide = useWide();
+  // On a phone the wallets screen is a list, and this is the wallet opened
+  // from it. Separate from `openId`, which Custom's switcher also reads. It
+  // starts on the wallet "Left to live on" has just made (which names it in
+  // OPEN_PANEL_KEY) and otherwise on the list.
+  const [phoneOpen, setPhoneOpen] = useState<string | null>(() => {
+    if (budget !== null) return null;
+    const v = appStorage.getItem(OPEN_PANEL_KEY);
+    return v && loadWallets(appStorage).some(w => w.id === v) ? v : null;
+  });
+  // That name is used up once read here: the next visit starts on the list.
+  useEffect(() => {
+    if (budget !== null) return;
+    try { appStorage.removeItem(OPEN_PANEL_KEY); } catch { /* the list shows anyway */ }
+  }, [budget]);
   const [wallets, setWallets] = useState<Wallet[]>(() => loadWallets(appStorage));
   const [budgets, setBudgets] = useState<CustomBudget[]>(() => (renderBudget ? loadCustomBudgets(appStorage) : []));
   // The panel's own budget is named only in Custom: from the menu's screen
@@ -265,29 +297,90 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
     onRecordUndo({ at: new Date().toISOString(), action: 'deleteCustomBudget', changes: before });
   };
 
+  const removeById = (id: string) => save(all => all.filter(x => x.id !== id), 'deleteWallet');
+  const startNew = () => { setCreatingBudget(false); setCreating(true); };
+
+  // The menu's own screen shows every wallet at once (side by side, or a list
+  // on a phone); Custom keeps its switcher, where the budget is a panel too.
+  const overview = budget === null && !creating && !creatingBudget && wallets.length > 0;
+  const phoneWallet = wallets.find(w => w.id === phoneOpen) ?? null;
+  const inPhoneWallet = overview && !wide && phoneWallet !== null;
+
   let content: ReactNode;
   if (creatingBudget) {
     content = <NewBudget onCreate={createBudget} onCancel={() => setCreatingBudget(false)} />;
   } else if (creating) {
     content = (
       <NewWallet
-        onCancel={() => { setCreating(false); if (!current && budget === null) onLeave?.(); }}
+        onCancel={() => { setCreating(false); if (wallets.length === 0 && budget === null) onLeave?.(); }}
         onCreate={async w => {
           if (!(await save(all => [...all, w]))) return false;
           open(w.id);
+          setPhoneOpen(w.id);
           return true;
         }} />
     );
+  } else if (overview) {
+    // Not archived first, as in the switcher.
+    const sorted = [...wallets.filter(w => !w.archived), ...wallets.filter(w => w.archived)];
+    // The last one gone: back to the budget, as before. Otherwise to the list.
+    const afterDelete = () => { if (wallets.length <= 1) open(null); else setPhoneOpen(null); };
+    if (wide) {
+      content = (
+        <div className="wallet-columns">
+          {sorted.map(w => (
+            <WalletSlot key={w.id} wallet={w} previous={previousInSeries(w, wallets)} variant="column" change={changeWallet} remove={removeById}
+              afterDelete={afterDelete} />
+          ))}
+          <button className="wallet-plus" onClick={startNew}>
+            <span className="wallet-plus-sign" aria-hidden="true">+</span>
+            <span>{t.wNew}</span>
+          </button>
+        </div>
+      );
+    } else if (phoneWallet) {
+      content = (
+        <WalletSlot key={phoneWallet.id} wallet={phoneWallet} previous={previousInSeries(phoneWallet, wallets)} variant="screen" change={changeWallet}
+          remove={removeById} afterDelete={afterDelete} />
+      );
+    } else {
+      const today = todayIso();
+      content = (
+        <div className="wallet-cards">
+          {sorted.map(w => {
+            const s = walletSummary(w, today);
+            const over = s.left < 0;
+            const pct = w.total > 0 ? Math.min(100, Math.max(0, (s.spent / w.total) * 100)) : 0;
+            return (
+              <button key={w.id} className="wallet-card" onClick={() => setPhoneOpen(w.id)}>
+                <span className="wallet-card-main">
+                  <span className="wallet-card-name">
+                    <span aria-hidden="true">{ICON[w.kind]}</span>
+                    <b>{w.name}{w.archived ? ` · ${t.wArchived}` : ''}</b>
+                  </span>
+                  <span className="wallet-card-sub">{t.wUsed(money(Math.round(s.spent)), money(w.total))}</span>
+                  <span className="wallet-bar" aria-hidden="true">
+                    <span className={`wallet-bar-fill${over ? ' is-over' : ''}`} style={{ width: `${pct}%` }} />
+                  </span>
+                </span>
+                <span className="wallet-card-side">
+                  <span className="wallet-card-label">{t.wLeft}</span>
+                  <span className={`wallet-card-value${over ? ' is-over' : ''}`}>{money(Math.round(s.left))}</span>
+                </span>
+              </button>
+            );
+          })}
+          <button className="wallet-plus" onClick={startNew}>
+            <span className="wallet-plus-sign" aria-hidden="true">+</span>
+            <span>{t.wNew}</span>
+          </button>
+        </div>
+      );
+    }
   } else if (current) {
     content = (
-      <WalletView key={current.id} wallet={current}
-        onChange={(change, removedExpense) =>
-          changeWallet(current.id, change, removedExpense ? 'deleteWalletExpense' : undefined)}
-        onDelete={async () => {
-          if (!window.confirm(t.wDeleteConfirm(current.name))) return;
-          const id = current.id;
-          if (await save(all => all.filter(w => w.id !== id), 'deleteWallet')) open(null);
-        }} />
+      <WalletSlot key={current.id} wallet={current} previous={previousInSeries(current, wallets)} change={changeWallet} remove={removeById}
+        afterDelete={() => open(null)} />
     );
   } else if (openBudget && renderBudget) {
     // Keyed by namespace: each budget gets a component of its own, so nothing
@@ -300,11 +393,20 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   const showingBudget = !creating && !creatingBudget && !current;
   return (
     <>
-      <PanelSwitcher wallets={wallets} budgets={budgets} mainName={mainName ?? undefined}
-        openId={creating || creatingBudget ? null : openId} budgetTag={budgetTag}
-        onOpen={open} onNew={() => { setCreatingBudget(false); setCreating(true); }}
-        onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
-        onRename={renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+      {overview ? (
+        <div className="wallet-screen-head">
+          {inPhoneWallet
+            ? <button className="wallet-back" onClick={() => setPhoneOpen(null)}>‹ {t.wMenu}</button>
+            : <button className="wallet-back" onClick={() => open(null)}>‹ {t.wMyBudget}</button>}
+          {!inPhoneWallet && <h2 className="wallet-screen-title">{t.wMenu}</h2>}
+        </div>
+      ) : (
+        <PanelSwitcher wallets={wallets} budgets={budgets} mainName={mainName ?? undefined}
+          openId={creating || creatingBudget ? null : openId} budgetTag={budgetTag}
+          onOpen={open} onNew={startNew}
+          onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
+          onRename={renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+      )}
       {renaming && showingBudget && (
         <BudgetName key={openBudget?.id ?? 'main'} name={openBudget ? openBudget.name : mainName ?? t.wMyBudget}
           onSave={rename} onCancel={() => setRenaming(false)}
@@ -312,6 +414,27 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
       )}
       {content}
     </>
+  );
+};
+
+/** One wallet, wired to the save queue of the area that holds it. `afterDelete`
+ *  says where to go once it is gone. */
+const WalletSlot = ({ wallet, previous, variant, change, remove, afterDelete }: {
+  wallet: Wallet;
+  previous?: Wallet;
+  variant?: 'column' | 'screen';
+  change: (id: string, change: (w: Wallet) => Wallet, undo?: 'deleteWalletExpense') => Promise<boolean>;
+  remove: (id: string) => Promise<boolean>;
+  afterDelete: () => void;
+}) => {
+  const { t } = useLang();
+  return (
+    <WalletView wallet={wallet} previous={previous} variant={variant}
+      onChange={(c, removedExpense) => change(wallet.id, c, removedExpense ? 'deleteWalletExpense' : undefined)}
+      onDelete={async () => {
+        if (!window.confirm(t.wDeleteConfirm(wallet.name))) return;
+        if (await remove(wallet.id)) afterDelete();
+      }} />
   );
 };
 
@@ -481,8 +604,15 @@ export const NewWallet = ({ onCreate, onCancel }: {
 
 // ── The wallet ─────────────────────────────────────────────────────────────
 
-export const WalletView = ({ wallet, onChange, onDelete }: {
+export const WalletView = ({ wallet, previous, variant, onChange, onDelete }: {
   wallet: Wallet;
+  /** The week before, for a weekly envelope: what it left can move here. */
+  previous?: Wallet;
+  /** On the wallets screen the wallet carries its own name, since no switcher
+   *  names it: a 'column' among others (actions behind a ⋯ button, to keep it
+   *  short) or the 'screen' a phone opens from the list. Absent under the
+   *  switcher, where the pill is the name. */
+  variant?: 'column' | 'screen';
   /** Apply `change` to the wallet as last stored; resolves to whether it was
    *  stored. An expense taken out says so, so the step back can be offered. */
   onChange: (change: (w: Wallet) => Wallet, removedExpense?: boolean) => Promise<boolean>;
@@ -511,9 +641,27 @@ export const WalletView = ({ wallet, onChange, onDelete }: {
     : s.timing.kind === 'during' ? t.wDaysLeft(s.timing.daysLeft)
       : s.timing.kind === 'after' ? (trip ? t.wEnded : t.wEndedPeriod) : null;
 
+  // Says which way, rather than flipping whatever is stored by then: a double
+  // tap must not archive and bring back again.
+  const toggleArchive = () => {
+    const archived = !wallet.archived;
+    void onChange(w => ({ ...w, archived }));
+  };
+
   return (
-    <div className="wallet">
-      <span className="wallet-tag">{t.wTagSeparate}</span>
+    <div className={`wallet${variant === 'column' ? ' wallet-column' : ''}`}>
+      {variant ? (
+        <div className="wallet-col-head">
+          <h3 className="wallet-title wallet-col-title">
+            <span aria-hidden="true">{ICON[wallet.kind]}</span> {wallet.name}{wallet.archived ? ` · ${t.wArchived}` : ''}
+          </h3>
+          {variant === 'column' && (
+            <WalletMenu wallet={wallet} onEdit={() => setEditing(true)} onArchive={toggleArchive} onDelete={onDelete} />
+          )}
+        </div>
+      ) : (
+        <span className="wallet-tag">{t.wTagSeparate}</span>
+      )}
 
       <div className="wallet-hero">
         <div className="wallet-hero-label">{t.wLeft}</div>
@@ -528,7 +676,17 @@ export const WalletView = ({ wallet, onChange, onDelete }: {
         {s.timing.kind === 'during' && s.left > 0 && (
           <div className="wallet-hero-sub">{(trip ? t.wPerDay : t.wPerDayPeriod)(r(s.left / s.timing.daysLeft))}</div>
         )}
+        {(wallet.carry ?? 0) > 0 && <div className="wallet-hero-sub">{t.envCarried(r(wallet.carry!))}</div>}
       </div>
+
+      {/* Asked once the week before is over, and only until answered: the
+          user says what really was left, since not every purchase may have
+          been typed in (Ariel, 2026-10-27). */}
+      {previous && wallet.carry === undefined && previous.to !== undefined && today > previous.to
+        && s.timing.kind !== 'after' && (
+        <CarryOver key={previous.id} left={Math.max(0, Math.round(walletSummary(previous, today).left))}
+          onAnswer={amount => void onChange(w => (w.carry !== undefined ? w : amount > 0 ? withCarry(w, amount) : { ...w, carry: 0 }))} />
+      )}
 
       {/* Only when the parts promise more than there is: parts that leave some
           of the total unplanned are an ordinary way to build a wallet. */}
@@ -596,18 +754,83 @@ export const WalletView = ({ wallet, onChange, onDelete }: {
         </ul>
       )}
 
-      <div className="wallet-footer">
-        <button className="custom-secondary-btn" onClick={() => setEditing(true)}>{t.wEdit}</button>
-        <button className="custom-secondary-btn" onClick={() => {
-          // Says which way, rather than flipping whatever is stored by then:
-          // a double tap must not archive and bring back again.
-          const archived = !wallet.archived;
-          void onChange(w => ({ ...w, archived }));
-        }}>
-          {wallet.archived ? t.wUnarchive : t.wArchive}
-        </button>
-        <button className="custom-secondary-btn wallet-danger" onClick={onDelete}>{t.wDelete}</button>
+      {variant !== 'column' && (
+        <div className="wallet-footer">
+          <button className="custom-secondary-btn" onClick={() => setEditing(true)}>{t.wEdit}</button>
+          <button className="custom-secondary-btn" onClick={toggleArchive}>
+            {wallet.archived ? t.wUnarchive : t.wArchive}
+          </button>
+          <button className="custom-secondary-btn wallet-danger" onClick={onDelete}>{t.wDelete}</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** "What was left last week?": the envelope's own figure to start from, any
+ *  amount the user knows better, or none at all. */
+const CarryOver = ({ left, onAnswer }: { left: number; onAnswer: (amount: number) => void }) => {
+  const { t, money } = useLang();
+  const [draft, setDraft] = useState(String(left));
+  const [error, setError] = useState(false);
+  const add = () => {
+    const parsed = parseMoneyInput(draft.trim());
+    if (!parsed.ok && parsed.reason !== 'empty') { setError(true); return; }
+    onAnswer(parsed.ok ? Math.max(0, parsed.value) : 0);
+  };
+  return (
+    <form className="wallet-carry" onSubmit={e => { e.preventDefault(); add(); }}>
+      <div className="wallet-carry-title">{t.envCarryTitle}</div>
+      <p className="wallet-carry-hint">{t.envCarryHint(money(left))}</p>
+      <div className="wallet-carry-row">
+        <input className="label-input wallet-carry-input" inputMode="decimal" value={draft}
+          aria-label={t.envCarryTitle} aria-invalid={error || undefined}
+          onChange={e => { setDraft(e.target.value); setError(false); }} />
+        <button type="submit" className="custom-primary-btn">{t.envCarryAdd}</button>
+        <button type="button" className="custom-secondary-btn" onClick={() => onAnswer(0)}>{t.envCarrySkip}</button>
       </div>
+      {error && <p className="wallet-carry-error" role="alert">{t.invalidAmount}</p>}
+    </form>
+  );
+};
+
+/** Edit, archive and delete behind one button, for a wallet in a column. Closes
+ *  like the switcher: a tap anywhere else, or Escape. */
+const WalletMenu = ({ wallet, onEdit, onArchive, onDelete }: {
+  wallet: Wallet;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) => {
+  const { t } = useLang();
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+  const run = (act: () => void) => () => { setOpen(false); act(); };
+  return (
+    <div className="wallet-more" ref={box}>
+      <button className="wallet-more-btn" aria-label={t.wMore(wallet.name)} aria-expanded={open} aria-controls={menuId}
+        onClick={() => setOpen(o => !o)}>⋯</button>
+      {open && (
+        <div className="wallet-more-menu" id={menuId}>
+          <button className="wallet-more-item" onClick={run(onEdit)}>{t.wEdit}</button>
+          <button className="wallet-more-item" onClick={run(onArchive)}>{wallet.archived ? t.wUnarchive : t.wArchive}</button>
+          <button className="wallet-more-item wallet-danger" onClick={run(onDelete)}>{t.wDelete}</button>
+        </div>
+      )}
     </div>
   );
 };

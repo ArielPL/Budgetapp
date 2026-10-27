@@ -376,6 +376,10 @@ export function withLoanRow(
 export interface BeginnerAnswers {
   salary?: number;
   housing?: number;
+  /** Electricity and food: asked since 2026-10-27 (Ariel), the two costs
+   *  almost everyone has and a first budget most often leaves out. */
+  electricity?: number;
+  food?: number;
   phone?: number;
   commute?: number;
   loans?: number;
@@ -398,7 +402,11 @@ export function beginnerMonthData(a: BeginnerAnswers, lang: Lang = 'sv'): MonthD
   return {
     income: has(a.salary) ? [row(L.salary, a.salary)] : [],
     expenses: [
-      ...category('boende', has(a.housing) ? [row(L.rent, a.housing)] : []),
+      ...category('boende', [
+        ...(has(a.housing) ? [row(L.rent, a.housing)] : []),
+        ...(has(a.electricity) ? [row(L.electricity, a.electricity)] : []),
+      ]),
+      ...category('mat', has(a.food) ? [row(L.groceries, a.food)] : []),
       ...category('transport', has(a.commute) ? [row(L.commute, a.commute)] : []),
       ...category('prenumerationer', has(a.phone) ? [row(L.mobile, a.phone)] : []),
       ...category('lan', has(a.loans) ? [row(L.loanPayments, a.loans)] : []),

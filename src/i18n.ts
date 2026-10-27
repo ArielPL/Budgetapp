@@ -838,6 +838,9 @@ export interface Translations {
   startBeginnerSub: string;
   /** Salary, housing, phone, getting to work, loans, savings — in that order. */
   begQuestions: { title: string; hint: string }[];
+  /** The menu's way back to the questions; replaces the budget once they are answered. */
+  begRestart: string;
+  begRestartConfirm: (monthName: string) => string;
   begSkip: string;
   begNext: string;
   begBack: string;
@@ -1235,6 +1238,8 @@ export interface Translations {
   wUnarchive: string;
   wArchived: string;
   wDelete: string;
+  /** The ⋯ button on a wallet column, which holds Edit, Archive and Delete. */
+  wMore: (name: string) => string;
   wDeleteConfirm: (name: string) => string;
   wPots: string;
   wAddPot: string;
@@ -1248,6 +1253,21 @@ export interface Translations {
   wErrAmount: string;
   wErrDates: string;
   wErrPot: string;
+  /** Envelopes made from Left to live on (Ariel, 2026-10-27): rows of the
+   *  budget taken along, and what a week left over moving to the next. */
+  envInclude: string;
+  envIncludeMonth: string;
+  envIncludeWeek: string;
+  /** The part of a weekly envelope that is Left to live on itself. */
+  envEveryday: string;
+  envWeeksLabel: string;
+  envWeeksValue: (first: number, last: number, n: number) => string;
+  envPerWeek: string;
+  envCarryTitle: string;
+  envCarryHint: (amount: string) => string;
+  envCarryAdd: string;
+  envCarrySkip: string;
+  envCarried: (amount: string) => string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -1625,7 +1645,7 @@ export const translations: Record<Lang, Translations> = {
     welcomeTitle: 'Välkommen till YourBudget!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
-      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy. Med tiden kom plånböckerna också – en egen liten budget för en resa eller en renovering, skild från månaden.',
+      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy. Med tiden kom kuverten också – en egen liten budget för en resa eller en renovering, skild från månaden.',
       'Ekonomi är det som får vardagen att rulla — mat, fritid, nöje, ansvar. Just därför tycker jag att den ska vara din att styra, utan distraktioner.',
       'Därför är appen lokal. Allt lagras på din enhet. Du exporterar och importerar när du vill, utan att någon ser eller lägger sig i. Ingen molntjänst hos mig, ingen bankkoppling, ingen utomstående.',
       'Numera betyder lokalt inte tjatigt. Du hämtar kontoutdraget som fil från banken, och appen läser och sorterar posterna åt dig — på din egen enhet, utan att filen lämnar den. Rättar du en kategori minns den det, så nästa månad blir mindre jobb än den här.',
@@ -1849,12 +1869,14 @@ export const translations: Record<Lang, Translations> = {
     startExpertSub: "Mall, tom budget eller import",
     startBeginner: "Nej, hjälp mig att börja",
     startBeginnerSub: "Några enkla frågor, sedan är budgeten klar",
-    begQuestions: [{ title: "Hur mycket får du ut i lön varje månad?", hint: "Det som kommer in på kontot, efter skatt." }, { title: "Vad betalar du för boendet varje månad?", hint: "Hyra, avgift eller lån för bostaden." }, { title: "Vad kostar ditt mobilabonnemang?", hint: "Per månad." }, { title: "Vad kostar resor till jobbet eller skolan?", hint: "Busskort, tåg eller bensin, per månad." }, { title: "Betalar du av på några lån?", hint: "Till exempel studielån, billån eller kreditkort, per månad." }, { title: "Hur mycket vill du spara varje månad?", hint: "Även lite räknas. Lämna tomt om du inte vet än." }],
+    begQuestions: [{ title: "Hur mycket får du ut i lön varje månad?", hint: "Det som kommer in på kontot, efter skatt." }, { title: "Vad betalar du för boendet varje månad?", hint: "Hyra, avgift eller lån för bostaden." }, { title: "Vad betalar du för el varje månad?", hint: "Ungefär per månad. Ingår elen i hyran kan du hoppa över frågan." }, { title: "Hur mycket lägger du på mat varje månad?", hint: "Det du handlar i matbutiken. En ungefärlig summa räcker." }, { title: "Vad kostar ditt mobilabonnemang?", hint: "Per månad." }, { title: "Vad kostar resor till jobbet eller skolan?", hint: "Busskort, tåg eller bensin, per månad." }, { title: "Betalar du av på några lån?", hint: "Till exempel studielån, billån eller kreditkort, per månad." }, { title: "Hur mycket vill du spara varje månad?", hint: "Även lite räknas. Lämna tomt om du inte vet än." }],
+    begRestart: "🧭 Börja om med frågorna",
+    begRestartConfirm: (monthName) => `Du svarar på några frågor och får en ny budget. När du skapar den ersätter den budgeten för ${monthName}, och om du väljer det även resten av året.\n\nDitt utfall påverkas inte, och du kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
     begSkip: "Hoppa över",
     begNext: "Nästa",
     begBack: "Tillbaka",
     begSummaryTitle: "Din budget",
-    begLeftover: "Kvar till mat och allt annat",
+    begLeftover: "Kvar till allt annat",
     begCreate: (from, to) => `Skapa för ${from}–${to}`,
     begCreateOne: (m) => `Skapa för ${m}`,
     begEmpty: "Du har inte fyllt i något än. Gå tillbaka, eller börja med mallen i stället.",
@@ -1893,11 +1915,11 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (action === 'resetCustom') return 'Anpassad började om från början';
-      if (action === 'deleteWallet') return 'En plånbok togs bort';
+      if (action === 'deleteWallet') return "Ett kuvert togs bort";
       if (action === 'deleteCustomBudget') return 'En budget togs bort';
-      if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
+      if (action === 'deleteWalletExpense') return "En utgift togs bort ur ett kuvert";
       if (action === 'createGoal') return 'Ett sparmål skapades';
-      if (action === 'createWallet') return 'En plånbok skapades';
+      if (action === 'createWallet') return "Ett kuvert skapades";
       if (action === 'startBudget') return "En budget skapades";
       if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
@@ -1996,8 +2018,8 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
     dailyBudgetPerMonth: 'Per månad',
-    dailyBudgetToWallet: '+ plånbok',
-    dailyBudgetWalletAria: (amount) => `Skapa en plånbok med ${amount}`,
+    dailyBudgetToWallet: "+ kuvert",
+    dailyBudgetWalletAria: (amount) => `Skapa ett kuvert med ${amount}`,
     walletPeriod: 'Period',
     walletNameMonth: (month) => `Vardag ${month}`,
     walletNameWeek: (week) => `Vardag v. ${week}`,
@@ -2172,13 +2194,13 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Behöver minst ${need} månader med importerade poster. Du har ${have}.`,
     qNothing: 'Inga importerade poster under perioden.',
     wPanels: 'Mina paneler',
-    wMenu: 'Plånböcker',
+    wMenu: "Kuvert",
     wMyBudget: 'Min budget',
     wTagLinked: 'Kopplad',
     wTagStandalone: 'Fristående',
-    wTagWallet: 'Plånbok',
-    wTagSeparate: 'Fristående plånbok',
-    wNew: 'Ny plånbok',
+    wTagWallet: "Kuvert",
+    wTagSeparate: "Fristående kuvert",
+    wNew: "Nytt kuvert",
     wNewLead: 'Egna belopp. Påverkar inte din budget.',
     cbNew: 'Ny budget',
     cbNewLead: 'En egen budget med egna månader, till exempel för ett litet företag. Den räknas inte in i din vanliga budget.',
@@ -2197,12 +2219,12 @@ export const translations: Record<Lang, Translations> = {
     wStartFrom: 'Börja från',
     wKindBlank: 'Tom',
     wKindTrip: 'Resa',
-    wBlankNote: 'En tom plånbok. Du lägger själv till delar, till exempel Mat eller Material, och utgifter.',
+    wBlankNote: "Ett tomt kuvert. Du lägger själv till delar, till exempel Mat eller Material, och utgifter.",
     wNamePlaceholderBlank: 'Renoveringen',
     wNoPart: 'Ingen del',
     wNoPots: 'Inga delar än. Vill du dela upp budgeten, till exempel i Mat och Resor, lägger du till dem här.',
     wUnassigned: 'Utan del',
-    wCreate: 'Skapa plånbok',
+    wCreate: "Skapa kuvert",
     wPotTravel: 'Resor',
     wPotStay: 'Boende',
     wPotFood: 'Mat',
@@ -2227,12 +2249,13 @@ export const translations: Record<Lang, Translations> = {
     wExpenses: 'Utgifter',
     wNoExpenses: 'Inga utgifter än. Lägg till dem allt eftersom.',
     wDeleteExpense: (text) => `Ta bort ${text}`,
-    wEdit: 'Ändra plånboken',
+    wEdit: "Ändra kuvertet",
     wSave: 'Spara',
     wArchive: 'Arkivera',
     wUnarchive: 'Plocka fram',
     wArchived: 'arkiverad',
-    wDelete: 'Ta bort plånboken',
+    wDelete: "Ta bort kuvertet",
+    wMore: (name) => `Mer om ${name}`,
     wDeleteConfirm: (name) => `Ta bort "${name}" med alla utgifter?\n\nDu kan ångra det direkt efteråt.`,
     wPots: 'Delar',
     wAddPot: '+ Lägg till del',
@@ -2246,6 +2269,18 @@ export const translations: Record<Lang, Translations> = {
     wErrAmount: 'Skriv ett belopp.',
     wErrDates: 'Slutdatum kan inte vara före startdatum.',
     wErrPot: 'Delen måste ha ett namn och ett belopp.',
+    envInclude: "Vill du ta med något mer?",
+    envIncludeMonth: "Varje rad du bockar i blir ett eget kuvert, med beloppet från budgeten.",
+    envIncludeWeek: "Det du bockar i delas upp per vecka och blir en del i varje veckokuvert.",
+    envEveryday: "Vardag",
+    envWeeksLabel: "Veckor",
+    envWeeksValue: (first, last, n) => (n === 1 ? `v. ${first}` : `v. ${first}–${last}, ${n} kuvert`),
+    envPerWeek: "Per vecka",
+    envCarryTitle: "Vad blev kvar förra veckan?",
+    envCarryHint: (amount) => `Enligt förra veckans kuvert blev ${amount} kvar. Ändra beloppet om något inte är inskrivet.`,
+    envCarryAdd: "Lägg till",
+    envCarrySkip: "Nej tack",
+    envCarried: (amount) => `Varav ${amount} från förra veckan`,
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -2629,7 +2664,7 @@ export const translations: Record<Lang, Translations> = {
     welcomeTitle: 'Welcome to YourBudget!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
-      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view. In time the wallets came too – a small budget of their own for a trip or a renovation, separate from the month.',
+      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view. In time the envelopes came too – a small budget of their own for a trip or a renovation, separate from the month.',
       'Money is what keeps everyday life moving — food, free time, small pleasures, responsibilities. That is exactly why I think it should be yours to steer, without distractions.',
       'So the app is local. Everything is stored on your device. You export and import whenever you like, without anyone watching or interfering. No cloud service of mine, no bank connection, no third party.',
       'These days local does not mean tedious. You take your bank statement as a file, and the app reads it and sorts the entries for you — on your own device, without the file ever leaving it. Correct a category and it remembers, so next month is less work than this one.',
@@ -2853,12 +2888,14 @@ export const translations: Record<Lang, Translations> = {
     startExpertSub: "Template, empty budget or import",
     startBeginner: "No, help me get started",
     startBeginnerSub: "A few simple questions, then your budget is ready",
-    begQuestions: [{ title: "How much salary do you get each month?", hint: "What lands in your account, after tax." }, { title: "What do you pay for housing each month?", hint: "Rent, fees or the mortgage." }, { title: "What does your phone plan cost?", hint: "Per month." }, { title: "What does getting to work or school cost?", hint: "Bus pass, train or fuel, per month." }, { title: "Are you paying off any loans?", hint: "A student loan, car loan or credit card, for example, per month." }, { title: "How much would you like to save each month?", hint: "A little counts too. Leave it empty if you don't know yet." }],
+    begQuestions: [{ title: "How much salary do you get each month?", hint: "What lands in your account, after tax." }, { title: "What do you pay for housing each month?", hint: "Rent, fees or the mortgage." }, { title: "What do you pay for electricity each month?", hint: "Roughly, per month. If it is included in the rent, skip this one." }, { title: "How much do you spend on food each month?", hint: "What you buy at the grocery store. A rough figure is fine." }, { title: "What does your phone plan cost?", hint: "Per month." }, { title: "What does getting to work or school cost?", hint: "Bus pass, train or fuel, per month." }, { title: "Are you paying off any loans?", hint: "A student loan, car loan or credit card, for example, per month." }, { title: "How much would you like to save each month?", hint: "A little counts too. Leave it empty if you don't know yet." }],
+    begRestart: "🧭 Start over with the questions",
+    begRestartConfirm: (monthName) => `You answer a few questions and get a new budget. When you create it, it replaces the budget for ${monthName}, and the rest of the year if you choose that.\n\nYour recorded spending is not affected, and you can undo it straight afterwards.\n\nContinue?`,
     begSkip: "Skip",
     begNext: "Next",
     begBack: "Back",
     begSummaryTitle: "Your budget",
-    begLeftover: "Left for food and everything else",
+    begLeftover: "Left for everything else",
     begCreate: (from, to) => `Create for ${from}–${to}`,
     begCreateOne: (m) => `Create for ${m}`,
     begEmpty: "You haven't filled anything in yet. Go back, or start with the template instead.",
@@ -2898,11 +2935,11 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (action === 'resetCustom') return 'Custom was started over';
-      if (action === 'deleteWallet') return 'A wallet was removed';
+      if (action === 'deleteWallet') return "An envelope was removed";
       if (action === 'deleteCustomBudget') return 'A budget was removed';
-      if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
+      if (action === 'deleteWalletExpense') return "An expense was removed from an envelope";
       if (action === 'createGoal') return 'A savings goal was created';
-      if (action === 'createWallet') return 'A wallet was created';
+      if (action === 'createWallet') return "An envelope was created";
       if (action === 'startBudget') return "A budget was created";
       if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
@@ -3000,8 +3037,8 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
     dailyBudgetPerMonth: 'Per month',
-    dailyBudgetToWallet: '+ wallet',
-    dailyBudgetWalletAria: (amount) => `Create a wallet with ${amount}`,
+    dailyBudgetToWallet: "+ envelope",
+    dailyBudgetWalletAria: (amount) => `Create an envelope with ${amount}`,
     walletPeriod: 'Period',
     walletNameMonth: (month) => `Day to day · ${month}`,
     walletNameWeek: (week) => `Day to day · week ${week}`,
@@ -3176,13 +3213,13 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Needs at least ${need} months with imported entries. You have ${have}.`,
     qNothing: 'Nothing imported in this period.',
     wPanels: 'My panels',
-    wMenu: 'Wallets',
+    wMenu: "Envelopes",
     wMyBudget: 'My budget',
     wTagLinked: 'Linked',
     wTagStandalone: 'Separate',
-    wTagWallet: 'Wallet',
-    wTagSeparate: 'Separate wallet',
-    wNew: 'New wallet',
+    wTagWallet: "Envelope",
+    wTagSeparate: "Separate envelope",
+    wNew: "New envelope",
     wNewLead: 'Its own amounts. Does not affect your budget.',
     cbNew: 'New budget',
     cbNewLead: 'A budget of its own with its own months, for a small business, say. It is not counted in your regular budget.',
@@ -3201,12 +3238,12 @@ export const translations: Record<Lang, Translations> = {
     wStartFrom: 'Start from',
     wKindBlank: 'Empty',
     wKindTrip: 'Trip',
-    wBlankNote: 'An empty wallet. You add the parts yourself, such as Food or Materials, and the expenses.',
+    wBlankNote: "An empty envelope. You add the parts yourself, such as Food or Materials, and the expenses.",
     wNamePlaceholderBlank: 'The renovation',
     wNoPart: 'No part',
     wNoPots: 'No parts yet. To split the budget, for example into Food and Travel, add them here.',
     wUnassigned: 'No part',
-    wCreate: 'Create wallet',
+    wCreate: "Create envelope",
     wPotTravel: 'Travel',
     wPotStay: 'Stay',
     wPotFood: 'Food',
@@ -3231,12 +3268,13 @@ export const translations: Record<Lang, Translations> = {
     wExpenses: 'Expenses',
     wNoExpenses: 'No expenses yet. Add them as you go.',
     wDeleteExpense: (text) => `Delete ${text}`,
-    wEdit: 'Edit wallet',
+    wEdit: "Edit envelope",
     wSave: 'Save',
     wArchive: 'Archive',
     wUnarchive: 'Bring back',
     wArchived: 'archived',
-    wDelete: 'Delete wallet',
+    wDelete: "Delete envelope",
+    wMore: (name) => `More about ${name}`,
     wDeleteConfirm: (name) => `Delete "${name}" and all its expenses?\n\nYou can undo it straight after.`,
     wPots: 'Parts',
     wAddPot: '+ Add part',
@@ -3250,6 +3288,18 @@ export const translations: Record<Lang, Translations> = {
     wErrAmount: 'Enter an amount.',
     wErrDates: 'The end date cannot be before the start date.',
     wErrPot: 'A part needs a name and an amount.',
+    envInclude: "Anything else to include?",
+    envIncludeMonth: "Each row you tick becomes an envelope of its own, with the amount from the budget.",
+    envIncludeWeek: "What you tick is split per week and becomes a part of each weekly envelope.",
+    envEveryday: "Day to day",
+    envWeeksLabel: "Weeks",
+    envWeeksValue: (first, last, n) => (n === 1 ? `week ${first}` : `weeks ${first}–${last}, ${n} envelopes`),
+    envPerWeek: "Per week",
+    envCarryTitle: "What was left last week?",
+    envCarryHint: (amount) => `Last week's envelope says ${amount} was left. Change it if something wasn't entered.`,
+    envCarryAdd: "Add",
+    envCarrySkip: "No thanks",
+    envCarried: (amount) => `Including ${amount} from last week`,
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -3633,7 +3683,7 @@ export const translations: Record<Lang, Translations> = {
     welcomeTitle: '¡Bienvenido a YourBudget!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
-      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista. Con el tiempo llegaron también las carteras: un pequeño presupuesto propio para un viaje o una reforma, aparte del mes.',
+      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista. Con el tiempo llegaron también los sobres: un pequeño presupuesto propio para un viaje o una reforma, aparte del mes.',
       'El dinero es lo que hace que la vida diaria funcione — comida, tiempo libre, gustos, responsabilidades. Justo por eso creo que debe ser tuyo de manejar, sin distracciones.',
       'Por eso la app es local. Todo se guarda en tu dispositivo. Exportas e importas cuando quieras, sin que nadie lo vea ni se meta. Sin ningún servicio en la nube mío, sin conexión bancaria, sin terceros.',
       'Hoy local ya no significa pesado. Traes el extracto de tu banco como archivo, y la app lo lee y ordena los movimientos por ti — en tu propio dispositivo, sin que el archivo salga de él. Si corriges una categoría lo recuerda, así que el mes que viene cuesta menos que este.',
@@ -3857,12 +3907,14 @@ export const translations: Record<Lang, Translations> = {
     startExpertSub: "Plantilla, presupuesto vacío o importar",
     startBeginner: "No, ayúdame a empezar",
     startBeginnerSub: "Unas preguntas sencillas y el presupuesto estará listo",
-    begQuestions: [{ title: "¿Cuánto cobras de sueldo cada mes?", hint: "Lo que llega a tu cuenta, después de impuestos." }, { title: "¿Cuánto pagas por la vivienda cada mes?", hint: "Alquiler, comunidad o hipoteca." }, { title: "¿Cuánto cuesta tu tarifa del móvil?", hint: "Al mes." }, { title: "¿Cuánto cuesta ir al trabajo o a clase?", hint: "Abono de transporte, tren o gasolina, al mes." }, { title: "¿Estás pagando algún préstamo?", hint: "Por ejemplo, de estudios, del coche o la tarjeta de crédito, al mes." }, { title: "¿Cuánto quieres ahorrar cada mes?", hint: "Un poco también cuenta. Déjalo vacío si aún no lo sabes." }],
+    begQuestions: [{ title: "¿Cuánto cobras de sueldo cada mes?", hint: "Lo que llega a tu cuenta, después de impuestos." }, { title: "¿Cuánto pagas por la vivienda cada mes?", hint: "Alquiler, comunidad o hipoteca." }, { title: "¿Cuánto pagas de luz cada mes?", hint: "Aproximadamente, al mes. Si va incluida en el alquiler, sáltate esta pregunta." }, { title: "¿Cuánto gastas en comida cada mes?", hint: "Lo que compras en el supermercado. Basta con una cifra aproximada." }, { title: "¿Cuánto cuesta tu tarifa del móvil?", hint: "Al mes." }, { title: "¿Cuánto cuesta ir al trabajo o a clase?", hint: "Abono de transporte, tren o gasolina, al mes." }, { title: "¿Estás pagando algún préstamo?", hint: "Por ejemplo, de estudios, del coche o la tarjeta de crédito, al mes." }, { title: "¿Cuánto quieres ahorrar cada mes?", hint: "Un poco también cuenta. Déjalo vacío si aún no lo sabes." }],
+    begRestart: "🧭 Empezar de nuevo con las preguntas",
+    begRestartConfirm: (monthName) => `Respondes unas preguntas y obtienes un presupuesto nuevo. Al crearlo, reemplaza el presupuesto de ${monthName}, y el resto del año si lo eliges.\n\nTus gastos registrados no cambian, y puedes deshacerlo justo después.\n\n¿Continuar?`,
     begSkip: "Omitir",
     begNext: "Siguiente",
     begBack: "Atrás",
     begSummaryTitle: "Tu presupuesto",
-    begLeftover: "Queda para comida y todo lo demás",
+    begLeftover: "Queda para todo lo demás",
     begCreate: (from, to) => `Crear para ${from}–${to}`,
     begCreateOne: (m) => `Crear para ${m}`,
     begEmpty: "Aún no has rellenado nada. Vuelve atrás o empieza con la plantilla.",
@@ -3902,11 +3954,11 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
-      if (action === 'deleteWallet') return 'Se eliminó una cartera';
+      if (action === 'deleteWallet') return "Se eliminó un sobre";
       if (action === 'deleteCustomBudget') return 'Se eliminó un presupuesto';
-      if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
+      if (action === 'deleteWalletExpense') return "Se eliminó un gasto de un sobre";
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
-      if (action === 'createWallet') return 'Se creó una cartera';
+      if (action === 'createWallet') return "Se creó un sobre";
       if (action === 'startBudget') return "Se creó un presupuesto";
       if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
@@ -4004,8 +4056,8 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',
     dailyBudgetPerMonth: 'Al mes',
-    dailyBudgetToWallet: '+ cartera',
-    dailyBudgetWalletAria: (amount) => `Crear una cartera con ${amount}`,
+    dailyBudgetToWallet: "+ sobre",
+    dailyBudgetWalletAria: (amount) => `Crear un sobre con ${amount}`,
     walletPeriod: 'Periodo',
     walletNameMonth: (month) => `Día a día · ${month}`,
     walletNameWeek: (week) => `Día a día · semana ${week}`,
@@ -4180,13 +4232,13 @@ export const translations: Record<Lang, Translations> = {
     qTooLittle: (need, have) => `Hacen falta al menos ${need} meses con movimientos importados. Tienes ${have}.`,
     qNothing: 'Nada importado en este periodo.',
     wPanels: 'Mis paneles',
-    wMenu: 'Carteras',
+    wMenu: "Sobres",
     wMyBudget: 'Mi presupuesto',
     wTagLinked: 'Vinculado',
     wTagStandalone: 'Independiente',
-    wTagWallet: 'Cartera',
-    wTagSeparate: 'Cartera independiente',
-    wNew: 'Nueva cartera',
+    wTagWallet: "Sobre",
+    wTagSeparate: "Sobre independiente",
+    wNew: "Nuevo sobre",
     wNewLead: 'Sus propios importes. No afecta a tu presupuesto.',
     cbNew: 'Nuevo presupuesto',
     cbNewLead: 'Un presupuesto propio con sus propios meses, por ejemplo para un pequeño negocio. No se cuenta en tu presupuesto habitual.',
@@ -4205,12 +4257,12 @@ export const translations: Record<Lang, Translations> = {
     wStartFrom: 'Empezar con',
     wKindBlank: 'Vacía',
     wKindTrip: 'Viaje',
-    wBlankNote: 'Una cartera vacía. Tú añades las partes, como Comida o Materiales, y los gastos.',
+    wBlankNote: "Un sobre vacío. Tú añades las partes, como Comida o Materiales, y los gastos.",
     wNamePlaceholderBlank: 'La reforma',
     wNoPart: 'Sin parte',
     wNoPots: 'Aún no hay partes. Para dividir el presupuesto, por ejemplo en Comida y Transporte, añádelas aquí.',
     wUnassigned: 'Sin parte',
-    wCreate: 'Crear cartera',
+    wCreate: "Crear sobre",
     wPotTravel: 'Transporte',
     wPotStay: 'Alojamiento',
     wPotFood: 'Comida',
@@ -4235,12 +4287,13 @@ export const translations: Record<Lang, Translations> = {
     wExpenses: 'Gastos',
     wNoExpenses: 'Aún no hay gastos. Añádelos sobre la marcha.',
     wDeleteExpense: (text) => `Eliminar ${text}`,
-    wEdit: 'Editar cartera',
+    wEdit: "Editar sobre",
     wSave: 'Guardar',
     wArchive: 'Archivar',
     wUnarchive: 'Recuperar',
     wArchived: 'archivada',
-    wDelete: 'Eliminar cartera',
+    wDelete: "Eliminar sobre",
+    wMore: (name) => `Más sobre ${name}`,
     wDeleteConfirm: (name) => `¿Eliminar "${name}" con todos sus gastos?\n\nPuedes deshacerlo justo después.`,
     wPots: 'Partes',
     wAddPot: '+ Añadir parte',
@@ -4254,6 +4307,18 @@ export const translations: Record<Lang, Translations> = {
     wErrAmount: 'Escribe un importe.',
     wErrDates: 'La fecha final no puede ser anterior a la inicial.',
     wErrPot: 'Una parte necesita un nombre y un importe.',
+    envInclude: "¿Quieres incluir algo más?",
+    envIncludeMonth: "Cada fila que marques se convierte en un sobre propio, con el importe del presupuesto.",
+    envIncludeWeek: "Lo que marques se reparte por semanas y pasa a ser una parte de cada sobre semanal.",
+    envEveryday: "Día a día",
+    envWeeksLabel: "Semanas",
+    envWeeksValue: (first, last, n) => (n === 1 ? `semana ${first}` : `semanas ${first}–${last}, ${n} sobres`),
+    envPerWeek: "Por semana",
+    envCarryTitle: "¿Cuánto sobró la semana pasada?",
+    envCarryHint: (amount) => `Según el sobre de la semana pasada sobraron ${amount}. Cámbialo si falta algo por anotar.`,
+    envCarryAdd: "Añadir",
+    envCarrySkip: "No, gracias",
+    envCarried: (amount) => `Incluye ${amount} de la semana pasada`,
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '../i18n';
 import { useModalFocus } from '../useModalFocus';
@@ -22,9 +22,11 @@ interface Props {
   lines: ChangeLine[];
   onConfirm: () => Promise<boolean>;
   onClose: () => void;
+  /** Choices that shape the change, between what it is and the buttons. */
+  children?: ReactNode;
 }
 
-export const ConfirmChange = ({ title, lines, onConfirm, onClose }: Props) => {
+export const ConfirmChange = ({ title, lines, onConfirm, onClose, children }: Props) => {
   const { t } = useLang();
   const panel = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
@@ -54,6 +56,7 @@ export const ConfirmChange = ({ title, lines, onConfirm, onClose }: Props) => {
             </li>
           ))}
         </ul>
+        {children}
         <p className="q-note">{t.toolConfirmUndo}</p>
         <div className="confirm-change-actions">
           <button className="custom-secondary-btn" onClick={onClose}>{t.cancel}</button>

@@ -21,7 +21,7 @@ Each track also has a chat of its own, with the model that suits it (Ariel, 2026
 |------|-------|-------|
 | 👑 **Otto** – the app, and coordination | `development` | Opus |
 | 🌐 **Webby** – www.yourofflinebudget.com | `website` → `main` | Sonnet |
-| 🎨 **Stan** – the app's look | `design` → `development` | Sonnet |
+| 🎨 **Stan** – the app's look | local, handed to Otto → `development` | Sonnet |
 | 🧪 **Arty** – the offline AI assistant lab | `~/Developer/budget-ai-lab` | Opus |
 
 ## Working rules (efficiency-tuned)
@@ -45,12 +45,14 @@ Each track also has a chat of its own, with the model that suits it (Ariel, 2026
      exists on this branch only). Website work lands here, the user checks its preview,
      and it merges to `main` ONLY on the user's explicit word. That deploys production,
      which from 2 November 2026 is the website only.
-   - **`design` = the app's look**: colours, themes, layout, spacing, polish. Driven
-     by Stan in a chat of its own (Ariel, 2026-10-26). It branches from `development`,
-     takes in `development` often, and merges back into **`development`** — never
-     `main` — on the user's explicit word, after he has seen it. It touches styling
-     (`src/index.css`, `src/themes.ts`, component markup for layout); behaviour and
-     data stay on `development`.
+   - **The app's look** (colours, themes, layout, spacing, polish) is Stan's, in a chat
+     of its own, and gets **no branch on GitHub** (Ariel, 2026-10-27: branches only for
+     the big things). Stan works in his local worktree on top of the latest
+     `development`, commits nothing, and when a piece is done he hands it to Otto:
+     which files, what changed, how he checked it. Otto takes the changes into
+     `development`, reviews and verifies them like his own work, shows Ariel, and
+     asks about the push as usual. Stan touches styling (`src/index.css`,
+     `src/themes.ts`, component markup for layout); behaviour and data are Otto's.
    - Never push to `main` directly. `authorization` = parked accounts/cloud-sync work;
      don't touch it.
 5. **Every release adds a changelog entry** in `src/changelog.ts` (sv/en/es) — that IS the

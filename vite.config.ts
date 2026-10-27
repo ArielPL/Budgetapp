@@ -49,5 +49,8 @@ export default defineConfig({
     // `outputs` is a scratch folder other tools write into, tests included —
     // a stray one there failed the app's suite (2026-10-17).
     exclude: [...configDefaults.exclude, '.claude/**', 'outputs/**'],
+    // Waits and whole tests get room for a loaded machine: see src/testSetup.ts.
+    setupFiles: ['./src/testSetup.ts'],
+    testTimeout: 20_000,
   },
 })

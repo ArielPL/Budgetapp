@@ -186,7 +186,7 @@ describe('Android Back on the wallets screen', () => {
     native.minimized = 0;
     await boot({ budget_layout: 'combined' });
     fireEvent.click(buttonWith(sv.menu)!);
-    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    fireEvent.click(buttonWith(`✉️ ${sv.wMenu}`)!);
     await waitFor(() => expect(document.querySelector('.wallet')).not.toBeNull());
     await waitFor(() => expect(native.back).not.toBeNull());
     act(() => { native.back!(); });

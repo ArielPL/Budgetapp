@@ -54,6 +54,12 @@ export interface Wallet {
   /** Oldest first, as entered. */
   expenses: WalletExpense[];
   archived?: boolean;
+  /** Weekly envelopes made together share this, so a week can find the one
+   *  before it (Ariel, 2026-10-27). */
+  series?: string;
+  /** What the week before left and was moved into this one; 0 when the user
+   *  said no. Absent until asked. */
+  carry?: number;
 }
 
 /** The trip template: its parts, and the share of the total each starts with.
@@ -88,7 +94,9 @@ export function isWallet(v: unknown): v is Wallet {
     && (v.from === undefined || isDate(v.from)) && (v.to === undefined || isDate(v.to))
     && Array.isArray(v.pots) && v.pots.every(isPot)
     && Array.isArray(v.expenses) && v.expenses.every(isExpense)
-    && (v.archived === undefined || typeof v.archived === 'boolean'))) return false;
+    && (v.archived === undefined || typeof v.archived === 'boolean')
+    && (v.series === undefined || typeof v.series === 'string')
+    && (v.carry === undefined || (isNum(v.carry) && v.carry >= 0)))) return false;
   // Every expense belongs to a part the wallet has, or to none.
   const pots = new Set((v.pots as WalletPot[]).map(p => p.id));
   return (v.expenses as WalletExpense[]).every(e => e.potId === '' || pots.has(e.potId));
@@ -235,4 +243,123 @@ export function walletWeek(today: Date, month: { from: Date; to: Date }): { from
   const to = new Date(from);
   to.setDate(to.getDate() + 6);
   return { from, to };
+}
+
+// ── Envelopes from Left to live on, with rows of the budget taken along ────
+//
+// Ariel, 2026-10-27: the month's amount becomes one envelope, and each budget
+// row ticked — groceries, say — an envelope of its own beside it. The week's
+// becomes one envelope per week left in the period, each holding its share of
+// what is left and of every row ticked, as parts.
+
+/** A budget row offered to take along. */
+export interface EnvelopeRow {
+  id: string;
+  label: string;
+  amount: number;
+}
+
+/** The Monday-to-Sunday weeks of a period, cut at its ends, and how many of
+ *  the period's days each holds. */
+export function periodWeeks(period: { from: Date; to: Date }): { from: Date; to: Date; days: number }[] {
+  const weeks: { from: Date; to: Date; days: number }[] = [];
+  const start = new Date(period.from.getFullYear(), period.from.getMonth(), period.from.getDate());
+  const end = new Date(period.to.getFullYear(), period.to.getMonth(), period.to.getDate());
+  let from = start;
+  while (from <= end) {
+    const sunday = new Date(from);
+    sunday.setDate(sunday.getDate() + (7 - ((from.getDay() + 6) % 7)) - 1);
+    const to = sunday < end ? sunday : end;
+    weeks.push({ from, to, days: Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1 });
+    from = new Date(to);
+    from.setDate(from.getDate() + 1);
+  }
+  return weeks;
+}
+
+/**
+ * `amount` shared over `weeks` by their days, in whole units: each week gets
+ * the rounded running total less what the weeks before it got, so the shares
+ * always add up to exactly `amount`.
+ */
+function shareByDays(amount: number, weeks: { days: number }[]): number[] {
+  const total = weeks.reduce((n, w) => n + w.days, 0);
+  let days = 0;
+  let given = 0;
+  return weeks.map(w => {
+    days += w.days;
+    const upTo = Math.round((amount * days) / total);
+    const share = upTo - given;
+    given = upTo;
+    return share;
+  });
+}
+
+/**
+ * The envelopes a month makes: what is left, named `name`, and one for each
+ * row taken along, all over the same period.
+ */
+export function monthEnvelopes(
+  { name, left, rows, period, newId }: {
+    name: string; left: number; rows: EnvelopeRow[]; period: { from: Date; to: Date }; newId: () => string;
+  },
+): Wallet[] {
+  const from = isoDay(period.from);
+  const to = isoDay(period.to);
+  return [
+    newBlank({ id: newId(), name, total: left, from, to }),
+    ...rows.map(r => newBlank({ id: newId(), name: r.label, total: r.amount, from, to })),
+  ];
+}
+
+/**
+ * The envelopes a week makes: one per week of the period not yet over on
+ * `today`. Each holds its days' share of what is left and of each row taken
+ * along; with rows, those shares are its parts, what is left first.
+ */
+export function weekEnvelopes(
+  { name, left, rows, period, today, everyday, newId }: {
+    name: (week: number) => string; left: number; rows: EnvelopeRow[];
+    period: { from: Date; to: Date }; today: Date; everyday: string; newId: () => string;
+  },
+): Wallet[] {
+  const weeks = periodWeeks(period);
+  const leftShares = shareByDays(left, weeks);
+  const rowShares = rows.map(r => shareByDays(r.amount, weeks));
+  const day = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const series = newId();
+  return weeks.flatMap((w, i) => {
+    if (w.to < day) return [];
+    const pots: WalletPot[] = rows.length === 0 ? [] : [
+      { id: newId(), name: everyday, planned: leftShares[i] },
+      ...rows.map((r, k) => ({ id: newId(), name: r.label, planned: rowShares[k][i] })),
+    ];
+    const total = leftShares[i] + rowShares.reduce((n, s) => n + s[i], 0);
+    return [{
+      ...newBlank({ id: newId(), name: name(isoWeek(w.from)), total, from: isoDay(w.from), to: isoDay(w.to) }),
+      pots, series,
+    }];
+  });
+}
+
+/** The week before `w` in its series, if there is one. */
+export function previousInSeries(w: Wallet, all: Wallet[]): Wallet | undefined {
+  if (!w.series || !w.from) return undefined;
+  const from = w.from;
+  return all
+    .filter(x => x.series === w.series && x.id !== w.id && x.to !== undefined && x.to < from)
+    .sort((a, b) => (a.to! < b.to! ? 1 : -1))[0];
+}
+
+/**
+ * `amount` from the week before moved into `w`: onto its total, and onto its
+ * first part — what is left — when it has parts, so the parts still add up.
+ */
+export function withCarry(w: Wallet, amount: number): Wallet {
+  return {
+    ...w,
+    carry: amount,
+    total: toCents(w.total + amount),
+    pots: w.pots.map((p, i) => (i === 0 ? { ...p, planned: toCents(p.planned + amount) } : p)),
+  };
 }

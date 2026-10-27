@@ -227,7 +227,10 @@ a:focus-visible,
 /* ─── App shell ───────────────────────────────────────────────────── */
 
 .app {
-  max-width: 1400px;
+  /* In rem, like the canvases below: the page widens with the text, and an
+     iPad app on a Mac (html[data-mac-fit], 1.3 × the root) fills the window
+     the way the same budget does in a browser. */
+  max-width: 87.5rem;
   margin: 0 auto;
   padding: 0 16px 48px;
   /* A phone on its side: keep content clear of the notch and rounded
@@ -554,7 +557,7 @@ a:focus-visible,
    The month selector stays global in the header. */
 /* Centered canvas so the dashboard reads as a composed grid, not edge-to-edge. */
 .custom-canvas {
-  max-width: 1140px;
+  max-width: 71.25rem;
   margin: 0 auto;
   width: 100%;
 }
@@ -2105,8 +2108,14 @@ a:focus-visible,
 .menu-wrap {
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  /* Centred without a transform: a transform makes this box the containing
+     block of the fixed .menu-backdrop inside it, which then covered only the
+     button — a grey box over Meny instead of a layer over the page (Mac,
+     2026-10-27). */
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  margin: auto 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2144,11 +2153,12 @@ a:focus-visible,
   border-color: var(--accent-brand);
 }
 
+/* Catches a click beside the menu. A dropdown leaves the page as it is; the
+   phone's bottom sheet dims it (end of file). */
 .menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .utils-menu {
@@ -2156,7 +2166,9 @@ a:focus-visible,
   top: calc(100% + 8px);
   right: 0;
   z-index: 100;
-  width: 280px;
+  /* In rem, so the menu grows with the text: at 280px the largest text size
+     wrapped every row and pushed the size buttons out of the box. */
+  width: 17.5rem;
   max-width: calc(100vw - 24px);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2186,8 +2198,15 @@ a:focus-visible,
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0; /* let the flex child shrink below content size, so it scrolls */
 }
+
+/* The LIST scrolls; its rows never shrink to make room. Each row's own
+   min-height let it be squeezed below its text, so a two-line row ran into the
+   next one (Undo over the danger zone, "Hämta från september" over "Nästa
+   månad") whenever the menu was taller than the window. */
+.utils-menu-scroll > * { flex-shrink: 0; }
 
 /* Drag handle — hidden on desktop, visible on mobile */
 .utils-menu-drag-handle {
@@ -5895,7 +5914,7 @@ html.guide-side body { padding-right: 380px; }
      as wide as it needs. */
   align-self: stretch;
   width: 100%;
-  max-width: 1140px;
+  max-width: 71.25rem;
   margin: 0 auto 12px;
 }
 .wallet-switch-toggle {
@@ -5981,7 +6000,7 @@ html.guide-side body { padding-right: 380px; }
 }
 .budget-name {
   width: 100%;
-  max-width: 1140px;
+  max-width: 71.25rem;
   margin: 0 auto 12px;
   padding: 12px;
   background: var(--surface);
@@ -6092,6 +6111,177 @@ html.guide-side body { padding-right: 380px; }
 .wallet-pot-edit .wallet-pot-edit-amount { flex: 0 0 110px; }
 .wallet-footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .wallet-danger { color: var(--negative); }
+
+/* "What was left last week?" in a weekly envelope (2026-10-27). */
+.wallet-carry {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 45%, var(--border));
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+}
+.wallet-carry-title { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+.wallet-carry-hint { margin: 4px 0 8px; font-size: 0.8rem; color: var(--text-dim); line-height: 1.35; }
+.wallet-carry-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.wallet-carry-input { flex: 1 1 7rem; min-width: 0; }
+.wallet-carry-error { margin: 6px 0 0; font-size: 0.78rem; color: var(--negative); }
+
+/* Budget rows to take along when an envelope is made from Left to live on. */
+.env-include { margin: 12px 0 0; padding: 0; border: 0; min-width: 0; }
+.env-include-title { padding: 0; font-weight: 700; font-size: 0.9rem; color: var(--text); }
+.env-include-hint { margin: 4px 0 8px; font-size: 0.8rem; color: var(--text-dim); line-height: 1.35; }
+.env-include-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.env-include-row input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent-brand); flex-shrink: 0; }
+.env-include-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.env-include-amount { color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── The wallets screen: every wallet at once ─────────────────────────────
+   From 641px up the wallets stand side by side as columns, with a "+" card
+   last; below it they are a list of cards, and a tap opens one. Which of the
+   two is chosen in Wallets.tsx (useWide) with the same 640px as the phone
+   overrides at the end of this file. */
+.wallet-screen-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  width: 100%;
+  margin: 0 0 0.9rem;
+}
+.wallet-screen-title { margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text); }
+.wallet-back {
+  padding: 0.4rem 0.25rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-brand-strong);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.wallet-columns {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+  padding-bottom: 0.4rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.wallet-columns > .wallet {
+  flex: 1 1 17.5rem;
+  min-width: 17.5rem;
+  max-width: 24rem;
+  margin: 0;
+  scroll-snap-align: start;
+}
+.wallet-col-head { position: relative; display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.35rem; }
+.wallet-col-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A part's amount drops below its name instead of breaking the name mid-word. */
+.wallet-column .wallet-pot-head { flex-wrap: wrap; row-gap: 0; }
+.wallet-column .wallet-pot-name { overflow-wrap: break-word; }
+.wallet-column .wallet-pot-amount { margin-left: auto; }
+.wallet-more { flex: 0 0 auto; }
+.wallet-more-btn {
+  width: 2.1rem;
+  height: 2.1rem;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.wallet-more-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+}
+.wallet-more-item {
+  padding: 0.6rem 0.65rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.wallet-more-item:hover { background: var(--surface2); }
+.wallet-more-item.wallet-danger { color: var(--negative); }
+.wallet-plus {
+  flex: 0 0 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-brand-strong);
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.wallet-plus:hover { background: var(--surface); }
+.wallet-plus-sign { font-size: 1.8rem; font-weight: 300; line-height: 1; }
+.wallet-cards { display: flex; flex-direction: column; gap: 0.65rem; width: 100%; max-width: 35rem; margin: 0 auto; }
+.wallet-cards .wallet-plus { flex: none; min-height: 4.5rem; }
+.wallet-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.wallet-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.wallet-card-name { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.wallet-card-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wallet-card-sub { font-size: 0.78rem; color: var(--text-muted); }
+.wallet-card .wallet-bar { display: block; margin-top: 0.45rem; }
+.wallet-card .wallet-bar-fill { display: block; }
+.wallet-card-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; }
+.wallet-card-label { font-size: 0.75rem; color: var(--text-muted); }
+.wallet-card-value { font-size: 1.2rem; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wallet-card-value.is-over { color: var(--negative); }
 
 /* ── Question cards (Follow-up): answers the app works out itself ──────────
    Same card as "Where did the money go?" above it. Questions are full-width
@@ -7129,4 +7319,9 @@ td.num[style*="color: rgb"],
 /* Renaming a budget on a phone: the name gets the whole row, the buttons share the next. */
 @media (max-width: 640px) {
   .budget-name-row .label-input { flex-basis: 100%; }
+}
+
+/* The bottom sheet dims the page behind it; the desktop dropdown does not. */
+@media (max-width: 640px) {
+  .menu-backdrop { background: rgba(0, 0, 0, 0.4); }
 }

@@ -61,7 +61,7 @@ import {
   type Mode,
   type ThemeVars,
 } from './themes';
-import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal, recursNextMonth } from './metrics';
+import { calculateBudgetMetrics, calculateSavingsMetrics, savedThisMonth, categoryTotal, recursNextMonth, sumRows } from './metrics';
 import { InsightLine } from './components/InsightLine';
 import { savingsStreakFrom } from './insight';
 import { hasBudgetContent } from './monthContent';
@@ -87,7 +87,7 @@ import { Spotlight } from './components/Spotlight';
 /** The year whose "copy to the rest of the year" offer was declined. */
 const COPY_OFFER_KEY = 'budget_copy_offer_dismissed';
 const GUIDE_NUDGE_KEY = 'budget_guide_nudge_seen';
-import { newBlank, loadWallets, walletsChange, walletWeek, isoWeek, isoDay, WALLETS_KEY, OPEN_PANEL_KEY } from './wallets';
+import { loadWallets, walletsChange, monthEnvelopes, weekEnvelopes, WALLETS_KEY, OPEN_PANEL_KEY, isoWeek, type EnvelopeRow, type Wallet } from './wallets';
 
 
 
@@ -121,6 +121,10 @@ interface AppProps {
 }
 
 
+
+/** Categories an envelope never offers to take along: paid as they are, by
+ *  transfer or direct debit, not spent bit by bit (Ariel, 2026-10-27). */
+const ENVELOPE_SKIPS = new Set(['boende', 'prenumerationer', 'lan', 'sparande', 'sparkonto', 'isk', 'fonder', 'pension']);
 
 function App({ startupRepair = null }: AppProps) {
   const now = new Date();
@@ -260,7 +264,7 @@ function App({ startupRepair = null }: AppProps) {
     const built = ensureGoalLinkedBudgetRows(beginnerMonthData(answers, lang), planData.goals, lang);
     const months = restOfYear
       ? Array.from({ length: 12 - month }, (_, i) => month + i)
-        .filter(m => m === month || !hasBudgetContent(loadMonthData(year, m, lang)))
+        .filter(m => m === month || startOver || !hasBudgetContent(loadMonthData(year, m, lang)))
       : [month];
     const keys = months.map(m => storageKey(year, m));
     const before = captureKeys(appStorage, keys);
@@ -273,7 +277,7 @@ function App({ startupRepair = null }: AppProps) {
     setData(built);
     dismissBudgetHero();
     setCopyOfferHidden(true);
-    setStartChoiceOpen(false);
+    closeStartChoice();
     offerGuideNudge();
     return true;
   };
@@ -307,6 +311,11 @@ function App({ startupRepair = null }: AppProps) {
   // After the intro, a new install with nothing in its budget is asked whether
   // it has made a budget before (Ariel, 2026-10-19) — see BeginnerStart.
   const [startChoiceOpen, setStartChoiceOpen] = useState(false);
+  // The same questions from the menu, to start over (Ariel, 2026-10-27): the
+  // answers then REPLACE this month, and the rest of the year if chosen,
+  // instead of only filling months that are empty.
+  const [startOver, setStartOver] = useState(false);
+  const closeStartChoice = () => { setStartChoiceOpen(false); setStartOver(false); };
   const dismissIntro = () => {
     safeSetItem(appStorage, 'budget_welcome_seen', '1');
     setIntroOpen(false);
@@ -1172,6 +1181,15 @@ function App({ startupRepair = null }: AppProps) {
     showMsg(t.resetMonthDone);
   };
 
+  // Asked before the questions, not after: what is about to be replaced is
+  // the budget on screen, and nothing is written until the last button.
+  const startOverWithQuestions = () => {
+    if (!window.confirm(t.begRestartConfirm(monthInText(month, year, lang)))) return;
+    setMenuOpen(false);
+    setStartOver(true);
+    setStartChoiceOpen(true);
+  };
+
   // Stable identity: this sits in CustomV3's save-effect dependencies, and a
   // new function each render would re-run that effect on every render.
   const reportSaveFailed = useCallback(() => setSaveFailed(true), []);
@@ -1817,37 +1835,45 @@ function App({ startupRepair = null }: AppProps) {
     return true;
   };
 
-  // ── A wallet from Left to live on (Ariel, 2026-10-18) ────────────────
-  // The week's or the month's amount becomes a wallet: a plan for everyday
-  // spending, filled in as the money goes. A snapshot — the budget is not
-  // touched, and changing the budget later does not change the wallet.
-  const [walletDraft, setWalletDraft] = useState<{ name: string; total: number; from: Date; to: Date } | null>(null);
-  const planWallet = (span: 'week' | 'month', amount: number) => {
-    const monthSpan = periodStartDay !== null || Object.keys(periodLocks).length > 0
+  // ── An envelope from Left to live on (Ariel, 2026-10-18, 2026-10-27) ──
+  // The month's amount becomes an envelope, and each budget row ticked — the
+  // groceries, say — one of its own beside it. The week's becomes one envelope
+  // per week left in the period, the rows ticked as parts of each. Snapshots:
+  // the budget is not touched, and changing it later changes no envelope.
+  const [walletDraft, setWalletDraft] = useState<{
+    span: 'week' | 'month'; left: number; period: { from: Date; to: Date };
+    rows: EnvelopeRow[]; picked: string[];
+  } | null>(null);
+  const planWallet = (span: 'week' | 'month') => {
+    const period = periodStartDay !== null || Object.keys(periodLocks).length > 0
       ? periodRange(year, month, periodStartDay ?? 1, periodLocks)
       : { from: new Date(year, month, 1), to: new Date(year, month + 1, 0) };
-    if (span === 'month') {
-      setWalletDraft({ name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)), total: amount, ...monthSpan });
-    } else {
-      const week = walletWeek(new Date(), monthSpan);
-      setWalletDraft({ name: t.walletNameWeek(isoWeek(week.from)), total: amount, ...week });
-    }
+    // Everyday spending only: rent, loans, subscriptions and savings are paid
+    // as they are, not out of an envelope.
+    const rows = data.expenses
+      .filter(c => !ENVELOPE_SKIPS.has(c.id))
+      .flatMap(c => c.rows.filter(r => r.amount > 0).map(r => ({ id: r.id, label: shownName(r, lang), amount: r.amount })));
+    setWalletDraft({ span, left: totalIncome - totalExpenses, period, rows, picked: [] });
+  };
+  const draftEnvelopes = (draft: NonNullable<typeof walletDraft>, newId: () => string): Wallet[] => {
+    const rows = draft.rows.filter(r => draft.picked.includes(r.id));
+    return draft.span === 'month'
+      ? monthEnvelopes({ name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)), left: draft.left, rows, period: draft.period, newId })
+      : weekEnvelopes({ name: t.walletNameWeek, left: draft.left, rows, period: draft.period, today: new Date(), everyday: t.envEveryday, newId });
   };
   const createWalletFromBudget = async (): Promise<boolean> => {
     if (!walletDraft) return false;
+    const made = draftEnvelopes(walletDraft, generateId);
+    if (made.length === 0) return false;
     const before = captureKeys(appStorage, [WALLETS_KEY]);
-    const wallet = newBlank({
-      id: generateId(), name: walletDraft.name, total: walletDraft.total,
-      from: isoDay(walletDraft.from), to: isoDay(walletDraft.to),
-    });
-    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange([...loadWallets(appStorage), wallet])]);
+    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange([...loadWallets(appStorage), ...made])]);
     if (outcome !== 'stored') {
       alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
     recordUndo({ at: new Date().toISOString(), action: 'createWallet', changes: before });
-    // Straight to it: the wallets screen opens on the wallet just made.
-    safeSetItem(appStorage, OPEN_PANEL_KEY, wallet.id);
+    // Straight to it: the envelopes screen opens on the first one made.
+    safeSetItem(appStorage, OPEN_PANEL_KEY, made[0].id);
     setWalletsScreen(true);
     return true;
   };
@@ -2103,7 +2129,7 @@ function App({ startupRepair = null }: AppProps) {
               header says where you are instead of offering months. */}
           {walletsScreen ? (
             <div className="month-nav-wrap">
-              <div className="month-nav"><span className="month-title">✈️ {t.wMenu}</span></div>
+              <div className="month-nav"><span className="month-title">✉️ {t.wMenu}</span></div>
             </div>
           ) : <MonthNav
             year={year}
@@ -2242,7 +2268,7 @@ function App({ startupRepair = null }: AppProps) {
 
                   {/* Wallets — a trip's own budget, reachable from every layout */}
                   <button className="utils-action" data-guide="wallets" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
-                    ✈️ {t.wMenu}
+                    ✉️ {t.wMenu}
                   </button>
 
                   {/* Theme — opens the Theme Builder panel */}
@@ -2370,6 +2396,9 @@ function App({ startupRepair = null }: AppProps) {
                       <div className="utils-divider" />
 
                       <div className="utils-group-label utils-danger-label">⚠ {t.dangerZone}</div>
+                      <button className="utils-action utils-action-danger" onClick={startOverWithQuestions}>
+                        {t.begRestart}
+                      </button>
                       <button className="utils-action utils-action-danger" onClick={resetCurrentMonth}>
                         {t.resetMonth}
                       </button>
@@ -2422,24 +2451,58 @@ function App({ startupRepair = null }: AppProps) {
               from: inSentence(MONTHS_SHORT[lang][month], lang),
               to: month < 11 ? inSentence(MONTHS_SHORT[lang][11], lang) : null,
             }}
-            onExpert={() => setStartChoiceOpen(false)}
-            onTemplate={() => { addStarterBudget(); setStartChoiceOpen(false); offerGuideNudge(); }}
+            onExpert={closeStartChoice}
+            onTemplate={() => { addStarterBudget(); closeStartChoice(); offerGuideNudge(); }}
             onCreate={createBeginnerBudget}
+            restart={startOver}
           />
         </Suspense>
       )}
-      {walletDraft && (
-        <ConfirmChange
-          title={t.wCreate}
-          lines={[
-            { label: t.wName, after: walletDraft.name },
-            { label: t.wTotal, after: money(walletDraft.total) },
-            { label: t.walletPeriod, after: formatPeriodRange(walletDraft, lang) },
-          ]}
-          onConfirm={createWalletFromBudget}
-          onClose={() => setWalletDraft(null)}
-        />
-      )}
+      {walletDraft && (() => {
+        const made = draftEnvelopes(walletDraft, () => '');
+        const week = walletDraft.span === 'week';
+        const first = made[0];
+        const last = made[made.length - 1];
+        const periodDays = Math.round((walletDraft.period.to.getTime() - walletDraft.period.from.getTime()) / 86_400_000) + 1;
+        const picked = walletDraft.rows.filter(r => walletDraft.picked.includes(r.id));
+        const perWeek = Math.trunc(((walletDraft.left + sumRows(picked)) / periodDays) * 7);
+        const day = (iso: string | undefined, or: Date) => (iso ? new Date(`${iso}T00:00`) : or);
+        const span = { from: day(first?.from, walletDraft.period.from), to: day(last?.to, walletDraft.period.to) };
+        const weekOf = (w: Wallet | undefined) => (w?.from ? isoWeek(day(w.from, walletDraft.period.from)) : 0);
+        return (
+          <ConfirmChange
+            title={t.wCreate}
+            lines={week ? [
+              { label: t.envWeeksLabel, after: t.envWeeksValue(weekOf(first), weekOf(last), made.length) },
+              { label: t.envPerWeek, after: money(perWeek) },
+              { label: t.walletPeriod, after: formatPeriodRange(span, lang) },
+            ] : [
+              { label: t.wName, after: first?.name ?? '' },
+              { label: t.wTotal, after: money(walletDraft.left) },
+              { label: t.walletPeriod, after: formatPeriodRange(walletDraft.period, lang) },
+            ]}
+            onConfirm={createWalletFromBudget}
+            onClose={() => setWalletDraft(null)}
+          >
+            {walletDraft.rows.length > 0 && (
+              <fieldset className="env-include">
+                <legend className="env-include-title">{t.envInclude}</legend>
+                <p className="env-include-hint">{week ? t.envIncludeWeek : t.envIncludeMonth}</p>
+                {walletDraft.rows.map(r => (
+                  <label key={r.id} className="env-include-row">
+                    <input type="checkbox" checked={walletDraft.picked.includes(r.id)}
+                      onChange={e => setWalletDraft(d => d && {
+                        ...d, picked: e.target.checked ? [...d.picked, r.id] : d.picked.filter(x => x !== r.id),
+                      })} />
+                    <span className="env-include-label">{r.label}</span>
+                    <span className="env-include-amount">{money(r.amount)}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </ConfirmChange>
+        );
+      })()}
       {guideOpen && (
         <Suspense fallback={null}>
           <Guide onClose={() => setGuideOpen(false)} onShow={showGuideSpot} />
