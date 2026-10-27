@@ -603,6 +603,9 @@ export const ja: Translations = {
     if (action === 'startBudget') return "予算を作成しました";
     if (action === 'renameRow') return `${where}の行の名前を変更しました`;
     if (action === 'debtExtra') return '負債の追加返済額を変更しました';
+    if (action === 'aiSetAmount') return count > 1 ? `${count}か月分の金額を変更しました` : `${where}の金額を変更しました`;
+    if (action === 'aiAddRow') return count > 1 ? `${count}か月分に行を追加しました` : `${where}に行を追加しました`;
+    if (action === 'aiMovePurchases') return `${count}件の購入を別のカテゴリに移動しました`;
     if (count === 1) return '集計期間を変更しました — 1件を移動';
     return count > 0 ? `集計期間を変更しました — ${count}件を移動` : '集計期間を変更しました';
   },
@@ -856,6 +859,19 @@ export const ja: Translations = {
   toolGoalInBudget: (month) => `${month}の予算に`,
   toolPerMonth: (amount) => `月${amount}`,
   toolGoalFailed: '貯蓄目標を保存できませんでした。何も変更されていません。',
+  aiSetTitle: '金額を変更',
+  aiAddTitle: '行を追加',
+  aiMoveTitle: '購入を移動',
+  aiReachMonth: (month) => `${month}のみ`,
+  aiReachLater: (month) => `${month}以降`,
+  aiMonthsChanged: '変更する月',
+  aiCategory: 'カテゴリ',
+  aiMoveCount: '移動する購入',
+  aiMoveTotal: '合計',
+  aiMoveFuture: (place) => `今後の${place}での購入もここに分類されます。`,
+  aiNothingToChange: '変更するものはありません。',
+  aiNoPurchases: (place) => `${place}での購入は見つかりませんでした。`,
+  aiChangeFailed: '変更を保存できませんでした。何も変更されていません。',
   debtTry: '金額を試す',
   debtTryLead: '何かを変える前に、追加返済額を変えるとどうなるかを確かめましょう。',
   debtTryAmount: '試す追加返済額（月）',

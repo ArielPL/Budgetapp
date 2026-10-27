@@ -607,6 +607,9 @@ export const tr: Translations = {
     if (action === 'startBudget') return "Bir bütçe oluşturuldu";
     if (action === 'renameRow') return `Bir satırın adı değiştirildi (${where})`;
     if (action === 'debtExtra') return "Borçlarınız için ek tutar değiştirildi";
+    if (action === 'aiSetAmount') return count > 1 ? `Bir tutar ${count} ayda değiştirildi` : `Bir tutar değiştirildi (${where})`;
+    if (action === 'aiAddRow') return count > 1 ? `Bir satır ${count} aya eklendi` : `Bir satır eklendi (${where})`;
+    if (action === 'aiMovePurchases') return count === 1 ? '1 alışveriş başka bir kategoriye taşındı' : `${count} alışveriş başka bir kategoriye taşındı`;
     if (count === 1) return "Maaş dönemi değiştirildi — 1 kayıt taşındı";
     return count > 0 ? `Maaş dönemi değiştirildi — ${count} kayıt taşındı` : "Maaş dönemi değiştirildi";
   },
@@ -860,6 +863,19 @@ export const tr: Translations = {
   toolGoalInBudget: (month) => `${month} bütçesinde`,
   toolPerMonth: (amount) => `ayda ${amount}`,
   toolGoalFailed: "Birikim hedefi kaydedilemedi. Hiçbir şey değişmedi.",
+  aiSetTitle: 'Tutarı değiştir',
+  aiAddTitle: 'Satır ekle',
+  aiMoveTitle: 'Alışverişleri taşı',
+  aiReachMonth: (month) => `Yalnızca ${month}`,
+  aiReachLater: (month) => `${month} ve sonrası`,
+  aiMonthsChanged: 'Değişen aylar',
+  aiCategory: 'Kategori',
+  aiMoveCount: 'Taşınan alışverişler',
+  aiMoveTotal: 'Toplam',
+  aiMoveFuture: (place) => `${place} alışverişleri bundan sonra da buraya sınıflanacak.`,
+  aiNothingToChange: 'Değiştirilecek bir şey yok.',
+  aiNoPurchases: (place) => `${place} alışverişi bulunamadı.`,
+  aiChangeFailed: 'Değişiklik kaydedilemedi. Hiçbir şey değişmedi.',
   debtTry: "Bir tutar deneyin",
   debtTryLead: "Bir şeyi değiştirmeden önce farklı bir ek tutarın ne sağlayacağını görün.",
   debtTryAmount: "Denenecek aylık ek tutar",

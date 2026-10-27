@@ -603,6 +603,9 @@ export const zh: Translations = {
     if (action === 'startBudget') return "已创建预算";
     if (action === 'renameRow') return `已在${where}重命名一行`;
     if (action === 'debtExtra') return '债务的额外还款金额已更改';
+    if (action === 'aiSetAmount') return count > 1 ? `已在 ${count} 个月中修改金额` : `已在${where}修改金额`;
+    if (action === 'aiAddRow') return count > 1 ? `已在 ${count} 个月中添加一行` : `已在${where}添加一行`;
+    if (action === 'aiMovePurchases') return `已将 ${count} 笔消费移到另一个类别`;
     if (count === 1) return '发薪周期已更改——移动了 1 条记录';
     return count > 0 ? `发薪周期已更改——移动了 ${count} 条记录` : '发薪周期已更改';
   },
@@ -856,6 +859,19 @@ export const zh: Translations = {
   toolGoalInBudget: (month) => `在${month}的预算中`,
   toolPerMonth: (amount) => `每月 ${amount}`,
   toolGoalFailed: '无法保存储蓄目标。没有做任何更改。',
+  aiSetTitle: '修改金额',
+  aiAddTitle: '添加一行',
+  aiMoveTitle: '移动消费',
+  aiReachMonth: (month) => `仅${month}`,
+  aiReachLater: (month) => `${month}及以后`,
+  aiMonthsChanged: '更改的月份',
+  aiCategory: '类别',
+  aiMoveCount: '移动的消费',
+  aiMoveTotal: '合计',
+  aiMoveFuture: (place) => `以后来自${place}的消费也会归入这里。`,
+  aiNothingToChange: '没有需要更改的内容。',
+  aiNoPurchases: (place) => `没有找到来自${place}的消费。`,
+  aiChangeFailed: '无法保存更改。没有做任何更改。',
   debtTry: '试试金额',
   debtTryLead: '在做任何更改之前，先看看不同的额外还款金额会带来什么。',
   debtTryAmount: '试算每月额外还款',

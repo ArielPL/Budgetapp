@@ -607,6 +607,9 @@ export const it: Translations = {
     if (action === 'startBudget') return "È stato creato un budget";
     if (action === 'renameRow') return `Una riga è stata rinominata in ${where}`;
     if (action === 'debtExtra') return "L'importo extra per i tuoi debiti è stato cambiato";
+    if (action === 'aiSetAmount') return count > 1 ? `Un importo è stato modificato in ${count} mesi` : `Un importo è stato modificato in ${where}`;
+    if (action === 'aiAddRow') return count > 1 ? `Una riga è stata aggiunta in ${count} mesi` : `Una riga è stata aggiunta in ${where}`;
+    if (action === 'aiMovePurchases') return count === 1 ? "1 acquisto è stato spostato in un'altra categoria" : `${count} acquisti sono stati spostati in un'altra categoria`;
     if (count === 1) return "Il periodo di paga è stato cambiato: 1 movimento spostato";
     return count > 0 ? `Il periodo di paga è stato cambiato: ${count} movimenti spostati` : "Il periodo di paga è stato cambiato";
   },
@@ -860,6 +863,19 @@ export const it: Translations = {
   toolGoalInBudget: (month) => `Nel budget di ${month}`,
   toolPerMonth: (amount) => `${amount} al mese`,
   toolGoalFailed: "Non è stato possibile salvare l'obiettivo di risparmio. Non è cambiato nulla.",
+  aiSetTitle: 'Modifica importo',
+  aiAddTitle: 'Aggiungi riga',
+  aiMoveTitle: 'Sposta acquisti',
+  aiReachMonth: (month) => `Solo ${month}`,
+  aiReachLater: (month) => `${month} e i successivi`,
+  aiMonthsChanged: 'Mesi modificati',
+  aiCategory: 'Categoria',
+  aiMoveCount: 'Acquisti spostati',
+  aiMoveTotal: 'Totale',
+  aiMoveFuture: (place) => `Anche i nuovi acquisti da ${place} verranno classificati qui.`,
+  aiNothingToChange: "Non c'è niente da cambiare.",
+  aiNoPurchases: (place) => `Nessun acquisto da ${place} trovato.`,
+  aiChangeFailed: 'Non è stato possibile salvare la modifica. Non è cambiato nulla.',
   debtTry: "Prova un importo",
   debtTryLead: "Guarda cosa cambia con un altro importo extra prima di modificare qualcosa.",
   debtTryAmount: "Extra al mese da provare",

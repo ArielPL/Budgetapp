@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '../i18n';
 import { useModalFocus } from '../useModalFocus';
@@ -22,9 +22,13 @@ interface Props {
   lines: ChangeLine[];
   onConfirm: () => Promise<boolean>;
   onClose: () => void;
+  /** Shown under the lines: a choice the change depends on, or a note. */
+  children?: ReactNode;
+  /** False when there is nothing to confirm — the box then only says so. */
+  canConfirm?: boolean;
 }
 
-export const ConfirmChange = ({ title, lines, onConfirm, onClose }: Props) => {
+export const ConfirmChange = ({ title, lines, onConfirm, onClose, children, canConfirm = true }: Props) => {
   const { t } = useLang();
   const panel = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
@@ -54,10 +58,11 @@ export const ConfirmChange = ({ title, lines, onConfirm, onClose }: Props) => {
             </li>
           ))}
         </ul>
-        <p className="q-note">{t.toolConfirmUndo}</p>
+        {children}
+        {canConfirm && <p className="q-note">{t.toolConfirmUndo}</p>}
         <div className="confirm-change-actions">
           <button className="custom-secondary-btn" onClick={onClose}>{t.cancel}</button>
-          <button className="custom-primary-btn" onClick={() => void confirm()} disabled={busy}>{t.toolConfirm}</button>
+          {canConfirm && <button className="custom-primary-btn" onClick={() => void confirm()} disabled={busy}>{t.toolConfirm}</button>}
         </div>
       </div>
     </>,

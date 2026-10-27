@@ -6237,6 +6237,13 @@ html.guide-side body { padding-right: 380px; }
   gap: 8px;
   margin-top: 14px;
 }
+/* Budget AI's "Only October / October and later", under the lines. */
+.ai-reach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+}
 .debt-try {
   margin-top: 14px;
   padding: 12px 14px;

@@ -1154,6 +1154,21 @@ export interface Translations {
   toolGoalInBudget: (month: string) => string;
   toolPerMonth: (amount: string) => string;
   toolGoalFailed: string;
+  aiSetTitle: string;
+  aiAddTitle: string;
+  aiMoveTitle: string;
+  /** "Only October 2026": the Confirm box's choice for a budget change. */
+  aiReachMonth: (month: string) => string;
+  /** "October 2026 and later": the stored later months too. */
+  aiReachLater: (month: string) => string;
+  aiMonthsChanged: string;
+  aiCategory: string;
+  aiMoveCount: string;
+  aiMoveTotal: string;
+  aiMoveFuture: (place: string) => string;
+  aiNothingToChange: string;
+  aiNoPurchases: (place: string) => string;
+  aiChangeFailed: string;
   debtTry: string;
   debtTryLead: string;
   debtTryAmount: string;
@@ -1901,6 +1916,9 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'startBudget') return "En budget skapades";
       if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
+      if (action === 'aiSetAmount') return count > 1 ? `Ett belopp ändrades i ${count} månader` : `Ett belopp ändrades i ${where}`;
+      if (action === 'aiAddRow') return count > 1 ? `En rad lades till i ${count} månader` : `En rad lades till i ${where}`;
+      if (action === 'aiMovePurchases') return count === 1 ? '1 köp flyttades till en annan kategori' : `${count} köp flyttades till en annan kategori`;
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -2155,6 +2173,19 @@ export const translations: Record<Lang, Translations> = {
     toolGoalInBudget: (month) => `I budgeten för ${month}`,
     toolPerMonth: (amount) => `${amount} per månad`,
     toolGoalFailed: 'Sparmålet kunde inte sparas. Ingenting har ändrats.',
+    aiSetTitle: 'Ändra belopp',
+    aiAddTitle: 'Lägg till rad',
+    aiMoveTitle: 'Flytta köp',
+    aiReachMonth: (month) => `Bara ${month}`,
+    aiReachLater: (month) => `${month} och framåt`,
+    aiMonthsChanged: 'Månader som ändras',
+    aiCategory: 'Kategori',
+    aiMoveCount: 'Köp som flyttas',
+    aiMoveTotal: 'Summa',
+    aiMoveFuture: (place) => `Nya köp från ${place} sorteras också hit.`,
+    aiNothingToChange: 'Det finns inget att ändra.',
+    aiNoPurchases: (place) => `Inga köp från ${place} hittades.`,
+    aiChangeFailed: 'Ändringen kunde inte sparas. Ingenting har ändrats.',
     debtTry: 'Prova ett belopp',
     debtTryLead: 'Se vad ett annat extrabelopp gör innan du ändrar något.',
     debtTryAmount: 'Extra per månad att prova',
@@ -2906,6 +2937,9 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'startBudget') return "A budget was created";
       if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
+      if (action === 'aiSetAmount') return count > 1 ? `An amount was changed in ${count} months` : `An amount was changed in ${where}`;
+      if (action === 'aiAddRow') return count > 1 ? `A row was added in ${count} months` : `A row was added in ${where}`;
+      if (action === 'aiMovePurchases') return count === 1 ? '1 purchase was moved to another category' : `${count} purchases were moved to another category`;
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -3159,6 +3193,19 @@ export const translations: Record<Lang, Translations> = {
     toolGoalInBudget: (month) => `In the budget for ${month}`,
     toolPerMonth: (amount) => `${amount} a month`,
     toolGoalFailed: 'The savings goal could not be saved. Nothing has changed.',
+    aiSetTitle: 'Change amount',
+    aiAddTitle: 'Add row',
+    aiMoveTitle: 'Move purchases',
+    aiReachMonth: (month) => `Only ${month}`,
+    aiReachLater: (month) => `${month} and later`,
+    aiMonthsChanged: 'Months changed',
+    aiCategory: 'Category',
+    aiMoveCount: 'Purchases moved',
+    aiMoveTotal: 'Total',
+    aiMoveFuture: (place) => `New purchases from ${place} will be filed here too.`,
+    aiNothingToChange: 'There is nothing to change.',
+    aiNoPurchases: (place) => `No purchases from ${place} were found.`,
+    aiChangeFailed: 'The change could not be saved. Nothing has changed.',
     debtTry: 'Try an amount',
     debtTryLead: 'See what a different extra amount does before you change anything.',
     debtTryAmount: 'Extra per month to try',
@@ -3910,6 +3957,9 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'startBudget') return "Se creó un presupuesto";
       if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
+      if (action === 'aiSetAmount') return count > 1 ? `Se cambió un importe en ${count} meses` : `Se cambió un importe en ${where}`;
+      if (action === 'aiAddRow') return count > 1 ? `Se añadió una fila en ${count} meses` : `Se añadió una fila en ${where}`;
+      if (action === 'aiMovePurchases') return count === 1 ? '1 compra se movió a otra categoría' : `${count} compras se movieron a otra categoría`;
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
@@ -4163,6 +4213,19 @@ export const translations: Record<Lang, Translations> = {
     toolGoalInBudget: (month) => `En el presupuesto de ${month}`,
     toolPerMonth: (amount) => `${amount} al mes`,
     toolGoalFailed: 'No se pudo guardar la meta de ahorro. No ha cambiado nada.',
+    aiSetTitle: 'Cambiar importe',
+    aiAddTitle: 'Añadir fila',
+    aiMoveTitle: 'Mover compras',
+    aiReachMonth: (month) => `Solo ${month}`,
+    aiReachLater: (month) => `${month} y los siguientes`,
+    aiMonthsChanged: 'Meses que cambian',
+    aiCategory: 'Categoría',
+    aiMoveCount: 'Compras que se mueven',
+    aiMoveTotal: 'Total',
+    aiMoveFuture: (place) => `Las nuevas compras de ${place} también se clasificarán aquí.`,
+    aiNothingToChange: 'No hay nada que cambiar.',
+    aiNoPurchases: (place) => `No se encontraron compras de ${place}.`,
+    aiChangeFailed: 'No se pudo guardar el cambio. No ha cambiado nada.',
     debtTry: 'Probar un importe',
     debtTryLead: 'Mira qué hace otro importe extra antes de cambiar nada.',
     debtTryAmount: 'Extra al mes para probar',

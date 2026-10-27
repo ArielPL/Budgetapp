@@ -89,7 +89,14 @@ export type UndoAction =
   /** A budget built from the beginner's answers, over the rest of the year. */
   | 'startBudget'
   /** The Debt tab's extra amount, set from "Try an amount". */
-  | 'debtExtra';
+  | 'debtExtra'
+  /** Budget AI: a row's amount, in one month or that month and later ones. */
+  | 'aiSetAmount'
+  /** Budget AI: a new row, in one month or that month and later ones. */
+  | 'aiAddRow'
+  /** Budget AI: a shop's purchases moved to another category, in every
+   *  month, and the sorting taught to file new ones there too. */
+  | 'aiMovePurchases';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -152,6 +159,9 @@ const ACTIONS: Record<UndoAction, true> = {
   renameRow: true,
   createGoal: true,
   debtExtra: true,
+  aiSetAmount: true,
+  aiAddRow: true,
+  aiMovePurchases: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than

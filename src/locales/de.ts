@@ -607,6 +607,9 @@ export const de: Translations = {
     if (action === 'startBudget') return "Ein Budget wurde angelegt";
     if (action === 'renameRow') return `Eine Zeile wurde in ${where} umbenannt`;
     if (action === 'debtExtra') return 'Der Extrabetrag für deine Schulden wurde geändert';
+    if (action === 'aiSetAmount') return count > 1 ? `Ein Betrag wurde in ${count} Monaten geändert` : `Ein Betrag wurde geändert (${where})`;
+    if (action === 'aiAddRow') return count > 1 ? `Eine Zeile wurde in ${count} Monaten hinzugefügt` : `Eine Zeile wurde hinzugefügt (${where})`;
+    if (action === 'aiMovePurchases') return count === 1 ? '1 Einkauf wurde in eine andere Kategorie verschoben' : `${count} Einkäufe wurden in eine andere Kategorie verschoben`;
     if (count === 1) return 'Der Zahlungszeitraum wurde geändert – 1 Eintrag verschoben';
     return count > 0 ? `Der Zahlungszeitraum wurde geändert – ${count} Einträge verschoben` : 'Der Zahlungszeitraum wurde geändert';
   },
@@ -860,6 +863,19 @@ export const de: Translations = {
   toolGoalInBudget: (month) => `Im Budget für ${month}`,
   toolPerMonth: (amount) => `${amount} pro Monat`,
   toolGoalFailed: 'Das Sparziel konnte nicht gespeichert werden. Es hat sich nichts geändert.',
+  aiSetTitle: 'Betrag ändern',
+  aiAddTitle: 'Zeile hinzufügen',
+  aiMoveTitle: 'Einkäufe verschieben',
+  aiReachMonth: (month) => `Nur ${month}`,
+  aiReachLater: (month) => `${month} und danach`,
+  aiMonthsChanged: 'Geänderte Monate',
+  aiCategory: 'Kategorie',
+  aiMoveCount: 'Verschobene Einkäufe',
+  aiMoveTotal: 'Summe',
+  aiMoveFuture: (place) => `Neue Einkäufe bei ${place} werden ebenfalls hier einsortiert.`,
+  aiNothingToChange: 'Es gibt nichts zu ändern.',
+  aiNoPurchases: (place) => `Keine Einkäufe bei ${place} gefunden.`,
+  aiChangeFailed: 'Die Änderung konnte nicht gespeichert werden. Es hat sich nichts geändert.',
   debtTry: 'Betrag ausprobieren',
   debtTryLead: 'Sieh dir an, was ein anderer Extrabetrag bewirkt, bevor du etwas änderst.',
   debtTryAmount: 'Extra pro Monat zum Ausprobieren',

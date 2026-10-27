@@ -615,6 +615,9 @@ export const ru: Translations = {
     if (action === 'startBudget') return "Создан бюджет";
     if (action === 'renameRow') return `Строка переименована в бюджете на ${where}`;
     if (action === 'debtExtra') return 'Дополнительная сумма для долгов изменена';
+    if (action === 'aiSetAmount') return count > 1 ? `Сумма изменена: ${count} ${plural(count, 'месяц', 'месяца', 'месяцев')}` : `Сумма изменена в бюджете на ${where}`;
+    if (action === 'aiAddRow') return count > 1 ? `Строка добавлена: ${count} ${plural(count, 'месяц', 'месяца', 'месяцев')}` : `Строка добавлена в бюджет на ${where}`;
+    if (action === 'aiMovePurchases') return `${count} ${plural(count, 'покупка перенесена', 'покупки перенесены', 'покупок перенесено')} в другую категорию`;
     if (count === 1) return 'Период зарплаты изменён — 1 запись перенесена';
     return count > 0 ? `Период зарплаты изменён — ${count} ${plural(count, 'запись перенесена', 'записи перенесены', 'записей перенесено')}` : 'Период зарплаты изменён';
   },
@@ -868,6 +871,19 @@ export const ru: Translations = {
   toolGoalInBudget: (month) => `В бюджете на ${month}`,
   toolPerMonth: (amount) => `${amount} в месяц`,
   toolGoalFailed: 'Не удалось сохранить цель сбережений. Ничего не изменилось.',
+  aiSetTitle: 'Изменить сумму',
+  aiAddTitle: 'Добавить строку',
+  aiMoveTitle: 'Перенести покупки',
+  aiReachMonth: (month) => `Только ${month}`,
+  aiReachLater: (month) => `${month} и далее`,
+  aiMonthsChanged: 'Изменяемые месяцы',
+  aiCategory: 'Категория',
+  aiMoveCount: 'Переносимые покупки',
+  aiMoveTotal: 'Сумма',
+  aiMoveFuture: (place) => `Новые покупки в ${place} тоже будут попадать сюда.`,
+  aiNothingToChange: 'Менять нечего.',
+  aiNoPurchases: (place) => `Покупок в ${place} не найдено.`,
+  aiChangeFailed: 'Не удалось сохранить изменение. Ничего не изменилось.',
   debtTry: 'Попробовать сумму',
   debtTryLead: 'Посмотрите, что даст другая дополнительная сумма, прежде чем что-то менять.',
   debtTryAmount: 'Дополнительно в месяц для пробы',

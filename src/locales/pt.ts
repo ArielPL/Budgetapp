@@ -607,6 +607,9 @@ export const pt: Translations = {
     if (action === 'startBudget') return "Um orçamento foi criado";
     if (action === 'renameRow') return `Uma linha foi renomeada em ${where}`;
     if (action === 'debtExtra') return 'O valor extra para as suas dívidas foi alterado';
+    if (action === 'aiSetAmount') return count > 1 ? `Um valor foi alterado em ${count} meses` : `Um valor foi alterado em ${where}`;
+    if (action === 'aiAddRow') return count > 1 ? `Uma linha foi adicionada em ${count} meses` : `Uma linha foi adicionada em ${where}`;
+    if (action === 'aiMovePurchases') return count === 1 ? '1 compra foi movida para outra categoria' : `${count} compras foram movidas para outra categoria`;
     if (count === 1) return 'O período de pagamento foi alterado — 1 lançamento movido';
     return count > 0 ? `O período de pagamento foi alterado — ${count} lançamentos movidos` : 'O período de pagamento foi alterado';
   },
@@ -860,6 +863,19 @@ export const pt: Translations = {
   toolGoalInBudget: (month) => `No orçamento de ${month}`,
   toolPerMonth: (amount) => `${amount} por mês`,
   toolGoalFailed: 'Não foi possível salvar a meta de poupança. Nada mudou.',
+  aiSetTitle: 'Alterar valor',
+  aiAddTitle: 'Adicionar linha',
+  aiMoveTitle: 'Mover compras',
+  aiReachMonth: (month) => `Só ${month}`,
+  aiReachLater: (month) => `${month} e os seguintes`,
+  aiMonthsChanged: 'Meses alterados',
+  aiCategory: 'Categoria',
+  aiMoveCount: 'Compras movidas',
+  aiMoveTotal: 'Total',
+  aiMoveFuture: (place) => `As novas compras de ${place} também serão classificadas aqui.`,
+  aiNothingToChange: 'Não há nada para alterar.',
+  aiNoPurchases: (place) => `Nenhuma compra de ${place} foi encontrada.`,
+  aiChangeFailed: 'Não foi possível salvar a alteração. Nada mudou.',
   debtTry: 'Testar um valor',
   debtTryLead: 'Veja o que outro valor extra faz antes de mudar qualquer coisa.',
   debtTryAmount: 'Extra por mês para testar',

@@ -616,6 +616,9 @@ export const fr: Translations = {
     if (action === 'startBudget') return "Un budget a été créé";
     if (action === 'renameRow') return `Une ligne a été renommée (${where})`;
     if (action === 'debtExtra') return "Le montant en plus pour vos dettes a été modifié";
+    if (action === 'aiSetAmount') return count > 1 ? `Un montant a été modifié sur ${count} mois` : `Un montant a été modifié (${where})`;
+    if (action === 'aiAddRow') return count > 1 ? `Une ligne a été ajoutée sur ${count} mois` : `Une ligne a été ajoutée (${where})`;
+    if (action === 'aiMovePurchases') return count < 2 ? `${count} achat a été déplacé vers une autre catégorie` : `${count} achats ont été déplacés vers une autre catégorie`;
     if (count === 1) return "La période de paie a été modifiée — 1 opération déplacée";
     return count > 0 ? `La période de paie a été modifiée — ${count} opérations déplacées` : "La période de paie a été modifiée";
   },
@@ -869,6 +872,19 @@ export const fr: Translations = {
   toolGoalInBudget: (month) => `Dans le budget pour ${month}`,
   toolPerMonth: (amount) => `${amount} par mois`,
   toolGoalFailed: "L'objectif d'épargne n'a pas pu être enregistré. Rien n'a changé.",
+  aiSetTitle: 'Modifier le montant',
+  aiAddTitle: 'Ajouter une ligne',
+  aiMoveTitle: 'Déplacer des achats',
+  aiReachMonth: (month) => `Seulement ${month}`,
+  aiReachLater: (month) => `${month} et les suivants`,
+  aiMonthsChanged: 'Mois modifiés',
+  aiCategory: 'Catégorie',
+  aiMoveCount: 'Achats déplacés',
+  aiMoveTotal: 'Total',
+  aiMoveFuture: (place) => `Les nouveaux achats chez ${place} seront aussi classés ici.`,
+  aiNothingToChange: "Il n'y a rien à modifier.",
+  aiNoPurchases: (place) => `Aucun achat chez ${place} n'a été trouvé.`,
+  aiChangeFailed: "La modification n'a pas pu être enregistrée. Rien n'a changé.",
   debtTry: "Essayer un montant",
   debtTryLead: "Voyez l'effet d'un autre montant en plus avant de changer quoi que ce soit.",
   debtTryAmount: "Montant en plus par mois à essayer",
