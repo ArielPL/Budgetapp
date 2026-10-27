@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).fr = {
   htmlLang: 'fr', pageTitle: 'YourBudget – budget hors ligne',
-  nav: { features: 'Fonctions', devices: 'Appareils', start: 'Commencer', faq: 'FAQ', download: 'L’app', langLabel: 'Langue' },
+  nav: { features: 'Fonctions', devices: 'Appareils', start: 'Commencer', faq: 'FAQ', download: 'L’app', langLabel: 'Langue', toTop: 'Haut de page', skip: 'Aller au contenu' },
   chips: ['Sans compte', 'Sans publicité', 'Sans pistage'],
   h1: 'Maîtrisez votre argent. Gardez-le sur votre téléphone.',
   lead: "Planifiez le budget du mois, importez votre relevé bancaire et voyez où est passé l'argent. Suivez votre épargne, remboursez vos dettes, sans jamais créer de compte. L’app n’envoie rien nulle part.",

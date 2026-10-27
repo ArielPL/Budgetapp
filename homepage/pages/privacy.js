@@ -40,7 +40,7 @@ window.YB_PRIVACY = {
    {
     "h": "Webbplatsen",
     "ps": [
-     "Webbplatsen har inga formulär, inga kakor och ingen besöksstatistik, och den hämtar ingenting från andra servrar. Webbservern för, som alla webbservrar, en teknisk logg över förfrågningar som innehåller IP-adress. Loggen används bara för drift. Appen kontaktar aldrig webbservern."
+     "Webbplatsen har inga formulär, inga kakor och ingen besöksstatistik, och den hämtar ingenting från andra servrar. Det enda den tar emot är det som varje webbläsare skickar när den ber om en sida, som din IP-adress och vilken webbläsare du använder. Webbplatsen ligger hos Vercel, som sparar det en kort tid i en teknisk logg för drift och säkerhet. Utvecklaren använder inte den loggen. Appen kontaktar aldrig webbservern, så ingenting skickas när du använder appen."
     ]
    },
    {
@@ -102,7 +102,7 @@ window.YB_PRIVACY = {
    {
     "h": "The website",
     "ps": [
-     "The website has no forms, no cookies and no visitor statistics, and it fetches nothing from other servers. Like every web server, its server keeps a technical log of requests, which includes IP addresses. That log is used only for operations. The app never contacts the web server."
+     "The website has no forms, no cookies and no visitor statistics, and it fetches nothing from other servers. All it receives is what every browser sends when it asks for a page, such as your IP address and which browser you use. The website is hosted by Vercel, which keeps this for a short time in a technical log for operations and security. The developer does not use that log. The app never contacts the web server, so nothing is sent when you use the app."
     ]
    },
    {
@@ -164,7 +164,7 @@ window.YB_PRIVACY = {
    {
     "h": "El sitio web",
     "ps": [
-     "El sitio web no tiene formularios, ni cookies, ni estadísticas de visitas, y no descarga nada de otros servidores. Como todos los servidores web, el suyo guarda un registro técnico de las peticiones que incluye direcciones IP. Ese registro se usa solo para la operación. La app nunca contacta con el servidor web."
+     "El sitio web no tiene formularios, ni cookies, ni estadísticas de visitas, y no descarga nada de otros servidores. Solo recibe lo que cualquier navegador envía al pedir una página, como tu dirección IP y qué navegador usas. El sitio está alojado en Vercel, que lo guarda poco tiempo en un registro técnico para la operación y la seguridad. El desarrollador no usa ese registro. La app nunca contacta con el servidor web, así que no se envía nada cuando usas la app."
     ]
    },
    {
@@ -226,7 +226,7 @@ window.YB_PRIVACY = {
    {
     "h": "Le site web",
     "ps": [
-     "Le site n'a ni formulaire, ni cookie, ni statistiques de visite, et ne récupère rien sur d'autres serveurs. Comme tout serveur web, son serveur conserve un journal technique des requêtes, qui contient les adresses IP. Ce journal sert uniquement au fonctionnement. L'app ne contacte jamais le serveur web."
+     "Le site n'a ni formulaire, ni cookie, ni statistiques de visite, et ne récupère rien sur d'autres serveurs. Il ne reçoit que ce que tout navigateur envoie en demandant une page, comme votre adresse IP et le navigateur que vous utilisez. Le site est hébergé par Vercel, qui le conserve peu de temps dans un journal technique, pour le fonctionnement et la sécurité. Le développeur n'utilise pas ce journal. L'app ne contacte jamais le serveur web : rien n'est envoyé quand vous utilisez l'app."
     ]
    },
    {
@@ -288,7 +288,7 @@ window.YB_PRIVACY = {
    {
     "h": "Die Website",
     "ps": [
-     "Die Website hat keine Formulare, keine Cookies und keine Besucherstatistik, und sie lädt nichts von anderen Servern. Wie jeder Webserver führt ihr Server ein technisches Protokoll der Anfragen, das IP-Adressen enthält. Das Protokoll dient nur dem Betrieb. Die App kontaktiert den Webserver nie."
+     "Die Website hat keine Formulare, keine Cookies und keine Besucherstatistik, und sie lädt nichts von anderen Servern. Sie empfängt nur, was jeder Browser beim Abruf einer Seite sendet, etwa deine IP-Adresse und welchen Browser du nutzt. Die Website wird bei Vercel gehostet, das diese Angaben kurz in einem technischen Protokoll für Betrieb und Sicherheit speichert. Der Entwickler nutzt dieses Protokoll nicht. Die App kontaktiert den Webserver nie, also wird nichts gesendet, wenn du die App benutzt."
     ]
    },
    {
@@ -350,7 +350,7 @@ window.YB_PRIVACY = {
    {
     "h": "Il sito",
     "ps": [
-     "Il sito non ha moduli, cookie o statistiche delle visite, e non scarica nulla da altri server. Come ogni server web, il suo server tiene un registro tecnico delle richieste, che include gli indirizzi IP. Quel registro serve solo al funzionamento. L'app non contatta mai il server web."
+     "Il sito non ha moduli, cookie o statistiche delle visite, e non scarica nulla da altri server. Riceve solo ciò che ogni browser invia quando chiede una pagina, come il tuo indirizzo IP e il browser che usi. Il sito è ospitato da Vercel, che conserva questi dati per poco tempo in un registro tecnico, per il funzionamento e la sicurezza. Lo sviluppatore non usa quel registro. L'app non contatta mai il server web, quindi non viene inviato nulla quando usi l'app."
     ]
    },
    {
@@ -412,7 +412,7 @@ window.YB_PRIVACY = {
    {
     "h": "O site",
     "ps": [
-     "O site não tem formulários, cookies nem estatísticas de visitas, e não busca nada em outros servidores. Como todo servidor web, o servidor dele mantém um registro técnico das solicitações, que inclui endereços IP. Esse registro é usado só para operação. O app nunca entra em contato com o servidor web."
+     "O site não tem formulários, cookies nem estatísticas de visitas, e não busca nada em outros servidores. Ele só recebe o que todo navegador envia ao pedir uma página, como seu endereço IP e qual navegador você usa. O site é hospedado pela Vercel, que guarda isso por pouco tempo em um registro técnico, para operação e segurança. O desenvolvedor não usa esse registro. O app nunca entra em contato com o servidor web, então nada é enviado quando você usa o app."
     ]
    },
    {
@@ -474,7 +474,7 @@ window.YB_PRIVACY = {
    {
     "h": "Сайт",
     "ps": [
-     "На сайте нет форм, файлов cookie и статистики посещений, и он ничего не загружает с других серверов. Как и любой веб-сервер, его сервер ведёт технический журнал запросов с IP-адресами. Журнал используется только для работы сервера. Приложение никогда не обращается к веб-серверу."
+     "На сайте нет форм, файлов cookie и статистики посещений, и он ничего не загружает с других серверов. Сайт получает только то, что любой браузер отправляет при запросе страницы, например ваш IP-адрес и тип браузера. Сайт размещён у Vercel, который недолго хранит эти данные в техническом журнале для работы и безопасности. Разработчик этот журнал не использует. Приложение никогда не обращается к веб-серверу, поэтому при работе с приложением ничего не отправляется."
     ]
    },
    {
@@ -536,7 +536,7 @@ window.YB_PRIVACY = {
    {
     "h": "Web sitesi",
     "ps": [
-     "Web sitesinde form, çerez veya ziyaretçi istatistiği yoktur ve başka sunuculardan hiçbir şey indirmez. Her web sunucusu gibi sunucusu da IP adreslerini içeren teknik bir istek kaydı tutar. Bu kayıt yalnızca işletim için kullanılır. Uygulama web sunucusuna asla bağlanmaz."
+     "Web sitesinde form, çerez veya ziyaretçi istatistiği yoktur ve başka sunuculardan hiçbir şey indirmez. Site yalnızca her tarayıcının bir sayfa isterken gönderdiklerini alır; örneğin IP adresiniz ve hangi tarayıcıyı kullandığınız. Site Vercel’de barındırılır; Vercel bunları işletim ve güvenlik için kısa bir süre teknik bir kayıtta tutar. Geliştirici bu kaydı kullanmaz. Uygulama web sunucusuna asla bağlanmaz, bu yüzden uygulamayı kullanırken hiçbir şey gönderilmez."
     ]
    },
    {
@@ -598,7 +598,7 @@ window.YB_PRIVACY = {
    {
     "h": "ウェブサイト",
     "ps": [
-     "ウェブサイトにはフォームもクッキーもアクセス解析もなく、ほかのサーバーから何も読み込みません。すべての Web サーバーと同様に、IP アドレスを含むリクエストの技術的なログが記録されます。このログは運用のためだけに使われます。アプリが Web サーバーに接続することはありません。"
+     "ウェブサイトにはフォームもクッキーもアクセス解析もなく、ほかのサーバーから何も読み込みません。受け取るのは、ページを開くときにどのブラウザーも送る情報（IP アドレスやブラウザーの種類など）だけです。ウェブサイトは Vercel でホストされており、Vercel はこれを運用とセキュリティのために短期間、技術的なログに保存します。開発者はこのログを利用しません。アプリが Web サーバーに接続することはないため、アプリを使っても何も送信されません。"
     ]
    },
    {
@@ -660,7 +660,7 @@ window.YB_PRIVACY = {
    {
     "h": "网站",
     "ps": [
-     "网站没有表单、没有 Cookie、没有访问统计，也不从其他服务器加载任何内容。和所有网页服务器一样，它的服务器会保留包含 IP 地址的请求技术日志。该日志仅用于运维。应用从不连接网页服务器。"
+     "网站没有表单、没有 Cookie、没有访问统计，也不从其他服务器加载任何内容。它只接收任何浏览器在请求网页时都会发送的信息，例如你的 IP 地址和所用的浏览器。网站托管在 Vercel，Vercel 会为运维和安全在技术日志中短期保存这些信息。开发者不使用该日志。应用从不连接网页服务器，因此使用应用时不会发送任何内容。"
     ]
    },
    {

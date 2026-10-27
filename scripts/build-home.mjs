@@ -49,6 +49,10 @@ const CSS = `
 @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400 800;font-display:swap;src:url('assets/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+1E00-1E9F,U+20A0-20AB,U+20AD-20C0;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.skip{position:absolute;left:16px;top:-80px;z-index:30;background:#20203a;color:#fff;padding:10px 16px;border-radius:999px;font-size:15px;font-weight:600}
+.skip:focus{top:12px;color:#fff;text-decoration:none}
+main:focus{outline:none}
 .site-header{position:sticky;top:0;z-index:10;background:rgba(251,250,255,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #ece9f5}
 .site-bar{max-width:1320px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;font-size:15px;font-weight:600}
 .site-logo{display:flex;align-items:center;gap:10px;color:#20203a;margin-right:auto}
@@ -58,32 +62,38 @@ html{scroll-behavior:smooth}
 .site-links a{color:#5d5972}
 .site-cta{background:#7c3aed;color:#fff;padding:10px 18px;border-radius:999px;white-space:nowrap}
 .site-cta:hover{color:#fff;text-decoration:none;background:#6d28d9}
+.site-links .site-cta{display:none}
 .lang-code{display:none}
 #top{overflow-x:clip}
 h1,h2,h3{overflow-wrap:break-word}
 section[id]{scroll-margin-top:88px}
 /* The one-line menu needs up to 1290px (Russian), hence the wider bar above.
-   Below that the links get a row of their own, which scrolls sideways if it
-   has to, and the bar lines up with the page again. */
+   Below that the links get a row of their own, and the bar lines up with the
+   page again. Down to 900px that row fits every language on one line. */
 @media (max-width:1340px){
   .site-bar{max-width:1160px}
-  .site-links{order:3;flex:1 0 100%;overflow-x:auto;scrollbar-width:none;padding:2px 0}
-  .site-links::-webkit-scrollbar{display:none}
+  .site-links{order:3;flex:1 0 100%;flex-wrap:wrap;gap:8px 24px}
   section[id]{scroll-margin-top:124px}
 }
-/* On a phone the header scrolls away with the page instead of covering it, and
-   the language button shows just its code. */
-@media (max-width:640px){
+/* Narrower, the links wrap onto as many lines as they need, so every one stays
+   in sight, and the header scrolls away with the page instead of covering it. */
+@media (max-width:900px){
   .site-header{position:static}
+  .site-links{gap:8px 20px}
+  section[id]{scroll-margin-top:12px}
+}
+/* On a phone the language button shows just its code, and the app button moves
+   to the end of the links, where there is room for it. */
+@media (max-width:640px){
   .site-bar{padding:10px 16px;gap:0 14px;font-size:14px}
   .site-bar::after{content:'';order:2;flex-basis:100%}
-  .site-links{order:3;flex:1 1 0;min-width:0;gap:18px;margin-top:10px;-webkit-mask-image:linear-gradient(to right,#000 82%,transparent);mask-image:linear-gradient(to right,#000 82%,transparent)}
-  .site-cta{order:4;padding:8px 14px;margin-top:10px}
+  .site-links{margin-top:10px;gap:10px 18px}
+  .site-bar>.site-cta{display:none}
+  .site-links .site-cta{display:inline-block;padding:6px 14px;color:#fff}
   .lang>summary{padding:8px 12px}
   h1,h2,h3{hyphens:auto;-webkit-hyphens:auto}
   .lang-name{display:none}
   .lang-code{display:inline}
-  section[id]{scroll-margin-top:12px}
 }
 body{background:#fbfaff;color:#20203a;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:#7c3aed;text-decoration:none}
@@ -91,7 +101,7 @@ a:hover{color:#6d28d9;text-decoration:underline}
 img{display:block}
 .label{font-size:14px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.08em}
 .h2{font-size:clamp(32px,4.5vw,46px);line-height:1.1;font-weight:800;letter-spacing:-0.025em;text-wrap:balance}
-.store{display:flex;flex-direction:column;align-items:flex-start;background:#20203a;color:#fff;padding:11px 22px;border-radius:14px;min-width:170px}
+.store{display:flex;flex-direction:column;align-items:flex-start;background:#20203a;color:#fff;padding:11px 22px;border-radius:14px;min-width:170px;opacity:.82;cursor:default;user-select:none}
 .store small{font-size:11px;font-weight:600;opacity:.8}
 .store b{font-size:18px;font-weight:700}
 .lang{position:relative}
@@ -127,7 +137,8 @@ const langLinks = (cls, code, kind = '') => LANGS.map(([c, n]) =>
 
 /** The header every page shares. The homepage links to its own sections; the
  *  privacy and support pages link back to it instead. */
-const siteHeader = (t, code, kind = '') => `<header class="site-header">
+const siteHeader = (t, code, kind = '') => `<a class="skip" href="#main">${esc(t.nav.skip)}</a>
+<header class="site-header">
   <div class="site-bar">
     <a class="site-logo" href="${kind ? pageOf(code) : '#top'}">
       <img src="assets/icon.png" alt="" width="36" height="36" style="border-radius:10px;">
@@ -141,6 +152,7 @@ const siteHeader = (t, code, kind = '') => `<header class="site-header">
       <a href="#faq">${esc(t.nav.faq)}</a>`}
       <a href="${pageOf(code, 'support')}"${kind === 'support' ? ' aria-current="page"' : ''}>${esc(t.footer.support)}</a>
       <a href="${pageOf(code, 'privacy')}"${kind === 'privacy' ? ' aria-current="page"' : ''}>${esc(t.footer.privacy)}</a>
+      <a class="site-cta" href="${kind ? pageOf(code) : ''}#download">${esc(t.nav.download)}</a>
     </nav>
     <details class="lang">
       <summary aria-label="${esc(t.nav.langLabel)}: ${esc(LANGS.find(l => l[0] === code)[1])}">
@@ -158,7 +170,8 @@ const siteHeader = (t, code, kind = '') => `<header class="site-header">
 const siteFooter = (t, code, kind = '') => `<footer style="border-top:1px solid #ece9f5;">
   <div style="max-width:1160px;margin:0 auto;padding:28px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px;color:#6c687f;">
     <span>© 2026 YourBudget · yourofflinebudget.com</span>
-    <div style="display:flex;gap:24px;flex-wrap:wrap;">${kind ? `
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <a href="#top">↑ ${esc(t.nav.toTop)}</a>${kind ? `
       <a href="${pageOf(code)}">YourBudget</a>` : ''}
       <a href="${pageOf(code, 'privacy')}">${esc(t.footer.privacy)}</a>
       <a href="${pageOf(code, 'support')}">${esc(t.footer.support)}</a>
@@ -206,7 +219,7 @@ __REDIRECT__
 
 ${siteHeader(t, code)}
 
-<main>
+<main id="main" tabindex="-1">
 <section id="top" style="max-width:1160px;margin:0 auto;padding:72px 24px 88px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:56px;align-items:center;">
   <div style="display:flex;flex-direction:column;gap:28px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">${t.chips.map(c => `
@@ -384,9 +397,9 @@ ${LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${pageOf(c, ki
 __REDIRECT__
 </head>
 <body>
-<div style="min-height:100vh;background:#fbfaff;display:flex;flex-direction:column;">
+<div id="top" style="min-height:100vh;background:#fbfaff;display:flex;flex-direction:column;">
 ${siteHeader(t, code, kind)}
-<main style="flex:1;width:100%;max-width:760px;margin:0 auto;padding:clamp(48px,8vw,88px) 24px 96px;display:flex;flex-direction:column;gap:40px;">
+<main id="main" tabindex="-1" style="flex:1;width:100%;max-width:760px;margin:0 auto;padding:clamp(48px,8vw,88px) 24px 96px;display:flex;flex-direction:column;gap:40px;">
   <div style="display:flex;flex-direction:column;gap:20px;">
     <h1 style="font-size:clamp(34px,5vw,48px);line-height:1.1;font-weight:800;letter-spacing:-0.025em;text-wrap:balance;">${esc(d.title)}</h1>
     <p style="font-size:20px;line-height:1.55;font-weight:600;color:#463a7a;background:#f0eefb;border-radius:18px;padding:22px 26px;text-wrap:pretty;">${esc(d.intro)}</p>

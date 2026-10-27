@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).ja = {
   htmlLang: 'ja', pageTitle: 'YourBudget – オフライン家計簿',
-  nav: { features: '機能', devices: 'デバイス', start: 'はじめ方', faq: 'よくある質問', download: 'アプリ', langLabel: '言語' },
+  nav: { features: '機能', devices: 'デバイス', start: 'はじめ方', faq: 'よくある質問', download: 'アプリ', langLabel: '言語', toTop: 'ページの先頭へ', skip: 'コンテンツへスキップ' },
   chips: ['アカウント不要', '広告なし', 'トラッキングなし'],
   h1: 'お金を自分で管理。データはスマホの中に。',
   lead: '今月の予算を立て、銀行の明細を取り込み、お金の行き先を確認。貯金を記録し、借金を返し、アカウントは一切不要。アプリがデータをどこかへ送信することはありません。',

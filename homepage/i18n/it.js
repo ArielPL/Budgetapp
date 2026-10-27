@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).it = {
   htmlLang: 'it', pageTitle: 'YourBudget – budget offline',
-  nav: { features: 'Funzioni', devices: 'Dispositivi', start: 'Inizia', faq: 'FAQ', download: 'L’app', langLabel: 'Lingua' },
+  nav: { features: 'Funzioni', devices: 'Dispositivi', start: 'Inizia', faq: 'FAQ', download: 'L’app', langLabel: 'Lingua', toTop: 'Torna su', skip: 'Vai al contenuto' },
   chips: ['Nessun account', 'Nessuna pubblicità', 'Nessun tracciamento'],
   h1: 'Prendi il controllo dei tuoi soldi. Tienili sul telefono.',
   lead: "Pianifica il budget del mese, importa l'estratto conto e scopri dove sono finiti i soldi. Segui i risparmi, estingui i debiti e non creare mai un account. L’app non invia nulla da nessuna parte.",
