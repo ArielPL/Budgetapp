@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).zh = {
   htmlLang: 'zh-Hans', pageTitle: 'YourBudget – 离线预算',
-  nav: { features: '功能', devices: '设备', start: '开始使用', faq: '常见问题', download: '应用', langLabel: '语言', toTop: '返回顶部', skip: '跳到正文', about: '关于', aboutTitle: '关于 YourBudget' },
+  nav: { features: '功能', devices: '设备', start: '开始使用', faq: '常见问题', download: '应用', langLabel: '语言', toTop: '返回顶部', skip: '跳到正文', about: '关于', news: '新闻', aboutTitle: '关于 YourBudget' },
   chips: ['无需账号', '无广告', '无追踪'],
   h1: '掌控你的钱。数据只留在手机里。',
   lead: '规划本月预算，导入银行账单，看清钱都花到了哪里。跟踪储蓄，偿还债务，而且永远不用注册账号。应用不会把任何数据发送到任何地方。',

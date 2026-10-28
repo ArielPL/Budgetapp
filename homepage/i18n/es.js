@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).es = {
   htmlLang: 'es', pageTitle: 'YourBudget – presupuesto sin conexión',
-  nav: { features: 'Funciones', devices: 'Dispositivos', start: 'Empezar', faq: 'Preguntas', download: 'La app', langLabel: 'Idioma', toTop: 'Volver arriba', skip: 'Saltar al contenido', about: 'Acerca de', aboutTitle: 'Acerca de YourBudget' },
+  nav: { features: 'Funciones', devices: 'Dispositivos', start: 'Empezar', faq: 'Preguntas', download: 'La app', langLabel: 'Idioma', toTop: 'Volver arriba', skip: 'Saltar al contenido', about: 'Acerca de', news: 'Novedades', aboutTitle: 'Acerca de YourBudget' },
   chips: ['Sin cuenta', 'Sin anuncios', 'Sin rastreo'],
   h1: 'Toma el control de tu dinero. Guárdalo en tu teléfono.',
   lead: 'Planifica el presupuesto del mes, importa tu extracto bancario y descubre adónde fue el dinero. Sigue tus ahorros, paga tus deudas y nunca crees una cuenta. La app no envía nada a ninguna parte.',

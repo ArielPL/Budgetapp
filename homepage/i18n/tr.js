@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).tr = {
   htmlLang: 'tr', pageTitle: 'YourBudget – çevrimdışı bütçe',
-  nav: { features: 'Özellikler', devices: 'Cihazlar', start: 'Başlarken', faq: 'SSS', download: 'Uygulama', langLabel: 'Dil', toTop: 'Başa dön', skip: 'İçeriğe geç', about: 'Hakkında', aboutTitle: 'YourBudget hakkında' },
+  nav: { features: 'Özellikler', devices: 'Cihazlar', start: 'Başlarken', faq: 'SSS', download: 'Uygulama', langLabel: 'Dil', toTop: 'Başa dön', skip: 'İçeriğe geç', about: 'Hakkında', news: 'Haberler', aboutTitle: 'YourBudget hakkında' },
   chips: ['Hesap yok', 'Reklam yok', 'Takip yok'],
   h1: 'Paranın kontrolünü al. Telefonunda kalsın.',
   lead: 'Bu ayın bütçesini planla, banka ekstreni içe aktar ve paranın nereye gittiğini gör. Birikimlerini takip et, borçlarını öde ve asla hesap oluşturma. Uygulama hiçbir şeyi hiçbir yere göndermez.',

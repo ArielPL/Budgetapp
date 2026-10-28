@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).pt = {
   htmlLang: 'pt-BR', pageTitle: 'YourBudget – orçamento offline',
-  nav: { features: 'Recursos', devices: 'Dispositivos', start: 'Começar', faq: 'Perguntas', download: 'O app', langLabel: 'Idioma', toTop: 'Voltar ao topo', skip: 'Pular para o conteúdo', about: 'Sobre', aboutTitle: 'Sobre o YourBudget' },
+  nav: { features: 'Recursos', devices: 'Dispositivos', start: 'Começar', faq: 'Perguntas', download: 'O app', langLabel: 'Idioma', toTop: 'Voltar ao topo', skip: 'Pular para o conteúdo', about: 'Sobre', news: 'Novidades', aboutTitle: 'Sobre o YourBudget' },
   chips: ['Sem conta', 'Sem anúncios', 'Sem rastreamento'],
   h1: 'Assuma o controle do seu dinheiro. Mantenha-o no seu celular.',
   lead: 'Planeje o orçamento do mês, importe seu extrato bancário e veja para onde foi o dinheiro. Acompanhe a poupança, quite dívidas e nunca crie uma conta. O app não envia nada para lugar nenhum.',
