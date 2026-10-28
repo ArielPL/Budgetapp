@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).sv = {
   htmlLang: 'sv', pageTitle: 'YourBudget – budget offline',
-  nav: { features: 'Funktioner', devices: 'Enheter', start: 'Kom igång', faq: 'Frågor', download: 'Appen', langLabel: 'Språk', toTop: 'Till toppen', skip: 'Hoppa till innehållet' },
+  nav: { features: 'Funktioner', devices: 'Enheter', start: 'Kom igång', faq: 'Frågor', download: 'Appen', langLabel: 'Språk', toTop: 'Till toppen', skip: 'Hoppa till innehållet', about: 'Om', aboutTitle: 'Om YourBudget' },
   chips: ['Inget konto', 'Ingen reklam', 'Ingen spårning'],
   h1: 'Ta kontroll över dina pengar. Behåll dem i telefonen.',
   lead: 'Planera månadens budget, importera ditt kontoutdrag och se vart pengarna tog vägen. Följ ditt sparande, betala av skulder och skapa aldrig ett konto. Appen skickar ingenting någonstans.',

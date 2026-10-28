@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).de = {
   htmlLang: 'de', pageTitle: 'YourBudget – Budget offline',
-  nav: { features: 'Funktionen', devices: 'Geräte', start: 'Loslegen', faq: 'FAQ', download: 'Die App', langLabel: 'Sprache', toTop: 'Nach oben', skip: 'Zum Inhalt springen' },
+  nav: { features: 'Funktionen', devices: 'Geräte', start: 'Loslegen', faq: 'FAQ', download: 'Die App', langLabel: 'Sprache', toTop: 'Nach oben', skip: 'Zum Inhalt springen', about: 'Über uns', aboutTitle: 'Über YourBudget' },
   chips: ['Kein Konto', 'Keine Werbung', 'Kein Tracking'],
   h1: 'Behalte dein Geld im Griff. Und auf deinem Handy.',
   lead: 'Plane das Budget für diesen Monat, importiere deinen Kontoauszug und sieh, wohin das Geld gegangen ist. Verfolge dein Sparen, baue Schulden ab und erstelle nie ein Konto. Die App sendet nichts nach außen.',

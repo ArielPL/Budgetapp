@@ -1,6 +1,6 @@
 (window.YB_I18N = window.YB_I18N || {}).en = {
   htmlLang: 'en', pageTitle: 'YourBudget – offline budget',
-  nav: { features: 'Features', devices: 'Devices', start: 'Get started', faq: 'FAQ', download: 'The app', langLabel: 'Language', toTop: 'Back to top', skip: 'Skip to content' },
+  nav: { features: 'Features', devices: 'Devices', start: 'Get started', faq: 'FAQ', download: 'The app', langLabel: 'Language', toTop: 'Back to top', skip: 'Skip to content', about: 'About', aboutTitle: 'About YourBudget' },
   chips: ['No account', 'No ads', 'No tracking'],
   h1: 'Take control of your money. Keep it on your phone.',
   lead: "Plan this month's budget, import your bank statement and see where the money went. Track savings, pay down debt, and never create an account. The app never sends anything anywhere.",
