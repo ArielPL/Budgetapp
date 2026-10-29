@@ -25,6 +25,17 @@ Each track also has a chat of its own, with the model that suits it (Ariel, 2026
 | 🧪 **Arty** – the offline AI assistant lab | `~/Developer/budget-ai-lab` | Opus |
 | 📣 **Sofi** – social media: analysis, plan and drafts; writes no code | none | Sonnet |
 
+On the ChatGPT side (Codex/ChatGPT, rules in `AGENTS.md`) Ariel has five more, who deliver
+files and never change code (Ariel, 2026-10-29):
+- **Klara**: app reviews, for Otto, in `notes/reviews/`.
+- **Nova**: website reviews, for Webby, in `notes/reviews/` and `notes/website/`.
+- **Tess**: import test data, for Otto, in `outputs/test-data/`.
+- **Vera**: market and store texts, for Sofi, in `notes/market/`.
+- **Mira**: images and video, for Sofi, in `outputs/instagram/`.
+
+Take their files in like any other input: check them against the code before acting.
+`notes/` and `outputs/` are local and untracked.
+
 ## Working rules (efficiency-tuned)
 
 1. **Spawn agents sparingly** — each spawn starts cold and re-reads the repo. Otto does
