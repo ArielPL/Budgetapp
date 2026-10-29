@@ -1046,7 +1046,13 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver,
                       <span className={`custom-tile-headline tone-${recorded ? tone : 'neutral'}`}>
                         {recorded ? headline : <span className="amount-unknown" title={t.monthNotFilledHint}>–</span>}
                       </span>
-                      {isSummary && <span className="custom-tile-sub">{t.summaryRemaining}</span>}
+                      {/* Before saving, said so when there is saving: Classic's
+                          "Kvar" is after it (review 2026-10-29, P2-4). */}
+                      {isSummary && (
+                        <span className="custom-tile-sub">
+                          {recorded && summary.saved !== 0 ? t.summaryRemainingBeforeSaving : t.summaryRemaining}
+                        </span>
+                      )}
                       {showDelta && (
                         <span className={`custom-tile-delta tone-${delta >= 0 ? 'positive' : 'negative'}`}>
                           {delta >= 0 ? '+' : ''}{money(delta)} {t.vsPrev}
@@ -1297,7 +1303,7 @@ export const BlockContent = ({
         <SummaryRow label={t.summaryExpenses} value={recorded ? money(summary.expenses) : '–'}
           cls={recorded ? 'tone-negative' : ''} />
         <SummaryRow label={t.summarySaved} value={recorded ? money(summary.saved) : '–'} cls="" />
-        <SummaryRow label={t.summaryRemaining}
+        <SummaryRow label={recorded && summary.saved !== 0 ? t.summaryRemainingBeforeSaving : t.summaryRemaining}
           value={recorded ? `${summary.remaining >= 0 ? '+' : ''}${money(summary.remaining)}` : '–'}
           cls={!recorded ? '' : summary.remaining >= 0 ? 'tone-positive' : 'tone-negative'} big />
         {deltaNode && <div className="cv3-block-delta">{deltaNode}</div>}

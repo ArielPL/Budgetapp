@@ -191,6 +191,7 @@ export const zh: Translations = {
   csvSkipped: (n) => `${n} 行无法读取，已跳过。`,
   csvRows: (n) => `${n} 条记录`,
   csvImportN: (n) => `导入 ${n} 条记录`,
+  csvAlreadyThere: (n) => `${n} 笔已存在，不会重复添加`,
   csvUnassigned: (n) => `${n} 条没有分类的记录不会导入。`,
   csvDoneAdded: (n) => `已导入 ${n} 条记录`,
   csvDoneDuplicates: (n) => `${n} 条已存在`,
@@ -371,6 +372,7 @@ export const zh: Translations = {
   summarySaved: '已储蓄',
   summaryRemaining: '剩余',
   summaryRemainingAfterSaving: '储蓄后剩余',
+  summaryRemainingBeforeSaving: "储蓄前剩余",
   customStandalone: '独立预算——不会改变你的常规预算',
   customMonthEmpty: (month) => `${month}还没有填写`,
   customCopyFrom: (month) => `复制${month}`,
@@ -601,8 +603,8 @@ export const zh: Translations = {
     if (action === 'deleteCustomBudget') return '已删除一个预算';
     if (action === 'deleteWalletExpense') return "已从信封中删除一笔支出";
     if (action === 'createGoal') return '已创建一个储蓄目标';
-    if (action === 'createWallet') return "已创建信封";
-    if (action === 'startBudget') return "已创建预算";
+    if (action === 'createWallet') return count > 1 ? `已创建 ${count} 个信封` : "已创建信封";
+    if (action === 'startBudget') return count > 1 ? `已创建 ${count} 个月的预算` : "已创建预算";
     if (action === 'renameRow') return `已在${where}重命名一行`;
     if (action === 'debtExtra') return '债务的额外还款金额已更改';
     if (count === 1) return '发薪周期已更改——移动了 1 条记录';
@@ -962,6 +964,10 @@ export const zh: Translations = {
   envCarryAdd: "加入",
   envCarrySkip: "不用了",
   envCarried: (amount) => `其中 ${amount} 来自上周`,
+  envNewGroup: "新的一行信封",
+  wDateOutside: (from, to) => `日期不在信封的期间内（${from} – ${to}）。`,
+  wAddAnyway: "仍然添加",
+  qAboutNow: (month) => `答案针对的是以今天为准的${month}，而不是屏幕上显示的月份。`,
   protectedSavingsCategory: '默认分类——无法删除',
   backupReminder: '备份你的数据，以免丢失',
   backupReminderShort: '建议备份',
@@ -1067,5 +1073,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     "宽屏上的菜单：字体较大或菜单比窗口高时，各行不再重叠；菜单会随文字大小变宽；菜单打开时，“菜单”按钮不再出现灰色方框。在 Mac 上，应用会铺满窗口",
     "“钱包”现在改名为“信封”，取自信封预算法：一笔钱只用于一件事，信封空了就停。菜单中的“信封”会一次显示所有信封。在电脑和平板上，它们并排显示，末尾有“+”可新建，编辑、归档和删除在“⋯”里。在手机上则是一个显示剩余金额的列表，点一下即可打开",
     "「可用生活费」中的“+ 信封”会询问是否还要加入其他项目，例如日用食品。按月时，每个选中的项目都会成为单独的信封。按周时，本月剩下的每一周各有一个信封，选中的项目作为分项；一周结束后，下一周会询问上周还剩多少并把它加进来",
+    "一起创建的信封会排在自己的一行里，行名可以修改：从「可用生活费」创建的信封以月份命名，新建的信封会另起一行。信封中的支出默认使用信封期间内的日期，期间外的日期需确认后才会记录",
   ],
 };

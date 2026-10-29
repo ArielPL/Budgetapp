@@ -273,7 +273,7 @@ function App({ startupRepair = null }: AppProps) {
       alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
-    recordUndo({ at: new Date().toISOString(), action: 'startBudget', changes: before });
+    recordUndo({ at: new Date().toISOString(), action: 'startBudget', count: months.length, changes: before });
     setData(built);
     dismissBudgetHero();
     setCopyOfferHidden(true);
@@ -316,6 +316,11 @@ function App({ startupRepair = null }: AppProps) {
   // instead of only filling months that are empty.
   const [startOver, setStartOver] = useState(false);
   const closeStartChoice = () => { setStartChoiceOpen(false); setStartOver(false); };
+  // The start choice comes right after the intro: loaded while the intro is
+  // read, so it is there the moment the intro closes.
+  useEffect(() => {
+    if (introOpen) void import('./components/BeginnerStart');
+  }, [introOpen]);
   const dismissIntro = () => {
     safeSetItem(appStorage, 'budget_welcome_seen', '1');
     setIntroOpen(false);
@@ -1860,9 +1865,11 @@ function App({ startupRepair = null }: AppProps) {
   };
   const draftEnvelopes = (draft: NonNullable<typeof walletDraft>, newId: () => string): Wallet[] => {
     const rows = draft.rows.filter(r => draft.picked.includes(r.id));
+    // Made together, shown together: one row, named after the month.
+    const group = { id: newId(), name: monthTitle(month, year, lang) };
     return draft.span === 'month'
-      ? monthEnvelopes({ name: draft.name.trim(), left: draft.left, rows, period: draft.period, newId })
-      : weekEnvelopes({ name: t.walletNameWeek, left: draft.left, rows, period: draft.period, today: new Date(), everyday: t.envEveryday, newId });
+      ? monthEnvelopes({ name: draft.name.trim(), left: draft.left, rows, period: draft.period, group, newId })
+      : weekEnvelopes({ name: t.walletNameWeek, left: draft.left, rows, period: draft.period, today: new Date(), everyday: t.envEveryday, group, newId });
   };
   /** What stops the draft being made, said under its fields; null when nothing. */
   const draftProblem = (d: NonNullable<typeof walletDraft>): string | null =>
@@ -1877,7 +1884,7 @@ function App({ startupRepair = null }: AppProps) {
       alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
       return false;
     }
-    recordUndo({ at: new Date().toISOString(), action: 'createWallet', changes: before });
+    recordUndo({ at: new Date().toISOString(), action: 'createWallet', count: made.length, changes: before });
     // Straight to it: the envelopes screen opens on the first one made.
     safeSetItem(appStorage, OPEN_PANEL_KEY, made[0].id);
     setWalletsScreen(true);
@@ -2451,7 +2458,10 @@ function App({ startupRepair = null }: AppProps) {
       </header>
 
       {startChoiceOpen && (
-        <Suspense fallback={null}>
+        // While the dialog loads, a backdrop already covers the page: the
+        // template button behind it could otherwise start a second way in
+        // (review 2026-10-29, P2-2).
+        <Suspense fallback={<div className="theme-backdrop intro-backdrop" aria-hidden="true" />}>
           <BeginnerStart
             span={{
               from: inSentence(MONTHS_SHORT[lang][month], lang),

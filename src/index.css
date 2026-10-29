@@ -6175,6 +6175,24 @@ html.guide-side body { padding-right: 380px; }
   border: none;
   cursor: pointer;
 }
+/* Rows of envelopes (Ariel, 2026-10-29): those made together share one, a new
+   one starts its own. Each row is named, and the name can be changed. */
+.wallet-groups { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
+.wallet-group { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.wallet-group-head { display: flex; align-items: center; gap: 0.25rem; }
+.wallet-group-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.wallet-new-group {
+  align-self: flex-start;
+  padding: 9px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-brand-strong);
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
 .wallet-columns {
   display: flex;
   align-items: stretch;

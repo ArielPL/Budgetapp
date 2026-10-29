@@ -70,6 +70,9 @@ interface Props {
   periodLocks: PeriodLocks;
   /** Store a goal from "What do I need to save?". Absent: no create button. */
   onCreateGoal?: (goal: NewGoalRequest) => Promise<boolean>;
+  /** The month on screen. The questions are about today's; when this is
+   *  another, they say so (review 2026-10-29, P2-3). */
+  shown?: YearMonth;
 }
 
 const localIso = (d: Date) =>
@@ -78,7 +81,7 @@ const localIso = (d: Date) =>
 const withEntries = (months: YearMonth[]): MonthEntries[] =>
   months.map(m => ({ ...m, entries: loadActuals(appStorage, m.year, m.month) }));
 
-export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoal }: Props) => {
+export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoal, shown }: Props) => {
   const { t, lang, money } = useLang();
   const [open, setOpen] = useState<QuestionId | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -416,12 +419,15 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoa
     );
   };
 
+  const elsewhere = shown !== undefined && (shown.year !== now.year || shown.month !== now.month);
+  const aboutNow = elsewhere && <p className="q-note q-note-warn">{t.qAboutNow(month(now))}</p>;
   return (
     <section className="q-card" data-guide="questions" aria-label={t.qTitle}>
       {open === null ? (
         <>
           <h3 className="q-title">💬 {t.qTitle}</h3>
           <p className="q-lead">{t.qLead}</p>
+          {aboutNow}
           {search()}
           <div className="q-list">
             {QUESTIONS.map(q => (
@@ -435,6 +441,7 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoa
         <>
           <button className="q-back" onClick={() => setOpen(null)}>← {t.qBack}</button>
           <h3 className="q-title">{ask(open)}</h3>
+          {aboutNow}
           <div className="q-answer" role="status">{answer(open)}</div>
         </>
       )}

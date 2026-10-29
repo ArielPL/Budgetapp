@@ -470,6 +470,8 @@ export interface Translations {
   csvSkipped: (n: number) => string;
   csvRows: (n: number) => string;
   csvImportN: (n: number) => string;
+  /** Rows of a file already imported, said before the import (review 2026-10-29). */
+  csvAlreadyThere: (n: number) => string;
   csvUnassigned: (n: number) => string;
   csvDoneAdded: (n: number) => string;
   csvDoneDuplicates: (n: number) => string;
@@ -655,6 +657,8 @@ export interface Translations {
   /** Custom's "Kvar" is before saving; this row is after it, which is what
    *  Classic calls "Kvar". Shown only when something was saved. */
   summaryRemainingAfterSaving: string;
+  /** Custom's "Kvar" when there is saving: it is before it, unlike Classic's. */
+  summaryRemainingBeforeSaving: string;
   /** Custom keeps its own amounts; says so at the top of the page. */
   customStandalone: string;
   /** An empty month whose previous month is filled in. */
@@ -1268,6 +1272,13 @@ export interface Translations {
   envCarryAdd: string;
   envCarrySkip: string;
   envCarried: (amount: string) => string;
+  /** Starts a row of its own on the envelopes screen (Ariel, 2026-10-29). */
+  envNewGroup: string;
+  /** A wallet expense dated outside the envelope's period (review 2026-10-29). */
+  wDateOutside: (from: string, to: string) => string;
+  wAddAnyway: string;
+  /** The questions are about today's month, said when another is on screen. */
+  qAboutNow: (month: string) => string;
   protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
@@ -1510,6 +1521,7 @@ export const translations: Record<Lang, Translations> = {
     csvSkipped: (n) => `${n} rader kunde inte läsas och hoppas över.`,
     csvRows: (n) => (n === 1 ? '1 post' : `${n} poster`),
     csvImportN: (n) => `Importera ${n} poster`,
+    csvAlreadyThere: (n) => `${n} finns redan och läggs inte till igen`,
     csvUnassigned: (n) => `${n} utan kategori importeras inte.`,
     csvDoneAdded: (n) => (n === 1 ? '1 post importerad' : `${n} poster importerade`),
     csvDoneDuplicates: (n) => `${n} fanns redan`,
@@ -1690,6 +1702,7 @@ export const translations: Record<Lang, Translations> = {
     summarySaved: 'Sparat',
     summaryRemaining: 'Kvar',
     summaryRemainingAfterSaving: 'Kvar efter sparande',
+    summaryRemainingBeforeSaving: "Kvar före sparande",
     customStandalone: 'Fristående budget – påverkar inte din vanliga budget',
     customMonthEmpty: (month) => `${month} är inte ifylld ännu`,
     customCopyFrom: (month) => `Kopiera ${month}`,
@@ -1919,8 +1932,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteCustomBudget') return 'En budget togs bort';
       if (action === 'deleteWalletExpense') return "En utgift togs bort ur ett kuvert";
       if (action === 'createGoal') return 'Ett sparmål skapades';
-      if (action === 'createWallet') return "Ett kuvert skapades";
-      if (action === 'startBudget') return "En budget skapades";
+      if (action === 'createWallet') return count > 1 ? `${count} kuvert skapades` : "Ett kuvert skapades";
+      if (action === 'startBudget') return count > 1 ? `En budget skapades för ${count} månader` : "En budget skapades";
       if (action === 'renameRow') return `En rad bytte namn i ${where}`;
       if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
@@ -2281,6 +2294,10 @@ export const translations: Record<Lang, Translations> = {
     envCarryAdd: "Lägg till",
     envCarrySkip: "Nej tack",
     envCarried: (amount) => `Varav ${amount} från förra veckan`,
+    envNewGroup: "Ny rad med kuvert",
+    wDateOutside: (from, to) => `Datumet ligger utanför kuvertets period, ${from} – ${to}.`,
+    wAddAnyway: "Lägg till ändå",
+    qAboutNow: (month) => `Svaren gäller ${month}, räknat från i dag, inte månaden du tittar på.`,
     protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
@@ -2529,6 +2546,7 @@ export const translations: Record<Lang, Translations> = {
     csvSkipped: (n) => `${n} rows could not be read and are skipped.`,
     csvRows: (n) => (n === 1 ? '1 entry' : `${n} entries`),
     csvImportN: (n) => `Import ${n} entries`,
+    csvAlreadyThere: (n) => `${n} ${n === 1 ? 'is' : 'are'} already there and won't be added again`,
     csvUnassigned: (n) => `${n} without a category are not imported.`,
     csvDoneAdded: (n) => (n === 1 ? '1 entry imported' : `${n} entries imported`),
     csvDoneDuplicates: (n) => (n === 1 ? '1 was already there' : `${n} were already there`),
@@ -2709,6 +2727,7 @@ export const translations: Record<Lang, Translations> = {
     summarySaved: 'Saved',
     summaryRemaining: 'Remaining',
     summaryRemainingAfterSaving: 'Left after saving',
+    summaryRemainingBeforeSaving: "Left before saving",
     customStandalone: 'A separate budget – it does not change your regular budget',
     customMonthEmpty: (month) => `${month} has not been filled in yet`,
     customCopyFrom: (month) => `Copy ${month}`,
@@ -2939,8 +2958,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteCustomBudget') return 'A budget was removed';
       if (action === 'deleteWalletExpense') return "An expense was removed from an envelope";
       if (action === 'createGoal') return 'A savings goal was created';
-      if (action === 'createWallet') return "An envelope was created";
-      if (action === 'startBudget') return "A budget was created";
+      if (action === 'createWallet') return count > 1 ? `${count} envelopes were created` : "An envelope was created";
+      if (action === 'startBudget') return count > 1 ? `A budget was created for ${count} months` : "A budget was created";
       if (action === 'renameRow') return `A row was renamed in ${where}`;
       if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
@@ -3300,6 +3319,10 @@ export const translations: Record<Lang, Translations> = {
     envCarryAdd: "Add",
     envCarrySkip: "No thanks",
     envCarried: (amount) => `Including ${amount} from last week`,
+    envNewGroup: "New row of envelopes",
+    wDateOutside: (from, to) => `The date is outside the envelope's period, ${from} – ${to}.`,
+    wAddAnyway: "Add anyway",
+    qAboutNow: (month) => `The answers are about ${month}, counted from today, not the month on screen.`,
     protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
@@ -3548,6 +3571,7 @@ export const translations: Record<Lang, Translations> = {
     csvSkipped: (n) => `${n} filas no se pudieron leer y se omiten.`,
     csvRows: (n) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
     csvImportN: (n) => `Importar ${n} movimientos`,
+    csvAlreadyThere: (n) => `${n} ya ${n === 1 ? 'está' : 'están'} y no se añadirá${n === 1 ? '' : 'n'} de nuevo`,
     csvUnassigned: (n) => `${n} sin categoría no se importan.`,
     csvDoneAdded: (n) => (n === 1 ? '1 movimiento importado' : `${n} movimientos importados`),
     csvDoneDuplicates: (n) => (n === 1 ? '1 ya estaba' : `${n} ya estaban`),
@@ -3728,6 +3752,7 @@ export const translations: Record<Lang, Translations> = {
     summarySaved: 'Ahorrado',
     summaryRemaining: 'Restante',
     summaryRemainingAfterSaving: 'Queda tras ahorrar',
+    summaryRemainingBeforeSaving: "Queda antes de ahorrar",
     customStandalone: 'Presupuesto independiente – no cambia tu presupuesto normal',
     customMonthEmpty: (month) => `${month} aún no está rellenado`,
     customCopyFrom: (month) => `Copiar ${month}`,
@@ -3958,8 +3983,8 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'deleteCustomBudget') return 'Se eliminó un presupuesto';
       if (action === 'deleteWalletExpense') return "Se eliminó un gasto de un sobre";
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
-      if (action === 'createWallet') return "Se creó un sobre";
-      if (action === 'startBudget') return "Se creó un presupuesto";
+      if (action === 'createWallet') return count > 1 ? `Se crearon ${count} sobres` : "Se creó un sobre";
+      if (action === 'startBudget') return count > 1 ? `Se creó un presupuesto para ${count} meses` : "Se creó un presupuesto";
       if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
       if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
@@ -4319,6 +4344,10 @@ export const translations: Record<Lang, Translations> = {
     envCarryAdd: "Añadir",
     envCarrySkip: "No, gracias",
     envCarried: (amount) => `Incluye ${amount} de la semana pasada`,
+    envNewGroup: "Nueva fila de sobres",
+    wDateOutside: (from, to) => `La fecha está fuera del periodo del sobre, ${from} – ${to}.`,
+    wAddAnyway: "Añadir igualmente",
+    qAboutNow: (month) => `Las respuestas se refieren a ${month}, contando desde hoy, no al mes en pantalla.`,
     protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',

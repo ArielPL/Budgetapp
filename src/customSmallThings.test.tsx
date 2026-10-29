@@ -2,6 +2,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { CustomV3 } from './components/CustomV3';
+import { translations } from './i18n';
 
 // ── Custom: six small things from the Customize product plan (2026-09-20) ───
 //
@@ -256,5 +257,17 @@ describe('6 — what is left after saving', () => {
   it('is not shown for a month that is not filled in', () => {
     mount(2026, 9);
     expect(row()).toBeUndefined();
+  });
+
+  it('calls its own "Kvar" before saving when there is saving (review 2026-10-29, P2-4)', () => {
+    const sv = translations.sv;
+    const labels = () => [...document.querySelectorAll('.cv3-summary-row')].map(r => r.textContent ?? '');
+    mount(2026, 8);
+    expect(labels().some(l => l.startsWith(sv.summaryRemainingBeforeSaving))).toBe(true);
+    cleanup();
+    localStorage.setItem(valuesKey(2026, 8), JSON.stringify({ lon: 30000, hyra: 15000 }));
+    mount(2026, 8);
+    expect(labels().some(l => l.startsWith(sv.summaryRemainingBeforeSaving))).toBe(false);
+    expect(labels().some(l => l.startsWith(sv.summaryRemaining))).toBe(true);
   });
 });

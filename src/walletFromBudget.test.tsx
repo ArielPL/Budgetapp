@@ -148,7 +148,7 @@ describe('envelopes from the budget', () => {
   const food = { id: 'f', label: 'Matvaror', amount: 4000 };
 
   it('a month: what is left, and one envelope per row taken along', () => {
-    const made = monthEnvelopes({ name: 'Vardag oktober', left: 22000, rows: [food], period: october, newId });
+    const made = monthEnvelopes({ name: 'Vardag oktober', left: 22000, rows: [food], period: october, group: { id: 'g', name: 'Oktober 2026' }, newId });
     expect(made.map(w => [w.name, w.total, w.from, w.to, w.pots.length])).toEqual([
       ['Vardag oktober', 22000, '2026-10-01', '2026-10-31', 0],
       ['Matvaror', 4000, '2026-10-01', '2026-10-31', 0],
@@ -157,7 +157,7 @@ describe('envelopes from the budget', () => {
 
   it('a week: the shares add up to the whole over every week, and rows become parts', () => {
     const all = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [food], period: october,
-      today: new Date(2026, 8, 20), everyday: 'Vardag', newId });
+      today: new Date(2026, 8, 20), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId });
     expect(all).toHaveLength(5);
     expect(all.reduce((s, w) => s + w.total, 0)).toBe(26000);
     expect(all.reduce((s, w) => s + w.pots[1].planned, 0)).toBe(4000);
@@ -170,20 +170,20 @@ describe('envelopes from the budget', () => {
 
   it('a period already over gets every week, not none (Ariel, 2026-10-29)', () => {
     const all = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [], period: october,
-      today: new Date(2026, 10, 3), everyday: 'Vardag', newId });
+      today: new Date(2026, 10, 3), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId });
     expect(all).toHaveLength(5);
   });
 
   it('a week planned mid-month skips the weeks already over', () => {
     const left = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [], period: october,
-      today: new Date(2026, 9, 15), everyday: 'Vardag', newId });
+      today: new Date(2026, 9, 15), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId });
     expect(left.map(w => w.name)).toEqual(['v. 42', 'v. 43', 'v. 44']);
     expect(left.every(w => w.pots.length === 0)).toBe(true);
   });
 
   it('what the week before left moves onto the total and onto what is left', () => {
     const [a, b] = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [food], period: october,
-      today: new Date(2026, 9, 15), everyday: 'Vardag', newId });
+      today: new Date(2026, 9, 15), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId });
     expect(previousInSeries(b, [a, b])?.id).toBe(a.id);
     expect(previousInSeries(a, [a, b])).toBeUndefined();
     const moved = withCarry(b, 300);
@@ -238,7 +238,7 @@ describe('Left to live on → envelopes, in the app', () => {
 
   it('asks what last week left once it is over, and moves it', async () => {
     const weeks = weekEnvelopes({ name: w => `Vardag v. ${w}`, left: 22000, rows: [], period: { from: new Date(2026, 9, 1), to: new Date(2026, 9, 31) },
-      today: new Date(2026, 9, 12), everyday: 'Vardag', newId: (() => { let i = 0; return () => `w${i++}`; })() });
+      today: new Date(2026, 9, 12), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId: (() => { let i = 0; return () => `w${i++}`; })() });
     // Week 42 is over on the 19th, with 700 spent of it.
     const spent: Wallet = { ...weeks[0], expenses: [{ id: 'e', date: '2026-10-13', text: 'SYNT', amount: 700, potId: '' }] };
     seed({ [WALLETS_KEY]: JSON.stringify({ wallets: [spent, ...weeks.slice(1)] }), budget_panel_open: weeks[1].id });
@@ -258,7 +258,7 @@ describe('Left to live on → envelopes, in the app', () => {
 
   it('"No thanks" is an answer too: asked once', async () => {
     const weeks = weekEnvelopes({ name: w => `Vardag v. ${w}`, left: 22000, rows: [], period: { from: new Date(2026, 9, 1), to: new Date(2026, 9, 31) },
-      today: new Date(2026, 9, 12), everyday: 'Vardag', newId: (() => { let i = 0; return () => `n${i++}`; })() });
+      today: new Date(2026, 9, 12), everyday: 'Vardag', group: { id: 'g', name: 'Oktober 2026' }, newId: (() => { let i = 0; return () => `n${i++}`; })() });
     // On a phone (matchMedia says narrow) the list comes first; this opens the week.
     seed({ [WALLETS_KEY]: JSON.stringify({ wallets: weeks }), budget_panel_open: weeks[1].id });
     vi.setSystemTime(new Date(2026, 9, 19, 12));

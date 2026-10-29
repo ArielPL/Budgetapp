@@ -1096,10 +1096,13 @@ describe('a CSV import’s receipt and preview', () => {
     });
     fireEvent.change(input, { target: { files: [new File([CSV], 'synt.csv', { type: 'text/csv' })] } });
     await waitFor(() => expect(document.querySelector('.csv-groups')).not.toBeNull());
-    fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
-    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(0)));
-    expect(toast()).not.toContain(sv.csvDoneCreated(1));
-    expect(toast()).toContain(sv.csvDoneDuplicates(2));
+    // Said before the button now (review 2026-10-29, P3-1): nothing new, both
+    // already there, and no button that promises two.
+    const button = document.querySelector<HTMLButtonElement>('.csv-actions .csv-primary')!;
+    expect(button.textContent).toBe(sv.csvImportN(0));
+    expect(button.disabled).toBe(true);
+    expect(document.querySelector('.csv-actions')?.textContent).toContain(sv.csvAlreadyThere(2));
+    expect(preview()).not.toContain(sv.csvWillCreate(1));
   });
 
   it('offers to create, but neither previews nor reports a category every month reached already has', async () => {
@@ -1388,9 +1391,9 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await createTrip();
     cleanup();
     await openCustom();
-    // The envelopes are one folder in the switcher now (Ariel, 2026-10-29),
-    // and it opens on the envelope that was open.
-    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain(sv.wMenu);
+    // Envelopes are rows in the switcher now (Ariel, 2026-10-29): one made on
+    // its own starts a row named after it, and the row opens again.
+    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain('SYNT RESA');
     await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain('SYNT RESA'));
   });
 

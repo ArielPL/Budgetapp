@@ -195,6 +195,7 @@ export const it: Translations = {
   csvSkipped: (n) => `${n} righe non sono leggibili e vengono saltate.`,
   csvRows: (n) => (n === 1 ? "1 movimento" : `${n} movimenti`),
   csvImportN: (n) => `Importa ${n} movimenti`,
+  csvAlreadyThere: (n) => `${n} ${n === 1 ? 'c\'è già e non verrà aggiunta' : 'ci sono già e non verranno aggiunte'} di nuovo`,
   csvUnassigned: (n) => `${n} senza categoria non vengono importati.`,
   csvDoneAdded: (n) => (n === 1 ? "1 movimento importato" : `${n} movimenti importati`),
   csvDoneDuplicates: (n) => (n === 1 ? "1 era già presente" : `${n} erano già presenti`),
@@ -375,6 +376,7 @@ export const it: Translations = {
   summarySaved: "Risparmiato",
   summaryRemaining: "Rimanente",
   summaryRemainingAfterSaving: "Rimane dopo il risparmio",
+  summaryRemainingBeforeSaving: "Rimane prima del risparmio",
   customStandalone: "Un budget separato: non cambia il tuo budget normale",
   customMonthEmpty: (month) => `${month} non è ancora stato compilato`,
   customCopyFrom: (month) => `Copia ${month}`,
@@ -605,8 +607,8 @@ export const it: Translations = {
     if (action === 'deleteCustomBudget') return 'Un budget è stato eliminato';
     if (action === 'deleteWalletExpense') return "Una spesa è stata rimossa da una busta";
     if (action === 'createGoal') return "È stato creato un obiettivo di risparmio";
-    if (action === 'createWallet') return "È stata creata una busta";
-    if (action === 'startBudget') return "È stato creato un budget";
+    if (action === 'createWallet') return count > 1 ? `Sono state create ${count} buste` : "È stata creata una busta";
+    if (action === 'startBudget') return count > 1 ? `È stato creato un budget per ${count} mesi` : "È stato creato un budget";
     if (action === 'renameRow') return `Una riga è stata rinominata in ${where}`;
     if (action === 'debtExtra') return "L'importo extra per i tuoi debiti è stato cambiato";
     if (count === 1) return "Il periodo di paga è stato cambiato: 1 movimento spostato";
@@ -966,6 +968,10 @@ export const it: Translations = {
   envCarryAdd: "Aggiungi",
   envCarrySkip: "No, grazie",
   envCarried: (amount) => `Di cui ${amount} dalla settimana scorsa`,
+  envNewGroup: "Nuova fila di buste",
+  wDateOutside: (from, to) => `La data è fuori dal periodo della busta, ${from} – ${to}.`,
+  wAddAnyway: "Aggiungi comunque",
+  qAboutNow: (month) => `Le risposte riguardano ${month}, contando da oggi, non il mese sullo schermo.`,
   protectedSavingsCategory: "Categoria predefinita: non si può eliminare",
   backupReminder: "Fai un backup dei tuoi dati per non perderli",
   backupReminderShort: "Backup consigliato",
@@ -1071,5 +1077,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Il menu su uno schermo largo: le righe non si sovrappongono più con il testo grande o quando il menu è più alto della finestra, il menu cresce con la dimensione del testo e il pulsante Menu non mostra più un riquadro grigio quando è aperto. Su un Mac l'app riempie la finestra",
     "I portafogli ora si chiamano Buste, dal metodo delle buste: una somma per una cosa, e quando la busta è vuota, è finita. Buste nel menu le mostra tutte insieme. Su computer e tablet sono una accanto all'altra con un + in fondo per crearne una nuova, e Modifica, Archivia ed Elimina sono sotto ⋯. Sul telefono sono un elenco con quanto resta, e tocchi una busta per aprirla",
     "+ busta sotto Rimane per vivere chiede se vuoi includere altro, per esempio la Spesa. Per il mese, ogni riga scelta diventa una busta a sé. Per la settimana, c'è una busta per ogni settimana rimasta del mese, con ciò che hai scelto come parti, e quando una settimana finisce la successiva chiede quanto è rimasto e lo aggiunge",
+    "Le buste che vanno insieme stanno in una fila propria, con un nome che puoi cambiare: quelle create da Rimane per vivere prendono il nome del mese, e una nuova busta inizia una fila tutta sua. Una spesa in una busta riceve una data nel periodo della busta, e una data fuori viene accettata solo dopo conferma",
   ],
 };

@@ -198,6 +198,7 @@ export const fr: Translations = {
   csvSkipped: (n) => (n < 2 ? `${n} ligne illisible est ignorée.` : `${n} lignes illisibles sont ignorées.`),
   csvRows: (n) => (n < 2 ? `${n} opération` : `${n} opérations`),
   csvImportN: (n) => (n < 2 ? `Importer ${n} opération` : `Importer ${n} opérations`),
+  csvAlreadyThere: (n) => `${n} déjà ${n === 1 ? 'présente' : 'présentes'}, ${n === 1 ? 'elle ne sera' : 'elles ne seront'} pas ajoutée${n === 1 ? '' : 's'} à nouveau`,
   csvUnassigned: (n) => (n < 2 ? `${n} sans catégorie n'est pas importée.` : `${n} sans catégorie ne sont pas importées.`),
   csvDoneAdded: (n) => (n < 2 ? `${n} opération importée` : `${n} opérations importées`),
   csvDoneDuplicates: (n) => (n < 2 ? `${n} était déjà là` : `${n} étaient déjà là`),
@@ -384,6 +385,7 @@ export const fr: Translations = {
   summarySaved: "Épargné",
   summaryRemaining: "Reste",
   summaryRemainingAfterSaving: "Reste après épargne",
+  summaryRemainingBeforeSaving: "Reste avant épargne",
   customStandalone: "Un budget séparé – il ne modifie pas votre budget habituel",
   customMonthEmpty: (month) => `${month} n'est pas encore rempli`,
   customCopyFrom: (month) => `Copier ${month}`,
@@ -614,8 +616,8 @@ export const fr: Translations = {
     if (action === 'deleteCustomBudget') return 'Un budget a été supprimé';
     if (action === 'deleteWalletExpense') return "Une dépense a été supprimée d'une enveloppe";
     if (action === 'createGoal') return "Un objectif d'épargne a été créé";
-    if (action === 'createWallet') return "Une enveloppe a été créée";
-    if (action === 'startBudget') return "Un budget a été créé";
+    if (action === 'createWallet') return count > 1 ? `${count} enveloppes ont été créées` : "Une enveloppe a été créée";
+    if (action === 'startBudget') return count > 1 ? `Un budget a été créé pour ${count} mois` : "Un budget a été créé";
     if (action === 'renameRow') return `Une ligne a été renommée (${where})`;
     if (action === 'debtExtra') return "Le montant en plus pour vos dettes a été modifié";
     if (count === 1) return "La période de paie a été modifiée — 1 opération déplacée";
@@ -975,6 +977,10 @@ export const fr: Translations = {
   envCarryAdd: "Ajouter",
   envCarrySkip: "Non merci",
   envCarried: (amount) => `Dont ${amount} de la semaine dernière`,
+  envNewGroup: "Nouvelle rangée d'enveloppes",
+  wDateOutside: (from, to) => `La date est en dehors de la période de l'enveloppe, ${from} – ${to}.`,
+  wAddAnyway: "Ajouter quand même",
+  qAboutNow: (month) => `Les réponses portent sur ${month}, à partir d'aujourd'hui, pas sur le mois affiché.`,
   protectedSavingsCategory: "Catégorie par défaut — ne peut pas être supprimée",
   backupReminder: "Sauvegardez vos données pour ne pas les perdre",
   backupReminderShort: "Sauvegarde conseillée",
@@ -1080,5 +1086,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Le menu sur un grand écran : les lignes ne se chevauchent plus avec un grand texte ou quand le menu est plus haut que la fenêtre, le menu s'élargit avec la taille du texte, et le bouton Menu n'a plus de cadre gris quand le menu est ouvert. Sur un Mac, l'app remplit la fenêtre",
     "Les portefeuilles s'appellent désormais Enveloppes, d'après la méthode des enveloppes : un montant pour une chose, et quand l'enveloppe est vide, c'est fini. Enveloppes dans le menu les montre toutes à la fois. Sur ordinateur ou tablette, elles sont côte à côte avec un + à la fin pour en créer une, et Modifier, Archiver et Supprimer sont sous ⋯. Sur téléphone, c'est une liste avec ce qui reste, et on touche une enveloppe pour l'ouvrir",
     "+ enveloppe sous Reste à vivre demande s'il faut inclure autre chose, par exemple les Courses. Pour le mois, chaque ligne choisie devient une enveloppe à part. Pour la semaine, il y a une enveloppe par semaine restante du mois, avec ce que vous avez choisi comme parts, et quand une semaine est finie, la suivante demande ce qui est resté et l'ajoute",
+    "Les enveloppes qui vont ensemble sont sur leur propre rangée, avec un nom modifiable : celles créées depuis Reste à vivre portent le nom du mois, et une nouvelle enveloppe commence sa propre rangée. Une dépense dans une enveloppe reçoit une date dans la période de l'enveloppe, et une date en dehors n'est prise qu'après confirmation",
   ],
 };

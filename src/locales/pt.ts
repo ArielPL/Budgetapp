@@ -195,6 +195,7 @@ export const pt: Translations = {
   csvSkipped: (n) => `${n} linhas não puderam ser lidas e foram ignoradas.`,
   csvRows: (n) => (n === 1 ? '1 lançamento' : `${n} lançamentos`),
   csvImportN: (n) => `Importar ${n} lançamentos`,
+  csvAlreadyThere: (n) => `${n} já ${n === 1 ? 'existe e não será adicionado' : 'existem e não serão adicionados'} de novo`,
   csvUnassigned: (n) => `${n} sem categoria não serão importados.`,
   csvDoneAdded: (n) => (n === 1 ? '1 lançamento importado' : `${n} lançamentos importados`),
   csvDoneDuplicates: (n) => (n === 1 ? '1 já estava lá' : `${n} já estavam lá`),
@@ -375,6 +376,7 @@ export const pt: Translations = {
   summarySaved: 'Poupado',
   summaryRemaining: 'Restante',
   summaryRemainingAfterSaving: 'Sobra depois de poupar',
+  summaryRemainingBeforeSaving: "Sobra antes de poupar",
   customStandalone: 'Um orçamento separado – não muda o seu orçamento normal',
   customMonthEmpty: (month) => `${month} ainda não foi preenchido`,
   customCopyFrom: (month) => `Copiar ${month}`,
@@ -605,8 +607,8 @@ export const pt: Translations = {
     if (action === 'deleteCustomBudget') return 'Um orçamento foi excluído';
     if (action === 'deleteWalletExpense') return "Uma despesa foi removida de um envelope";
     if (action === 'createGoal') return 'Uma meta de poupança foi criada';
-    if (action === 'createWallet') return "Um envelope foi criado";
-    if (action === 'startBudget') return "Um orçamento foi criado";
+    if (action === 'createWallet') return count > 1 ? `${count} envelopes foram criados` : "Um envelope foi criado";
+    if (action === 'startBudget') return count > 1 ? `Um orçamento foi criado para ${count} meses` : "Um orçamento foi criado";
     if (action === 'renameRow') return `Uma linha foi renomeada em ${where}`;
     if (action === 'debtExtra') return 'O valor extra para as suas dívidas foi alterado';
     if (count === 1) return 'O período de pagamento foi alterado — 1 lançamento movido';
@@ -966,6 +968,10 @@ export const pt: Translations = {
   envCarryAdd: "Adicionar",
   envCarrySkip: "Não, obrigado",
   envCarried: (amount) => `Inclui ${amount} da semana passada`,
+  envNewGroup: "Nova fileira de envelopes",
+  wDateOutside: (from, to) => `A data está fora do período do envelope, ${from} – ${to}.`,
+  wAddAnyway: "Adicionar mesmo assim",
+  qAboutNow: (month) => `As respostas se referem a ${month}, contando a partir de hoje, não ao mês na tela.`,
   protectedSavingsCategory: 'Categoria padrão — não pode ser excluída',
   backupReminder: 'Faça backup dos seus dados para não perdê-los',
   backupReminderShort: 'Backup recomendado',
@@ -1070,5 +1076,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     "O menu em uma tela larga: as linhas não se sobrepõem mais com texto grande ou quando o menu é mais alto que a janela, o menu cresce com o tamanho do texto e o botão Menu não mostra mais um quadro cinza quando está aberto. Em um Mac, o app preenche a janela",
     "As carteiras agora se chamam Envelopes, pelo método dos envelopes: um valor para uma coisa, e quando o envelope esvazia, acabou. Envelopes no menu mostra todos de uma vez. No computador e no tablet eles ficam lado a lado, com um + no fim para criar outro, e Editar, Arquivar e Excluir ficam em ⋯. No celular eles são uma lista com o que sobra, e você toca em um para abri-lo",
     "+ envelope em Sobra para o dia a dia pergunta se você quer incluir mais alguma coisa, por exemplo Mercado. Para o mês, cada linha escolhida vira um envelope próprio. Para a semana, há um envelope por semana restante do mês, com o que você escolheu como partes, e quando uma semana termina, a seguinte pergunta quanto sobrou e o adiciona",
+    "Os envelopes que andam juntos ficam numa fileira própria, com um nome que você pode mudar: os criados em Sobra para o dia a dia levam o nome do mês, e um envelope novo começa sua própria fileira. Uma despesa num envelope recebe uma data dentro do período do envelope, e uma data fora só é aceita depois que você confirma",
   ],
 };

@@ -8,8 +8,8 @@ import { commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
 import { useBackLayer } from '../useModalFocus';
 import {
-  newTrip, newBlank, walletSummary, loadWallets, walletsChange, previousInSeries, withCarry, WALLETS_KEY, OPEN_PANEL_KEY,
-  type Wallet, type WalletExpense, type WalletKind, type WalletPot,
+  newTrip, newBlank, walletSummary, loadWallets, walletsChange, previousInSeries, withCarry, envelopeGroups, renameGroup, expenseDay,
+  WALLETS_KEY, OPEN_PANEL_KEY, type EnvelopeGroup, type EnvelopeGroupName, type Wallet, type WalletExpense, type WalletKind, type WalletPot,
 } from '../wallets';
 import {
   loadCustomBudgets, customBudgetsChange, customBudgetKeys, customBudgetNs, newCustomBudgetId,
@@ -35,9 +35,13 @@ const ICON: Record<WalletKind, string> = { blank: '✉️', trip: '✈️' };
  *  budget's id can never be mistaken for a wallet's. */
 const BUDGET_PREFIX = 'cb:';
 const budgetPanelId = (b: CustomBudget) => `${BUDGET_PREFIX}${b.id}`;
-/** In Custom, the envelopes are one folder in the switcher, opening on all of
- *  them side by side (Ariel, 2026-10-29), as the menu's screen does. */
-const ENVELOPES_PANEL = 'envelopes';
+/** In Custom, each row of envelopes is a folder in the switcher, opening on
+ *  all of its envelopes side by side, as the menu's screen shows every row
+ *  (Ariel, 2026-10-29). */
+const GROUP_PREFIX = 'envelopes:';
+const groupPanelId = (id: string) => `${GROUP_PREFIX}${id}`;
+/** The one folder of a build before rows; opens the first row. */
+const OLD_FOLDER = 'envelopes';
 
 const todayIso = () => {
   const d = new Date();
@@ -64,9 +68,11 @@ const useWide = () => {
 // ── The switcher ───────────────────────────────────────────────────────────
 
 export const PanelSwitcher = ({
-  wallets, budgets = [], mainName, openId, budgetTag, onOpen, onNew, onNewBudget, onRename,
+  groups, openGroup, budgets = [], mainName, openId, budgetTag, onOpen, onNew, onNewBudget, onRename,
 }: {
-  wallets: Wallet[];
+  groups: EnvelopeGroup[];
+  /** The row of envelopes on screen, if one is. */
+  openGroup: EnvelopeGroup | null;
   /** Budgets added beside the panel's own; only Custom offers them. */
   budgets?: CustomBudget[];
   /** What the panel's own budget is called. */
@@ -99,7 +105,6 @@ export const PanelSwitcher = ({
       document.removeEventListener('keydown', esc);
     };
   }, [expanded]);
-  const inFolder = openId === ENVELOPES_PANEL || wallets.some(w => w.id === openId);
   const openBudget = budgets.find(b => budgetPanelId(b) === openId);
   const myBudget = mainName ?? t.wMyBudget;
   const pick = (id: string | null) => { setExpanded(false); onOpen(id); };
@@ -107,7 +112,7 @@ export const PanelSwitcher = ({
     <div className="wallet-switch" ref={box}>
       <button className="wallet-switch-toggle" aria-expanded={expanded} aria-controls={listId}
         onClick={() => setExpanded(e => !e)}>
-        <span aria-hidden="true">{inFolder ? '✉️' : '📊'}</span> {inFolder ? t.wMenu : openBudget ? openBudget.name : myBudget}
+        <span aria-hidden="true">{openGroup ? '✉️' : '📊'}</span> {openGroup ? openGroup.name : openBudget ? openBudget.name : myBudget}
         <span className="wallet-switch-caret" aria-hidden="true">▾</span>
       </button>
       {onRename && (
@@ -136,19 +141,22 @@ export const PanelSwitcher = ({
                 </button>
               </li>
             ))}
-            {wallets.length > 0 && (
-              <li>
-                <button className={`wallet-switch-row${inFolder ? ' is-current' : ''}`} onClick={() => pick(ENVELOPES_PANEL)}
-                  aria-current={inFolder ? 'true' : undefined}>
-                  <span className="wallet-switch-icon" aria-hidden="true">✉️</span>
-                  <span className="wallet-switch-text">
-                    <span className="wallet-switch-name">{t.wMenu}</span>
-                    <span className="wallet-switch-sub">{wallets.filter(w => !w.archived).map(w => w.name).join(', ')}</span>
-                  </span>
-                  <span className="wallet-tag">{wallets.length}</span>
-                </button>
-              </li>
-            )}
+            {groups.map(g => {
+              const here = openGroup?.id === g.id;
+              return (
+                <li key={`group-${g.id}`}>
+                  <button className={`wallet-switch-row${here ? ' is-current' : ''}`} onClick={() => pick(groupPanelId(g.id))}
+                    aria-current={here ? 'true' : undefined}>
+                    <span className="wallet-switch-icon" aria-hidden="true">✉️</span>
+                    <span className="wallet-switch-text">
+                      <span className="wallet-switch-name">{g.name}</span>
+                      <span className="wallet-switch-sub">{g.wallets.filter(w => !w.archived).map(w => w.name).join(', ')}</span>
+                    </span>
+                    <span className="wallet-tag">{g.wallets.length}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           {onNewBudget && (
             <button className="wallet-switch-new" onClick={() => { setExpanded(false); onNewBudget(); }}>+ {t.cbNew}</button>
@@ -205,18 +213,25 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
     const all = loadWallets(appStorage);
     const v = appStorage.getItem(OPEN_PANEL_KEY);
     if (v && all.some(w => w.id === v)) return v;
-    if (v === ENVELOPES_PANEL && budget !== null && all.length > 0) return v;
+    if (v && (v === OLD_FOLDER || v.startsWith(GROUP_PREFIX)) && budget !== null && all.length > 0) return v;
     if (v && renderBudget && loadCustomBudgets(appStorage).some(b => budgetPanelId(b) === v)) return v;
     // From the menu there is no budget to show: open a wallet if there is one.
     return budget === null ? (all.find(w => !w.archived) ?? all[0])?.id ?? null : null;
   });
   const [creating, setCreating] = useState(() => budget === null && loadWallets(appStorage).length === 0);
+  // Which row a new envelope goes into; null starts a row of its own.
+  const [newIn, setNewIn] = useState<EnvelopeGroupName | null>(null);
+  const [renamingGroup, setRenamingGroup] = useState<string | null>(null);
 
   const open = (id: string | null) => {
     setCreating(false);
     setCreatingBudget(false);
     setRenaming(false);
+    setRenamingGroup(null);
     if (id === null && onLeave) { onLeave(); return; }
+    // A row chosen from the switcher shows the row, not the envelope a phone
+    // had open in it (review 2026-10-29, P2-5).
+    if (id !== null && (id === OLD_FOLDER || id.startsWith(GROUP_PREFIX))) setPhoneOpen(null);
     setOpenId(id);
     // Where the panel opens next time: a convenience, so a failure is not news.
     try {
@@ -298,17 +313,41 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   };
 
   const removeById = (id: string) => save(all => all.filter(x => x.id !== id), 'deleteWallet');
-  const startNew = () => { setCreatingBudget(false); setCreating(true); };
+  /** A new envelope, in `row`, or in a row of its own when null. */
+  const startNew = (row: EnvelopeGroupName | null) => {
+    setNewIn(row);
+    setRenamingGroup(null);
+    setCreatingBudget(false);
+    setCreating(true);
+  };
 
-  // The menu's own screen shows every wallet at once (side by side, or a list
-  // on a phone), and so does Custom's envelope folder, under its switcher,
+  // The rows of envelopes: those made together, and each new one on its own.
+  const groups = envelopeGroups(wallets, t.wMenu);
+  const openGroupId = budget === null ? null
+    : openId?.startsWith(GROUP_PREFIX) ? openId.slice(GROUP_PREFIX.length)
+      : openId === OLD_FOLDER ? groups[0]?.id ?? null
+        : current ? current.groupId ?? '' : null;
+  const openGroup = groups.find(g => g.id === openGroupId) ?? null;
+  /** A row's new name, on every envelope in it. An empty name changes nothing. */
+  const renameRow = async (id: string, name: string) => {
+    if (!name.trim()) { setRenamingGroup(null); return; }
+    const fresh = generateId();
+    if (!(await save(all => renameGroup(all, id, name.trim(), fresh)))) return;
+    setRenamingGroup(null);
+    // The row of older envelopes got an id of its own: Custom follows it.
+    if (budget !== null && id === '' && openGroupId === '') open(groupPanelId(fresh));
+  };
+
+  // The menu's own screen shows every row of envelopes (side by side, or a
+  // list on a phone), and Custom's folder shows one row, under its switcher,
   // where the budget is a panel too.
-  const inFolder = budget !== null && (openId === ENVELOPES_PANEL || current !== null);
+  const inFolder = budget !== null && openGroup !== null;
   const overview = !creating && !creatingBudget && wallets.length > 0 && (budget === null || inFolder);
   const phoneWallet = wallets.find(w => w.id === phoneOpen) ?? null;
   const inPhoneWallet = overview && !wide && phoneWallet !== null;
+  const backToFolder = () => { setPhoneOpen(null); if (openGroup) open(groupPanelId(openGroup.id)); };
   // Android's Back from one envelope goes to the list, as "‹ Envelopes" does.
-  useBackLayer(inPhoneWallet, () => { setPhoneOpen(null); if (budget !== null) open(ENVELOPES_PANEL); });
+  useBackLayer(inPhoneWallet, () => { if (budget !== null) backToFolder(); else setPhoneOpen(null); });
 
   let content: ReactNode;
   if (creatingBudget) {
@@ -317,67 +356,98 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
     content = (
       <NewWallet
         onCancel={() => { setCreating(false); if (wallets.length === 0 && budget === null) onLeave?.(); }}
-        onCreate={async w => {
+        onCreate={async made => {
+          const row = newIn ?? { id: generateId(), name: made.name };
+          const w = { ...made, groupId: row.id, groupName: row.name };
           if (!(await save(all => [...all, w]))) return false;
+          // The envelope itself: its row opens with it, and on a phone it does.
           open(w.id);
           setPhoneOpen(w.id);
           return true;
         }} />
     );
   } else if (overview) {
-    // Not archived first, as in the switcher.
-    const sorted = [...wallets.filter(w => !w.archived), ...wallets.filter(w => w.archived)];
-    // The last one gone: back to the budget, as before. Otherwise to the list.
-    const afterDelete = () => { if (wallets.length <= 1) open(null); else setPhoneOpen(null); };
-    if (wide) {
-      content = (
-        <div className="wallet-columns">
-          {sorted.map(w => (
-            <WalletSlot key={w.id} wallet={w} previous={previousInSeries(w, wallets)} variant="column" change={changeWallet} remove={removeById}
-              afterDelete={afterDelete} />
-          ))}
-          <button className="wallet-plus" onClick={startNew}>
-            <span className="wallet-plus-sign" aria-hidden="true">+</span>
-            <span>{t.wNew}</span>
-          </button>
+    const rows = budget === null ? groups : openGroup ? [openGroup] : [];
+    const today = todayIso();
+    const plus = (g: EnvelopeGroup) => (
+      <button className="wallet-plus" onClick={() => startNew({ id: g.id, name: g.name })}>
+        <span className="wallet-plus-sign" aria-hidden="true">+</span>
+        <span>{t.wNew}</span>
+      </button>
+    );
+    // The menu's screen names each row and lets it be renamed there; Custom's
+    // folder is named, and renamed, in its switcher.
+    const head = (g: EnvelopeGroup) => budget === null && (
+      renamingGroup === g.id ? (
+        <BudgetName name={g.name} placeholder={t.wMenu}
+          onSave={name => renameRow(g.id, name)} onCancel={() => setRenamingGroup(null)} />
+      ) : (
+        <div className="wallet-group-head">
+          <h3 className="wallet-group-title">{g.name}</h3>
+          <button className="wallet-switch-edit" onClick={() => setRenamingGroup(g.id)}
+            aria-label={`${t.cbRename}: ${g.name}`} title={t.cbRename}>✏️</button>
         </div>
-      );
-    } else if (phoneWallet) {
+      )
+    );
+    // The last one gone: back to the budget, as before; in Custom, so is the
+    // last one of the row on screen. Otherwise back to the list.
+    const afterDelete = (g: EnvelopeGroup) => () => {
+      if (wallets.length <= 1 || (budget !== null && g.wallets.length <= 1)) open(null);
+      else setPhoneOpen(null);
+    };
+    if (!wide && phoneWallet) {
+      const g = groups.find(x => x.id === (phoneWallet.groupId ?? '')) ?? groups[0];
       content = (
         <WalletSlot key={phoneWallet.id} wallet={phoneWallet} previous={previousInSeries(phoneWallet, wallets)} variant="screen" change={changeWallet}
-          remove={removeById} afterDelete={afterDelete} />
+          remove={removeById} afterDelete={afterDelete(g)} />
       );
     } else {
-      const today = todayIso();
       content = (
-        <div className="wallet-cards">
-          {sorted.map(w => {
-            const s = walletSummary(w, today);
-            const over = s.left < 0;
-            const pct = w.total > 0 ? Math.min(100, Math.max(0, (s.spent / w.total) * 100)) : 0;
-            return (
-              <button key={w.id} className="wallet-card" onClick={() => { setPhoneOpen(w.id); if (budget !== null) open(w.id); }}>
-                <span className="wallet-card-main">
-                  <span className="wallet-card-name">
-                    <span aria-hidden="true">{ICON[w.kind]}</span>
-                    <b>{w.name}{w.archived ? ` · ${t.wArchived}` : ''}</b>
-                  </span>
-                  <span className="wallet-card-sub">{t.wUsed(money(Math.round(s.spent)), money(w.total))}</span>
-                  <span className="wallet-bar" aria-hidden="true">
-                    <span className={`wallet-bar-fill${over ? ' is-over' : ''}`} style={{ width: `${pct}%` }} />
-                  </span>
-                </span>
-                <span className="wallet-card-side">
-                  <span className="wallet-card-label">{t.wLeft}</span>
-                  <span className={`wallet-card-value${over ? ' is-over' : ''}`}>{money(Math.round(s.left))}</span>
-                </span>
-              </button>
-            );
-          })}
-          <button className="wallet-plus" onClick={startNew}>
-            <span className="wallet-plus-sign" aria-hidden="true">+</span>
-            <span>{t.wNew}</span>
-          </button>
+        <div className="wallet-groups">
+          {rows.map(g => (
+            <section key={g.id} className="wallet-group">
+              {head(g)}
+              {wide ? (
+                <div className="wallet-columns">
+                  {g.wallets.map(w => (
+                    <WalletSlot key={w.id} wallet={w} previous={previousInSeries(w, wallets)} variant="column" change={changeWallet} remove={removeById}
+                      afterDelete={afterDelete(g)} />
+                  ))}
+                  {plus(g)}
+                </div>
+              ) : (
+                <div className="wallet-cards">
+                  {g.wallets.map(w => {
+                    const s = walletSummary(w, today);
+                    const over = s.left < 0;
+                    const pct = w.total > 0 ? Math.min(100, Math.max(0, (s.spent / w.total) * 100)) : 0;
+                    return (
+                      <button key={w.id} className="wallet-card" onClick={() => { setPhoneOpen(w.id); if (budget !== null) open(w.id); }}>
+                        <span className="wallet-card-main">
+                          <span className="wallet-card-name">
+                            <span aria-hidden="true">{ICON[w.kind]}</span>
+                            <b>{w.name}{w.archived ? ` · ${t.wArchived}` : ''}</b>
+                          </span>
+                          <span className="wallet-card-sub">{t.wUsed(money(Math.round(s.spent)), money(w.total))}</span>
+                          <span className="wallet-bar" aria-hidden="true">
+                            <span className={`wallet-bar-fill${over ? ' is-over' : ''}`} style={{ width: `${pct}%` }} />
+                          </span>
+                        </span>
+                        <span className="wallet-card-side">
+                          <span className="wallet-card-label">{t.wLeft}</span>
+                          <span className={`wallet-card-value${over ? ' is-over' : ''}`}>{money(Math.round(s.left))}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {plus(g)}
+                </div>
+              )}
+            </section>
+          ))}
+          {budget === null && (
+            <button className="wallet-new-group" onClick={() => startNew(null)}>+ {t.envNewGroup}</button>
+          )}
         </div>
       );
     }
@@ -405,17 +475,23 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
           {!inPhoneWallet && <h2 className="wallet-screen-title">{t.wMenu}</h2>}
         </div>
       ) : (
-        <PanelSwitcher wallets={wallets} budgets={budgets} mainName={mainName ?? undefined}
+        <PanelSwitcher groups={groups} openGroup={creating || creatingBudget ? null : openGroup}
+          budgets={budgets} mainName={mainName ?? undefined}
           openId={creating || creatingBudget ? null : openId} budgetTag={budgetTag}
-          onOpen={open} onNew={startNew}
+          onOpen={open} onNew={() => startNew(null)}
           onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
-          onRename={renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+          onRename={inFolder && overview ? () => setRenamingGroup(r => (r === null ? openGroup.id : null))
+            : renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
       )}
       {/* Custom's folder on a phone: one envelope open, and the way back to all. */}
       {inFolder && inPhoneWallet && (
         <div className="wallet-screen-head">
-          <button className="wallet-back" onClick={() => { setPhoneOpen(null); open(ENVELOPES_PANEL); }}>‹ {t.wMenu}</button>
+          <button className="wallet-back" onClick={backToFolder}>‹ {openGroup.name}</button>
         </div>
+      )}
+      {inFolder && overview && renamingGroup === openGroup.id && (
+        <BudgetName key={`group-${openGroup.id}`} name={openGroup.name} placeholder={t.wMenu}
+          onSave={name => renameRow(openGroup.id, name)} onCancel={() => setRenamingGroup(null)} />
       )}
       {renaming && showingBudget && (
         <BudgetName key={openBudget?.id ?? 'main'} name={openBudget ? openBudget.name : mainName ?? t.wMyBudget}
@@ -486,8 +562,10 @@ const NewBudget = ({ onCreate, onCancel }: {
 };
 
 /** Rename the budget on screen; an added one can also be removed from here. */
-const BudgetName = ({ name, onSave, onCancel, onDelete }: {
+const BudgetName = ({ name, placeholder, onSave, onCancel, onDelete }: {
   name: string;
+  /** What an empty field shows; the budget's default name unless told. */
+  placeholder?: string;
   onSave: (name: string) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
@@ -512,7 +590,7 @@ const BudgetName = ({ name, onSave, onCancel, onDelete }: {
         {/* Selected on open, so typing replaces the name rather than adding to it. */}
         <input id={`${fid}-name`} className="label-input" value={draft} autoFocus
           onFocus={e => e.currentTarget.select()}
-          placeholder={t.wMyBudget} onChange={e => setDraft(e.target.value)}
+          placeholder={placeholder ?? t.wMyBudget} onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Escape') onCancel(); }} />
         <button type="submit" className="custom-primary-btn" disabled={busy}>{t.wSave}</button>
         <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
@@ -739,7 +817,7 @@ export const WalletView = ({ wallet, previous, variant, onChange, onDelete }: {
       )}
 
       {adding ? (
-        <ExpenseForm pots={wallet.pots} onCancel={() => setAdding(false)}
+        <ExpenseForm pots={wallet.pots} from={wallet.from} to={wallet.to} onCancel={() => setAdding(false)}
           onAdd={async e => {
             if (await onChange(w => ({ ...w, expenses: [...w.expenses, e] }))) setAdding(false);
           }} />
@@ -845,27 +923,36 @@ const WalletMenu = ({ wallet, onEdit, onArchive, onDelete }: {
   );
 };
 
-const ExpenseForm = ({ pots, onAdd, onCancel }: {
+const ExpenseForm = ({ pots, from, to, onAdd, onCancel }: {
   pots: WalletPot[];
+  /** The envelope's dates, when it has them. */
+  from?: string;
+  to?: string;
   onAdd: (e: WalletExpense) => Promise<void>;
   onCancel: () => void;
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const fid = useId();
   const [amount, setAmount] = useState('');
   const [text, setText] = useState('');
   const [potId, setPotId] = useState(pots[0]?.id ?? '');
-  const [date, setDate] = useState(todayIso());
+  const [date, setDate] = useState(() => expenseDay(todayIso(), from, to));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // A date outside the envelope's period is allowed — a flight booked before
+  // the trip — but only on a second press, after it has been said.
+  const [outsideOk, setOutsideOk] = useState(false);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : expenseDay(todayIso(), from, to);
+  const outside = (from !== undefined && day < from) || (to !== undefined && day > to);
 
   const submit = async () => {
     if (busy) return;
     const a = parseMoneyInput(amount);
     if (!a.ok || a.value <= 0) { setError(t.wErrAmount); return; }
+    if (outside && !outsideOk) { setOutsideOk(true); return; }
     setBusy(true);
     try {
-      await onAdd({ id: generateId(), date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayIso(), text: text.trim(), amount: a.value, potId });
+      await onAdd({ id: generateId(), date: day, text: text.trim(), amount: a.value, potId });
     } finally {
       setBusy(false);
     }
@@ -893,13 +980,19 @@ const ExpenseForm = ({ pots, onAdd, onCancel }: {
         </div>
         <div className="goal-form-field">
           <label htmlFor={`${fid}-date`}>{t.wDate}</label>
-          <input id={`${fid}-date`} className="label-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <input id={`${fid}-date`} className="label-input" type="date" value={date}
+            onChange={e => { setDate(e.target.value); setOutsideOk(false); }} />
         </div>
       </div>
+      {outside && (
+        <p className="goal-form-error" role="status">
+          {t.wDateOutside(from ? shortDay(from, lang) : '…', to ? shortDay(to, lang) : '…')}
+        </p>
+      )}
       {error && <p className="goal-form-error" role="alert">{error}</p>}
       <div className="goal-form-actions">
         <button type="button" className="custom-secondary-btn" onClick={onCancel}>{t.cancel}</button>
-        <button type="submit" className="custom-primary-btn" disabled={busy}>{t.wAdd}</button>
+        <button type="submit" className="custom-primary-btn" disabled={busy}>{outside && outsideOk ? t.wAddAnyway : t.wAdd}</button>
       </div>
     </form>
   );

@@ -195,6 +195,7 @@ export const de: Translations = {
   csvSkipped: (n) => (n === 1 ? '1 Zeile konnte nicht gelesen werden und wird übersprungen.' : `${n} Zeilen konnten nicht gelesen werden und werden übersprungen.`),
   csvRows: (n) => (n === 1 ? '1 Eintrag' : `${n} Einträge`),
   csvImportN: (n) => (n === 1 ? '1 Eintrag importieren' : `${n} Einträge importieren`),
+  csvAlreadyThere: (n) => `${n} ${n === 1 ? 'ist' : 'sind'} schon da und ${n === 1 ? 'wird' : 'werden'} nicht noch einmal hinzugefügt`,
   csvUnassigned: (n) => (n === 1 ? '1 ohne Kategorie wird nicht importiert.' : `${n} ohne Kategorie werden nicht importiert.`),
   csvDoneAdded: (n) => (n === 1 ? '1 Eintrag importiert' : `${n} Einträge importiert`),
   csvDoneDuplicates: (n) => (n === 1 ? '1 war schon vorhanden' : `${n} waren schon vorhanden`),
@@ -375,6 +376,7 @@ export const de: Translations = {
   summarySaved: 'Gespart',
   summaryRemaining: 'Übrig',
   summaryRemainingAfterSaving: 'Übrig nach dem Sparen',
+  summaryRemainingBeforeSaving: "Übrig vor dem Sparen",
   customStandalone: 'Ein eigenes Budget – es ändert dein normales Budget nicht',
   customMonthEmpty: (month) => `${month} ist noch nicht ausgefüllt`,
   customCopyFrom: (month) => `${month} kopieren`,
@@ -605,8 +607,8 @@ export const de: Translations = {
     if (action === 'deleteCustomBudget') return 'Ein Budget wurde entfernt';
     if (action === 'deleteWalletExpense') return "Eine Ausgabe wurde aus einem Umschlag entfernt";
     if (action === 'createGoal') return 'Ein Sparziel wurde angelegt';
-    if (action === 'createWallet') return "Ein Umschlag wurde angelegt";
-    if (action === 'startBudget') return "Ein Budget wurde angelegt";
+    if (action === 'createWallet') return count > 1 ? `${count} Umschläge wurden angelegt` : "Ein Umschlag wurde angelegt";
+    if (action === 'startBudget') return count > 1 ? `Ein Budget wurde für ${count} Monate angelegt` : "Ein Budget wurde angelegt";
     if (action === 'renameRow') return `Eine Zeile wurde in ${where} umbenannt`;
     if (action === 'debtExtra') return 'Der Extrabetrag für deine Schulden wurde geändert';
     if (count === 1) return 'Der Zahlungszeitraum wurde geändert – 1 Eintrag verschoben';
@@ -966,6 +968,10 @@ export const de: Translations = {
   envCarryAdd: "Hinzufügen",
   envCarrySkip: "Nein danke",
   envCarried: (amount) => `Davon ${amount} aus der letzten Woche`,
+  envNewGroup: "Neue Reihe Umschläge",
+  wDateOutside: (from, to) => `Das Datum liegt außerhalb des Zeitraums des Umschlags, ${from} – ${to}.`,
+  wAddAnyway: "Trotzdem hinzufügen",
+  qAboutNow: (month) => `Die Antworten beziehen sich auf ${month}, gerechnet ab heute, nicht auf den angezeigten Monat.`,
   protectedSavingsCategory: 'Standardkategorie – kann nicht gelöscht werden',
   backupReminder: 'Sichere deine Daten, damit du sie nicht verlierst',
   backupReminderShort: 'Sicherung empfohlen',
@@ -1071,5 +1077,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     "Das Menü auf einem breiten Bildschirm: Zeilen überlappen nicht mehr bei großer Schrift oder wenn das Menü höher als das Fenster ist, das Menü wächst mit der Schriftgröße, und der Menü-Knopf bekommt keinen grauen Kasten mehr, wenn das Menü offen ist. Auf einem Mac füllt die App das Fenster",
     "Geldbörsen heißen jetzt Umschläge, nach der Umschlagmethode: ein Betrag für eine Sache, und wenn der Umschlag leer ist, ist Schluss. Umschläge im Menü zeigt alle auf einmal. Auf Computer und Tablet stehen sie nebeneinander, mit einem + am Ende für einen neuen, und Bearbeiten, Archivieren und Löschen liegen unter ⋯. Auf dem Handy sind sie eine Liste mit dem, was übrig ist, und ein Tipp öffnet einen",
     "+ Umschlag unter Frei verfügbar fragt, ob noch etwas dazukommen soll, zum Beispiel Lebensmittel. Für den Monat wird jede gewählte Zeile ein eigener Umschlag. Für die Woche gibt es einen Umschlag pro verbleibender Woche des Monats, mit dem Gewählten als Töpfe, und wenn eine Woche vorbei ist, fragt die nächste, was übrig blieb, und nimmt es auf",
+    "Umschläge, die zusammengehören, stehen in einer eigenen Reihe mit einem Namen, den du ändern kannst: die aus Frei verfügbar heißen nach dem Monat, und ein neuer Umschlag beginnt eine eigene Reihe. Eine Ausgabe in einem Umschlag bekommt ein Datum im Zeitraum des Umschlags, ein Datum außerhalb erst nach Bestätigung",
   ],
 };

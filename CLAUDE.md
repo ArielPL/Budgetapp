@@ -23,6 +23,7 @@ Each track also has a chat of its own, with the model that suits it (Ariel, 2026
 | 🌐 **Webby** – www.yourofflinebudget.com | `website` → `main` | Sonnet |
 | 🎨 **Stan** – the app's look | local, handed to Otto → `development` | Sonnet |
 | 🧪 **Arty** – the offline AI assistant lab | `~/Developer/budget-ai-lab` | Opus |
+| 📣 **Sofi** – social media: analysis, plan and drafts; writes no code | none | Sonnet |
 
 ## Working rules (efficiency-tuned)
 

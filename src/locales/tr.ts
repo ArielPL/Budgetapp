@@ -195,6 +195,7 @@ export const tr: Translations = {
   csvSkipped: (n) => `${n} satır okunamadı ve atlandı.`,
   csvRows: (n) => (n === 1 ? "1 kayıt" : `${n} kayıt`),
   csvImportN: (n) => `${n} kaydı içe aktar`,
+  csvAlreadyThere: (n) => `${n} kayıt zaten var, tekrar eklenmeyecek`,
   csvUnassigned: (n) => `Kategorisi olmayan ${n} kayıt içe aktarılmaz.`,
   csvDoneAdded: (n) => (n === 1 ? "1 kayıt içe aktarıldı" : `${n} kayıt içe aktarıldı`),
   csvDoneDuplicates: (n) => (n === 1 ? "1 kayıt zaten vardı" : `${n} kayıt zaten vardı`),
@@ -375,6 +376,7 @@ export const tr: Translations = {
   summarySaved: "Biriktirilen",
   summaryRemaining: "Kalan",
   summaryRemainingAfterSaving: "Birikimden sonra kalan",
+  summaryRemainingBeforeSaving: "Birikimden önce kalan",
   customStandalone: "Ayrı bir bütçe – normal bütçenizi değiştirmez",
   customMonthEmpty: (month) => `${month} henüz doldurulmadı`,
   customCopyFrom: (month) => `Kopyala: ${month}`,
@@ -605,8 +607,8 @@ export const tr: Translations = {
     if (action === 'deleteCustomBudget') return 'Bir bütçe silindi';
     if (action === 'deleteWalletExpense') return "Bir zarftan bir gider silindi";
     if (action === 'createGoal') return "Bir birikim hedefi oluşturuldu";
-    if (action === 'createWallet') return "Bir zarf oluşturuldu";
-    if (action === 'startBudget') return "Bir bütçe oluşturuldu";
+    if (action === 'createWallet') return count > 1 ? `${count} zarf oluşturuldu` : "Bir zarf oluşturuldu";
+    if (action === 'startBudget') return count > 1 ? `${count} ay için bir bütçe oluşturuldu` : "Bir bütçe oluşturuldu";
     if (action === 'renameRow') return `Bir satırın adı değiştirildi (${where})`;
     if (action === 'debtExtra') return "Borçlarınız için ek tutar değiştirildi";
     if (count === 1) return "Maaş dönemi değiştirildi — 1 kayıt taşındı";
@@ -966,6 +968,10 @@ export const tr: Translations = {
   envCarryAdd: "Ekle",
   envCarrySkip: "Hayır, teşekkürler",
   envCarried: (amount) => `${amount} tutarı geçen haftadan`,
+  envNewGroup: "Yeni zarf sırası",
+  wDateOutside: (from, to) => `Tarih zarfın dönemi dışında, ${from} – ${to}.`,
+  wAddAnyway: "Yine de ekle",
+  qAboutNow: (month) => `Yanıtlar bugünden itibaren ${month} için geçerli, ekrandaki ay için değil.`,
   protectedSavingsCategory: "Varsayılan kategori — silinemez",
   backupReminder: "Verilerinizi kaybetmemek için yedek alın",
   backupReminderShort: "Yedek almanız önerilir",
@@ -1070,5 +1076,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Geniş ekranda menü: büyük yazıda veya menü pencereden uzun olduğunda satırlar artık üst üste binmiyor, menü yazı boyutuyla birlikte büyüyor ve menü açıkken Menü düğmesinde gri kutu görünmüyor. Mac'te uygulama pencereyi dolduruyor",
     "Cüzdanların adı artık Zarflar; zarf yönteminden geliyor: bir iş için bir tutar, zarf boşalınca biter. Menüdeki Zarflar hepsini bir arada gösteriyor. Bilgisayar ve tablette yan yana duruyorlar, sonda yeni zarf için bir + var; Düzenle, Arşivle ve Sil ⋯ altında. Telefonda kalan tutarı gösteren bir liste olarak görünüyorlar ve birine dokunarak açabilirsiniz",
     "Geçim için kalan altındaki + zarf, örneğin Market gibi başka bir şey eklemek isteyip istemediğinizi soruyor. Ay için seçtiğiniz her satır ayrı bir zarf olur. Hafta için ayın kalan her haftasına bir zarf açılır, seçtikleriniz bölümleri olur; bir hafta bitince sonraki hafta ne kaldığını sorar ve ekler",
+    "Birbirine ait zarflar, değiştirebileceğiniz bir adla kendi sıralarında duruyor: Geçim için kalan üzerinden oluşturulanlar ayın adını alıyor, yeni bir zarf ise kendi sırasını başlatıyor. Bir zarftaki gider zarfın dönemi içinde bir tarih alıyor; dönem dışı bir tarih ancak onayladığınızda kabul ediliyor",
   ],
 };

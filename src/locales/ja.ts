@@ -191,6 +191,7 @@ export const ja: Translations = {
   csvSkipped: (n) => `${n}行は読み込めなかったため、スキップします。`,
   csvRows: (n) => `${n}件`,
   csvImportN: (n) => `${n}件を取り込む`,
+  csvAlreadyThere: (n) => `${n}件は登録済みのため、再度追加されません`,
   csvUnassigned: (n) => `カテゴリのない${n}件は取り込まれません。`,
   csvDoneAdded: (n) => `${n}件を取り込みました`,
   csvDoneDuplicates: (n) => `${n}件はすでにありました`,
@@ -371,6 +372,7 @@ export const ja: Translations = {
   summarySaved: '貯蓄',
   summaryRemaining: '残り',
   summaryRemainingAfterSaving: '貯蓄後の残り',
+  summaryRemainingBeforeSaving: "貯蓄前の残り",
   customStandalone: '別の予算 – 通常の予算は変わりません',
   customMonthEmpty: (month) => `${month}はまだ入力されていません`,
   customCopyFrom: (month) => `${month}をコピー`,
@@ -601,8 +603,8 @@ export const ja: Translations = {
     if (action === 'deleteCustomBudget') return '予算を削除しました';
     if (action === 'deleteWalletExpense') return "封筒から支出を削除しました";
     if (action === 'createGoal') return '貯蓄目標を作成しました';
-    if (action === 'createWallet') return "封筒を作成しました";
-    if (action === 'startBudget') return "予算を作成しました";
+    if (action === 'createWallet') return count > 1 ? `封筒を${count}つ作成しました` : "封筒を作成しました";
+    if (action === 'startBudget') return count > 1 ? `${count}か月分の予算を作成しました` : "予算を作成しました";
     if (action === 'renameRow') return `${where}の行の名前を変更しました`;
     if (action === 'debtExtra') return '負債の追加返済額を変更しました';
     if (count === 1) return '集計期間を変更しました — 1件を移動';
@@ -962,6 +964,10 @@ export const ja: Translations = {
   envCarryAdd: "追加",
   envCarrySkip: "追加しない",
   envCarried: (amount) => `うち${amount}は先週の繰り越し`,
+  envNewGroup: "封筒の新しい列",
+  wDateOutside: (from, to) => `日付が封筒の期間（${from}〜${to}）の外です。`,
+  wAddAnyway: "このまま追加",
+  qAboutNow: (month) => `回答は今日を基準にした${month}についてで、表示中の月ではありません。`,
   protectedSavingsCategory: '既定のカテゴリのため削除できません',
   backupReminder: 'データを失わないよう、バックアップを取りましょう',
   backupReminderShort: 'バックアップ推奨',
@@ -1067,5 +1073,6 @@ export const jaChangelog113: { title: string; items: string[] } = {
     "広い画面でのメニュー：文字が大きいときやメニューがウィンドウより長いときも行が重ならなくなり、メニューは文字サイズに合わせて広がります。メニューを開いている間、メニューボタンに灰色の枠が出なくなりました。Mac ではアプリがウィンドウ全体に表示されます",
     "ウォレットは「封筒」という名前になりました。袋分け（封筒）方式にちなんだ名前です。ひとつの用途に一定の金額を入れ、封筒が空になったらおしまい。メニューの「封筒」では、すべての封筒を一度に見られます。パソコンやタブレットでは横に並び、最後の＋で新しく作れます。編集・アーカイブ・削除は⋯の中にあります。スマートフォンでは残りの金額付きの一覧になり、タップで開きます",
     "「使えるお金」の「+ 封筒」で、食料品など、ほかにも含めるか聞かれるようになりました。月の場合は、選んだ項目がそれぞれ別の封筒になります。週の場合は、月の残りの週ごとに封筒ができ、選んだ項目はその内訳になります。週が終わると、次の週の封筒が残った金額を聞いて追加します",
+    "まとめて作った封筒は、名前を変えられる独自の列に並ぶようになりました。「使えるお金」から作った封筒は月の名前になり、新しい封筒は独自の列を作ります。封筒の支出には封筒の期間内の日付が入り、期間外の日付は確認してから記録されます",
   ],
 };

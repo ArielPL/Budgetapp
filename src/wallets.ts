@@ -60,6 +60,11 @@ export interface Wallet {
   /** What the week before left and was moved into this one; 0 when the user
    *  said no. Absent until asked. */
   carry?: number;
+  /** The row the envelope is shown in, and that row's name, which the user
+   *  can change (Ariel, 2026-10-29): envelopes made together share one, and a
+   *  new one starts its own. Absent on envelopes made before rows. */
+  groupId?: string;
+  groupName?: string;
 }
 
 /** The trip template: its parts, and the share of the total each starts with.
@@ -96,7 +101,9 @@ export function isWallet(v: unknown): v is Wallet {
     && Array.isArray(v.expenses) && v.expenses.every(isExpense)
     && (v.archived === undefined || typeof v.archived === 'boolean')
     && (v.series === undefined || typeof v.series === 'string')
-    && (v.carry === undefined || (isNum(v.carry) && v.carry >= 0)))) return false;
+    && (v.carry === undefined || (isNum(v.carry) && v.carry >= 0))
+    && (v.groupId === undefined || typeof v.groupId === 'string')
+    && (v.groupName === undefined || typeof v.groupName === 'string'))) return false;
   // Every expense belongs to a part the wallet has, or to none.
   const pots = new Set((v.pots as WalletPot[]).map(p => p.id));
   return (v.expenses as WalletExpense[]).every(e => e.potId === '' || pots.has(e.potId));
@@ -252,6 +259,45 @@ export function walletWeek(today: Date, month: { from: Date; to: Date }): { from
 // becomes one envelope per week left in the period, each holding its share of
 // what is left and of every row ticked, as parts.
 
+/** A row of envelopes: its id, and the name it shows. */
+export interface EnvelopeGroupName {
+  id: string;
+  name: string;
+}
+
+/** A row of envelopes as shown: those not archived first. */
+export interface EnvelopeGroup extends EnvelopeGroupName {
+  wallets: Wallet[];
+}
+
+/**
+ * The rows envelopes are shown in, in the order each row's first envelope was
+ * made. Envelopes from before rows share one, with the id '' and `fallback`
+ * for a name.
+ */
+export function envelopeGroups(wallets: Wallet[], fallback: string): EnvelopeGroup[] {
+  const groups: EnvelopeGroup[] = [];
+  for (const w of wallets) {
+    const id = w.groupId ?? '';
+    let g = groups.find(x => x.id === id);
+    if (!g) {
+      g = { id, name: id === '' ? fallback : w.groupName || fallback, wallets: [] };
+      groups.push(g);
+    }
+    g.wallets.push(w);
+  }
+  for (const g of groups) g.wallets = [...g.wallets.filter(w => !w.archived), ...g.wallets.filter(w => w.archived)];
+  return groups;
+}
+
+/** Every envelope in row `id` given the name `name`. The row of older
+ *  envelopes ('') becomes a row of its own with `newId`, so it keeps a name. */
+export function renameGroup(wallets: Wallet[], id: string, name: string, newId: string): Wallet[] {
+  return wallets.map(w => ((w.groupId ?? '') === id
+    ? { ...w, groupId: id === '' ? newId : id, groupName: name }
+    : w));
+}
+
 /** A budget row offered to take along. */
 export interface EnvelopeRow {
   id: string;
@@ -300,15 +346,17 @@ function shareByDays(amount: number, weeks: { days: number }[]): number[] {
  * row taken along, all over the same period.
  */
 export function monthEnvelopes(
-  { name, left, rows, period, newId }: {
-    name: string; left: number; rows: EnvelopeRow[]; period: { from: Date; to: Date }; newId: () => string;
+  { name, left, rows, period, group, newId }: {
+    name: string; left: number; rows: EnvelopeRow[]; period: { from: Date; to: Date };
+    group: EnvelopeGroupName; newId: () => string;
   },
 ): Wallet[] {
   const from = isoDay(period.from);
   const to = isoDay(period.to);
+  const inGroup = (w: Wallet): Wallet => ({ ...w, groupId: group.id, groupName: group.name });
   return [
-    newBlank({ id: newId(), name, total: left, from, to }),
-    ...rows.map(r => newBlank({ id: newId(), name: r.label, total: r.amount, from, to })),
+    inGroup(newBlank({ id: newId(), name, total: left, from, to })),
+    ...rows.map(r => inGroup(newBlank({ id: newId(), name: r.label, total: r.amount, from, to }))),
   ];
 }
 
@@ -318,9 +366,10 @@ export function monthEnvelopes(
  * along; with rows, those shares are its parts, what is left first.
  */
 export function weekEnvelopes(
-  { name, left, rows, period, today, everyday, newId }: {
+  { name, left, rows, period, today, everyday, group, newId }: {
     name: (week: number) => string; left: number; rows: EnvelopeRow[];
-    period: { from: Date; to: Date }; today: Date; everyday: string; newId: () => string;
+    period: { from: Date; to: Date }; today: Date; everyday: string;
+    group: EnvelopeGroupName; newId: () => string;
   },
 ): Wallet[] {
   const weeks = periodWeeks(period);
@@ -341,9 +390,18 @@ export function weekEnvelopes(
     const total = leftShares[i] + rowShares.reduce((n, s) => n + s[i], 0);
     return [{
       ...newBlank({ id: newId(), name: name(isoWeek(w.from)), total, from: isoDay(w.from), to: isoDay(w.to) }),
-      pots, series,
+      pots, series, groupId: group.id, groupName: group.name,
     }];
   });
+}
+
+/** Today, or the nearest day of `from`–`to` when today is outside them: a
+ *  November envelope opened in October starts on 1 November (review
+ *  2026-10-29, P2-1). */
+export function expenseDay(today: string, from?: string, to?: string): string {
+  if (from && today < from) return from;
+  if (to && today > to) return to;
+  return today;
 }
 
 /** The week before `w` in its series, if there is one. */
