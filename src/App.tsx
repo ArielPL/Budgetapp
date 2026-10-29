@@ -87,7 +87,7 @@ import { Spotlight } from './components/Spotlight';
 /** The year whose "copy to the rest of the year" offer was declined. */
 const COPY_OFFER_KEY = 'budget_copy_offer_dismissed';
 const GUIDE_NUDGE_KEY = 'budget_guide_nudge_seen';
-import { loadWallets, walletsChange, monthEnvelopes, weekEnvelopes, WALLETS_KEY, OPEN_PANEL_KEY, isoWeek, type EnvelopeRow, type Wallet } from './wallets';
+import { loadWallets, walletsChange, monthEnvelopes, weekEnvelopes, WALLETS_KEY, OPEN_PANEL_KEY, isoWeek, isoDay, type EnvelopeRow, type Wallet } from './wallets';
 
 
 
@@ -1843,6 +1843,8 @@ function App({ startupRepair = null }: AppProps) {
   const [walletDraft, setWalletDraft] = useState<{
     span: 'week' | 'month'; left: number; period: { from: Date; to: Date };
     rows: EnvelopeRow[]; picked: string[];
+    /** The month's envelope's name; the user may change it, and the dates. */
+    name: string;
   } | null>(null);
   const planWallet = (span: 'week' | 'month') => {
     const period = periodStartDay !== null || Object.keys(periodLocks).length > 0
@@ -1853,16 +1855,20 @@ function App({ startupRepair = null }: AppProps) {
     const rows = data.expenses
       .filter(c => !ENVELOPE_SKIPS.has(c.id))
       .flatMap(c => c.rows.filter(r => r.amount > 0).map(r => ({ id: r.id, label: shownName(r, lang), amount: r.amount })));
-    setWalletDraft({ span, left: totalIncome - totalExpenses, period, rows, picked: [] });
+    setWalletDraft({ span, left: totalIncome - totalExpenses, period, rows, picked: [],
+      name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)) });
   };
   const draftEnvelopes = (draft: NonNullable<typeof walletDraft>, newId: () => string): Wallet[] => {
     const rows = draft.rows.filter(r => draft.picked.includes(r.id));
     return draft.span === 'month'
-      ? monthEnvelopes({ name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)), left: draft.left, rows, period: draft.period, newId })
+      ? monthEnvelopes({ name: draft.name.trim(), left: draft.left, rows, period: draft.period, newId })
       : weekEnvelopes({ name: t.walletNameWeek, left: draft.left, rows, period: draft.period, today: new Date(), everyday: t.envEveryday, newId });
   };
+  /** What stops the draft being made, said under its fields; null when nothing. */
+  const draftProblem = (d: NonNullable<typeof walletDraft>): string | null =>
+    d.period.to < d.period.from ? t.wErrDates : d.span === 'month' && d.name.trim() === '' ? t.wErrName : null;
   const createWalletFromBudget = async (): Promise<boolean> => {
-    if (!walletDraft) return false;
+    if (!walletDraft || draftProblem(walletDraft)) return false;
     const made = draftEnvelopes(walletDraft, generateId);
     if (made.length === 0) return false;
     const before = captureKeys(appStorage, [WALLETS_KEY]);
@@ -2467,23 +2473,44 @@ function App({ startupRepair = null }: AppProps) {
         const picked = walletDraft.rows.filter(r => walletDraft.picked.includes(r.id));
         const perWeek = Math.trunc(((walletDraft.left + sumRows(picked)) / periodDays) * 7);
         const day = (iso: string | undefined, or: Date) => (iso ? new Date(`${iso}T00:00`) : or);
+        const dayOf = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00`) : null);
         const span = { from: day(first?.from, walletDraft.period.from), to: day(last?.to, walletDraft.period.to) };
         const weekOf = (w: Wallet | undefined) => (w?.from ? isoWeek(day(w.from, walletDraft.period.from)) : 0);
         return (
           <ConfirmChange
             title={t.wCreate}
             lines={week ? [
-              { label: t.envWeeksLabel, after: t.envWeeksValue(weekOf(first), weekOf(last), made.length) },
+              { label: t.envWeeksLabel, after: made.length > 0 ? t.envWeeksValue(weekOf(first), weekOf(last), made.length) : '–' },
               { label: t.envPerWeek, after: money(perWeek) },
               { label: t.walletPeriod, after: formatPeriodRange(span, lang) },
             ] : [
-              { label: t.wName, after: first?.name ?? '' },
               { label: t.wTotal, after: money(walletDraft.left) },
-              { label: t.walletPeriod, after: formatPeriodRange(walletDraft.period, lang) },
             ]}
             onConfirm={createWalletFromBudget}
             onClose={() => setWalletDraft(null)}
           >
+            {/* The name and the dates are the user's to change: nothing is made
+                until Confirm (Ariel, 2026-10-29). */}
+            <div className="env-fields">
+              {!week && (
+                <label className="env-field env-field-name">
+                  <span>{t.wName}</span>
+                  <input className="label-input" value={walletDraft.name}
+                    onChange={e => setWalletDraft(d => d && { ...d, name: e.target.value })} />
+                </label>
+              )}
+              <label className="env-field">
+                <span>{t.wFrom}</span>
+                <input type="date" className="label-input" value={isoDay(walletDraft.period.from)}
+                  onChange={e => { const v = dayOf(e.target.value); if (v) setWalletDraft(d => d && { ...d, period: { ...d.period, from: v } }); }} />
+              </label>
+              <label className="env-field">
+                <span>{t.wTo}</span>
+                <input type="date" className="label-input" value={isoDay(walletDraft.period.to)}
+                  onChange={e => { const v = dayOf(e.target.value); if (v) setWalletDraft(d => d && { ...d, period: { ...d.period, to: v } }); }} />
+              </label>
+            </div>
+            {draftProblem(walletDraft) && <p className="env-error" role="alert">{draftProblem(walletDraft)}</p>}
             {walletDraft.rows.length > 0 && (
               <fieldset className="env-include">
                 <legend className="env-include-title">{t.envInclude}</legend>

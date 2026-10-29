@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, cleanup, fireEvent, waitFor, act } from '@testing-library/react';
 import App from './App';
 import { translations } from './i18n';
 import { newBlank, loadWallets, WALLETS_KEY, OPEN_PANEL_KEY, type Wallet } from './wallets';
+import { closeTopLayer } from './useModalFocus';
 
 // ── The wallets screen shows every wallet (Ariel, 2026-10-27) ──────────────
 //
@@ -154,5 +155,57 @@ describe('on a phone', () => {
     expect(document.querySelector('.wallet-col-title')?.textContent).toContain('SYNT RESA');
     // The name is used up: the next visit starts on the list.
     expect(localStorage.getItem(OPEN_PANEL_KEY)).toBeNull();
+  });
+});
+
+// ── Custom: the envelopes are one folder in the switcher (Ariel, 2026-10-29) ─
+describe('in Custom', () => {
+  const openCustom = async (wallets: Wallet[]) => {
+    seed(wallets);
+    localStorage.setItem('budget_layout', 'custom');
+    localStorage.setItem('budget_custom_mode', 'linked');
+    localStorage.setItem('budget_custom_help_seen', '1');
+    render(<App />);
+    await waitFor(() => expect(document.querySelector('.wallet-switch-toggle')).not.toBeNull());
+  };
+  const folderRow = () => [...document.querySelectorAll('.wallet-switch-row')].find(r => r.textContent?.includes(sv.wMenu));
+
+  it('lists the envelopes as one folder, which opens on all of them with a "+" card', async () => {
+    screen(true);
+    await openCustom([synth('a', 'SYNT MAT', 4500), synth('b', 'SYNT RESA', 8000)]);
+    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
+    // One row for the envelopes, not one per envelope.
+    expect(document.querySelectorAll('.wallet-switch-row')).toHaveLength(2);
+    expect(folderRow()?.textContent).toContain('SYNT MAT, SYNT RESA');
+    fireEvent.click(folderRow()!);
+    await waitFor(() => expect(document.querySelectorAll('.wallet-column')).toHaveLength(2));
+    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain(sv.wMenu);
+    // More can be made from right there.
+    fireEvent.click(document.querySelector('.wallet-plus')!);
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain(sv.wNew));
+  });
+
+  it('on a phone, opens on the envelope last open, and Back goes to the folder', async () => {
+    screen(false);
+    localStorage.setItem(OPEN_PANEL_KEY, 'b');
+    await openCustom([synth('a', 'SYNT MAT', 4500), synth('b', 'SYNT RESA', 8000)]);
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain('SYNT RESA'));
+    fireEvent.click(buttonWith(`‹ ${sv.wMenu}`)!);
+    await waitFor(() => expect(document.querySelectorAll('.wallet-card')).toHaveLength(2));
+    expect(stored()).toHaveLength(2);
+  });
+});
+
+describe("Android's Back on a phone", () => {
+  it('goes from one envelope to the list first (emulator, 2026-10-29)', async () => {
+    screen(false);
+    seed([synth('a', 'SYNT MAT', 4500), synth('b', 'SYNT RESA', 8000)]);
+    await openWallets();
+    fireEvent.click([...document.querySelectorAll('.wallet-card')][1]);
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain('SYNT RESA'));
+    act(() => { expect(closeTopLayer()).toBe(true); });
+    await waitFor(() => expect(document.querySelectorAll('.wallet-card')).toHaveLength(2));
+    // Nothing more of the envelopes is a layer: the next Back is the app's own.
+    expect(closeTopLayer()).toBe(false);
   });
 });

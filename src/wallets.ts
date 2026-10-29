@@ -313,8 +313,8 @@ export function monthEnvelopes(
 }
 
 /**
- * The envelopes a week makes: one per week of the period not yet over on
- * `today`. Each holds its days' share of what is left and of each row taken
+ * The envelopes a week makes: one per week of the period, leaving out the
+ * weeks already over when `today` falls inside it. Each holds its days' share of what is left and of each row taken
  * along; with rows, those shares are its parts, what is left first.
  */
 export function weekEnvelopes(
@@ -327,9 +327,13 @@ export function weekEnvelopes(
   const leftShares = shareByDays(left, weeks);
   const rowShares = rows.map(r => shareByDays(r.amount, weeks));
   const day = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Weeks already over are skipped only while the period runs. A period
+  // planned ahead, or one already over, gets every week: skipping them all
+  // made "0 envelopes" (Ariel, 2026-10-29, on a pay period that had ended).
+  const running = weeks.length > 0 && day >= weeks[0].from && day <= weeks[weeks.length - 1].to;
   const series = newId();
   return weeks.flatMap((w, i) => {
-    if (w.to < day) return [];
+    if (running && w.to < day) return [];
     const pots: WalletPot[] = rows.length === 0 ? [] : [
       { id: newId(), name: everyday, planned: leftShares[i] },
       ...rows.map((r, k) => ({ id: newId(), name: r.label, planned: rowShares[k][i] })),

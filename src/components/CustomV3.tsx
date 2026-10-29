@@ -1075,7 +1075,9 @@ export const CustomV3 = ({ year, month, onSaveFailed, onRecordUndo, onStartOver,
           );
         })}
 
-        {view === 'budget' && editing && (
+        {/* Always there, not only while editing the layout: a block is quick to
+            make straight from the budget (Ariel, 2026-10-29). */}
+        {view === 'budget' && (
           <button className="custom-add-card" onClick={() => setPicking(true)}>
             <span className="custom-add-plus">＋</span>
             <span>{t.addBlock}</span>

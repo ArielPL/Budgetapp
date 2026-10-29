@@ -68,7 +68,7 @@ describe('Left to live on → a wallet', () => {
     expect(document.querySelector('.daily-budget-tile-month')?.textContent).toMatch(/22\s000/);
     fireEvent.click(tile(sv.dailyBudgetPerMonth));
     // Nothing stored until it is confirmed.
-    expect(document.querySelector('.confirm-change')?.textContent).toContain('Vardag oktober');
+    expect((document.querySelector('.env-field-name input') as HTMLInputElement).value).toBe('Vardag oktober');
     expect(localStorage.getItem(WALLETS_KEY)).toBeNull();
 
     fireEvent.click(confirmBtn());
@@ -168,6 +168,12 @@ describe('envelopes from the budget', () => {
     }
   });
 
+  it('a period already over gets every week, not none (Ariel, 2026-10-29)', () => {
+    const all = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [], period: october,
+      today: new Date(2026, 10, 3), everyday: 'Vardag', newId });
+    expect(all).toHaveLength(5);
+  });
+
   it('a week planned mid-month skips the weeks already over', () => {
     const left = weekEnvelopes({ name: w => `v. ${w}`, left: 22000, rows: [], period: october,
       today: new Date(2026, 9, 15), everyday: 'Vardag', newId });
@@ -208,6 +214,26 @@ describe('Left to live on → envelopes, in the app', () => {
     await waitFor(() => expect(loadWallets(localStorage)).toHaveLength(2));
     expect(loadWallets(localStorage).map(w => [w.name, w.total])).toEqual([['Vardag oktober', 18000], ['Matvaror', 4000]]);
     expect(latestUndo(localStorage)?.action).toBe('createWallet');
+  });
+
+  it('the name and the dates can be changed before it is made', async () => {
+    seed();
+    render(<App />);
+    fireEvent.click(tile(sv.dailyBudgetPerMonth));
+    fireEvent.change(document.querySelector('.env-field-name input')!, { target: { value: 'Oktoberpengar' } });
+    const [from, to] = document.querySelectorAll<HTMLInputElement>('.env-field input[type="date"]');
+    fireEvent.change(to, { target: { value: '2026-10-01' } });
+    fireEvent.change(from, { target: { value: '2026-10-05' } });
+    // The end before the start: said, and nothing made.
+    expect(document.querySelector('.env-error')?.textContent).toBe(sv.wErrDates);
+    fireEvent.click(confirmBtn());
+    await waitFor(() => expect(confirmBtn().disabled).toBe(false));
+    expect(localStorage.getItem(WALLETS_KEY)).toBeNull();
+    fireEvent.change(to, { target: { value: '2026-10-20' } });
+    expect(document.querySelector('.env-error')).toBeNull();
+    fireEvent.click(confirmBtn());
+    await waitFor(() => expect(loadWallets(localStorage)).toHaveLength(1));
+    expect(loadWallets(localStorage)[0]).toMatchObject({ name: 'Oktoberpengar', from: '2026-10-05', to: '2026-10-20' });
   });
 
   it('asks what last week left once it is over, and moves it', async () => {

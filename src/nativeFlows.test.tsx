@@ -1388,7 +1388,10 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await createTrip();
     cleanup();
     await openCustom();
-    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain('SYNT RESA');
+    // The envelopes are one folder in the switcher now (Ariel, 2026-10-29),
+    // and it opens on the envelope that was open.
+    expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain(sv.wMenu);
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain('SYNT RESA'));
   });
 
   it('keeps the expense off the screen, and says so, when the database refuses', async () => {

@@ -6,6 +6,7 @@ import { shortDay } from '../dateLabel';
 import { appStorage } from '../storage';
 import { commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
+import { useBackLayer } from '../useModalFocus';
 import {
   newTrip, newBlank, walletSummary, loadWallets, walletsChange, previousInSeries, withCarry, WALLETS_KEY, OPEN_PANEL_KEY,
   type Wallet, type WalletExpense, type WalletKind, type WalletPot,
@@ -34,6 +35,9 @@ const ICON: Record<WalletKind, string> = { blank: '✉️', trip: '✈️' };
  *  budget's id can never be mistaken for a wallet's. */
 const BUDGET_PREFIX = 'cb:';
 const budgetPanelId = (b: CustomBudget) => `${BUDGET_PREFIX}${b.id}`;
+/** In Custom, the envelopes are one folder in the switcher, opening on all of
+ *  them side by side (Ariel, 2026-10-29), as the menu's screen does. */
+const ENVELOPES_PANEL = 'envelopes';
 
 const todayIso = () => {
   const d = new Date();
@@ -77,7 +81,7 @@ export const PanelSwitcher = ({
   /** Rename the budget on screen; absent where it cannot be renamed. */
   onRename?: () => void;
 }) => {
-  const { t, money } = useLang();
+  const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -95,32 +99,15 @@ export const PanelSwitcher = ({
       document.removeEventListener('keydown', esc);
     };
   }, [expanded]);
-  const current = wallets.find(w => w.id === openId);
+  const inFolder = openId === ENVELOPES_PANEL || wallets.some(w => w.id === openId);
   const openBudget = budgets.find(b => budgetPanelId(b) === openId);
   const myBudget = mainName ?? t.wMyBudget;
-  const today = todayIso();
   const pick = (id: string | null) => { setExpanded(false); onOpen(id); };
-  const row = (w: Wallet) => {
-    const s = walletSummary(w, today);
-    return (
-      <li key={w.id}>
-        <button className={`wallet-switch-row${w.id === openId ? ' is-current' : ''}`} onClick={() => pick(w.id)}
-          aria-current={w.id === openId ? 'true' : undefined}>
-          <span className="wallet-switch-icon" aria-hidden="true">{ICON[w.kind]}</span>
-          <span className="wallet-switch-text">
-            <span className="wallet-switch-name">{w.name}{w.archived ? ` · ${t.wArchived}` : ''}</span>
-            <span className="wallet-switch-sub">{t.wLeftList(money(Math.round(s.left)), money(w.total))}</span>
-          </span>
-          <span className="wallet-tag">{t.wTagWallet}</span>
-        </button>
-      </li>
-    );
-  };
   return (
     <div className="wallet-switch" ref={box}>
       <button className="wallet-switch-toggle" aria-expanded={expanded} aria-controls={listId}
         onClick={() => setExpanded(e => !e)}>
-        <span aria-hidden="true">{current ? ICON[current.kind] : '📊'}</span> {current ? current.name : openBudget ? openBudget.name : myBudget}
+        <span aria-hidden="true">{inFolder ? '✉️' : '📊'}</span> {inFolder ? t.wMenu : openBudget ? openBudget.name : myBudget}
         <span className="wallet-switch-caret" aria-hidden="true">▾</span>
       </button>
       {onRename && (
@@ -149,8 +136,19 @@ export const PanelSwitcher = ({
                 </button>
               </li>
             ))}
-            {wallets.filter(w => !w.archived).map(row)}
-            {wallets.filter(w => w.archived).map(row)}
+            {wallets.length > 0 && (
+              <li>
+                <button className={`wallet-switch-row${inFolder ? ' is-current' : ''}`} onClick={() => pick(ENVELOPES_PANEL)}
+                  aria-current={inFolder ? 'true' : undefined}>
+                  <span className="wallet-switch-icon" aria-hidden="true">✉️</span>
+                  <span className="wallet-switch-text">
+                    <span className="wallet-switch-name">{t.wMenu}</span>
+                    <span className="wallet-switch-sub">{wallets.filter(w => !w.archived).map(w => w.name).join(', ')}</span>
+                  </span>
+                  <span className="wallet-tag">{wallets.length}</span>
+                </button>
+              </li>
+            )}
           </ul>
           {onNewBudget && (
             <button className="wallet-switch-new" onClick={() => { setExpanded(false); onNewBudget(); }}>+ {t.cbNew}</button>
@@ -185,8 +183,9 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   // from it. Separate from `openId`, which Custom's switcher also reads. It
   // starts on the wallet "Left to live on" has just made (which names it in
   // OPEN_PANEL_KEY) and otherwise on the list.
+  // In Custom it is the envelope last open, so the trip you are on is where
+  // the app opens; Back goes to the folder.
   const [phoneOpen, setPhoneOpen] = useState<string | null>(() => {
-    if (budget !== null) return null;
     const v = appStorage.getItem(OPEN_PANEL_KEY);
     return v && loadWallets(appStorage).some(w => w.id === v) ? v : null;
   });
@@ -206,6 +205,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
     const all = loadWallets(appStorage);
     const v = appStorage.getItem(OPEN_PANEL_KEY);
     if (v && all.some(w => w.id === v)) return v;
+    if (v === ENVELOPES_PANEL && budget !== null && all.length > 0) return v;
     if (v && renderBudget && loadCustomBudgets(appStorage).some(b => budgetPanelId(b) === v)) return v;
     // From the menu there is no budget to show: open a wallet if there is one.
     return budget === null ? (all.find(w => !w.archived) ?? all[0])?.id ?? null : null;
@@ -301,10 +301,14 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   const startNew = () => { setCreatingBudget(false); setCreating(true); };
 
   // The menu's own screen shows every wallet at once (side by side, or a list
-  // on a phone); Custom keeps its switcher, where the budget is a panel too.
-  const overview = budget === null && !creating && !creatingBudget && wallets.length > 0;
+  // on a phone), and so does Custom's envelope folder, under its switcher,
+  // where the budget is a panel too.
+  const inFolder = budget !== null && (openId === ENVELOPES_PANEL || current !== null);
+  const overview = !creating && !creatingBudget && wallets.length > 0 && (budget === null || inFolder);
   const phoneWallet = wallets.find(w => w.id === phoneOpen) ?? null;
   const inPhoneWallet = overview && !wide && phoneWallet !== null;
+  // Android's Back from one envelope goes to the list, as "‹ Envelopes" does.
+  useBackLayer(inPhoneWallet, () => { setPhoneOpen(null); if (budget !== null) open(ENVELOPES_PANEL); });
 
   let content: ReactNode;
   if (creatingBudget) {
@@ -352,7 +356,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
             const over = s.left < 0;
             const pct = w.total > 0 ? Math.min(100, Math.max(0, (s.spent / w.total) * 100)) : 0;
             return (
-              <button key={w.id} className="wallet-card" onClick={() => setPhoneOpen(w.id)}>
+              <button key={w.id} className="wallet-card" onClick={() => { setPhoneOpen(w.id); if (budget !== null) open(w.id); }}>
                 <span className="wallet-card-main">
                   <span className="wallet-card-name">
                     <span aria-hidden="true">{ICON[w.kind]}</span>
@@ -390,10 +394,10 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   } else {
     content = budget;
   }
-  const showingBudget = !creating && !creatingBudget && !current;
+  const showingBudget = !creating && !creatingBudget && !current && !inFolder;
   return (
     <>
-      {overview ? (
+      {overview && budget === null ? (
         <div className="wallet-screen-head">
           {inPhoneWallet
             ? <button className="wallet-back" onClick={() => setPhoneOpen(null)}>‹ {t.wMenu}</button>
@@ -406,6 +410,12 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
           onOpen={open} onNew={startNew}
           onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
           onRename={renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+      )}
+      {/* Custom's folder on a phone: one envelope open, and the way back to all. */}
+      {inFolder && inPhoneWallet && (
+        <div className="wallet-screen-head">
+          <button className="wallet-back" onClick={() => { setPhoneOpen(null); open(ENVELOPES_PANEL); }}>‹ {t.wMenu}</button>
+        </div>
       )}
       {renaming && showingBudget && (
         <BudgetName key={openBudget?.id ?? 'main'} name={openBudget ? openBudget.name : mainName ?? t.wMyBudget}

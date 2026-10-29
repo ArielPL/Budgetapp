@@ -19,8 +19,8 @@ android {
         // (Ariel, 2026-10-16 and 2026-10-23). versionCode +1 on every upload,
         // and the same pair in the Xcode project (MARKETING_VERSION and
         // CURRENT_PROJECT_VERSION).
-        versionCode 4
-        versionName "1.0.3"
+        versionCode 5
+        versionName "1.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
