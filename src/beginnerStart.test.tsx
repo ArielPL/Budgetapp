@@ -9,8 +9,8 @@ import { latestUndo } from './undo';
 // ── Beginner's start (Ariel and testers, 2026-10-19) ────────────────────────
 //
 // After the intro, a new install is asked whether it has made a budget before.
-// A beginner answers up to six questions and gets a budget of exactly what was
-// answered, for this month and every month left this year.
+// A beginner answers up to eight questions and gets a budget of exactly what
+// was answered, for this month and every month left this year.
 
 const sv = translations.sv;
 
@@ -26,6 +26,16 @@ describe('the budget built from the answers', () => {
     expect(beginnerMonthData({}, 'sv')).toEqual({ income: [], expenses: [], savings: [] });
     const en = beginnerMonthData({ phone: 299, commute: 800, loans: 1200 }, 'en');
     expect(en.expenses.flatMap(c => c.rows.map(r => r.label))).toEqual(['Getting to work', 'Phone plan', 'Loans and instalments']);
+  });
+
+  it('puts electricity with the housing and food in its own category (Ariel, 2026-10-27)', () => {
+    const d = beginnerMonthData({ housing: 9500, electricity: 600, food: 4000 }, 'sv');
+    expect(d.expenses.map(c => [c.id, c.rows.map(r => [r.label, r.amount])])).toEqual([
+      ['boende', [['Hyra/Bolån', 9500], ['El & Värme', 600]]],
+      ['mat', [['Matvaror', 4000]]],
+    ]);
+    // Electricity alone still makes a housing category.
+    expect(beginnerMonthData({ electricity: 600 }, 'sv').expenses.map(c => c.id)).toEqual(['boende']);
   });
 });
 
@@ -62,7 +72,9 @@ describe('the first-run question', () => {
     fireEvent.click(document.querySelector('.beg-choice.is-main')!);
     type('32000'); fireEvent.click(btn(sv.begNext));
     type('9500'); fireEvent.click(btn(sv.begNext));
-    fireEvent.click(btn(sv.begSkip));
+    fireEvent.click(btn(sv.begSkip)); // electricity
+    fireEvent.click(btn(sv.begSkip)); // food
+    fireEvent.click(btn(sv.begSkip)); // phone
     type('abc'); fireEvent.click(btn(sv.begNext));
     expect(document.querySelector('.beg-error')?.textContent).toBe(sv.invalidAmount);
     type('1030'); fireEvent.click(btn(sv.begNext));
@@ -84,7 +96,7 @@ describe('the first-run question', () => {
     await finishIntro();
     fireEvent.click(document.querySelector('.beg-choice.is-main')!);
     type('32000'); fireEvent.click(btn(sv.begNext));
-    for (let i = 1; i < 6; i++) fireEvent.click(btn(sv.begSkip));
+    for (let i = 1; i < 8; i++) fireEvent.click(btn(sv.begSkip));
     expect(btn(sv.begCreate('okt', 'dec'))).toBeDefined();
     fireEvent.click(btn(sv.begCreateOne('okt')));
     await waitFor(() => expect(document.querySelector('.beg-modal')).toBeNull());
@@ -104,7 +116,7 @@ describe('the first-run question', () => {
   it('a beginner who answers nothing is offered the template', async () => {
     await finishIntro();
     fireEvent.click(document.querySelector('.beg-choice.is-main')!);
-    for (let i = 0; i < 6; i++) fireEvent.click(btn(sv.begSkip));
+    for (let i = 0; i < 8; i++) fireEvent.click(btn(sv.begSkip));
     expect(document.querySelector('.beg-modal')?.textContent).toContain(sv.begEmpty);
     fireEvent.click(btn(sv.begTemplate));
     expect(document.querySelector('.beg-modal')).toBeNull();
@@ -116,5 +128,54 @@ describe('the first-run question', () => {
     render(<App />);
     expect(document.querySelector('.intro-modal')).toBeNull();
     expect(document.querySelector('.beg-modal')).toBeNull();
+  });
+});
+
+// ── From the menu, to start over (Ariel, 2026-10-27) ────────────────────────
+describe('starting over with the questions', () => {
+  const filled = (amount: number) => JSON.stringify({ income: [{ id: 'l', label: 'Lön', amount }], expenses: [], savings: [] });
+  const openFromMenu = async (answer: boolean) => {
+    vi.stubGlobal('confirm', vi.fn(() => answer));
+    render(<App />);
+    fireEvent.click(document.querySelector('.menu-btn')!);
+    fireEvent.click([...document.querySelectorAll('.utils-action')].find(b => b.textContent === sv.begRestart)!);
+  };
+
+  beforeEach(() => {
+    localStorage.setItem('budget_2026_9', filled(20000));
+    localStorage.setItem('budget_2026_10', filled(21000));
+  });
+
+  it('asks first, and a no changes nothing', async () => {
+    await openFromMenu(false);
+    expect(window.confirm).toHaveBeenCalledWith(sv.begRestartConfirm('oktober 2026'));
+    expect(document.querySelector('.beg-modal')).toBeNull();
+  });
+
+  it('goes straight to the questions and replaces the rest of the year', async () => {
+    await openFromMenu(true);
+    await waitFor(() => expect(document.getElementById('beg-title')?.textContent).toBe(sv.begQuestions[0].title));
+    type('32000'); fireEvent.click(btn(sv.begNext));
+    type('9500'); fireEvent.click(btn(sv.begNext));
+    type('600'); fireEvent.click(btn(sv.begNext));
+    type('4000'); fireEvent.click(btn(sv.begNext));
+    for (let i = 4; i < 8; i++) fireEvent.click(btn(sv.begSkip));
+    fireEvent.click(btn(sv.begCreate('okt', 'dec')));
+    await waitFor(() => expect(document.querySelector('.beg-modal')).toBeNull());
+    // November held a budget; starting over replaces it too.
+    for (const m of [9, 10, 11]) {
+      const d = JSON.parse(localStorage.getItem(`budget_2026_${m}`)!);
+      expect(d.income[0].amount).toBe(32000);
+      expect(d.expenses.map((c: { id: string }) => c.id)).toEqual(['boende', 'mat']);
+    }
+    expect(latestUndo(localStorage)?.action).toBe('startBudget');
+  });
+
+  it('Back from the first question closes it, and nothing is written', async () => {
+    await openFromMenu(true);
+    await waitFor(() => expect(document.querySelector('.beg-modal')).not.toBeNull());
+    fireEvent.click(btn(sv.begBack));
+    expect(document.querySelector('.beg-modal')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('budget_2026_9')!).income[0].amount).toBe(20000);
   });
 });

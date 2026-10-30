@@ -157,7 +157,7 @@ export const AskSheet = (p: Props) => {
       }
       case 'card':
         return (
-          <QuestionCards key={result.n} preset={result.preset} nameOf={p.nameOf}
+          <QuestionCards key={result.n} preset={result.preset} shown={p.at} nameOf={p.nameOf}
             periodStartDay={p.periodStartDay} periodLocks={p.periodLocks} onCreateGoal={p.onCreateGoal} />
         );
       case 'elsewhere':

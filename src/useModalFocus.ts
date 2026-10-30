@@ -38,6 +38,27 @@ export function closeTopLayer(): boolean {
 /** How many layers are open — for tests. */
 export const openLayerCount = (): number => layers.length;
 
+/**
+ * A step Back should undo that is not a panel: one envelope open from the
+ * list on a phone, say, where Back goes to the list before it leaves the
+ * screen (emulator, 2026-10-29). No focus handling — only the place in line.
+ */
+export function useBackLayer(active: boolean, onBack: () => void): void {
+  const onBackRef = useRef(onBack);
+  useEffect(() => {
+    onBackRef.current = onBack;
+  });
+  useEffect(() => {
+    if (!active) return;
+    const layer = { close: () => onBackRef.current() };
+    layers.push(layer);
+    return () => {
+      const i = layers.indexOf(layer);
+      if (i >= 0) layers.splice(i, 1);
+    };
+  }, [active]);
+}
+
 export function useModalFocus(
   containerRef: RefObject<HTMLElement | null>,
   active: boolean,

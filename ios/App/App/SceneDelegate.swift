@@ -121,11 +121,11 @@ enum MacFit {
         guard let content = webView.scrollView.subviews.first(where: {
             String(describing: type(of: $0)).hasPrefix("WKContent")
         }) else { return }
-        // The shortcut row: empty groups mean nothing to show.
-        content.inputAssistantItem.leadingBarButtonGroups = []
-        content.inputAssistantItem.trailingBarButtonGroups = []
-        // The form-navigation row is the content view's inputAccessoryView,
-        // which has no setter: the view gets a subclass whose getter answers nil.
+        // Neither row has a setter that sticks, so the content view gets a
+        // subclass whose getters answer for it: no form-navigation row, and a
+        // shortcut row that stays empty. Emptying the row once (1.0.3) was not
+        // enough: WebKit fills it again with ^ ˅ each time a field takes focus,
+        // and the bar was back on the Mac (Ariel, 2026-10-27).
         guard let base = object_getClass(content) else { return }
         let name = "\(NSStringFromClass(base))_MacFit"
         var subclass: AnyClass? = NSClassFromString(name)
@@ -133,11 +133,21 @@ enum MacFit {
             let none: @convention(block) (AnyObject) -> UIView? = { _ in nil }
             class_addMethod(made, #selector(getter: UIResponder.inputAccessoryView),
                             imp_implementationWithBlock(none), "@@:")
+            let empty: @convention(block) (AnyObject) -> UITextInputAssistantItem = { _ in noShortcuts }
+            class_addMethod(made, #selector(getter: UIResponder.inputAssistantItem),
+                            imp_implementationWithBlock(empty), "@@:")
             objc_registerClassPair(made)
             subclass = made
         }
         if let subclass { object_setClass(content, subclass) }
     }
+
+    /// A shortcut row that keeps nothing WebKit puts in it.
+    private final class NoShortcuts: UITextInputAssistantItem {
+        override var leadingBarButtonGroups: [UIBarButtonItemGroup] { get { [] } set {} }
+        override var trailingBarButtonGroups: [UIBarButtonItemGroup] { get { [] } set {} }
+    }
+    private static let noShortcuts = NoShortcuts()
 }
 
 final class LocalizedDialogs: NSObject, WKUIDelegate {

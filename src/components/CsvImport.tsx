@@ -292,20 +292,27 @@ export const CsvImport = ({
   // meanwhile: a second tap would import the same file twice.
   const [importing, setImporting] = useState(false);
 
+  /** The entries the chosen rows become — the same for the preview's count
+   *  and for the import itself. */
+  const entriesOf = (newId: () => string): ActualEntry[] => ready.flatMap(g =>
+    g.rows.map(r => ({
+      id: newId(),
+      date: r.date,
+      text: r.text || t.csvNoText,
+      amount: Math.abs(r.amount),
+      direction: r.amount > 0 ? 'in' as const : 'out' as const,
+      categoryId: resolve(g.choice),
+    })));
+  /** How many of the file's rows the import would really add, by the rule it
+   *  adds them by: the same statement read twice is said to add nothing
+   *  before the button, not only after it (review 2026-10-29, P3-1). */
+  const offered = ready.reduce((s, g) => s + g.rows.length, 0);
+  const toAdd = [...groupByMonth(entriesOf(() => ''), periodStartDay, periodLocks).months.values()]
+    .reduce((n, b) => n + newEntries(b.entries, loadActuals(appStorage, b.year, b.month)).length, 0);
+
   const doImport = async () => {
     if (importing) return;
-    const entries: ActualEntry[] = ready.flatMap(g =>
-      g.rows.map(r => {
-        const categoryId = resolve(g.choice);
-        return {
-          id: generateId(),
-          date: r.date,
-          text: r.text || t.csvNoText,
-          amount: Math.abs(r.amount),
-          direction: r.amount > 0 ? 'in' as const : 'out' as const,
-          categoryId,
-        };
-      }));
+    const entries = entriesOf(generateId);
 
     const { months } = groupByMonth(entries, periodStartDay, periodLocks);
 
@@ -588,9 +595,10 @@ export const CsvImport = ({
                 ))}
               </div>
               <div className="csv-actions">
-                <button className="csv-primary" disabled={ready.length === 0 || importing} onClick={doImport}>
-                  {t.csvImportN(ready.reduce((s, g) => s + g.rows.length, 0))}
+                <button className="csv-primary" disabled={toAdd === 0 || importing} onClick={doImport}>
+                  {t.csvImportN(toAdd)}
                 </button>
+                {offered > toAdd && <span className="csv-hint">{t.csvAlreadyThere(offered - toAdd)}</span>}
                 {willCreate > 0 && <span className="csv-hint csv-hint-new">{t.csvWillCreate(willCreate)}</span>}
                 {toUnsorted > 0 && <span className="csv-hint">{t.csvToUnsorted(toUnsorted)}</span>}
                 {toTransfer > 0 && <span className="csv-hint">{t.csvToTransfer(toTransfer)}</span>}

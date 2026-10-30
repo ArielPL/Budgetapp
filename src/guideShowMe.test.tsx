@@ -70,10 +70,10 @@ describe('every "Show me" finds its control', () => {
     fireEvent.click(spotButton(id));
     // Generous waits: a tab mounts and the spotlight polls for the control, and
     // with the whole suite running at once one second was not always enough.
-    await waitFor(() => expect(document.querySelector(spotSelector(id)), id).not.toBeNull(), { timeout: 4000 });
+    await waitFor(() => expect(document.querySelector(spotSelector(id)), id).not.toBeNull());
     if (SPOT_TARGETS[id].menu) expect(document.querySelector('.utils-menu')).not.toBeNull();
     // The bubble says what it is, beside the control — not "not on screen".
-    await waitFor(() => expect(document.querySelector('.spot-bubble')?.textContent).toContain(svGuide.spots[id].text), { timeout: 4000 });
+    await waitFor(() => expect(document.querySelector('.spot-bubble')?.textContent).toContain(svGuide.spots[id].text));
     expect(document.querySelector('.spot-missing')).toBeNull();
   });
 
@@ -168,7 +168,7 @@ describe('after a first budget, the guide is pointed out once', () => {
     fireEvent.click(document.querySelector('.beg-choice.is-main')!);
     fireEvent.change(document.querySelector('.beg-input')!, { target: { value: '30000' } });
     fireEvent.click(begBtn(sv.begNext));
-    for (let i = 1; i < 6; i++) fireEvent.click(begBtn(sv.begSkip));
+    for (let i = 1; i < sv.begQuestions.length; i++) fireEvent.click(begBtn(sv.begSkip));
     fireEvent.click(begBtn(sv.begCreate('okt', 'dec')));
     await waitFor(() => expect(document.querySelector('.spot-bubble')?.textContent).toContain(sv.guideNudgeTitle));
     fireEvent.click([...document.querySelectorAll('.spot-bubble button')].find(b => b.textContent === sv.guideNudgeOpen)!);

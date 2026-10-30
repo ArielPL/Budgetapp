@@ -333,7 +333,7 @@ describe('Custom', () => {
     await openApp();
     b.refuse.add('budget_custom_v3_values_2026_8');
     // Custom is loaded on demand; clearing lives under Edit layout.
-    await waitFor(() => expect(buttonWith('Redigera layout')).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(buttonWith('Redigera layout')).toBeTruthy());
     fireEvent.click(buttonWith('Redigera layout')!);
     const clear = buttonWith(sv.clearAmounts);
     expect(clear).toBeTruthy();
@@ -1096,10 +1096,13 @@ describe('a CSV import’s receipt and preview', () => {
     });
     fireEvent.change(input, { target: { files: [new File([CSV], 'synt.csv', { type: 'text/csv' })] } });
     await waitFor(() => expect(document.querySelector('.csv-groups')).not.toBeNull());
-    fireEvent.click(document.querySelector('.csv-actions .csv-primary')!);
-    await waitFor(() => expect(toast()).toContain(sv.csvDoneAdded(0)));
-    expect(toast()).not.toContain(sv.csvDoneCreated(1));
-    expect(toast()).toContain(sv.csvDoneDuplicates(2));
+    // Said before the button now (review 2026-10-29, P3-1): nothing new, both
+    // already there, and no button that promises two.
+    const button = document.querySelector<HTMLButtonElement>('.csv-actions .csv-primary')!;
+    expect(button.textContent).toBe(sv.csvImportN(0));
+    expect(button.disabled).toBe(true);
+    expect(document.querySelector('.csv-actions')?.textContent).toContain(sv.csvAlreadyThere(2));
+    expect(preview()).not.toContain(sv.csvWillCreate(1));
   });
 
   it('offers to create, but neither previews nor reports a category every month reached already has', async () => {
@@ -1261,7 +1264,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await store.hydrate();
     installStorage(store);
     await openApp();
-    await waitFor(() => expect(document.querySelector('.wallet-switch-toggle')).not.toBeNull(), { timeout: 4000 });
+    await waitFor(() => expect(document.querySelector('.wallet-switch-toggle')).not.toBeNull());
   };
   const createTrip = async () => {
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
@@ -1388,7 +1391,10 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await createTrip();
     cleanup();
     await openCustom();
+    // Envelopes are rows in the switcher now (Ariel, 2026-10-29): one made on
+    // its own starts a row named after it, and the row opens again.
     expect(document.querySelector('.wallet-switch-toggle')?.textContent).toContain('SYNT RESA');
+    await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain('SYNT RESA'));
   });
 
   it('keeps the expense off the screen, and says so, when the database refuses', async () => {
@@ -1404,7 +1410,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   it('opens from the menu in the regular layout, and "My budget" goes back', async () => {
     await openApp();
     openMenu();
-    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    fireEvent.click(buttonWith(`✉️ ${sv.wMenu}`)!);
     // No wallets yet: straight to a new one.
     await waitFor(() => expect(document.querySelector('.wallet-title')?.textContent).toContain(sv.wNew));
     fill(sv.wName, 'SYNT RESA');
@@ -1412,9 +1418,12 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     fireEvent.click(buttonWith(sv.wCreate)!);
     await waitFor(() => expect(document.querySelector('.wallet-hero')).not.toBeNull());
     expect(stored().map(w => w.name)).toEqual(['SYNT RESA']);
-    fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
-    fireEvent.click([...document.querySelectorAll('.wallet-switch-row')].find(x => x.textContent?.includes(sv.wMyBudget))!);
-    expect(document.querySelector('.wallet-switch')).toBeNull();
+    // On a phone the wallet opened from a list: Back goes to the list, and
+    // from the list Back goes to the budget.
+    fireEvent.click(buttonWith(`‹ ${sv.wMenu}`)!);
+    expect(document.querySelector('.wallet-cards')).not.toBeNull();
+    fireEvent.click(buttonWith(`‹ ${sv.wMyBudget}`)!);
+    expect(document.querySelector('.wallet-screen-head')).toBeNull();
     expect(b.disk.get('budget_layout')).toBe('classic');
   });
 
@@ -1422,7 +1431,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     await openApp();
     openMenu();
     expect(buttonWith(sv.copyNextMonth)).toBeTruthy();
-    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    fireEvent.click(buttonWith(`✉️ ${sv.wMenu}`)!);
     await waitFor(() => expect(document.querySelector('.wallet')).not.toBeNull());
     openMenu();
     expect(buttonWith(sv.copyNextMonth)).toBeUndefined();

@@ -22,7 +22,7 @@ interface Props {
   lines: ChangeLine[];
   onConfirm: () => Promise<boolean>;
   onClose: () => void;
-  /** Shown under the lines: a choice the change depends on, or a note. */
+  /** Choices that shape the change, between what it is and the buttons. */
   children?: ReactNode;
   /** False when there is nothing to confirm — the box then only says so. */
   canConfirm?: boolean;

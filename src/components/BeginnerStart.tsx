@@ -4,12 +4,15 @@
 // use it", "I can't find where to write my salary", "ask questions at the start
 // so the app knows what to prioritise". Ariel's answer: one question after the
 // intro. Someone who has done this before gets today's start (template, empty
-// budget, import). A beginner gets six plain questions, one at a time, each
+// budget, import). A beginner gets eight plain questions, one at a time, each
 // skippable, and a budget of exactly what they answered — for this month, or
 // for every month left this year, so the salary is typed once, not twelve times.
 //
 // Portals to document.body like the other first-run dialogs; nothing is stored
 // until the last button, and that step can be undone.
+//
+// Also opened from the menu, to start over (Ariel, 2026-10-27): then it begins
+// at the first question, and Back from there closes it.
 
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,7 +22,7 @@ import { parseMoneyInput } from '../money';
 import { sumRows, sumCategories } from '../metrics';
 import { beginnerMonthData, shownName, type BeginnerAnswers } from '../defaults';
 
-const KEYS: (keyof BeginnerAnswers)[] = ['salary', 'housing', 'phone', 'commute', 'loans', 'savings'];
+const KEYS: (keyof BeginnerAnswers)[] = ['salary', 'housing', 'electricity', 'food', 'phone', 'commute', 'loans', 'savings'];
 
 interface Props {
   /** "Rows answered for which months": the button names them. */
@@ -28,13 +31,15 @@ interface Props {
   onTemplate: () => void;
   /** restOfYear: also every empty month after this one, through December. */
   onCreate: (answers: BeginnerAnswers, restOfYear: boolean) => Promise<boolean>;
+  /** Opened from the menu: straight to the questions, no "made a budget before?". */
+  restart?: boolean;
 }
 
-export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate }: Props) => {
+export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate, restart = false }: Props) => {
   const { t, lang, money } = useLang();
   const panel = useRef<HTMLDivElement>(null);
-  // 'choice', then the six questions by index, then the summary.
-  const [step, setStep] = useState<'choice' | number | 'summary'>('choice');
+  // 'choice', then the questions by index, then the summary.
+  const [step, setStep] = useState<'choice' | number | 'summary'>(restart ? 0 : 'choice');
   const [answers, setAnswers] = useState<BeginnerAnswers>({});
   const [draft, setDraft] = useState('');
   const [error, setError] = useState(false);
@@ -158,7 +163,7 @@ export const BeginnerStart = ({ span, onExpert, onTemplate, onCreate }: Props) =
         />
         {error && <p className="beg-error" role="alert">{t.invalidAmount}</p>}
         <div className="beg-actions">
-          <button type="button" className="custom-secondary-btn" onClick={() => goTo(i === 0 ? 'choice' : i - 1)}>{t.begBack}</button>
+          <button type="button" className="custom-secondary-btn" onClick={() => (i > 0 ? goTo(i - 1) : restart ? onExpert() : goTo('choice'))}>{t.begBack}</button>
           <button type="button" className="custom-secondary-btn" onClick={() => skip(i)}>{t.begSkip}</button>
           <button type="submit" className="custom-primary-btn">{t.begNext}</button>
         </div>

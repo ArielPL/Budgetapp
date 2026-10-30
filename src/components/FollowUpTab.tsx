@@ -119,7 +119,10 @@ export const FollowUpTab = ({
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [toast, setToast] = useState<{ text: string; months: TouchedMonth[] } | null>(null);
+  // The import's report is text in the language it was made in: a change of
+  // language takes it away rather than leaving it in the old one (review
+  // 2026-10-29, P3-2).
+  const [toast, setToast] = useState<{ text: string; months: TouchedMonth[]; lang: string } | null>(null);
   const [adjustingPeriod, setAdjustingPeriod] = useState(false);
   const [openPlace, setOpenPlace] = useState<string | null>(null);
   /** The place whose ⇄ is currently asking for a new category's name. */
@@ -183,7 +186,7 @@ export const FollowUpTab = ({
     const onStorage = (event: StorageEvent) => {
       if (!event.key || !keys.has(event.key)) return;
       reloadEntries();
-      setToast({ text: t.followUpExternalReloaded, months: [] });
+      setToast({ text: t.followUpExternalReloaded, months: [], lang });
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -247,7 +250,7 @@ export const FollowUpTab = ({
     }
     if (changedElsewhere) {
       reloadEntries();
-      setToast({ text: t.followUpExternalReloaded, months: [] });
+      setToast({ text: t.followUpExternalReloaded, months: [], lang });
       return false;
     }
 
@@ -301,6 +304,7 @@ export const FollowUpTab = ({
       setToast({
         text: t.followUpMovedOut(n),
         months: plan.movedTo.map(({ year: y, month: m }) => ({ year: y, month: m })),
+        lang,
       });
     }
     onActualsChanged?.();
@@ -557,7 +561,7 @@ export const FollowUpTab = ({
     // restores exactly what was emptied.
     if (await persist(() => [], { action: 'clearActuals', count: n })) {
       setOpenRow(null);
-      setToast({ text: t.followUpClearDone(n), months: [] });
+      setToast({ text: t.followUpClearDone(n), months: [], lang });
     }
   };
 
@@ -580,7 +584,7 @@ export const FollowUpTab = ({
     reloadLatest.current();
     setOpenRow(null);
     onRecordUndo({ at: new Date().toISOString(), action: 'clearAllActuals', count: all.entries, changes: before });
-    setToast({ text: t.followUpClearDone(all.entries), months: [] });
+    setToast({ text: t.followUpClearDone(all.entries), months: [], lang });
   };
   // Shown whenever anything is recorded anywhere, not only in the months on
   // screen: a month you are not looking at is exactly where it is easy to forget.
@@ -994,7 +998,7 @@ export const FollowUpTab = ({
         <p className="followup-note">{t.followUpSpanNoBudget(planned.withoutBudget)}</p>
       )}
 
-      {toast && (
+      {toast && toast.lang === lang && (
         <p className="followup-toast" role="status">
           {toast.text}
           {/* Only months other than this one: an offer to go where you already
@@ -1027,7 +1031,7 @@ export const FollowUpTab = ({
           onImported={(summary, months) => {
             onActualsChanged?.();
             setImporting(false);
-            setToast({ text: summary, months });
+            setToast({ text: summary, months, lang });
             // Re-read rather than merge in memory: the import may have written
             // to months this view is not showing, and storage is the truth.
             reloadEntries();
@@ -1059,7 +1063,8 @@ export const FollowUpTab = ({
       )}
 
       {!nothingYet && (
-        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal} />
+        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal}
+          shown={{ year, month }} />
       )}
 
       {/* ── The leftover pile, as a short list of decisions ──────────────
