@@ -24,7 +24,7 @@ const VIS = [
   { shot: '02-actual', tintBg: '#faece7', tintText: '#4a1b0c' },
   { shot: '04-savings-plan', tintBg: '#e2f4fa', tintText: '#064a59' },
   { shot: '05-debt', tintBg: '#f0eefb', tintText: '#463a7a' },
-  { shot: '06-wallet', tintBg: '#e1f5ee', tintText: '#04342c' },
+  { shot: '06-envelopes', tintBg: '#e1f5ee', tintText: '#04342c' },
 ];
 
 // The translation files assign to window.YB_I18N and fire an event; run them
@@ -302,6 +302,11 @@ ${features}
         <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">${esc(t.importC.label)}</span>
         <h3 style="font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-0.02em;">${esc(t.importC.title)}</h3>
         <p style="font-size:16px;line-height:1.6;">${esc(t.importC.body)}</p>
+      </div>
+      <div style="background:#e1f5ee;border-radius:20px;padding:36px;display:flex;flex-direction:column;gap:14px;color:#04342c;">
+        <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">${esc(t.viewC.label)}</span>
+        <h3 style="font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-0.02em;">${esc(t.viewC.title)}</h3>
+        <p style="font-size:16px;line-height:1.6;">${esc(t.viewC.body)}</p>
       </div>
       <div style="background:#f0eefb;border-radius:20px;padding:36px;display:flex;flex-direction:column;gap:14px;color:#463a7a;">
         <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">${esc(t.langC.label)}</span>
