@@ -210,3 +210,20 @@ export const TOOL_NAMES: readonly ToolName[] = toolSpecs([]).map(t => t.name);
 
 export const isToolName = (name: string): name is ToolName =>
   (TOOL_NAMES as readonly string[]).includes(name);
+
+/** A tool as LiteRT-LM describes it to the model — the same JSON its
+ *  `tool_from_function` builds from the lab's Python docstrings. */
+export function toLiteRt(spec: ToolSpec) {
+  return {
+    type: 'function',
+    function: {
+      name: spec.name,
+      description: spec.description,
+      parameters: {
+        type: 'object',
+        properties: Object.fromEntries(spec.fields.map(f => [f.name, { type: f.type, description: f.description }])),
+        required: spec.fields.filter(f => f.required).map(f => f.name),
+      },
+    },
+  };
+}

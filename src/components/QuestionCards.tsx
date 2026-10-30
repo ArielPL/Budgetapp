@@ -31,7 +31,7 @@ import type { MonthData } from '../types';
 
 // The last two are tools rather than questions (tools.ts): the user tries a
 // change, and nothing is stored unless a confirmed step makes it real.
-type QuestionId = 'category' | 'recurring' | 'rises' | 'perDay' | 'kept' | 'goal' | 'whatIf' | 'needToSave';
+export type QuestionId = 'category' | 'recurring' | 'rises' | 'perDay' | 'kept' | 'goal' | 'whatIf' | 'needToSave';
 const QUESTIONS: QuestionId[] = ['category', 'recurring', 'perDay', 'kept', 'rises', 'goal', 'whatIf', 'needToSave'];
 const ICONS: Record<QuestionId, string> = {
   category: '🛒', recurring: '🔁', rises: '📈', perDay: '📅', kept: '⚖️', goal: '🎯', whatIf: '🧮', needToSave: '💰',
@@ -47,6 +47,19 @@ export interface NewGoalRequest {
   /** Put in the savings row of `at`'s budget. */
   monthly: number;
   at: YearMonth;
+}
+
+/** A card opened and filled in from outside — by Budget AI, which only ever
+ *  picks a card and fills its fields (ai/registry.ts). The user can still
+ *  change every field; the answer is worked out here as always. */
+export interface CardPreset {
+  open: QuestionId | null;
+  categoryId?: string;
+  /** Budget kept: the month asked about, instead of last month. */
+  keptAt?: YearMonth;
+  whatIf?: { on: string; amount: number };
+  need?: { name?: string; target: number; by: YearMonth };
+  query?: string;
 }
 
 /** An amount that may be negative: "−500" is a cut. Typed minus signs vary. */
@@ -70,6 +83,8 @@ interface Props {
   periodLocks: PeriodLocks;
   /** Store a goal from "What do I need to save?". Absent: no create button. */
   onCreateGoal?: (goal: NewGoalRequest) => Promise<boolean>;
+  /** Where the cards start; read once, when they first show. */
+  preset?: CardPreset;
 }
 
 const localIso = (d: Date) =>
@@ -78,23 +93,24 @@ const localIso = (d: Date) =>
 const withEntries = (months: YearMonth[]): MonthEntries[] =>
   months.map(m => ({ ...m, entries: loadActuals(appStorage, m.year, m.month) }));
 
-export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoal }: Props) => {
+export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoal, preset }: Props) => {
   const { t, lang, money } = useLang();
-  const [open, setOpen] = useState<QuestionId | null>(null);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [open, setOpen] = useState<QuestionId | null>(preset?.open ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(preset?.categoryId ?? null);
+  const [keptAt] = useState<YearMonth | null>(preset?.keptAt ?? null);
   const pickId = useId();
   const formId = useId();
   // What if…?
-  const [whatIfOn, setWhatIfOn] = useState<string>('income');
-  const [whatIfText, setWhatIfText] = useState('');
+  const [whatIfOn, setWhatIfOn] = useState<string>(preset?.whatIf?.on ?? 'income');
+  const [whatIfText, setWhatIfText] = useState(preset?.whatIf ? String(preset.whatIf.amount) : '');
   // What do I need to save?
-  const [needName, setNeedName] = useState('');
-  const [needTarget, setNeedTarget] = useState('');
-  const [needBy, setNeedBy] = useState('');
+  const [needName, setNeedName] = useState(preset?.need?.name ?? '');
+  const [needTarget, setNeedTarget] = useState(preset?.need ? String(preset.need.target) : '');
+  const [needBy, setNeedBy] = useState(preset?.need ? toMonthInput(preset.need.by) : '');
   const [needSaved, setNeedSaved] = useState('');
   const [confirming, setConfirming] = useState(false);
   // Search
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(preset?.query ?? '');
 
   const today = new Date();
   const now: YearMonth = budgetMonthOf(localIso(today), periodStartDay, periodLocks)
@@ -254,7 +270,7 @@ export const QuestionCards = ({ nameOf, periodStartDay, periodLocks, onCreateGoa
         );
       }
       case 'kept': {
-        const last = addMonths(now, -1);
+        const last = keptAt ?? addMonths(now, -1);
         const budget = budgetOf(last);
         const entries = loadActuals(appStorage, last.year, last.month);
         if (!budget || entries.length === 0) return <p className="q-note">{t.qKeptNothing(month(last))}</p>;

@@ -70,6 +70,14 @@ import {
   loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, periodRange, type PeriodLocks,
 } from './periodLabel';
 import { ConfirmChange } from './components/ConfirmChange';
+import { AskSheet } from './components/AskSheet';
+import { AiChangeConfirm } from './components/AiChangeConfirm';
+import type { AiChange } from './ai/changes';
+
+/** Budget AI, on the ai branch: only in `npm run dev`, with the model on the
+ *  developer's Mac. A production build folds this to false and leaves every
+ *  AI component out of the bundle; tests leave it out too. */
+const AI_DEV = import.meta.env.DEV && import.meta.env.MODE !== 'test';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
 import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
@@ -183,6 +191,12 @@ function App({ startupRepair = null }: AppProps) {
 
   // Single utilities menu (language, theme, copy budget, data export/import)
   const [menuOpen, setMenuOpen] = useState(false);
+  // Budget AI (ai branch): the "Ask" sheet, and a change it proposes waiting
+  // in the Confirm box. Only in `npm run dev` until the add-on exists.
+  const [askOpen, setAskOpen] = useState(false);
+  const [aiChange, setAiChange] = useState<AiChange | null>(null);
+  // Remounts Follow-up after purchases were moved, so it reads them again.
+  const [aiRevision, bumpAiRevision] = useReducer((n: number) => n + 1, 0);
   const [copyMsg, setCopyMsg] = useState('');
   // The newest step back, for the menu — read from storage so a reset the user
   // slept on is still offered the next morning. The BAR is separate: it belongs
@@ -2053,6 +2067,7 @@ function App({ startupRepair = null }: AppProps) {
   const followUpView = (
     <Suspense fallback={lazyFallback}>
       <FollowUpTab
+        key={aiRevision}
         year={year}
         month={month}
         categories={data.expenses}
@@ -2117,6 +2132,13 @@ function App({ startupRepair = null }: AppProps) {
             periodLocks={periodLocks}
             onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
           />}
+
+          {AI_DEV && !walletsScreen && (
+            <button className="ask-btn" onClick={() => setAskOpen(true)} aria-haspopup="dialog">
+              <span className="menu-btn-icon">✨</span>
+              <span className="menu-btn-label">{t.askButton}</span>
+            </button>
+          )}
 
           {/* Single utilities menu: language, theme, copy budget, data */}
           <div className="menu-wrap" ref={menuRef}>
@@ -2699,6 +2721,29 @@ function App({ startupRepair = null }: AppProps) {
               monthData={(y, m) => (y === year && m === month ? data : loadMonthData(y, m, lang))}
               onClose={() => setBudgetImportOpen(false)} onImport={importBudget} />
           </Suspense>
+        )}
+        {AI_DEV && askOpen && (
+          <AskSheet
+            at={{ year, month }} budget={data} goals={planData.goals}
+            wallets={loadWallets(appStorage).map(w => ({ id: w.id, name: w.name }))}
+            debts={debtState.debts}
+            nameOf={id => data.expenses.find(c => c.id === id)?.name ?? id}
+            periodStartDay={periodStartDay} periodLocks={periodLocks}
+            onCreateGoal={createGoalFromTool}
+            onChange={change => { setAskOpen(false); setAiChange(change); }}
+            onClose={() => setAskOpen(false)}
+          />
+        )}
+        {AI_DEV && aiChange && (
+          <AiChangeConfirm
+            change={aiChange} at={{ year, month }} budget={data} storage={appStorage}
+            newId={generateId} recordUndo={recordUndo}
+            onApplied={months => {
+              if (months.some(m => m.year === year && m.month === month)) setData(loadMonthData(year, month, lang));
+              if (aiChange.kind === 'move') { bumpActuals(); bumpAiRevision(); }
+            }}
+            onClose={() => setAiChange(null)}
+          />
         )}
       </main>
     </div>

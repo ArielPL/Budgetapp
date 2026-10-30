@@ -1,0 +1,384 @@
+[
+ {
+  "type": "function",
+  "function": {
+   "name": "category_spending",
+   "description": "How much the user actually spent in one budget category over a period (from imported bank statements); a budget row such as the car, fuel or rent counts as its category.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "category": {
+      "type": "string",
+      "description": "Category id, exactly one of: boende, mat, transport, prenumerationer, personligt, fritid, lan, sparande, givande. Never a row name."
+     },
+     "period": {
+      "type": "string",
+      "description": "Exactly one of: this_month, last_month, last_3_months, last_6_months, this_year, last_12_months."
+     }
+    },
+    "required": [
+     "category",
+     "period"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "list_subscriptions",
+   "description": "Lists the user's recurring subscriptions (same amount every month) and their total per month and year.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "daily_allowance",
+   "description": "How much the user can spend per day and per week for the rest of the current month (\"left to live on\").",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "budget_kept",
+   "description": "Whether the user kept to the budget in a given month, category by category (plan versus actual).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "month": {
+      "type": "string",
+      "description": "The month as YYYY-MM."
+     }
+    },
+    "required": [
+     "month"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "biggest_increases",
+   "description": "Which spending categories have gone up the most lately, compared with earlier months.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "where_money_went",
+   "description": "The biggest purchases and the many small purchases in a month: where the money went, and what the user spends the most on.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "month": {
+      "type": "string",
+      "description": "The month as YYYY-MM."
+     }
+    },
+    "required": [
+     "month"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "search_purchases",
+   "description": "Searches the user's imported purchases for a shop or place name (e.g. \"ICA\", \"Amazon\"), with the total spent there; not for a budget category or row.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "query": {
+      "type": "string",
+      "description": "The shop, place or word to look for, e.g. \"ICA\" or \"gym\"."
+     },
+     "period": {
+      "type": "string",
+      "description": "Optional. Exactly one of: this_month, last_month, last_3_months, last_6_months, this_year, last_12_months. Default this_year."
+     }
+    },
+    "required": [
+     "query"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "goal_eta",
+   "description": "When the user will reach one of their savings goals at the current pace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "goal": {
+      "type": "string",
+      "description": "The name of the savings goal, as listed in the system message."
+     }
+    },
+    "required": [
+     "goal"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "debt_overview",
+   "description": "When the user will be debt-free and how much interest it costs, optionally with an extra amount paid each month.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "extra_per_month": {
+      "type": "number",
+      "description": "Optional. Extra amount paid towards debts each month, in the user's currency. Default 0."
+     },
+     "strategy": {
+      "type": "string",
+      "description": "Optional. Exactly one of: avalanche, snowball. Default avalanche (highest interest first); snowball only if the user asks for it (smallest debt first)."
+     }
+    },
+    "required": []
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "savings_projection",
+   "description": "How the user's savings plan grows with compound interest over a number of years.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "years": {
+      "type": "integer",
+      "description": "Number of years ahead: 5, 10, 15, 20, 30 or 40."
+     }
+    },
+    "required": [
+     "years"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "wallet_status",
+   "description": "How much is left in one of the user's wallets (small separate budgets, e.g. for a trip).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "wallet": {
+      "type": "string",
+      "description": "The wallet's name, as listed in the system message."
+     }
+    },
+    "required": [
+     "wallet"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "what_if",
+   "description": "Simulates a change to this month's budget without saving anything: the effect on what is left, per day and savings.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "target": {
+      "type": "string",
+      "description": "Exactly one of: income, boende, mat, transport, prenumerationer, personligt, fritid, lan, sparande, givande. income for salary or other income; otherwise the id of the category the changing row is listed under. Saving more, with no goal named, is sparande."
+     },
+     "change": {
+      "type": "number",
+      "description": "The change per month in the user's currency: positive for more (a rise), negative for less."
+     }
+    },
+    "required": [
+     "target",
+     "change"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "need_to_save",
+   "description": "How much the user needs to save per month to reach an amount by a given month.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "target_amount": {
+      "type": "number",
+      "description": "The amount the user wants to have, in the user's currency."
+     },
+     "by_month": {
+      "type": "string",
+      "description": "The deadline as YYYY-MM, always after the current month: a month name means its next occurrence, which may be next year."
+     }
+    },
+    "required": [
+     "target_amount",
+     "by_month"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "propose_set_amount",
+   "description": "Proposes a new budgeted amount for one row (the user must approve it in the app before anything changes).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "category": {
+      "type": "string",
+      "description": "The row's category id, exactly one of: boende, mat, transport, prenumerationer, personligt, fritid, lan, sparande, givande. Never a row name."
+     },
+     "row": {
+      "type": "string",
+      "description": "The row's name as it appears in the budget, e.g. \"Matvaror\"."
+     },
+     "amount": {
+      "type": "number",
+      "description": "The new monthly amount in the user's currency."
+     }
+    },
+    "required": [
+     "category",
+     "row",
+     "amount"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "propose_add_row",
+   "description": "Proposes adding a new budget row (the user must approve it before anything changes).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "category": {
+      "type": "string",
+      "description": "Category id, exactly one of: boende, mat, transport, prenumerationer, personligt, fritid, lan, sparande, givande. Never a row name. Pick the one that fits the new row best."
+     },
+     "label": {
+      "type": "string",
+      "description": "The new row's name."
+     },
+     "amount": {
+      "type": "number",
+      "description": "Its monthly amount in the user's currency."
+     }
+    },
+    "required": [
+     "category",
+     "label",
+     "amount"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "propose_create_goal",
+   "description": "Proposes creating a savings goal (the user must approve it before anything changes).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "The goal's name, e.g. \"Resa\"."
+     },
+     "target_amount": {
+      "type": "number",
+      "description": "The amount to save, in the user's currency."
+     },
+     "by_month": {
+      "type": "string",
+      "description": "The deadline as YYYY-MM, always after the current month: a month name means its next occurrence, which may be next year."
+     }
+    },
+    "required": [
+     "name",
+     "target_amount",
+     "by_month"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "propose_debt_plan",
+   "description": "Proposes setting the extra monthly debt payment and the strategy (the user must approve it).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "extra_per_month": {
+      "type": "number",
+      "description": "Extra amount per month towards debts."
+     },
+     "strategy": {
+      "type": "string",
+      "description": "Exactly one of: avalanche, snowball. Default avalanche (highest interest first); snowball only if the user asks for it (smallest debt first)."
+     }
+    },
+    "required": [
+     "extra_per_month",
+     "strategy"
+    ]
+   }
+  }
+ },
+ {
+  "type": "function",
+  "function": {
+   "name": "propose_recategorize",
+   "description": "Proposes moving all purchases from one shop, service or place (e.g. \"Spotify\", \"ICA\") to another category; no budget row changes (the user must approve it).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "place": {
+      "type": "string",
+      "description": "The shop or place name as it appears on the bank statement, e.g. \"ICA\"."
+     },
+     "category": {
+      "type": "string",
+      "description": "The category id, exactly one of: boende, mat, transport, prenumerationer, personligt, fritid, lan, sparande, givande. Never a row name."
+     }
+    },
+    "required": [
+     "place",
+     "category"
+    ]
+   }
+  }
+ }
+]

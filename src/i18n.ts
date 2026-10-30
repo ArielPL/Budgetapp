@@ -1169,6 +1169,17 @@ export interface Translations {
   aiNothingToChange: string;
   aiNoPurchases: (place: string) => string;
   aiChangeFailed: string;
+  /** Budget AI's "Ask" sheet (dev builds only, until the add-on exists). */
+  askButton: string;
+  askTitle: string;
+  askPlaceholder: string;
+  askSend: string;
+  askThinking: string;
+  askOffline: string;
+  askNotUnderstood: string;
+  askPick: string;
+  askMissing: string;
+  askElsewhere: string;
   debtTry: string;
   debtTryLead: string;
   debtTryAmount: string;
@@ -2186,6 +2197,16 @@ export const translations: Record<Lang, Translations> = {
     aiNothingToChange: 'Det finns inget att ändra.',
     aiNoPurchases: (place) => `Inga köp från ${place} hittades.`,
     aiChangeFailed: 'Ändringen kunde inte sparas. Ingenting har ändrats.',
+    askButton: 'Fråga',
+    askTitle: 'Fråga om din budget',
+    askPlaceholder: 'Till exempel: Vad händer om hyran höjs med 500?',
+    askSend: 'Skicka',
+    askThinking: 'Tänker … det kan ta en halv minut.',
+    askOffline: 'AI:n är inte igång.',
+    askNotUnderstood: 'Jag förstod inte riktigt – kan du säga det på ett annat sätt?',
+    askPick: 'Menade du …?',
+    askMissing: 'Jag behöver veta lite mer. Fråga gärna igen med beloppet eller månaden.',
+    askElsewhere: 'Det svaret kan AI:n inte visa här än.',
     debtTry: 'Prova ett belopp',
     debtTryLead: 'Se vad ett annat extrabelopp gör innan du ändrar något.',
     debtTryAmount: 'Extra per månad att prova',
@@ -3206,6 +3227,16 @@ export const translations: Record<Lang, Translations> = {
     aiNothingToChange: 'There is nothing to change.',
     aiNoPurchases: (place) => `No purchases from ${place} were found.`,
     aiChangeFailed: 'The change could not be saved. Nothing has changed.',
+    askButton: 'Ask',
+    askTitle: 'Ask about your budget',
+    askPlaceholder: 'For example: What if my rent goes up by 500?',
+    askSend: 'Send',
+    askThinking: 'Thinking … this can take half a minute.',
+    askOffline: 'The AI is not running.',
+    askNotUnderstood: "I didn't quite understand – could you say it another way?",
+    askPick: 'Did you mean …?',
+    askMissing: 'I need a little more. Please ask again with the amount or the month.',
+    askElsewhere: 'The AI cannot show that answer here yet.',
     debtTry: 'Try an amount',
     debtTryLead: 'See what a different extra amount does before you change anything.',
     debtTryAmount: 'Extra per month to try',
@@ -4226,6 +4257,16 @@ export const translations: Record<Lang, Translations> = {
     aiNothingToChange: 'No hay nada que cambiar.',
     aiNoPurchases: (place) => `No se encontraron compras de ${place}.`,
     aiChangeFailed: 'No se pudo guardar el cambio. No ha cambiado nada.',
+    askButton: 'Preguntar',
+    askTitle: 'Pregunta sobre tu presupuesto',
+    askPlaceholder: 'Por ejemplo: ¿Qué pasa si el alquiler sube 500?',
+    askSend: 'Enviar',
+    askThinking: 'Pensando… puede tardar medio minuto.',
+    askOffline: 'La IA no está en marcha.',
+    askNotUnderstood: 'No lo entendí del todo. ¿Puedes decirlo de otra manera?',
+    askPick: '¿Quisiste decir…?',
+    askMissing: 'Necesito un poco más. Vuelve a preguntar con el importe o el mes.',
+    askElsewhere: 'La IA todavía no puede mostrar esa respuesta aquí.',
     debtTry: 'Probar un importe',
     debtTryLead: 'Mira qué hace otro importe extra antes de cambiar nada.',
     debtTryAmount: 'Extra al mes para probar',
