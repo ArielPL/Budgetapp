@@ -184,6 +184,7 @@ const siteFooter = (t, code, kind = '') => `<footer style="border-top:1px solid 
       <a href="${pageOf(code, 'about')}">${esc(t.nav.about)}</a>
       <a href="${pageOf(code, 'privacy')}">${esc(t.footer.privacy)}</a>
       <a href="${pageOf(code, 'support')}">${esc(t.footer.support)}</a>
+      <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>
     </div>
   </div>
 </footer>`;
@@ -382,7 +383,8 @@ ${siteFooter(t, code)}
 `;
 }
 
-const MAIL = '<a href="mailto:ariel_padilla@hotmail.com">ariel_padilla@hotmail.com</a>';
+const SUPPORT_MAIL = 'support@yourofflinebudget.com';
+const MAIL = `<a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>`;
 const APPLE = '<a href="https://reportaproblem.apple.com">reportaproblem.apple.com</a>';
 const GOOGLE_REFUND = 'https://support.google.com/googleplay/answer/2479637';
 
