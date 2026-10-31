@@ -685,7 +685,7 @@ export const ja: Translations = {
     "## 削除",
     "アプリを削除すると、端末に保存された内容はすべて消えます。開発者はコピーを持っておらず、復元できません。ご自身で保存したバックアップや、iCloud・Google のコピーはご自身で管理してください。",
     "## お問い合わせ",
-    "アプリでのデータの扱いについて質問がある場合は、ariel_padilla@hotmail.com までメールしてください。",
+    "アプリでのデータの扱いについて質問がある場合は、support@yourofflinebudget.com までメールしてください。",
   ],
   privacyUpdated: "2026年11月2日から有効。",
   privacyClose: '閉じる',

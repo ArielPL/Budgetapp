@@ -689,7 +689,7 @@ export const pt: Translations = {
     "## Exclusão",
     "Exclua o app, e tudo o que ele salvou no dispositivo é apagado. O desenvolvedor não tem cópia e não pode recriá-la. Um backup que você mesmo salvou, ou uma cópia no iCloud ou no Google, fica sob seu controle.",
     "## Dúvidas",
-    "Se tiver alguma dúvida sobre como o app trata seus dados, escreva para ariel_padilla@hotmail.com.",
+    "Se tiver alguma dúvida sobre como o app trata seus dados, escreva para support@yourofflinebudget.com.",
   ],
   privacyUpdated: "Em vigor a partir de 2 de novembro de 2026.",
   privacyClose: 'Fechar',

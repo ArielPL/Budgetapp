@@ -698,7 +698,7 @@ export const fr: Translations = {
     "## Suppression",
     "Supprimez l'app : tout ce qu'elle a enregistré sur l'appareil disparaît. Le développeur n'a aucune copie et ne peut pas la recréer. Une sauvegarde que vous avez faite vous-même, ou une copie dans iCloud ou Google, reste à votre main.",
     "## Questions",
-    "Pour toute question sur la façon dont l'app traite vos données, écrivez à ariel_padilla@hotmail.com.",
+    "Pour toute question sur la façon dont l'app traite vos données, écrivez à support@yourofflinebudget.com.",
   ],
   privacyUpdated: "En vigueur à partir du 2 novembre 2026.",
   privacyClose: "Fermer",

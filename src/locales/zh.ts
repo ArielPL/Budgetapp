@@ -685,7 +685,7 @@ export const zh: Translations = {
     "## 删除",
     "删除应用，它在设备上保存的一切都会被删除。开发者没有副本，也无法恢复。你自己保存的备份，或 iCloud、Google 中的副本，由你自己决定。",
     "## 问题",
-    "如果你对应用如何处理你的数据有疑问，请发邮件至 ariel_padilla@hotmail.com。",
+    "如果你对应用如何处理你的数据有疑问，请发邮件至 support@yourofflinebudget.com。",
   ],
   privacyUpdated: "自 2026 年 11 月 2 日起生效。",
   privacyClose: '关闭',

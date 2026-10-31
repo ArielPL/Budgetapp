@@ -689,7 +689,7 @@ export const de: Translations = {
     "## Löschen",
     "Lösch die App, dann ist alles weg, was sie auf dem Gerät gespeichert hat. Der Entwickler hat keine Kopie und kann nichts wiederherstellen. Über eine Sicherung, die du selbst gespeichert hast, oder eine Kopie in iCloud oder bei Google entscheidest du selbst.",
     "## Fragen",
-    "Hast du eine Frage dazu, wie die App mit deinen Daten umgeht, schreib an ariel_padilla@hotmail.com.",
+    "Hast du eine Frage dazu, wie die App mit deinen Daten umgeht, schreib an support@yourofflinebudget.com.",
   ],
   privacyUpdated: "Gültig ab 2. November 2026.",
   privacyClose: 'Schließen',

@@ -689,7 +689,7 @@ export const it: Translations = {
     "## Cancellazione",
     "Elimina l'app e tutto ciò che ha salvato sul dispositivo sparisce. Lo sviluppatore non ha copie e non può ricrearle. Un backup che hai salvato tu, o una copia su iCloud o Google, resta sotto il tuo controllo.",
     "## Domande",
-    "Per domande su come l'app tratta i tuoi dati, scrivi a ariel_padilla@hotmail.com.",
+    "Per domande su come l'app tratta i tuoi dati, scrivi a support@yourofflinebudget.com.",
   ],
   privacyUpdated: "In vigore dal 2 novembre 2026.",
   privacyClose: "Chiudi",

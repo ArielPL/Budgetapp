@@ -689,7 +689,7 @@ export const tr: Translations = {
     "## Silme",
     "Uygulamayı silin; cihazda kaydettiği her şey silinir. Geliştiricinin kopyası yoktur ve geri getiremez. Kendi kaydettiğiniz bir yedek veya iCloud ya da Google’daki bir kopya üzerinde karar sizindir.",
     "## Sorular",
-    "Uygulamanın verilerinizi nasıl işlediğiyle ilgili bir sorunuz varsa ariel_padilla@hotmail.com adresine yazın.",
+    "Uygulamanın verilerinizi nasıl işlediğiyle ilgili bir sorunuz varsa support@yourofflinebudget.com adresine yazın.",
   ],
   privacyUpdated: "2 Kasım 2026’dan itibaren geçerlidir.",
   privacyClose: "Kapat",
