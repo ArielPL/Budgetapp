@@ -467,11 +467,6 @@ ${siteHeader(t, code, 'about')}
     <p style="font-size:17px;line-height:1.6;font-weight:700;color:#463a7a;margin-top:6px;">${LETTER[code].sig.split('\n').map(esc).join('<br>')}</p>
     <p style="font-size:17px;line-height:1.6;font-style:italic;color:#3d3a4f;padding-top:18px;margin-top:6px;border-top:1px solid #ece9f5;">${esc(LETTER[code].verse)}<span style="display:block;font-style:normal;font-size:14px;color:#6c687f;margin-top:4px;">${esc(LETTER[code].ref)}</span></p>
   </section>
-  <section style="display:flex;flex-direction:column;gap:20px;padding:8px 0 4px;">
-    <p class="label">${esc(t.phil.label)}</p>
-    <blockquote style="font-size:clamp(22px,3vw,28px);line-height:1.5;font-weight:600;letter-spacing:-0.01em;text-wrap:pretty;">${esc(t.phil.quote)}</blockquote>
-    <p style="font-size:16px;font-weight:700;color:#463a7a;">Ariel<span style="display:block;font-weight:500;font-size:14px;color:#5d5972;">${esc(t.phil.role)}</span></p>
-  </section>
   <section style="display:flex;flex-direction:column;gap:16px;padding:28px 0;border-top:1px solid #ece9f5;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">${t.chips.map(c => `
       <span style="background:#eeedfe;color:#5b4bb3;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;">${esc(c)}</span>`).join('')}
