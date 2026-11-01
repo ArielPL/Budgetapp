@@ -34,11 +34,12 @@ vm.createContext(sandbox);
 for (const [code] of LANGS) {
   vm.runInContext(readFileSync(new URL(`homepage/i18n/${code}.js`, ROOT), 'utf8'), sandbox);
 }
-for (const page of ['privacy', 'support', 'news']) {
+for (const page of ['privacy', 'support', 'news', 'letter']) {
   vm.runInContext(readFileSync(new URL(`homepage/pages/${page}.js`, ROOT), 'utf8'), sandbox);
 }
 const ALL = sandbox.window.YB_I18N;
 const NEWS = sandbox.window.YB_NEWS.items;
+const LETTER = sandbox.window.YB_LETTER;
 const DOCS = { privacy: sandbox.window.YB_PRIVACY, support: sandbox.window.YB_SUPPORT };
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -461,6 +462,11 @@ ${siteHeader(t, code, 'about')}
     <h1 style="font-size:clamp(34px,5vw,48px);line-height:1.1;font-weight:800;letter-spacing:-0.025em;text-wrap:balance;">${esc(title)}</h1>
   </div>
   <p style="font-size:20px;line-height:1.55;font-weight:600;color:#463a7a;background:#f0eefb;border-radius:18px;padding:22px 26px;text-wrap:pretty;">${esc(t.h1)}</p>
+  <section style="display:flex;flex-direction:column;gap:16px;background:#fff;border:1px solid #ece9f5;border-radius:18px;padding:clamp(22px,4vw,34px);">${LETTER[code].ps.map(para => `
+    <p style="font-size:17px;line-height:1.75;color:#3d3a4f;text-wrap:pretty;">${esc(para).replace(SUPPORT_MAIL, MAIL)}</p>`).join('')}
+    <p style="font-size:17px;line-height:1.6;font-weight:700;color:#463a7a;margin-top:6px;">${LETTER[code].sig.split('\n').map(esc).join('<br>')}</p>
+    <p style="font-size:17px;line-height:1.6;font-style:italic;color:#3d3a4f;padding-top:18px;margin-top:6px;border-top:1px solid #ece9f5;">${esc(LETTER[code].verse)}<span style="display:block;font-style:normal;font-size:14px;color:#6c687f;margin-top:4px;">${esc(LETTER[code].ref)}</span></p>
+  </section>
   <section style="display:flex;flex-direction:column;gap:20px;padding:8px 0 4px;">
     <p class="label">${esc(t.phil.label)}</p>
     <blockquote style="font-size:clamp(22px,3vw,28px);line-height:1.5;font-weight:600;letter-spacing:-0.01em;text-wrap:pretty;">${esc(t.phil.quote)}</blockquote>
