@@ -1,5 +1,6 @@
 import { useState, useReducer, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ChangeEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { MonthNav } from './components/MonthNav';
 import { MonthStrip } from './components/MonthStrip';
 import { TabNav } from './components/TabNav';
@@ -1583,7 +1584,7 @@ function App({ startupRepair = null }: AppProps) {
   // (Linked budget-row backfill is handled in the month-load effect above,
   //  on freshly loaded data, to avoid double-appending rows.)
 
-  // ── Derived ───────────────────────────────────────────────────────
+  // ── Derived ─────────────────��────────────────────��────────────────
   // All money math goes through the canonical helpers so every view agrees.
   const { income: totalIncome, expenses: totalExpenses } = calculateBudgetMetrics(data);
   // The Savings tab records a running BALANCE, so what was actually saved this
@@ -1960,7 +1961,7 @@ function App({ startupRepair = null }: AppProps) {
                     🔒 {t.privacyTitle}
                   </button>
                   <button className="utils-action" onClick={openWhatsNew}>
-                    <span>🎉 {t.whatsNew}</span>
+                    <span>��� {t.whatsNew}</span>
                     {hasNewUpdate && <span className="utils-new-pill">{t.badgeNew}</span>}
                   </button>
 
@@ -2004,7 +2005,7 @@ function App({ startupRepair = null }: AppProps) {
                         ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
                       </button>
                       <button className="utils-action" onClick={copyToNextMonth}>
-                        → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                        �� {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
                       </button>
                       <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
                         {t.bimMenu}
@@ -2335,6 +2336,7 @@ function App({ startupRepair = null }: AppProps) {
         )}
       </main>
     </div>
+    <SpeedInsights />
     </LanguageContext.Provider>
   );
 }
