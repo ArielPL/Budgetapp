@@ -32,15 +32,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Ingen reklam, ingen analys, ingen spårning",
+    "h": "I appen: ingen reklam, ingen analys, ingen spårning",
     "ps": [
-     "Det finns inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg, varken i appen eller på webbplatsen. Sorteringen som känner igen butiker är en lista som följer med appen, inte en tjänst den frågar. Appen fungerar helt utan nätverk."
+     "Appen har inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg. Sorteringen som känner igen butiker är en lista som följer med appen, inte en tjänst den frågar. Appen fungerar helt utan nätverk. Webbplatsens anonyma besöksmätning beskrivs under Webbplatsen."
     ]
    },
    {
     "h": "Webbplatsen",
     "ps": [
-     "Webbplatsen har inga formulär, inga kakor och ingen besöksstatistik, och den hämtar ingenting från andra servrar. Det enda den tar emot är det som varje webbläsare skickar när den ber om en sida, som din IP-adress och vilken webbläsare du använder. Webbplatsen ligger hos Vercel, som sparar det en kort tid i en teknisk logg för drift och säkerhet. Utvecklaren använder inte den loggen. Appen kontaktar aldrig webbservern, så ingenting skickas när du använder appen."
+     "Webbplatsen har inga formulär och inga kakor, och den hämtar ingenting från andra servrar. Det enda den tar emot är det som varje webbläsare skickar när den ber om en sida, som din IP-adress och vilken webbläsare du använder. Webbplatsen ligger hos Vercel, som sparar det en kort tid i en teknisk logg för drift och säkerhet. Utvecklaren använder inte den loggen.",
+     "Webbplatsen räknar besök och mäter hur snabbt sidorna laddar, anonymt, med Vercel Web Analytics och Vercel Speed Insights. Det sker utan kakor och utan att något knyts till en person.",
+     "Appen kontaktar aldrig webbservern och skickar ingenting någonstans, så ingenting av detta gäller när du använder appen."
     ]
    },
    {
@@ -94,15 +96,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "No ads, no analytics, no tracking",
+    "h": "In the app: no ads, no analytics, no tracking",
     "ps": [
-     "There are no ad networks, no visitor statistics and no tracking tools, in the app or on the website. The sorting that recognises shops is a list that ships with the app, not a service it asks. The app works with no network at all."
+     "The app has no ad networks, no visitor statistics and no tracking tools. The sorting that recognises shops is a list that ships with the app, not a service it asks. The app works with no network at all. The website’s anonymous visit counting is described under The website."
     ]
    },
    {
     "h": "The website",
     "ps": [
-     "The website has no forms, no cookies and no visitor statistics, and it fetches nothing from other servers. All it receives is what every browser sends when it asks for a page, such as your IP address and which browser you use. The website is hosted by Vercel, which keeps this for a short time in a technical log for operations and security. The developer does not use that log. The app never contacts the web server, so nothing is sent when you use the app."
+     "The website has no forms and no cookies, and it fetches nothing from other servers. All it receives is what every browser sends when it asks for a page, such as your IP address and which browser you use. The website is hosted by Vercel, which keeps this for a short time in a technical log for operations and security. The developer does not use that log.",
+     "The website counts visits and measures how fast pages load, anonymously, with Vercel Web Analytics and Vercel Speed Insights. This uses no cookies, and nothing is tied to a person.",
+     "The app never contacts the web server and sends nothing anywhere, so none of this applies when you use the app."
     ]
    },
    {
@@ -156,15 +160,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Sin publicidad, sin analítica, sin rastreo",
+    "h": "En la app: sin publicidad, sin analítica, sin rastreo",
     "ps": [
-     "No hay redes publicitarias, ni estadísticas de visitas, ni herramientas de rastreo, ni en la app ni en el sitio web. La clasificación que reconoce las tiendas es una lista que viaja con la app, no un servicio al que consulta. La app funciona sin ninguna red."
+     "La app no tiene redes publicitarias, ni estadísticas de visitas, ni herramientas de rastreo. La clasificación que reconoce las tiendas es una lista que viaja con la app, no un servicio al que consulta. La app funciona sin ninguna red. El recuento anónimo de visitas del sitio web se describe en El sitio web."
     ]
    },
    {
     "h": "El sitio web",
     "ps": [
-     "El sitio web no tiene formularios, ni cookies, ni estadísticas de visitas, y no descarga nada de otros servidores. Solo recibe lo que cualquier navegador envía al pedir una página, como tu dirección IP y qué navegador usas. El sitio está alojado en Vercel, que lo guarda poco tiempo en un registro técnico para la operación y la seguridad. El desarrollador no usa ese registro. La app nunca contacta con el servidor web, así que no se envía nada cuando usas la app."
+     "El sitio web no tiene formularios ni cookies, y no descarga nada de otros servidores. Solo recibe lo que cualquier navegador envía al pedir una página, como tu dirección IP y qué navegador usas. El sitio está alojado en Vercel, que lo guarda poco tiempo en un registro técnico para la operación y la seguridad. El desarrollador no usa ese registro.",
+     "El sitio web cuenta las visitas y mide la velocidad de carga de las páginas de forma anónima, con Vercel Web Analytics y Vercel Speed Insights. No usa cookies y nada se asocia a una persona.",
+     "La app nunca contacta con el servidor web y no envía nada a ninguna parte, así que nada de esto se aplica cuando usas la app."
     ]
    },
    {
@@ -218,15 +224,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Pas de publicité, pas de statistiques, pas de pistage",
+    "h": "Dans l’app : pas de publicité, pas de statistiques, pas de pistage",
     "ps": [
-     "Il n'y a ni régie publicitaire, ni statistiques de visite, ni outil de pistage, ni dans l'app ni sur le site. Le classement qui reconnaît les commerces est une liste fournie avec l'app, pas un service qu'elle interroge. L'app fonctionne sans aucun réseau."
+     "L’app n’a ni régie publicitaire, ni statistiques de visite, ni outil de pistage. Le classement qui reconnaît les commerces est une liste fournie avec l’app, pas un service qu’elle interroge. L’app fonctionne sans aucun réseau. La mesure anonyme des visites du site est décrite sous Le site web."
     ]
    },
    {
     "h": "Le site web",
     "ps": [
-     "Le site n'a ni formulaire, ni cookie, ni statistiques de visite, et ne récupère rien sur d'autres serveurs. Il ne reçoit que ce que tout navigateur envoie en demandant une page, comme votre adresse IP et le navigateur que vous utilisez. Le site est hébergé par Vercel, qui le conserve peu de temps dans un journal technique, pour le fonctionnement et la sécurité. Le développeur n'utilise pas ce journal. L'app ne contacte jamais le serveur web : rien n'est envoyé quand vous utilisez l'app."
+     "Le site n’a ni formulaire ni cookie, et ne récupère rien sur d’autres serveurs. Il ne reçoit que ce que tout navigateur envoie en demandant une page, comme votre adresse IP et le navigateur que vous utilisez. Le site est hébergé par Vercel, qui le conserve peu de temps dans un journal technique, pour le fonctionnement et la sécurité. Le développeur n’utilise pas ce journal.",
+     "Le site compte les visites et mesure la vitesse de chargement des pages de façon anonyme, avec Vercel Web Analytics et Vercel Speed Insights. Cela n’utilise aucun cookie et rien n’est rattaché à une personne.",
+     "L’app ne contacte jamais le serveur web et n’envoie rien nulle part : rien de tout cela ne s’applique quand vous utilisez l’app."
     ]
    },
    {
@@ -280,15 +288,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Keine Werbung, keine Analyse, kein Tracking",
+    "h": "In der App: keine Werbung, keine Analyse, kein Tracking",
     "ps": [
-     "Es gibt keine Werbenetzwerke, keine Besucherstatistik und keine Tracking-Werkzeuge, weder in der App noch auf der Website. Die Zuordnung, die Geschäfte erkennt, ist eine Liste, die mit der App kommt, kein Dienst, den sie abfragt. Die App funktioniert ganz ohne Netzwerk."
+     "Die App hat keine Werbenetzwerke, keine Besucherstatistik und keine Tracking-Werkzeuge. Die Zuordnung, die Geschäfte erkennt, ist eine Liste, die mit der App kommt, kein Dienst, den sie abfragt. Die App funktioniert ganz ohne Netzwerk. Die anonyme Besuchsmessung der Website steht unter Die Website."
     ]
    },
    {
     "h": "Die Website",
     "ps": [
-     "Die Website hat keine Formulare, keine Cookies und keine Besucherstatistik, und sie lädt nichts von anderen Servern. Sie empfängt nur, was jeder Browser beim Abruf einer Seite sendet, etwa deine IP-Adresse und welchen Browser du nutzt. Die Website wird bei Vercel gehostet, das diese Angaben kurz in einem technischen Protokoll für Betrieb und Sicherheit speichert. Der Entwickler nutzt dieses Protokoll nicht. Die App kontaktiert den Webserver nie, also wird nichts gesendet, wenn du die App benutzt."
+     "Die Website hat keine Formulare und keine Cookies, und sie lädt nichts von anderen Servern. Sie empfängt nur, was jeder Browser beim Abruf einer Seite sendet, etwa deine IP-Adresse und welchen Browser du nutzt. Die Website wird bei Vercel gehostet, das diese Angaben kurz in einem technischen Protokoll für Betrieb und Sicherheit speichert. Der Entwickler nutzt dieses Protokoll nicht.",
+     "Die Website zählt anonym die Besuche und misst, wie schnell die Seiten laden, mit Vercel Web Analytics und Vercel Speed Insights. Dabei werden keine Cookies verwendet, und nichts wird einer Person zugeordnet.",
+     "Die App kontaktiert den Webserver nie und sendet nichts irgendwohin, also gilt nichts davon, wenn du die App benutzt."
     ]
    },
    {
@@ -342,15 +352,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Niente pubblicità, niente analisi, niente tracciamento",
+    "h": "Nell’app: niente pubblicità, niente analisi, niente tracciamento",
     "ps": [
-     "Non ci sono reti pubblicitarie, statistiche delle visite o strumenti di tracciamento, né nell'app né sul sito. Lo smistamento che riconosce i negozi è un elenco incluso nell'app, non un servizio che interroga. L'app funziona senza alcuna rete."
+     "L’app non ha reti pubblicitarie, statistiche delle visite o strumenti di tracciamento. Lo smistamento che riconosce i negozi è un elenco incluso nell’app, non un servizio che interroga. L’app funziona senza alcuna rete. La misurazione anonima delle visite del sito è descritta sotto Il sito."
     ]
    },
    {
     "h": "Il sito",
     "ps": [
-     "Il sito non ha moduli, cookie o statistiche delle visite, e non scarica nulla da altri server. Riceve solo ciò che ogni browser invia quando chiede una pagina, come il tuo indirizzo IP e il browser che usi. Il sito è ospitato da Vercel, che conserva questi dati per poco tempo in un registro tecnico, per il funzionamento e la sicurezza. Lo sviluppatore non usa quel registro. L'app non contatta mai il server web, quindi non viene inviato nulla quando usi l'app."
+     "Il sito non ha moduli né cookie, e non scarica nulla da altri server. Riceve solo ciò che ogni browser invia quando chiede una pagina, come il tuo indirizzo IP e il browser che usi. Il sito è ospitato da Vercel, che conserva questi dati per poco tempo in un registro tecnico, per il funzionamento e la sicurezza. Lo sviluppatore non usa quel registro.",
+     "Il sito conta le visite e misura la velocità di caricamento delle pagine in modo anonimo, con Vercel Web Analytics e Vercel Speed Insights. Non usa cookie e nulla viene collegato a una persona.",
+     "L’app non contatta mai il server web e non invia nulla da nessuna parte, quindi niente di tutto questo vale quando usi l’app."
     ]
    },
    {
@@ -404,15 +416,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Sem anúncios, sem análise, sem rastreamento",
+    "h": "No app: sem anúncios, sem análise, sem rastreamento",
     "ps": [
-     "Não há redes de anúncios, estatísticas de visitas nem ferramentas de rastreamento, nem no app nem no site. A classificação que reconhece as lojas é uma lista que vem com o app, não um serviço que ele consulta. O app funciona sem nenhuma conexão."
+     "O app não tem redes de anúncios, estatísticas de visitas nem ferramentas de rastreamento. A classificação que reconhece as lojas é uma lista que vem com o app, não um serviço que ele consulta. O app funciona sem nenhuma conexão. A contagem anônima de visitas do site está descrita em O site."
     ]
    },
    {
     "h": "O site",
     "ps": [
-     "O site não tem formulários, cookies nem estatísticas de visitas, e não busca nada em outros servidores. Ele só recebe o que todo navegador envia ao pedir uma página, como seu endereço IP e qual navegador você usa. O site é hospedado pela Vercel, que guarda isso por pouco tempo em um registro técnico, para operação e segurança. O desenvolvedor não usa esse registro. O app nunca entra em contato com o servidor web, então nada é enviado quando você usa o app."
+     "O site não tem formulários nem cookies, e não busca nada em outros servidores. Ele só recebe o que todo navegador envia ao pedir uma página, como seu endereço IP e qual navegador você usa. O site é hospedado pela Vercel, que guarda isso por pouco tempo em um registro técnico, para operação e segurança. O desenvolvedor não usa esse registro.",
+     "O site conta as visitas e mede a velocidade de carregamento das páginas de forma anônima, com o Vercel Web Analytics e o Vercel Speed Insights. Isso não usa cookies e nada é ligado a uma pessoa.",
+     "O app nunca entra em contato com o servidor web e não envia nada a lugar nenhum, então nada disso vale quando você usa o app."
     ]
    },
    {
@@ -466,15 +480,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Без рекламы, аналитики и слежки",
+    "h": "В приложении: без рекламы, аналитики и слежки",
     "ps": [
-     "Нет рекламных сетей, статистики посещений и инструментов отслеживания — ни в приложении, ни на сайте. Распределение, которое узнаёт магазины, — это список, поставляемый с приложением, а не сервис, к которому оно обращается. Приложение работает вообще без сети."
+     "В приложении нет рекламных сетей, статистики посещений и инструментов отслеживания. Распределение, которое узнаёт магазины, — это список, поставляемый с приложением, а не сервис, к которому оно обращается. Приложение работает вообще без сети. Анонимный подсчёт посещений сайта описан в разделе «Сайт»."
     ]
    },
    {
     "h": "Сайт",
     "ps": [
-     "На сайте нет форм, файлов cookie и статистики посещений, и он ничего не загружает с других серверов. Сайт получает только то, что любой браузер отправляет при запросе страницы, например ваш IP-адрес и тип браузера. Сайт размещён у Vercel, который недолго хранит эти данные в техническом журнале для работы и безопасности. Разработчик этот журнал не использует. Приложение никогда не обращается к веб-серверу, поэтому при работе с приложением ничего не отправляется."
+     "На сайте нет форм и файлов cookie, и он ничего не загружает с других серверов. Сайт получает только то, что любой браузер отправляет при запросе страницы, например ваш IP-адрес и тип браузера. Сайт размещён у Vercel, который недолго хранит эти данные в техническом журнале для работы и безопасности. Разработчик этот журнал не использует.",
+     "Сайт анонимно считает посещения и измеряет скорость загрузки страниц с помощью Vercel Web Analytics и Vercel Speed Insights. При этом не используются файлы cookie, и ничто не привязывается к человеку.",
+     "Приложение никогда не обращается к веб-серверу и никуда ничего не отправляет, поэтому ничего из этого не относится к работе с приложением."
     ]
    },
    {
@@ -528,15 +544,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Reklam yok, analiz yok, takip yok",
+    "h": "Uygulamada: reklam yok, analiz yok, takip yok",
     "ps": [
-     "Ne uygulamada ne de web sitesinde reklam ağı, ziyaretçi istatistiği veya takip aracı vardır. Mağazaları tanıyan sınıflandırma, uygulamayla birlikte gelen bir listedir; sorgulanan bir hizmet değildir. Uygulama hiç ağ bağlantısı olmadan çalışır."
+     "Uygulamada reklam ağı, ziyaretçi istatistiği veya takip aracı yoktur. Mağazaları tanıyan sınıflandırma, uygulamayla birlikte gelen bir listedir; sorgulanan bir hizmet değildir. Uygulama hiç ağ bağlantısı olmadan çalışır. Web sitesinin anonim ziyaret ölçümü “Web sitesi” bölümünde anlatılır."
     ]
    },
    {
     "h": "Web sitesi",
     "ps": [
-     "Web sitesinde form, çerez veya ziyaretçi istatistiği yoktur ve başka sunuculardan hiçbir şey indirmez. Site yalnızca her tarayıcının bir sayfa isterken gönderdiklerini alır; örneğin IP adresiniz ve hangi tarayıcıyı kullandığınız. Site Vercel’de barındırılır; Vercel bunları işletim ve güvenlik için kısa bir süre teknik bir kayıtta tutar. Geliştirici bu kaydı kullanmaz. Uygulama web sunucusuna asla bağlanmaz, bu yüzden uygulamayı kullanırken hiçbir şey gönderilmez."
+     "Web sitesinde form veya çerez yoktur ve başka sunuculardan hiçbir şey indirmez. Site yalnızca her tarayıcının bir sayfa isterken gönderdiklerini alır; örneğin IP adresiniz ve hangi tarayıcıyı kullandığınız. Site Vercel’de barındırılır; Vercel bunları işletim ve güvenlik için kısa bir süre teknik bir kayıtta tutar. Geliştirici bu kaydı kullanmaz.",
+     "Web sitesi, Vercel Web Analytics ve Vercel Speed Insights ile ziyaretleri ve sayfaların ne kadar hızlı yüklendiğini anonim olarak ölçer. Bunun için çerez kullanılmaz ve hiçbir şey bir kişiyle ilişkilendirilmez.",
+     "Uygulama web sunucusuna asla bağlanmaz ve hiçbir yere bir şey göndermez, bu yüzden uygulamayı kullanırken bunların hiçbiri geçerli değildir."
     ]
    },
    {
@@ -590,15 +608,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "広告なし、分析なし、追跡なし",
+    "h": "アプリでは：広告なし、分析なし、追跡なし",
     "ps": [
-     "アプリにもウェブサイトにも、広告ネットワーク、アクセス解析、追跡ツールはありません。お店を識別する分類機能はアプリに同梱されたリストで、問い合わせ先のサービスではありません。アプリはネットワークなしで動作します。"
+     "アプリには、広告ネットワーク、アクセス解析、追跡ツールはありません。お店を識別する分類機能はアプリに同梱されたリストで、問い合わせ先のサービスではありません。アプリはネットワークなしで動作します。ウェブサイトの匿名のアクセス計測は「ウェブサイト」の項目に書いています。"
     ]
    },
    {
     "h": "ウェブサイト",
     "ps": [
-     "ウェブサイトにはフォームもクッキーもアクセス解析もなく、ほかのサーバーから何も読み込みません。受け取るのは、ページを開くときにどのブラウザーも送る情報（IP アドレスやブラウザーの種類など）だけです。ウェブサイトは Vercel でホストされており、Vercel はこれを運用とセキュリティのために短期間、技術的なログに保存します。開発者はこのログを利用しません。アプリが Web サーバーに接続することはないため、アプリを使っても何も送信されません。"
+     "ウェブサイトにはフォームもクッキーもなく、ほかのサーバーから何も読み込みません。受け取るのは、ページを開くときにどのブラウザーも送る情報（IP アドレスやブラウザーの種類など）だけです。ウェブサイトは Vercel でホストされており、Vercel はこれを運用とセキュリティのために短期間、技術的なログに保存します。開発者はこのログを利用しません。",
+     "ウェブサイトでは、Vercel Web Analytics と Vercel Speed Insights を使って、訪問数とページの読み込み速度を匿名で計測しています。クッキーは使わず、特定の個人に結び付けられることもありません。",
+     "アプリが Web サーバーに接続することはなく、どこにも何も送信しないため、アプリを使うときにはこれらは一切当てはまりません。"
     ]
    },
    {
@@ -652,15 +672,17 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "无广告、无分析、无追踪",
+    "h": "应用中：无广告、无分析、无追踪",
     "ps": [
-     "应用和网站中都没有广告网络、访问统计或追踪工具。识别商家的分类功能是随应用提供的一份列表，而不是它去询问的服务。应用在完全没有网络的情况下也能工作。"
+     "应用中没有广告网络、访问统计或追踪工具。识别商家的分类功能是随应用提供的一份列表，而不是它去询问的服务。应用在完全没有网络的情况下也能工作。网站的匿名访问统计见“网站”一节。"
     ]
    },
    {
     "h": "网站",
     "ps": [
-     "网站没有表单、没有 Cookie、没有访问统计，也不从其他服务器加载任何内容。它只接收任何浏览器在请求网页时都会发送的信息，例如你的 IP 地址和所用的浏览器。网站托管在 Vercel，Vercel 会为运维和安全在技术日志中短期保存这些信息。开发者不使用该日志。应用从不连接网页服务器，因此使用应用时不会发送任何内容。"
+     "网站没有表单、没有 Cookie，也不从其他服务器加载任何内容。它只接收任何浏览器在请求网页时都会发送的信息，例如你的 IP 地址和所用的浏览器。网站托管在 Vercel，Vercel 会为运维和安全在技术日志中短期保存这些信息。开发者不使用该日志。",
+     "网站使用 Vercel Web Analytics 和 Vercel Speed Insights，以匿名方式统计访问次数并测量页面加载速度。这不使用 Cookie，也不会与任何个人关联。",
+     "应用从不连接网页服务器，也不会向任何地方发送内容，因此使用应用时，以上这些都不适用。"
     ]
    },
    {
