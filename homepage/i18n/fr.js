@@ -7,7 +7,7 @@
   store: { apple: 'Télécharger dans l’', google: 'Disponible sur', soon: 'Disponible en janvier 2027' },
   price: 'Achat unique. Sans abonnement.',
   phil: { label: 'Intendance', role: 'Créateur de YourBudget',
-    quote: "« J'ai toujours cru que mettre de l'ordre dans ses finances rend tout le reste de la vie un peu plus simple. Sachez où va votre argent. Sachez ce que vous devez, et sortez-en jusqu'à ne plus avoir de dettes. Mettez quelque chose de côté pour l'avenir, parce que ça grandit. Et donnez, parce que quand vous donnez, vous recevez. C'est ça, l'intendance, et c'est pour ça que j'ai créé YourBudget. »" },
+    quote: "« Je crois à l'intendance. Pour bien gérer, il faut fixer les bonnes priorités et avoir de l'ordre. Les finances ne font pas exception : savoir ce qui entre et ce qui sort, savoir ce que l'on doit, épargner pour l'avenir ou pour soi, se sortir de ses dettes, investir et garder de la marge pour contribuer et donner. Quand on maîtrise ses finances, on a déjà fait un bon bout de chemin dans la vie. »" },
   devices: { label: 'Tous les écrans', title: 'Sur votre téléphone, votre tablette et votre ordinateur.',
     body: "La mise en page s'adapte à l'écran, avec plus de place pour vos chiffres sur les grands écrans.",
     cards: [{ t: 'iPhone et iPad', d: "Sur l'App Store." }, { t: 'MacBook et iMac', d: 'Mac avec puce Apple, sur l’App Store.' }, { t: 'Téléphones et tablettes Android', d: 'Sur Google Play.' }, { t: 'Chromebook', d: 'Sur Google Play.' }] },

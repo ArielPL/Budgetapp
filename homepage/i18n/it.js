@@ -7,7 +7,7 @@
   store: { apple: 'Scarica su', google: 'Disponibile su', soon: 'In arrivo a gennaio 2027' },
   price: 'Acquisto unico. Nessun abbonamento.',
   phil: { label: 'Amministrazione fedele', role: 'Creatore di YourBudget',
-    quote: "«Ho sempre creduto che mettere ordine nelle proprie finanze renda tutto il resto della vita un po' più semplice. Sappi dove vanno i tuoi soldi. Sappi quanto devi, e liberatene finché non sei senza debiti. Metti da parte qualcosa per il futuro, perché cresce. E dona, perché quando doni, ricevi. Questa è amministrazione fedele, ed è per questo che ho creato YourBudget.»" },
+    quote: "«Credo nell'amministrazione fedele. Per amministrare bene bisogna dare le giuste priorità ed essere ordinati. Le finanze non fanno eccezione: sapere cosa entra e cosa esce, sapere quanto si deve, risparmiare per il futuro o per sé stessi, uscire dai debiti col proprio lavoro, investire e avere margine per contribuire e donare. Chi ha il controllo delle proprie finanze ha già fatto un bel pezzo di strada nella vita.»" },
   devices: { label: 'Ogni schermo', title: 'Su telefono, tablet e computer.',
     body: 'Il layout si adatta allo schermo, con più spazio per i tuoi numeri sui display grandi.',
     cards: [{ t: 'iPhone e iPad', d: "Dall'App Store." }, { t: 'MacBook e iMac', d: 'Mac con chip Apple, dall’App Store.' }, { t: 'Telefoni e tablet Android', d: 'Da Google Play.' }, { t: 'Chromebook', d: 'Da Google Play.' }] },

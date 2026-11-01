@@ -7,7 +7,7 @@
   store: { apple: 'Baixar na', google: 'Disponível no', soon: 'Chega em janeiro de 2027' },
   price: 'Compra única. Sem assinatura.',
   phil: { label: 'Mordomia', role: 'Criador do YourBudget',
-    quote: '“Sempre acreditei que colocar as finanças em ordem torna todo o resto da vida um pouco mais fácil. Saiba para onde vai o seu dinheiro. Saiba o que você deve e vá saindo disso até ficar livre de dívidas. Guarde algo para o futuro, porque cresce. E doe, porque quando você dá, você recebe. Isso é mordomia, e é por isso que criei o YourBudget.”' },
+    quote: '“Eu acredito na mordomia. Para administrar bem, é preciso priorizar corretamente e ser organizado. As finanças não são exceção: saber o que entra e o que sai, saber o que se deve, poupar para o futuro ou para si mesmo, sair das dívidas trabalhando, investir e ter espaço para contribuir e doar. Quem tem as finanças sob controle já percorreu um bom pedaço do caminho na vida.”' },
   devices: { label: 'Todas as telas', title: 'No celular, tablet e computador.',
     body: 'O layout se adapta à tela, com mais espaço para seus números em telas maiores.',
     cards: [{ t: 'iPhone e iPad', d: 'Na App Store.' }, { t: 'MacBook e iMac', d: 'Mac com chip Apple, na App Store.' }, { t: 'Celulares e tablets Android', d: 'No Google Play.' }, { t: 'Chromebook', d: 'No Google Play.' }] },

@@ -7,7 +7,7 @@
   store: { apple: 'Descárgalo en el', google: 'Disponible en', soon: 'Llega en enero de 2027' },
   price: 'Pago único. Sin suscripción.',
   phil: { label: 'Mayordomía', role: 'Creador de YourBudget',
-    quote: '«Siempre he creído que poner en orden tus finanzas hace que todo lo demás en la vida sea un poco más fácil. Sabe adónde va tu dinero. Sabe lo que debes y sal de ello hasta quedar libre de deudas. Aparta algo para el futuro, porque crece. Y da, porque cuando das, recibes. Eso es mayordomía, y por eso creé YourBudget.»' },
+    quote: '«Creo en la mayordomía. Para administrar bien hay que priorizar bien y ser ordenado. Las finanzas no son una excepción: saber qué entra y qué sale, saber lo que se debe, ahorrar para el futuro o para uno mismo, salir de las deudas con trabajo, invertir y tener margen para aportar y dar. Quien tiene sus finanzas bajo control ha avanzado un buen trecho en la vida.»' },
   devices: { label: 'Todas las pantallas', title: 'En tu teléfono, tableta y ordenador.',
     body: 'El diseño se adapta a la pantalla, con más espacio para tus números en pantallas grandes.',
     cards: [{ t: 'iPhone y iPad', d: 'En la App Store.' }, { t: 'MacBook e iMac', d: 'Mac con chip de Apple, desde la App Store.' }, { t: 'Teléfonos y tabletas Android', d: 'En Google Play.' }, { t: 'Chromebook', d: 'En Google Play.' }] },

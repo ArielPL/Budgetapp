@@ -7,7 +7,7 @@
   store: { apple: '在 App Store 下载', google: '在 Google Play 获取', soon: '2027 年 1 月推出' },
   price: '一次性购买，无需订阅。',
   phil: { label: '忠心管家', role: 'YourBudget 创作者',
-    quote: '“我一直相信，把财务理顺，会让生活中的其他一切都轻松一些。知道你的钱去了哪里。知道你欠了多少，一步步还清，直到不再负债。为将来存下一些，因为它会增长。还要给予，因为你给予，就会得到。这就是忠心的管家，也是我开发 YourBudget 的原因。”' },
+    quote: '“我相信做忠心的管家。要管好所托之物，就得分清轻重缓急，井井有条。财务也不例外：知道钱从哪里来、到哪里去，知道自己欠了多少，为将来或为自己存钱，靠努力摆脱债务，投资，并留出余地去贡献和给予。把财务掌握好的人，在人生路上已经走出了很好的一段。”' },
   devices: { label: '每一块屏幕', title: '手机、平板和电脑都能用。',
     body: '布局会根据屏幕自动调整，在大屏幕上为你的数字留出更多空间。',
     cards: [{ t: 'iPhone 和 iPad', d: '通过 App Store。' }, { t: 'MacBook 和 iMac', d: '搭载 Apple 芯片的 Mac，从 App Store 获取。' }, { t: 'Android 手机和平板', d: '通过 Google Play。' }, { t: 'Chromebook', d: '通过 Google Play。' }] },

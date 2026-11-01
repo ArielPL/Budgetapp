@@ -7,7 +7,7 @@
   store: { apple: 'Download on the', google: 'Get it on', soon: 'Coming January 2027' },
   price: 'One-time purchase. No subscription.',
   phil: { label: 'Stewardship', role: 'Creator of YourBudget',
-    quote: "“I've always believed that getting your finances in order makes everything else in life a little easier. Know where your money goes. Know what you owe, and work your way out of it until you're debt-free. Put something aside for the future, because it grows. And give, because when you give, you receive. That's stewardship, and it's why I built YourBudget.”" },
+    quote: "“I believe in stewardship. To steward well, you have to set the right priorities and keep things in order. Money is no exception: knowing what comes in and what goes out, knowing what you owe, saving for the future or for yourself, working your way out of debt, investing, and having room to contribute and give. If you have your finances under control, you have come a good way in life.”" },
   devices: { label: 'Every screen', title: 'On your phone, tablet and computer.',
     body: 'The layout adapts to the screen, with more room for your numbers on larger displays.',
     cards: [{ t: 'iPhone & iPad', d: 'From the App Store.' }, { t: 'MacBook & iMac', d: 'Macs with Apple silicon, from the App Store.' }, { t: 'Android phones & tablets', d: 'From Google Play.' }, { t: 'Chromebook', d: 'From Google Play.' }] },

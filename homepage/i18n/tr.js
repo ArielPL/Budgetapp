@@ -7,7 +7,7 @@
   store: { apple: "App Store'dan", google: "Google Play'den", soon: 'Ocak 2027’de geliyor' },
   price: 'Tek seferlik satın alma. Abonelik yok.',
   phil: { label: 'Kâhyalık', role: 'YourBudget’ın yaratıcısı',
-    quote: '“Her zaman, mali durumunu düzene sokmanın hayattaki diğer her şeyi biraz daha kolaylaştırdığına inandım. Paranın nereye gittiğini bil. Ne kadar borcun olduğunu bil ve borçsuz kalana kadar ondan kurtul. Gelecek için bir kenara bir şeyler koy, çünkü büyür. Ve ver, çünkü verdiğinde alırsın. İşte kâhyalık budur ve YourBudget’ı bu yüzden yaptım.”' },
+    quote: '“Kâhyalığa inanıyorum. İyi kâhyalık yapabilmek için doğru önceliklendirmek ve düzenli olmak gerekir. Para da bir istisna değil: neyin girip neyin çıktığını bilmek, ne kadar borcun olduğunu bilmek, gelecek için ya da kendin için biriktirmek, borçtan çalışarak kurtulmak, yatırım yapmak ve katkıda bulunup verebilmek için alan bırakmak. Mali durumunu kontrol altında tutan kişi hayatta epey yol almış demektir.”' },
   devices: { label: 'Her ekran', title: 'Telefonda, tablette ve bilgisayarda.',
     body: 'Düzen ekrana uyum sağlar; büyük ekranlarda rakamların için daha fazla yer olur.',
     cards: [{ t: 'iPhone ve iPad', d: "App Store'dan." }, { t: 'MacBook ve iMac', d: 'Apple çipli Mac’ler, App Store’dan.' }, { t: 'Android telefon ve tabletler', d: "Google Play'den." }, { t: 'Chromebook', d: "Google Play'den." }] },

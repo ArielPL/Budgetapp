@@ -7,7 +7,7 @@
   store: { apple: 'Laden im', google: 'Jetzt bei', soon: 'Ab Januar 2027' },
   price: 'Einmalkauf. Kein Abo.',
   phil: { label: 'Haushalterschaft', role: 'Entwickler von YourBudget',
-    quote: '„Ich habe immer geglaubt, dass geordnete Finanzen alles andere im Leben ein wenig leichter machen. Wisse, wohin dein Geld geht. Wisse, was du schuldest, und arbeite dich heraus, bis du schuldenfrei bist. Leg etwas für die Zukunft zurück, denn es wächst. Und gib, denn wenn du gibst, empfängst du. Das ist Haushalterschaft, und deshalb habe ich YourBudget gebaut.“' },
+    quote: '„Ich glaube an Haushalterschaft. Um gut zu haushalten, muss man die richtigen Prioritäten setzen und Ordnung halten. Die Finanzen sind keine Ausnahme: wissen, was hereinkommt und was hinausgeht, wissen, was man schuldet, für die Zukunft oder für sich selbst sparen, sich aus Schulden herausarbeiten, investieren und Raum haben, um beizutragen und zu geben. Wer seine Finanzen im Griff hat, ist im Leben ein gutes Stück vorangekommen.“' },
   devices: { label: 'Jeder Bildschirm', title: 'Auf Handy, Tablet und Computer.',
     body: 'Das Layout passt sich dem Bildschirm an, mit mehr Platz für deine Zahlen auf großen Displays.',
     cards: [{ t: 'iPhone & iPad', d: 'Im App Store.' }, { t: 'MacBook & iMac', d: 'Macs mit Apple Chip, aus dem App Store.' }, { t: 'Android-Handys & Tablets', d: 'Bei Google Play.' }, { t: 'Chromebook', d: 'Bei Google Play.' }] },

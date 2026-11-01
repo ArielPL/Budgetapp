@@ -7,7 +7,7 @@
   store: { apple: 'Hämta i', google: 'Ladda ned på', soon: 'Kommer januari 2027' },
   price: 'Engångsköp. Ingen prenumeration.',
   phil: { label: 'Förvaltarskap', role: 'Skapare av YourBudget',
-    quote: '”Jag har alltid trott att ordning på ekonomin gör allt annat i livet lite enklare. Vet vart dina pengar tar vägen. Vet vad du är skyldig, och jobba dig ur det tills du är skuldfri. Lägg undan något för framtiden, för det växer. Och ge, för när du ger, får du. Det är förvaltarskap, och det är därför jag byggde YourBudget.”' },
+    quote: '”Jag tror på förvaltarskap. För att förvalta väl måste man prioritera rätt och hålla ordning. Ekonomin är inget undantag: veta vad som kommer in och vad som går ut, veta vad man är skyldig, spara för framtiden eller åt sig själv, arbeta sig ur skuld, investera och ha utrymme att bidra och ge. Den som har koll på sin ekonomi har kommit en bra bit i livet.”' },
   devices: { label: 'Alla skärmar', title: 'I telefonen, surfplattan och datorn.',
     body: 'Layouten anpassar sig efter skärmen, med mer plats för dina siffror på större skärmar.',
     cards: [{ t: 'iPhone & iPad', d: 'Från App Store.' }, { t: 'MacBook & iMac', d: 'Mac med Apple-chip, från App Store.' }, { t: 'Android-telefoner & surfplattor', d: 'Från Google Play.' }, { t: 'Chromebook', d: 'Från Google Play.' }] },
