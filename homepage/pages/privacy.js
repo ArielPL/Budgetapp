@@ -46,12 +46,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Den tidigare webbappen",
-    "ps": [
-     "Fram till 1 november 2026 fanns YourBudget också som webbapp. Det du sparade där ligger bara i din egen webbläsare tills du rensar webbplatsens data. Utvecklaren har aldrig haft någon kopia."
-    ]
-   },
-   {
     "h": "Radering",
     "ps": [
      "Tar du bort appen raderas allt den har sparat på enheten. Utvecklaren har ingen kopia och kan inte återskapa den. En säkerhetskopia du själv har sparat, eller en kopia i iCloud eller Google, bestämmer du själv över."
@@ -107,12 +101,6 @@ window.YB_PRIVACY = {
      "The website has no forms and no cookies, and it fetches nothing from other servers. All it receives is what every browser sends when it asks for a page, such as your IP address and which browser you use. The website is hosted by Vercel, which keeps this for a short time in a technical log for operations and security. The developer does not use that log.",
      "The website counts visits and measures how fast pages load, anonymously, with Vercel Web Analytics and Vercel Speed Insights. This uses no cookies, and nothing is tied to a person.",
      "The app never contacts the web server and sends nothing anywhere, so none of this applies when you use the app."
-    ]
-   },
-   {
-    "h": "The former web app",
-    "ps": [
-     "Until 1 November 2026, YourBudget was also a web app. What you saved there is only in your own browser until you clear the site's data. The developer never had a copy."
     ]
    },
    {
@@ -174,12 +162,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "La antigua app web",
-    "ps": [
-     "Hasta el 1 de noviembre de 2026, YourBudget también era una app web. Lo que guardaste allí está solo en tu propio navegador hasta que borres los datos del sitio. El desarrollador nunca tuvo una copia."
-    ]
-   },
-   {
     "h": "Borrado",
     "ps": [
      "Elimina la app y se borra todo lo que guardó en el dispositivo. El desarrollador no tiene copia y no puede recuperarla. Una copia que hayas guardado tú, o una copia en iCloud o Google, la conservas o borras tú."
@@ -235,12 +217,6 @@ window.YB_PRIVACY = {
      "Le site n’a ni formulaire ni cookie, et ne récupère rien sur d’autres serveurs. Il ne reçoit que ce que tout navigateur envoie en demandant une page, comme votre adresse IP et le navigateur que vous utilisez. Le site est hébergé par Vercel, qui le conserve peu de temps dans un journal technique, pour le fonctionnement et la sécurité. Le développeur n’utilise pas ce journal.",
      "Le site compte les visites et mesure la vitesse de chargement des pages de façon anonyme, avec Vercel Web Analytics et Vercel Speed Insights. Cela n’utilise aucun cookie et rien n’est rattaché à une personne.",
      "L’app ne contacte jamais le serveur web et n’envoie rien nulle part : rien de tout cela ne s’applique quand vous utilisez l’app."
-    ]
-   },
-   {
-    "h": "L'ancienne app web",
-    "ps": [
-     "Jusqu'au 1er novembre 2026, YourBudget existait aussi en app web. Ce que vous y avez enregistré se trouve uniquement dans votre propre navigateur, jusqu'à ce que vous effaciez les données du site. Le développeur n'en a jamais eu de copie."
     ]
    },
    {
@@ -302,12 +278,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Die frühere Web-App",
-    "ps": [
-     "Bis zum 1. November 2026 gab es YourBudget auch als Web-App. Was du dort gespeichert hast, liegt nur in deinem eigenen Browser, bis du die Daten der Website löschst. Der Entwickler hatte nie eine Kopie."
-    ]
-   },
-   {
     "h": "Löschen",
     "ps": [
      "Lösch die App, dann ist alles weg, was sie auf dem Gerät gespeichert hat. Der Entwickler hat keine Kopie und kann nichts wiederherstellen. Über eine Sicherung, die du selbst gespeichert hast, oder eine Kopie in iCloud oder bei Google entscheidest du selbst."
@@ -363,12 +333,6 @@ window.YB_PRIVACY = {
      "Il sito non ha moduli né cookie, e non scarica nulla da altri server. Riceve solo ciò che ogni browser invia quando chiede una pagina, come il tuo indirizzo IP e il browser che usi. Il sito è ospitato da Vercel, che conserva questi dati per poco tempo in un registro tecnico, per il funzionamento e la sicurezza. Lo sviluppatore non usa quel registro.",
      "Il sito conta le visite e misura la velocità di caricamento delle pagine in modo anonimo, con Vercel Web Analytics e Vercel Speed Insights. Non usa cookie e nulla viene collegato a una persona.",
      "L’app non contatta mai il server web e non invia nulla da nessuna parte, quindi niente di tutto questo vale quando usi l’app."
-    ]
-   },
-   {
-    "h": "La vecchia web app",
-    "ps": [
-     "Fino al 1° novembre 2026 YourBudget era anche una web app. Ciò che vi hai salvato si trova solo nel tuo browser, finché non cancelli i dati del sito. Lo sviluppatore non ne ha mai avuto una copia."
     ]
    },
    {
@@ -430,12 +394,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "O antigo app web",
-    "ps": [
-     "Até 1º de novembro de 2026, o YourBudget também existia como app web. O que você salvou lá fica só no seu próprio navegador até você apagar os dados do site. O desenvolvedor nunca teve uma cópia."
-    ]
-   },
-   {
     "h": "Exclusão",
     "ps": [
      "Exclua o app, e tudo o que ele salvou no dispositivo é apagado. O desenvolvedor não tem cópia e não pode recriá-la. Um backup que você mesmo salvou, ou uma cópia no iCloud ou no Google, fica sob seu controle."
@@ -491,12 +449,6 @@ window.YB_PRIVACY = {
      "На сайте нет форм и файлов cookie, и он ничего не загружает с других серверов. Сайт получает только то, что любой браузер отправляет при запросе страницы, например ваш IP-адрес и тип браузера. Сайт размещён у Vercel, который недолго хранит эти данные в техническом журнале для работы и безопасности. Разработчик этот журнал не использует.",
      "Сайт анонимно считает посещения и измеряет скорость загрузки страниц с помощью Vercel Web Analytics и Vercel Speed Insights. При этом не используются файлы cookie, и ничто не привязывается к человеку.",
      "Приложение никогда не обращается к веб-серверу и никуда ничего не отправляет, поэтому ничего из этого не относится к работе с приложением."
-    ]
-   },
-   {
-    "h": "Прежнее веб-приложение",
-    "ps": [
-     "До 1 ноября 2026 года YourBudget было также веб-приложением. То, что вы там сохранили, находится только в вашем собственном браузере, пока вы не очистите данные сайта. У разработчика никогда не было копии."
     ]
    },
    {
@@ -558,12 +510,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "Eski web uygulaması",
-    "ps": [
-     "YourBudget 1 Kasım 2026’ya kadar bir web uygulaması olarak da vardı. Orada kaydettikleriniz, site verilerini temizleyene kadar yalnızca kendi tarayıcınızda durur. Geliştiricinin hiçbir zaman bir kopyası olmadı."
-    ]
-   },
-   {
     "h": "Silme",
     "ps": [
      "Uygulamayı silin; cihazda kaydettiği her şey silinir. Geliştiricinin kopyası yoktur ve geri getiremez. Kendi kaydettiğiniz bir yedek veya iCloud ya da Google’daki bir kopya üzerinde karar sizindir."
@@ -622,12 +568,6 @@ window.YB_PRIVACY = {
     ]
    },
    {
-    "h": "以前のウェブアプリ",
-    "ps": [
-     "2026年11月1日まで、YourBudget はウェブアプリとしても提供されていました。そこで保存した内容は、サイトのデータを消去するまであなたのブラウザにだけ残ります。開発者がコピーを持ったことはありません。"
-    ]
-   },
-   {
     "h": "削除",
     "ps": [
      "アプリを削除すると、端末に保存された内容はすべて消えます。開発者はコピーを持っておらず、復元できません。ご自身で保存したバックアップや、iCloud・Google のコピーはご自身で管理してください。"
@@ -683,12 +623,6 @@ window.YB_PRIVACY = {
      "网站没有表单、没有 Cookie，也不从其他服务器加载任何内容。它只接收任何浏览器在请求网页时都会发送的信息，例如你的 IP 地址和所用的浏览器。网站托管在 Vercel，Vercel 会为运维和安全在技术日志中短期保存这些信息。开发者不使用该日志。",
      "网站使用 Vercel Web Analytics 和 Vercel Speed Insights，以匿名方式统计访问次数并测量页面加载速度。这不使用 Cookie，也不会与任何个人关联。",
      "应用从不连接网页服务器，也不会向任何地方发送内容，因此使用应用时，以上这些都不适用。"
-    ]
-   },
-   {
-    "h": "以前的网页应用",
-    "ps": [
-     "在 2026 年 11 月 1 日之前，YourBudget 也以网页应用的形式提供。你在那里保存的内容只存在于你自己的浏览器中，直到你清除该网站的数据。开发者从未有过副本。"
     ]
    },
    {
