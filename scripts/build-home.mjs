@@ -186,6 +186,7 @@ const siteFooter = (t, code, kind = '') => `<footer style="border-top:1px solid 
       <a href="${pageOf(code, 'privacy')}">${esc(t.footer.privacy)}</a>
       <a href="${pageOf(code, 'support')}">${esc(t.footer.support)}</a>
       <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>
+      <a href="${INSTAGRAM}" target="_blank" rel="noopener noreferrer" aria-label="Instagram" style="display:inline-flex;align-items:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"/></svg></a>
     </div>
   </div>
 </footer>`;
@@ -386,6 +387,7 @@ ${siteFooter(t, code)}
 
 const SUPPORT_MAIL = 'support@yourofflinebudget.com';
 const MAIL = `<a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>`;
+const INSTAGRAM = 'https://www.instagram.com/yourofflinebudget/';
 const APPLE = '<a href="https://reportaproblem.apple.com">reportaproblem.apple.com</a>';
 const GOOGLE_REFUND = 'https://support.google.com/googleplay/answer/2479637';
 
