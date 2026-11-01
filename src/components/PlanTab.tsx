@@ -1,8 +1,9 @@
+import { monthTitle } from '../dateLabel';
 import { useState, useId, useRef } from 'react';
-import type { PlanData, SavingsGoal } from '../types';
+import type { MonthData, PlanData, SavingsGoal } from '../types';
 import { generateId, makeGoalColor, shownName } from '../defaults';
 import { validateNewGoal, type GoalFormError } from '../goalForm';
-import { useLang, MONTHS, type Translations } from '../i18n';
+import { useLang, type Translations } from '../i18n';
 import { EditableAmount } from './EditableAmount';
 import { SparPlanSection } from './SparPlan';
 
@@ -23,6 +24,9 @@ interface Props {
   savedThisMonth: number | null; // how far the balance moved; null = not recorded
   year: number;
   month: number;
+  /** The month on screen as the app holds it, for the savings plan's
+   *  comparison — see SparPlanSection's `live`. */
+  monthData?: MonthData;
 }
 
 const GoalCard = ({ goal, onUpdate, onDelete }: {
@@ -99,8 +103,8 @@ const GoalCard = ({ goal, onUpdate, onDelete }: {
         {goal.deadline && (
           <div className="goal-deadline">
             📅 {(() => {
-              const [y, m] = goal.deadline.split('-');
-              return `${MONTHS[lang][parseInt(m) - 1]} ${y}`;
+              const [y, m] = goal.deadline.split('-').map(Number);
+              return monthTitle(m - 1, y, lang);
             })()}
           </div>
         )}
@@ -194,7 +198,7 @@ const GoalsSection = ({ data, onChange }: { data: PlanData; onChange: (data: Pla
       <div className="plan-section-header">
         <h2 className="plan-section-title">🏆 {t.savingsGoals}</h2>
         {!adding && (
-          <button className="add-goal-btn" onClick={() => setAdding(true)}>{t.newGoal}</button>
+          <button className="add-goal-btn" data-guide="goals" onClick={() => setAdding(true)}>{t.newGoal}</button>
         )}
       </div>
 
@@ -270,7 +274,7 @@ const NotesSection = ({ data, onChange }: { data: PlanData; onChange: (data: Pla
   );
 };
 
-export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, month }: Props) => {
+export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, month, monthData }: Props) => {
   const { lang, t, money } = useLang();
 
   // ── Overview highlights (current month) ──
@@ -289,7 +293,7 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
   const goalProgress = totalTarget > 0
     ? Math.round((totalCurrent / totalTarget) * 100)
     : null;
-  const monthLabel = `${MONTHS[lang][month]} ${year}`;
+  const monthLabel = monthTitle(month, year, lang);
 
   return (
     <div className="tab-content plan-tab">
@@ -361,7 +365,7 @@ export const PlanTab = ({ data, onChange, totalIncome, savedThisMonth, year, mon
       </section>
 
       {/* ── Savings plan: projection + plan-vs-actual ── */}
-      <SparPlanSection />
+      <SparPlanSection live={monthData ? { year, month, data: monthData } : undefined} />
 
       {/* ── Goals ── */}
       <GoalsSection data={data} onChange={onChange} />

@@ -1,12 +1,13 @@
+import { monthInText } from '../dateLabel';
 import type { ActualEntry, MonthData, SavingsGoal } from '../types';
-import { useLang, MONTHS } from '../i18n';
+import { useLang } from '../i18n';
 import { shownName } from '../defaults';
 import { sumRows, categoryTotal } from '../metrics';
 import { sumByCategory, INCOME_ACTUAL_ID } from '../actuals';
 import { spendingBreakdown } from '../spending';
 import type { PeriodLocks } from '../periodLabel';
 import { largestCategory, linkedSummary, SAVINGS_CATEGORY, type InsightSource } from '../customLinked';
-import { targetState, inSentence } from './CustomV3';
+import { targetState } from './CustomV3';
 import { DailyBudget } from './DailyBudget';
 
 // ── Blocks that show what the app already knows ────────────────────────────
@@ -121,7 +122,7 @@ const GoalBlock = ({ id, fallbackName, goals, data, monthLabel }: Props & { id: 
     ? data.expenses.find(c => c.id === SAVINGS_CATEGORY)?.rows.find(r => r.id === goal.budgetRowId)
     : undefined;
   const deadline = /^\d{4}-\d{2}$/.test(goal.deadline)
-    ? `${inSentence(MONTHS[lang][Number(goal.deadline.slice(5)) - 1], lang)} ${goal.deadline.slice(0, 4)}` : null;
+    ? monthInText(Number(goal.deadline.slice(5)) - 1, Number(goal.deadline.slice(0, 4)), lang) : null;
   return (
     <>
       <Head tag={`🎯 ${t.kindGoal}`} icon="🎯" title={shownName(goal, lang)} />

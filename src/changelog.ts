@@ -6,15 +6,192 @@
 // badge until the user opens this panel.
 
 import type { Lang } from './i18n';
+import { frChangelog113 } from './locales/fr';
+import { deChangelog113 } from './locales/de';
+import { jaChangelog113 } from './locales/ja';
+import { zhChangelog113 } from './locales/zh';
+import { itChangelog113 } from './locales/it';
+import { ptChangelog113 } from './locales/pt';
+import { ruChangelog113 } from './locales/ru';
+import { trChangelog113 } from './locales/tr';
+
+/** The languages every release is written in. Releases from before French,
+ *  German, Japanese and Chinese (2026-10-17) exist in these only; the others
+ *  read them in English — see releaseText. */
+type FirstLangs = 'sv' | 'en' | 'es';
 
 export interface Release {
   version: string;
   date: string; // ISO yyyy-mm-dd (real commit date)
-  title: Record<Lang, string>;
-  items: Record<Lang, string[]>;
+  title: Record<FirstLangs, string> & Partial<Record<Lang, string>>;
+  items: Record<FirstLangs, string[]> & Partial<Record<Lang, string[]>>;
+}
+
+/** A release's title and items in `lang`, or in English where it has none. */
+export function releaseText(rel: Release, lang: Lang): { title: string; items: string[] } {
+  return { title: rel.title[lang] ?? rel.title.en, items: rel.items[lang] ?? rel.items.en };
 }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '1.13.0',
+    date: '2026-10-11',
+    title: {
+      sv: 'YourBudget, iPad och en grundlig genomgång',
+      en: 'YourBudget, iPad and a thorough check-up',
+      es: 'YourBudget, iPad y una revisión a fondo',
+      fr: frChangelog113.title,
+      de: deChangelog113.title,
+      ja: jaChangelog113.title,
+      zh: zhChangelog113.title,
+      it: itChangelog113.title,
+      pt: ptChangelog113.title,
+      ru: ruChangelog113.title,
+      tr: trChangelog113.title,
+    },
+    items: {
+      sv: [
+        '"Vilka abonnemang betalar jag?" räknar bara betalningar med samma belopp varje månad, med högst en prisändring. En restaurang man besöker en gång i månaden räknas inte längre',
+        'I mobilappen har frågor som "Ta bort …?" knapparna på appens språk, till exempel Avbryt och OK, även om telefonen har ett annat språk',
+        'Listan över när varje skuld blir betald står i datumordning',
+        'Frågekorten visar exakta belopp för det som faktiskt dragits, till exempel 34,99 € i stället för 35 €',
+        'Menyn bredvid plånböckerna visar inte längre verktyg för en månad, som Hämta från förra månaden och Återställ månad',
+        'Kvar att leva på skriver månaden med liten bokstav mitt i meningen, och fliken Budget får plats på spanska (Presup.)',
+        'Plånböckerna från menyn visar ingen månad och ingen markerad flik, eftersom en plånbok inte hör till någon månad',
+        'Rättat: en månad eller plånbok som gick jämnt ut på öret visade "−0 kr" och "0 kr över budget", och Uppföljning visade "+0 kr" i stället för ✓. Ören räknas nu exakt',
+        'Rättat: ett belopp du skrev in på en sparrad i en kopplad panel flyttade sparmålet för varje siffra på vägen, så att målet kunde få fel summa. Beloppet sparas nu när du är klar med fältet, som i den vanliga budgeten',
+        'Rättat: "Kopiera förra månaden" i en fristående panel tömde den här månaden om förra månaden var tom. Nu säger den att det inte finns något att hämta',
+        'Rättat: i Kombinerad layout följde År och sparplanens "före/efter plan" med först vid nästa ändring',
+        'Rättat: två snabba tryck på Lägg till i Uppföljning kunde lägga in samma post två gånger i mobilappen',
+        'Rättat: en låst löneperiod som gäller trots att startdagen är avstängd räknas nu med rätt antal dagar i Kvar att leva på',
+        'Tillbaka-knappen på Android tar dig från plånböckerna till budgeten, i stället för att stänga appen',
+        'I appväxlaren på iPhone har appens skydd nu samma färg som appen: mörkt i mörkt tema, ljust i ljust, oavsett vad telefonen är inställd på',
+        'Byter du namn på en sparrad som hör till ett sparmål får målet och samma rad i alla månader det nya namnet, precis som när du byter namn på målet i Plan',
+        'I Kombinerad layout visar Skuld en avbetalning du lagt in i Uppföljning direkt',
+        'Månadsnamn mitt i en mening skrivs med liten bokstav i dialogerna, till exempel "för oktober 2026"',
+        'Efter delningsmenyn i mobilappen frågar appen om filen kom fram dit du skickade den, i stället för om nedladdningen gick igenom',
+        'Webbappen sparar inte längre gamla versioner av sina filer för alltid. Varje ny version hämtas på en gång när den installeras, så att appen startar även utan nät',
+        'Diagrammet under År får plats med mycket stora belopp på axlarna, och etiketterna står på en rad',
+        'Flyttar du ett ställe i Uppföljning flyttas bara de poster raden visar. Poster med samma text som du lagt i en annan kategori, och insättningar med samma text, ligger kvar. Appen kommer fortfarande ihåg valet till nästa import',
+        'Tydligare text i både mörkt och ljust läge: knappar, flikar och kategoribelopp når nu minst kontrasten 4,5:1, och ett mycket stort belopp i Uppföljning bryts över två rader i stället för att klippas av på mobilen',
+        'I apparna står det under Integritet hur du låser appen med telefonens eget lås: Kräv Face ID på iPhone, applås på många Android-telefoner',
+        'Appen heter nu YourBudget: på hemskärmen, i fliken i webbläsaren, i välkomsttexten och i integritetstexten. Din data och dina inställningar är orörda',
+        'Texterna säger enheten i stället för telefonen där appen lika gärna kan köras på en iPad, och på iPad får flikarna korta namn så att alla får plats',
+        'Skuld: ändrar du extrabeloppet och väljer strategi snabbt efter varandra sparas båda. Förut kunde det nya beloppet försvinna fast fältet visade det',
+        'Nya verktyg i Uppföljning: sök bland köpen, ”Vad händer om…?” som provräknar en ändring i budgeten, och ”Vad behöver jag spara?” som kan bli ett sparmål. På fliken Skuld kan du prova ett annat extrabelopp innan du ändrar det. Inget ändras förrän du bekräftat, och allt går att ångra',
+        'Ny kategori i budgetmallen, Gåvor & givande, med Tionde & kollekt, Välgörenhet och Presenter. Kyrkor och insamlingar i kontoutdraget hamnar där i stället för under Fritid',
+        'Byter du namn på en rad av misstag kan du ångra det direkt, som när du tar bort något',
+        'Tydligare namn på en inkomstrad: ”Bidrag (t.ex. barnbidrag)”, och välkomsttexten säger klart att appen aldrig kopplar upp mot banken',
+        'Appen finns nu också på franska, tyska, italienska, portugisiska (Brasilien), ryska, turkiska, japanska och förenklad kinesiska. Språket väljer du i en lista i menyn',
+        'Större text: välj mellan tre storlekar under Textstorlek i menyn. Allt i appen växer, och det får plats även på en liten telefon',
+        'Kom igång: en guide till varje del av appen, överst i Budget och först i menyn. Visa mig lyser upp rätt knapp i appen, och guiden finns kvar medan du tittar',
+        'Valutan väljer du själv när du öppnar appen första gången. Varje symbol säger vad den står för, till exempel $ (dollar, peso m.fl.). Nya valutor: rubel (₽), brasiliansk real (R$), indisk rupie (₹) och turkisk lira (₺)',
+        'Budgetimporten läser också Word-filer (.docx), även en plan med en tabell per månad. En kreditpost dras av från raden ovanför i stället för att bli en kostnad, och pension under Inkomster blir inkomst. Innan du importerar ser du vad varje rad gör och hur månaden blir, och ett liknande radnamn frågar i stället för att läggas till en gång till',
+        'Kvar att leva på visar också Per månad. Tryck på veckan eller månaden för att göra en plånbok av summan, en plan för vardagsköpen. Med löneperiod står perioden i stället för månadens namn',
+        'Sorteraren känner igen vanliga butiker, bensinstationer, kollektivtrafik och elbolag i Brasilien, Portugal, Ryssland, Turkiet, Italien, Frankrike, Tyskland och Kina. Kinesiska namn hittas även när orten står direkt efter',
+        "Ny start för den som aldrig gjort en budget: efter språk och valuta frågar appen om du gjort en budget förut. Som nybörjare svarar du på några enkla frågor, som lön, boende och mobil, och får en budget för den här månaden eller resten av året",
+        "Alla rader går att ta bort, även mallens. Hopfällda kategorier förblir hopfällda. Uppföljning skriver ”kvar” och ”över” i stället för minus. Appen erbjuder att kopiera budgeten till resten av året. Mallen har Mobilabonnemang, och SL heter Kollektivtrafik. Sorteraren känner igen fler trafikbolag och mobiloperatörer. Rutor som kommer upp nerifrån går att dra ner för att stänga, och deras knappar hamnar inte längre under telefonens egna knappar",
+        'Fler budgetar i Anpassad: välj + Ny budget i väljaren överst, till exempel för ett litet företag. Varje budget har egna månader och räknas aldrig in i din vanliga budget. Med ✏️ byter du namn på en budget, även på Min budget, och en tillagd budget kan tas bort och tas tillbaka med Ångra',
+        'Uppföljning har knappen ⚠️ Rensa allt utfall, för den som vill börja om helt. Den tar bort alla poster i alla månader på en gång, men aldrig budgetarna eller det appen lärt sig om dina butiker. Appen frågar först och säger hur många poster det gäller, och Ångra tar tillbaka allt',
+      ],
+      en: [
+        '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
+        'In the phone app, questions such as "Delete …?" have their buttons in the app\'s language, even when the phone uses another',
+        'The list of when each debt is paid off is in date order',
+        'The question cards show exact amounts for what was actually charged, such as $34.99 rather than $35',
+        'The menu beside the wallets no longer offers month tools such as Pull from last month and Reset month',
+        'Left to live on writes the month in lower case mid-sentence in Swedish and Spanish, and the Budget tab fits in Spanish (Presup.)',
+        'Wallets opened from the menu show no month and no selected tab, since a wallet belongs to no month',
+        'Fixed: a month or wallet spent to the cent showed "−0" and "0 over budget", and Follow-up showed "+0" instead of ✓. Cents now add up exactly',
+        'Fixed: typing an amount on a savings row in a linked panel moved its savings goal at every digit on the way, so the goal could end up with the wrong total. The amount is now saved when you finish with the field, as in the regular budget',
+        'Fixed: "Copy last month" on a separate panel emptied this month when last month had nothing in it. It now says there is nothing to bring',
+        'Fixed: in the Combined layout, Year and the savings plan\'s ahead/behind only caught up with an edit at the next one',
+        'Fixed: two quick taps on Add in Follow-up could file the same entry twice in the phone app',
+        'Fixed: a pinned pay period that still applies with the start day switched off now counts the right number of days in Left to live on',
+        'Android\'s Back button takes you from the wallets to the budget, instead of closing the app',
+        'In the iPhone app switcher, the cover that hides the app now matches the app: dark in the dark theme, light in the light one, whatever the phone is set to',
+        'Renaming a savings row that belongs to a goal now renames the goal and the same row in every month, just as renaming the goal in Plan does',
+        'In the Combined layout, Debt shows a loan payment added in Follow-up straight away',
+        'Swedish and Spanish dialogs write a month name in the middle of a sentence in lower case, as those languages do',
+        'After the share sheet in the phone app, the app asks whether the file arrived where you sent it, rather than whether a download went through',
+        'The web app no longer keeps old versions of its files for ever. Each new version is fetched in full when it installs, so the app starts without a connection too',
+        'The Year chart fits very large amounts on its axes, with each label on one line',
+        'Moving a place in Follow-up moves only the entries its row shows. Entries with the same text that you filed under another category, and money coming in with the same text, stay where they are. The choice is still remembered for the next import',
+        'Clearer text in dark and light mode: buttons, tabs and category amounts now reach at least 4.5:1 contrast, and a very large amount in Follow-up wraps onto two lines instead of being cut off on a phone',
+        'In the apps, Privacy now says how to lock the app with the phone\'s own lock: Require Face ID on iPhone, app lock on many Android phones',
+        'The app is now called YourBudget: on the home screen, in the browser tab, in the welcome text and in the privacy text. Your data and settings are untouched',
+        'The texts say device instead of phone where the app may just as well run on an iPad, and on an iPad the tabs use short names so they all fit',
+        'Debt: change the extra amount and pick a strategy in quick succession and both are saved. Before, the new amount could vanish while the field still showed it',
+        'New tools in Follow-up: search your purchases, “What if…?” to try a change to the budget, and “What do I need to save?”, which can become a savings goal. On the Debt tab you can try a different extra amount before changing it. Nothing changes until you confirm, and it can all be undone',
+        'A new category in the budget template, Giving, with Tithes & offerings, Charity and Gifts. Churches and charities in your bank statement go there instead of under Leisure',
+        'Renamed a row by mistake? You can undo it right away, as when you delete something',
+        'A clearer name for an income row, “Government benefits”, and the welcome text says plainly that the app never connects to your bank',
+        'The app is now also in French, German, Italian, Portuguese (Brazil), Russian, Turkish, Japanese and Simplified Chinese. Pick the language from a list in the menu',
+        'Larger text: pick one of three sizes under Text size in the menu. Everything in the app grows, and it still fits on a small phone',
+        'Get started: a guide to every part of the app, at the top of Budget and first in the menu. Show me lights up the right button in the app, and the guide stays while you look',
+        'You choose the currency the first time you open the app. Each symbol says what it stands for, such as $ (dollar, peso and more). New currencies: ruble (₽), Brazilian real (R$), Indian rupee (₹) and Turkish lira (₺)',
+        'Budget import also reads Word files (.docx), including a plan with one table per month. A credit note is taken off the row above instead of becoming a cost, and a pension under Income becomes income. Before you import, you see what each row does and how the month will look, and a similar row name asks instead of being added twice',
+        'Left to live on also shows Per month. Tap the week or the month to turn the amount into a wallet, a plan for everyday spending. With a pay period, the period is named instead of the month',
+        'The sorter knows common shops, fuel stations, public transport and utilities in Brazil, Portugal, Russia, Turkey, Italy, France, Germany and China. Chinese names are found even with the city written right after them',
+        "A new start for anyone who has never made a budget: after language and currency, the app asks whether you have made one before. As a beginner you answer a few simple questions, such as salary, housing and phone, and get a budget for this month or the rest of the year",
+        "Every row can be removed, the template's too. Folded categories stay folded. Follow-up says “left” and “over” instead of a minus. The app offers to copy the budget to the rest of the year. The template has a phone plan line. The sorter knows more regional transport and phone operators. Panels that slide up from the bottom can be pulled down to close, and their buttons no longer sit under the phone's own buttons",
+        'More budgets in Custom: choose + New budget in the switcher at the top, for a small business, say. Each budget has its own months and is never counted in your regular budget. With ✏️ you rename a budget, My budget too, and an added budget can be deleted and brought back with Undo',
+        'Follow-up has a ⚠️ Clear all actuals button, for anyone who wants to start over completely. It removes every entry in every month at once, but never your budgets or what the app has learned about your shops. The app asks first and says how many entries it means, and Undo brings everything back',
+      ],
+      es: [
+        '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
+        'En la app del móvil, preguntas como "¿Eliminar …?" tienen los botones en el idioma de la app, aunque el teléfono use otro',
+        'La lista de cuándo se paga cada deuda va en orden de fecha',
+        'Las preguntas muestran el importe exacto de lo que se cobró, por ejemplo 34,99 € en vez de 35 €',
+        'El menú junto a las carteras ya no ofrece herramientas de un mes, como Traer del mes anterior y Restablecer mes',
+        'Para vivir este mes escribe el mes en minúscula, y la pestaña Presupuesto cabe en el móvil (Presup.)',
+        'Las carteras abiertas desde el menú no muestran ningún mes ni pestaña seleccionada, porque una cartera no pertenece a ningún mes',
+        'Corregido: un mes o una cartera gastados al céntimo mostraban "−0" y "0 por encima del presupuesto", y Seguimiento mostraba "+0" en vez de ✓. Los céntimos ahora cuadran exactamente',
+        'Corregido: al escribir un importe en una fila de ahorro de un panel vinculado, la meta de ahorro se movía con cada cifra, y podía quedar con un total equivocado. El importe se guarda ahora al terminar con el campo, como en el presupuesto normal',
+        'Corregido: "Copiar mes anterior" en un panel aparte vaciaba este mes si el anterior no tenía nada. Ahora dice que no hay nada que traer',
+        'Corregido: en el diseño Combinado, Año y el "por delante/por detrás" del plan de ahorro solo se actualizaban con el siguiente cambio',
+        'Corregido: dos toques rápidos en Añadir en Seguimiento podían registrar el mismo movimiento dos veces en la app del móvil',
+        'Corregido: un periodo de pago fijado que sigue vigente con el día de inicio desactivado cuenta ahora los días correctos en Para vivir este mes',
+        'El botón Atrás de Android te lleva de las carteras al presupuesto, en lugar de cerrar la app',
+        'En el selector de apps del iPhone, la cubierta que oculta la app tiene ahora el color de la app: oscura con el tema oscuro y clara con el claro, sea cual sea el ajuste del teléfono',
+        'Cambiar el nombre de una fila de ahorro que pertenece a una meta cambia ahora el nombre de la meta y de la misma fila en todos los meses, igual que al renombrar la meta en Plan',
+        'En el diseño Combinado, Deuda muestra al momento un pago de préstamo añadido en Seguimiento',
+        'Los diálogos escriben el nombre del mes en minúscula en medio de una frase, por ejemplo "el presupuesto de octubre 2026"',
+        'Tras el menú de compartir en la app del móvil, la app pregunta si el archivo llegó a donde lo enviaste, en lugar de si la descarga salió bien',
+        'La app web ya no guarda para siempre versiones antiguas de sus archivos. Cada versión nueva se descarga entera al instalarse, así que la app arranca también sin conexión',
+        'El gráfico de Año da cabida a importes muy grandes en sus ejes, con cada etiqueta en una línea',
+        'Al mover un comercio en Seguimiento solo se mueven los movimientos que muestra su fila. Los de mismo texto que pusiste en otra categoría, y los ingresos con el mismo texto, se quedan donde están. La app sigue recordando la elección para la próxima importación',
+        'Texto más claro en modo oscuro y claro: botones, pestañas e importes de categoría alcanzan ahora al menos 4,5:1 de contraste, y un importe muy grande en Seguimiento pasa a dos líneas en vez de cortarse en el móvil',
+        'En las apps, Privacidad explica cómo bloquear la app con el bloqueo del propio teléfono: Requerir Face ID en iPhone, bloqueo de apps en muchos Android',
+        'La app ahora se llama YourBudget: en la pantalla de inicio, en la pestaña del navegador, en la bienvenida y en el texto de privacidad. Tus datos y ajustes no cambian',
+        'Los textos dicen dispositivo en lugar de teléfono donde la app puede usarse igual en un iPad, y en el iPad las pestañas usan nombres cortos para que quepan todas',
+        'Deuda: si cambias el importe extra y eliges una estrategia seguidos, se guardan los dos. Antes, el nuevo importe podía perderse aunque el campo lo mostrara',
+        'Nuevas herramientas en Seguimiento: busca en tus compras, «¿Qué pasa si…?» para probar un cambio en el presupuesto, y «¿Cuánto necesito ahorrar?», que puede convertirse en una meta de ahorro. En la pestaña Deuda puedes probar otro importe extra antes de cambiarlo. Nada cambia hasta que confirmas, y todo se puede deshacer',
+        'Nueva categoría en la plantilla, Donativos, con Diezmos y ofrendas, Donaciones y Regalos. Las iglesias y organizaciones benéficas del extracto van ahí en lugar de a Ocio',
+        '¿Cambiaste el nombre de una fila por error? Puedes deshacerlo enseguida, como al borrar algo',
+        'Un nombre más claro para una fila de ingresos, «Ayudas y subsidios», y la bienvenida dice claramente que la app nunca se conecta a tu banco',
+        'La app ya está también en francés, alemán, italiano, portugués (Brasil), ruso, turco, japonés y chino simplificado. Elige el idioma en una lista del menú',
+        'Texto más grande: elige uno de tres tamaños en Tamaño del texto en el menú. Todo en la app crece, y sigue cabiendo en un móvil pequeño',
+        'Primeros pasos: una guía de cada parte de la app, arriba en Presupuesto y la primera en el menú. Muéstramelo ilumina el botón correcto en la app, y la guía sigue ahí mientras miras',
+        'La moneda la eliges tú la primera vez que abres la app. Cada símbolo dice qué representa, por ejemplo $ (dólar, peso y otros). Monedas nuevas: rublo (₽), real brasileño (R$), rupia india (₹) y lira turca (₺)',
+        'La importación de presupuestos también lee archivos de Word (.docx), incluso un plan con una tabla por mes. Un abono se resta de la fila de arriba en vez de convertirse en un gasto, y una pensión bajo Ingresos cuenta como ingreso. Antes de importar ves qué hace cada fila y cómo quedará el mes, y un nombre de fila parecido pregunta en vez de añadirse dos veces',
+        'Para vivir este mes muestra también Al mes. Toca la semana o el mes para convertir el importe en una cartera, un plan para el día a día. Con periodo de pago, se nombra el periodo en vez del mes',
+        'El clasificador reconoce tiendas, gasolineras, transporte público y compañías de luz habituales en Brasil, Portugal, Rusia, Turquía, Italia, Francia, Alemania y China. Los nombres chinos se encuentran aunque la ciudad vaya pegada',
+        "Un nuevo comienzo para quien nunca ha hecho un presupuesto: tras el idioma y la moneda, la app pregunta si ya has hecho uno. Como principiante respondes unas preguntas sencillas, como sueldo, vivienda y móvil, y obtienes un presupuesto para este mes o el resto del año",
+        "Todas las filas se pueden borrar, también las de la plantilla. Las categorías plegadas siguen plegadas. Seguimiento dice «quedan» y «de más» en vez de un signo menos. La app ofrece copiar el presupuesto al resto del año. La plantilla incluye la tarifa del móvil. Los paneles que suben desde abajo se pueden arrastrar hacia abajo para cerrarlos, y sus botones ya no quedan bajo los botones del teléfono",
+        'Más presupuestos en Personalizado: elige + Nuevo presupuesto en el selector de arriba, por ejemplo para un pequeño negocio. Cada presupuesto tiene sus propios meses y nunca se suma a tu presupuesto habitual. Con ✏️ cambias el nombre de un presupuesto, también de Mi presupuesto, y uno añadido se puede eliminar y recuperar con Deshacer',
+        'Seguimiento tiene el botón ⚠️ Borrar todos los movimientos, para quien quiera empezar de cero. Elimina todos los movimientos de todos los meses de una vez, pero nunca tus presupuestos ni lo que la app ha aprendido de tus tiendas. La app pregunta antes y dice cuántos movimientos son, y Deshacer lo recupera todo',
+      ],
+      fr: frChangelog113.items,
+      de: deChangelog113.items,
+      ja: jaChangelog113.items,
+      zh: zhChangelog113.items,
+      it: itChangelog113.items,
+      pt: ptChangelog113.items,
+      ru: ruChangelog113.items,
+      tr: trChangelog113.items,
+    },
+  },
   {
     version: '1.12.5',
     date: '2026-09-25',

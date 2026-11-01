@@ -17,16 +17,16 @@
 
 import type { StorageLike } from './backup';
 
-/** The seven categories a fresh budget ships with, by their stable ids. The
+/** The categories a fresh budget ships with, by their stable ids. The
  *  ids are stable ACROSS MONTHS, which is what lets an entry filed in August
  *  line up with the same category in September. */
 export type StandardCategoryId =
   | 'boende' | 'mat' | 'transport' | 'prenumerationer'
-  | 'personligt' | 'fritid' | 'sparande' | 'lan';
+  | 'personligt' | 'fritid' | 'sparande' | 'lan' | 'givande';
 
 export const STANDARD_CATEGORY_IDS: readonly StandardCategoryId[] = [
   'boende', 'mat', 'transport', 'prenumerationer', 'personligt', 'fritid', 'sparande',
-  'lan',
+  'lan', 'givande',
 ];
 
 export function isStandardCategoryId(id: string): id is StandardCategoryId {
@@ -155,6 +155,7 @@ const INTERNATIONAL: Record<StandardCategoryId, string[]> = {
     'uniqlo', 'primark', 'cos', 'monki', 'weekday', 'arket',
     'zalando', 'asos', 'about you', 'shein',
     'sephora', 'rituals', 'the body shop', 'douglas', 'yves rocher',
+    'watsons',   // K: health and beauty in Turkey, China and beyond — one rule, not two
   ],
   fritid: [
     'steam', 'playstation', 'xbox', 'nintendo', 'epic games', 'blizzard',
@@ -164,8 +165,8 @@ const INTERNATIONAL: Record<StandardCategoryId, string[]> = {
     'hotel', 'hilton', 'marriott', 'ibis', 'novotel', 'accor', 'radisson',
     'ryanair', 'easyjet', 'lufthansa', 'klm', 'air france', 'wizz air',
     'vueling', 'eurowings', 'norwegian', 'sas', 'finnair',
-    'church', 'unicef', 'wwf',
   ],
+  givande: ['church', 'unicef', 'wwf'],
   sparande: [
     'coinbase', 'binance', 'kraken', 'trade republic', 'etoro', 'degiro',
     'interactive brokers',
@@ -189,6 +190,9 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
   transport: [
     'sl', 'vasttrafik', 'skanetrafiken', 'ostgotatrafiken', 'lanstrafiken',
     'varmlandstrafik', 'ul', 'sormlandstrafiken', 'jlt', 'dintur',
+    // K (tester, 2026-10-19: "SL is very Stockholm"): the regions the suffix
+    // rule cannot reach, because their names do not end in -trafiken.
+    'dalatrafik', 'x trafik', 'xtrafik', 'din tur', 'lanstrafiken jamtland',
     'sj', 'snalltaget', 'mtr express', 'mtrx', 'vy', 'tagab',
     'taxi stockholm', 'taxi kurir', 'sverigetaxi', 'cabonline',
     'okq8', 'preem', 'ingo', 'tanka', 'qstar',
@@ -216,6 +220,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'actic', 'puls trening', 'gymgrossisten',
     'telenor', 'telia', 'tele2', 'halebop', 'comviq', 'hallon', 'vimla', 'fello',
     'bahnhof', 'bredbandsbolaget', 'ownit', 'boxer', 'chilimobil',
+    'hi3g', 'lycamobile', 'lebara',   // K: Tre's company name, and two prepaid operators
   ],
   personligt: [
     'apotek', 'apoteket', 'apotea', 'kronans apotek', 'lloyds apotek', 'med24',
@@ -225,6 +230,7 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'frisor', 'fris', 'barberare', 'klippning', 'salong', 'nagelsalong',
     'tandlakare', 'folktandvarden', 'vardcentral', 'capio', 'kry', 'min doktor',
     'naprapat', 'kiropraktor', 'massage', 'sjukvard', 'region',
+    'familjedoktorn',         // K
   ],
   fritid: [
     'filmstaden', 'sf bio', 'biografen', 'bio roy', 'drafthouse',
@@ -240,11 +246,14 @@ const SWEDEN: Record<StandardCategoryId, string[]> = {
     'hotell', 'scandic', 'elite hotels', 'first hotel', 'nordic choice',
     'strawberry', 'vandrarhem',
     'ving', 'tui', 'apollo', 'resia', 'fritidsresor',
+    'swedavia', 'flygbussarna', 'tallink', 'viking line', 'stena line',
+  ],
+  // Churches and charities: giving, not leisure (tester, 2026-10-17).
+  givande: [
     'kyrka', 'kyrkan', 'forsamling', 'missionskyrkan', 'pingstkyrkan',
     'equmenia', 'fralsningsarmen', 'stadsmissionen', 'radda barnen',
     'rode korset', 'cancerfonden', 'barncancerfonden', 'hjart lungfonden',
     'lakare utan granser', 'musikhjalpen', 'brostcancerforbundet',
-    'swedavia', 'flygbussarna', 'tallink', 'viking line', 'stena line',
   ],
   sparande: [
     'nordnet', 'avanza', 'lysa', 'opti', 'savr', 'sigmastocks', 'fundler',
@@ -332,6 +341,7 @@ const UNITED_STATES: Record<StandardCategoryId, string[]> = {
     'sallie mae', 'navient', 'nelnet', 'mohela', 'great lakes',
     'lendingclub', 'upstart', 'oportun', 'avant',
   ],
+  givande: [],
 };
 
 const SPAIN: Record<StandardCategoryId, string[]> = {
@@ -381,6 +391,7 @@ const SPAIN: Record<StandardCategoryId, string[]> = {
   lan: [
     'cofidis', 'cetelem', 'wizink', 'younited', 'creditea', 'hipoteca',
   ],
+  givande: [],
 };
 
 const AUSTRALIA: Record<StandardCategoryId, string[]> = {
@@ -398,6 +409,7 @@ const AUSTRALIA: Record<StandardCategoryId, string[]> = {
   fritid: ['qantas', 'jetstar', 'jb hi fi'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const SOUTH_AFRICA: Record<StandardCategoryId, string[]> = {
@@ -421,6 +433,7 @@ const SOUTH_AFRICA: Record<StandardCategoryId, string[]> = {
   fritid: ['flysafair', 'incredible connection'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const MEXICO: Record<StandardCategoryId, string[]> = {
@@ -441,6 +454,7 @@ const MEXICO: Record<StandardCategoryId, string[]> = {
   fritid: ['cinepolis', 'cinemex', 'volaris'],   // K
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 // Japanese descriptors have no spaces, so these are matched as a run of
@@ -468,6 +482,7 @@ const JAPAN: Record<StandardCategoryId, string[]> = {
   ],
   sparande: [],
   lan: [],
+  givande: [],
 };
 
 const COLOMBIA: Record<StandardCategoryId, string[]> = {
@@ -485,11 +500,175 @@ const COLOMBIA: Record<StandardCategoryId, string[]> = {
   fritid: ['cine colombia', 'avianca'],   // K
   sparande: [],
   lan: [],
+  givande: [],
+};
+
+// ── Eight more countries (2026-10-19) ──────────────────────────────────────
+//
+// Brazil, Portugal, Russia, Turkey, Italy, France, Germany and China, from the
+// brief CLAUDE_CODE_SORTER_EIGHT_COUNTRIES_2026-10-18.md. Every name below is
+// K: the company's own site confirms the name and the business, but no bank
+// line has been seen yet — a card descriptor may shorten it or use the legal
+// entity. Names the brief marked as conditional are in only in their long,
+// unambiguous form ("posto ipiranga", not "ipiranga"); short or ordinary words
+// ("continente", "gratis", "cultura", "edf", "magnit", "orange") and payment
+// methods (Pix, MB Way, Alipay) are deliberately absent — no answer beats a
+// wrong one. Russian is written with е, never ё: matchWords folds ё to е, so
+// "ПЯТЕРОЧКА" and "ПЯТЁРОЧКА" both match.
+
+const BRAZIL: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'assai', 'atacadao', 'atakarejo',            // K
+    'supermercados bh',       // K; "bh" alone is a city
+    'mateus supermercados',   // K; "mateus" alone is a first name
+  ],
+  transport: [
+    'posto ipiranga',         // K; "ipiranga" alone is also a district
+    'localiza rent a car',    // K; "localiza" alone is an ordinary verb
+    'movida rent a car',      // K
+  ],
+  boende: ['sabesp', 'cemig', 'sanepar'],   // K: water and electricity bills
+  prenumerationer: [],
+  personligt: [
+    'drogasil', 'o boticario',                   // K
+    'droga raia',             // K; never "raia" alone
+    'drogaria sao paulo',     // K; the whole phrase
+    'farmacias pague menos',  // K; "pague menos" alone is "pay less"
+    'lojas renner',           // K
+    'lojas riachuelo',        // K; "riachuelo" alone is also a place
+  ],
+  fritid: [],
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const PORTUGAL: Record<StandardCategoryId, string[]> = {
+  mat: ['pingo doce', 'auchan', 'minipreco'],   // K
+  transport: [
+    'fertagus', 'via verde', 'rede expressos',  // K
+    'metro lisboa',           // K; never "metro" alone
+  ],
+  boende: ['aguas e energia do porto'],   // K
+  prenumerationer: ['meo'],   // K: TV, internet and phone
+  personligt: [],
+  fritid: ['cinemas nos'],    // K; "nos" alone is a word and a telecom
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const RUSSIA: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'пятерочка', 'дикси', 'вкусвилл', 'азбука вкуса',   // K
+    'гипер лента',            // K; "лента" alone is an ordinary word
+  ],
+  transport: [
+    'лукойл', 'делимобиль',   // K
+    'яндекс такси',           // K; never "яндекс" alone
+    'азс роснефть',           // K; "роснефть" alone is the group
+  ],
+  boende: ['мосэнергосбыт'],  // K: electricity in Moscow
+  prenumerationer: [],
+  personligt: [
+    'ригла', 'лэтуаль',       // K
+    'магнит косметик',        // K; "магнит" alone is groceries, a pharmacy and a word
+  ],
+  fritid: [],
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const TURKEY: Record<StandardCategoryId, string[]> = {
+  mat: [
+    'migros', 'a101', 'carrefoursa', 'macrocenter',   // K
+    'sok marketler',          // K; "şok" alone is an ordinary word
+  ],
+  transport: [
+    'opet', 'iett', 'ispark', 'petrol ofisi',          // K
+    'metro istanbul',         // K
+  ],
+  boende: ['koctas'],         // K: DIY and home, like Bauhaus
+  prenumerationer: ['turkcell', 'turk telekom'],      // K
+  personligt: ['lc waikiki'], // K
+  fritid: ['pegasus airlines'],   // K; "pegasus" alone is many companies
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const ITALY: Record<StandardCategoryId, string[]> = {
+  mat: ['esselunga', 'conad', 'eurospin', 'bennet', 'todis', 'iper la grande i'],   // K
+  transport: [
+    'trenitalia', 'telepass', 'cotral',                 // K
+    'italo treno',            // K; "italo" alone is a first name
+    'autostrade per l italia',   // K; the apostrophe reads as a space
+  ],
+  boende: ['a2a energia', 'hera comm'],   // K; never "a2a" or "hera" alone
+  prenumerationer: [],
+  personligt: ['tigota', 'calzedonia'],   // K
+  fritid: [],
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const FRANCE: Record<StandardCategoryId, string[]> = {
+  mat: ['monoprix', 'intermarche', 'franprix', 'biocoop',   // K
+    'picard surgeles',        // K; "picard" alone is a surname and a region
+  ],
+  transport: [
+    'ratp', 'ouigo', 'sncf connect',                    // K
+    'vinci autoroutes',       // K; never "vinci" alone
+  ],
+  boende: [],
+  prenumerationer: ['bouygues telecom', 'canal plus'],   // K
+  personligt: ['kiabi', 'nocibe'],   // K
+  fritid: ['ugc cine cite'],  // K
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+const GERMANY: Record<StandardCategoryId, string[]> = {
+  mat: ['rewe', 'edeka', 'tegut'],   // K
+  transport: ['aral', 'deutsche bahn', 'hamburger hochbahn'],   // K
+  boende: [],
+  prenumerationer: ['deutsche telekom', 'congstar'],   // K
+  personligt: [
+    'rossmann', 'budni', 'deichmann',   // K
+    'dm drogerie',            // K; never "dm" alone
+  ],
+  fritid: ['hugendubel'],     // K
+  sparande: [],
+  lan: [],
+  givande: [],
+};
+
+// Chinese names are written without spaces, so they go the same way as the
+// Japanese ones: matched as a run of characters inside the text, which finds
+// "盒马鲜生" in "盒马鲜生上海". Whole names only — "全家" is "the whole family",
+// "滴滴" and "万达" are groups with many businesses.
+const CHINA: Record<StandardCategoryId, string[]> = {
+  mat: [
+    '永辉超市', '盒马鲜生', '小象超市', '大润发', '物美超市', '叮咚买菜', '钱大妈',
+    '全家便利店', '罗森便利店', '瑞幸咖啡', '海底捞',   // K
+  ],
+  transport: ['滴滴出租车', '哈啰单车', '中国石化加油站'],   // K
+  boende: [],
+  prenumerationer: ['中国移动'],   // K
+  personligt: ['屈臣氏', '老百姓大药房', '益丰大药房'],   // K
+  fritid: ['中国南方航空', '横店影视', '新华书店', '万达影城'],   // K
+  sparande: [],
+  lan: [],
+  givande: [],
 };
 
 /** Every list, by name — the tests hold them all to the same rules. */
 export const SEED_LISTS = {
   INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN, AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN, COLOMBIA,
+  BRAZIL, PORTUGAL, RUSSIA, TURKEY, ITALY, FRANCE, GERMANY, CHINA,
 } as const;
 
 /** Everything the sorter knows. Exported so a test can hold every list to the
@@ -498,7 +677,10 @@ export const SEED: Record<StandardCategoryId, string[]> = Object.fromEntries(
   STANDARD_CATEGORY_IDS.map(id => [id, Object.values(SEED_LISTS).flatMap(list => list[id])]),
 ) as Record<StandardCategoryId, string[]>;
 
-export { INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN, AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN, COLOMBIA };
+export {
+  INTERNATIONAL, SWEDEN, UNITED_STATES, SPAIN, AUSTRALIA, SOUTH_AFRICA, MEXICO, JAPAN, COLOMBIA,
+  BRAZIL, PORTUGAL, RUSSIA, TURKEY, ITALY, FRANCE, GERMANY, CHINA,
+};
 
 /**
  * Names that must NOT get a suggestion, and must stop a shorter rule from
@@ -530,7 +712,7 @@ const GLUED_BRANDS: { prefix: string; kind: StandardCategoryId; except: string[]
  */
 const SEED_SUFFIX: Partial<Record<StandardCategoryId, string[]>> = {
   transport: ['trafiken'],
-  fritid: ['kyrkan', 'kyrka', 'forsamlingen', 'forsamling'],
+  givande: ['kyrkan', 'kyrka', 'forsamlingen', 'forsamling'],
   personligt: ['salong', 'apoteket'],
   mat: ['bageri', 'konditori', 'restaurang', 'pizzeria'],
 };
@@ -541,7 +723,13 @@ const SUFFIX_RULES: { suffix: string; kind: StandardCategoryId }[] = Object
     (endings ?? []).map(suffix => ({ suffix, kind: kind as StandardCategoryId })))
   .sort((a, b) => b.suffix.length - a.suffix.length);
 
-/** Hiragana, katakana (incl. the long-vowel mark) and kanji. */
+/** Two letters that decide nothing about a name, folded for matching only:
+ *  Russian ё, which many banks write as е ("ПЯТЕРОЧКА"), and Turkish dotless
+ *  ı, which the Latin accent rule in matchWords cannot reach ("akaryakıt"). Applied to
+ *  the text AND to every rule, so neither side can be written the "wrong" way. */
+const foldForMatch = (s: string) => s.replace(/[ёЁ]/g, c => (c === 'ё' ? 'е' : 'Е')).replace(/ı/g, 'i');
+
+/** Hiragana, katakana (incl. the long-vowel mark) and kanji — which are also Chinese characters, so Chinese names take the same substring path. */
 const JAPANESE = /[\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
 
 /** The word list, flattened once and ordered so the most specific rule wins.
@@ -549,9 +737,18 @@ const JAPANESE = /[\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
 const RULES: { words: string[]; kind: StandardCategoryId | null }[] = [
   ...Object.entries(SEED).flatMap(([kind, patterns]) => patterns
     .filter(p => !JAPANESE.test(p))
-    .map(p => ({ words: p.split(' '), kind: kind as StandardCategoryId | null }))),
+    .map(p => ({ words: foldForMatch(p).split(' '), kind: kind as StandardCategoryId | null }))),
   ...NO_OPINION.map(p => ({ words: p.split(' '), kind: null })),
 ].sort((a, b) => b.words.length - a.words.length || b.words.join('').length - a.words.join('').length);
+
+/** The rules a bank-cut last word may complete: only the Swedish and the
+ *  international names, whose descriptors the sixteen-character ceiling was
+ *  measured on. Every list completing fragments let "Västernorrland Din Tur",
+ *  a bus operator, end in "tur…" — and Turkey's "turkcell" made it a phone
+ *  bill (2026-10-19). A fragment is weak evidence; it stays where it was
+ *  earned. */
+const CUT_SOURCES = new Set([...Object.values(INTERNATIONAL).flat(), ...Object.values(SWEDEN).flat()]);
+const CUT_RULES = RULES.filter(r => r.kind === null || CUT_SOURCES.has(r.words.join(' ')));
 
 /** Japanese names, matched as a run of characters, longest first. */
 const JAPANESE_RULES: { text: string; kind: StandardCategoryId }[] = Object
@@ -579,8 +776,8 @@ const JAPANESE_RULES: { text: string; kind: StandardCategoryId }[] = Object
  *     numbers normalise() already removes.
  */
 function matchWords(text: string): string[] {
-  const widened = text.normalize('NFKC')
-    .replace(/[\u00c0-\u024f]/g, c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  const widened = foldForMatch(text.normalize('NFKC')
+    .replace(/[\u00c0-\u024f]/g, c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
   return normalise(widened).split(' ').filter(Boolean)
     .flatMap(w => w.match(/[\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+|[^\u3005\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+/g) ?? [w])
     .map(w => /^([a-z]{4,})\d{3,}$/.exec(w)?.[1] ?? w);
@@ -661,7 +858,7 @@ export function seedKind(text: string): StandardCategoryId | undefined {
   // the sixteen-character ceiling: a short description was not truncated and
   // gets no licence to match loosely.
   if (text.trim().length >= 15) {
-    for (const rule of RULES) {
+    for (const rule of CUT_RULES) {
       if (hasWordRun(words, rule.words, true)) return rule.kind ?? undefined;
     }
   }

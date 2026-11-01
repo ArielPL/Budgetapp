@@ -165,8 +165,13 @@ function periodOpen(
 export function periodDays(
   year: number, month: number, startDay: number | null, locks: PeriodLocks = {},
 ): number {
-  if (startDay === null) return new Date(year, month + 1, 0).getDate();
-  const { from, to } = periodRange(year, month, startDay, locks);
+  // A pinned period counts even with no start day set, exactly as the header
+  // (periodLabelFor) and the filing of entries (budgetMonthOf) read it. Without
+  // this the header said "20 Sep – 31 Oct" while "Left to live on" divided by
+  // October's 31 days (full sweep 2026-10-08). A pin on the NEXT month moves
+  // this month's end, so any pin at all means asking periodRange.
+  if (startDay === null && Object.keys(locks).length === 0) return new Date(year, month + 1, 0).getDate();
+  const { from, to } = periodRange(year, month, startDay ?? 1, locks);
   return Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
 }
 

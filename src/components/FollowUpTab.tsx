@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { appStorage } from '../storage';
 import { generateId, shownName, loadMonthData } from '../defaults';
 import { categoryTotal, calculateBudgetMetrics } from '../metrics';
-import { parseMoneyOrZero } from '../money';
+import { parseMoneyOrZero, toCents } from '../money';
 import {
   actualsKey, loadActuals, sumByCategory, planPersist, groupByMonth,
-  actualContribution, groupEntriesByText, isBucketId,
+  actualContribution, groupEntriesByText, isBucketId, allActuals,
   INCOME_ACTUAL_ID, UNSORTED_ACTUAL_ID, TRANSFER_ACTUAL_ID,
 } from '../actuals';
 import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
@@ -21,13 +21,14 @@ import { hasBudgetContent } from '../monthContent';
 import { useLang, MONTHS } from '../i18n';
 import { CsvImport, type TouchedMonth, type CategoryPlan } from './CsvImport';
 import { SpendingCard } from './SpendingCard';
-import { QuestionCards } from './QuestionCards';
+import { QuestionCards, type NewGoalRequest } from './QuestionCards';
 import { spendingBreakdown, purchaseHighlights, smallLimitChoices } from '../spending';
 import {
   loadHiddenPlaces, hiddenPlacesChange, loadSmallLimit, SMALL_LIMIT_KEY, type HiddenPlaces,
 } from '../spendingPrefs';
 import type { ActualEntry, BudgetCategory } from '../types';
 import { isValidIsoDate } from '../date';
+import { monthInText, monthTitle } from '../dateLabel';
 
 // ── Follow-up — what the plan said, next to what happened ──────────────────
 //
@@ -64,12 +65,18 @@ interface Props {
   onLockPeriod: (year: number, month: number, iso: string | null) => void;
   /** Open the Budget tab — offered while there is nothing here to follow up. */
   onOpenBudget?: () => void;
+  /** Store a goal from the "What do I need to save?" tool. */
+  onCreateGoal?: (goal: NewGoalRequest) => Promise<boolean>;
   /** A new category the user named: its id now, and the writes that add it
    *  to the months given, to commit together with the entries moved into it. */
   planNamedCategory: (name: string) => { id: string; in: (months: TouchedMonth[]) => CategoryPlan };
   /** Remember a step back from the two actions here that destroy: clearing a
    *  month's record, and an import that lands in the wrong one. */
   onRecordUndo: (entry: UndoEntry) => void;
+  /** Entries were stored — an edit here or an import — so views elsewhere on
+   *  the same page that read them (the Debt tab's "paid this month" in the
+   *  Combined layout) can read them again. */
+  onActualsChanged?: () => void;
 }
 
 /** Sentinel in the move dropdown: not a category, an invitation to make one. */
@@ -95,6 +102,7 @@ const NO_ENTRIES: ActualEntry[] = [];
 export const FollowUpTab = ({
   year, month, categories, totalIncome, onSaveFailed, onGoToMonth, planStandardCategories,
   periodStartDay, periodLocks, onLockPeriod, planNamedCategory, onRecordUndo, onOpenBudget,
+  onActualsChanged, onCreateGoal,
 }: Props) => {
   const { t, lang, money, currency } = useLang();
   // How many budget months are in view, ending at the one on screen. 1 is the
@@ -295,6 +303,7 @@ export const FollowUpTab = ({
         months: plan.movedTo.map(({ year: y, month: m }) => ({ year: y, month: m })),
       });
     }
+    onActualsChanged?.();
     return true;
   };
 
@@ -353,8 +362,8 @@ export const FollowUpTab = ({
 
   /** Accept a proposal for a standard category the budget does not hold: make
    *  it, and move the place into it, as one change — like the import. */
-  const createStandardAndMove = (place: string, id: string) =>
-    createAndFile(place, id, homes => planStandardCategories([id], homes));
+  const createStandardAndMove = (place: string, id: string, from: string) =>
+    createAndFile(place, id, from, homes => planStandardCategories([id], homes));
 
   // Each entry is indexed once. The old render path scanned the full list once
   // per category, which became noticeable after large statement imports.
@@ -457,20 +466,30 @@ export const FollowUpTab = ({
    * Learned like a correction in the import, because it IS one — the next
    * statement puts that place straight into the category you chose here.
    */
-  const movePlace = async (place: string, categoryId: string): Promise<boolean> => {
+  const movePlace = async (place: string, categoryId: string, from: string): Promise<boolean> => {
     if (!categoryId) return false;
-    const saved = await persist(moving(place, categoryId));
+    const saved = await persist(moving(place, categoryId, from));
     if (!saved) return false;
     rememberCategoryRule(appStorage, place, categoryId);
     setOpenPlace(null);
     return true;
   };
 
-  /** Every entry of `place` filed under `categoryId`. */
-  const moving = (place: string, categoryId: string) => {
+  /**
+   * The entries of `place` that sit under `from`, filed under `categoryId`.
+   *
+   * Only those. A place is moved from inside one row (or one item of the
+   * leftover list), and that row's count — "ICA · 3 entries" — is what the
+   * user is deciding about. It used to move EVERY entry with that text in the
+   * months on screen: ICA purchases filed under another category on purpose,
+   * and incoming refunds or salary with the same wording, went along with the
+   * three (full sweep 2026-10-08; Ariel's call). The rule is still learned,
+   * so the next statement files new ones the same way.
+   */
+  const moving = (place: string, categoryId: string, from: string) => {
     const key = place.trim().toLowerCase();
     return (current: ActualEntry[]) => current.map(e => (
-      e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
+      e.categoryId === from && e.text.trim().toLowerCase() === key ? { ...e, categoryId } : e
     ));
   };
 
@@ -486,7 +505,7 @@ export const FollowUpTab = ({
    * that one of the moved entries goes home to.
    */
   const createAndFile = async (
-    place: string, categoryId: string, plan: (homes: TouchedMonth[]) => CategoryPlan,
+    place: string, categoryId: string, from: string, plan: (homes: TouchedMonth[]) => CategoryPlan,
   ): Promise<boolean> => {
     if (creating.current) return false;
     creating.current = true;
@@ -494,9 +513,10 @@ export const FollowUpTab = ({
     const key = place.trim().toLowerCase();
     const view = months;
     try {
-      const saved = await persist(moving(place, categoryId), undefined, next => {
+      const saved = await persist(moving(place, categoryId, from), undefined, next => {
         const homes = new Map(view.map(m => [`${m.year}_${m.month}`, { year: m.year, month: m.month }]));
-        const mine = next.filter(e => e.text.trim().toLowerCase() === key);
+        // The entries that moved: now under the new category, with this text.
+        const mine = next.filter(e => e.categoryId === categoryId && e.text.trim().toLowerCase() === key);
         for (const [k, at] of groupByMonth(mine, periodStartDay, periodLocks).months) {
           homes.set(k, { year: at.year, month: at.month });
         }
@@ -514,11 +534,11 @@ export const FollowUpTab = ({
 
   /** Create the category the user is naming and file the place into it. The
    *  name stays in the box until it is stored, so a refusal loses nothing. */
-  const createAndMove = async (place: string) => {
+  const createAndMove = async (place: string, from: string) => {
     const name = newCatName.trim();
     if (!name || creating.current) return;
     const cat = planNamedCategory(name);
-    if (await createAndFile(place, cat.id, cat.in)) {
+    if (await createAndFile(place, cat.id, from, cat.in)) {
       setNamingPlace(null);
       setNewCatName('');
     }
@@ -532,7 +552,7 @@ export const FollowUpTab = ({
   const clearMonth = async () => {
     const n = entries.length;
     if (n === 0) return;
-    if (!window.confirm(t.followUpClearConfirm(n, `${MONTHS[lang][month]} ${year}`))) return;
+    if (!window.confirm(t.followUpClearConfirm(n, monthInText(month, year, lang)))) return;
     // persist captures the step back from the exact keys it writes, so undo
     // restores exactly what was emptied.
     if (await persist(() => [], { action: 'clearActuals', count: n })) {
@@ -540,6 +560,31 @@ export const FollowUpTab = ({
       setToast({ text: t.followUpClearDone(n), months: [] });
     }
   };
+
+  /** Every recorded entry, in every month, in one write (Ariel, 2026-10-23:
+   *  "if you want to clear it completely"). Asked with the count and the
+   *  number of months, never touches a budget or what the sorting has learned,
+   *  and can be undone. Waits for any edit still saving, so nothing lands
+   *  after the clearing and survives it. */
+  const clearAll = async () => {
+    await saving.current.catch(() => undefined);
+    const all = allActuals(appStorage);
+    if (all.entries === 0) return;
+    if (!window.confirm(t.followUpClearAllConfirm(all.entries, all.months))) return;
+    const before = captureKeys(appStorage, all.keys);
+    const outcome = await commitStorageChangesOutcome(appStorage, all.keys.map(key => ({ key, value: null })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return;
+    }
+    reloadLatest.current();
+    setOpenRow(null);
+    onRecordUndo({ at: new Date().toISOString(), action: 'clearAllActuals', count: all.entries, changes: before });
+    setToast({ text: t.followUpClearDone(all.entries), months: [] });
+  };
+  // Shown whenever anything is recorded anywhere, not only in the months on
+  // screen: a month you are not looking at is exactly where it is easy to forget.
+  const anyRecorded = entries.length > 0 || allActuals(appStorage).entries > 0;
 
   // Entries whose category this month's budget does not have. It happens more
   // often than it sounds: importing a statement into a month you have not
@@ -657,14 +702,22 @@ export const FollowUpTab = ({
    *  (finding 15). */
   const renderDiff = (actual: number, planned: number, id: string) => {
     if (planned === 0) return null;
-    const diff = actual - planned;
+    // To the cent: entries of 20.10 and 40.20 against a 60.30 plan differ by
+    // float dust, which printed "+0 kr" as an overrun (full sweep 2026-10-08).
+    const diff = toCents(actual - planned);
     if (diff === 0) return <span className="followup-diff followup-diff-ok">✓</span>;
     // Over the plan is bad for an expense and good for income, so the sign alone
     // cannot decide the colour.
-    const bad = id === INCOME_ACTUAL_ID ? diff < 0 : diff > 0;
+    const income = id === INCOME_ACTUAL_ID;
+    const bad = income ? diff < 0 : diff > 0;
+    // The amount without a sign, and a word that says which way: "−10 450 kr"
+    // read as an overrun to a tester when it meant money left over.
+    const w = t.followUpDiffWords;
+    const word = income ? (diff > 0 ? w.extra : w.short) : (diff > 0 ? w.over : w.left);
     return (
       <span className={`followup-diff ${bad ? 'followup-diff-over' : 'followup-diff-under'}`}>
-        {diff > 0 ? '+' : ''}{money(diff)}
+        {money(Math.abs(diff))}
+        <span className="followup-diff-word">{word}</span>
       </span>
     );
   };
@@ -752,7 +805,7 @@ export const FollowUpTab = ({
                           setNamingPlace(key);
                           return;
                         }
-                        movePlace(g.text, ev.target.value);
+                        movePlace(g.text, ev.target.value, row.id);
                       }}
                     >
                       <option value="">⇄</option>
@@ -777,9 +830,9 @@ export const FollowUpTab = ({
                         placeholder={t.followUpNewCategoryName}
                         aria-label={t.followUpNewCategoryName}
                         onChange={ev => setNewCatName(ev.target.value)}
-                        onKeyDown={ev => { if (ev.key === 'Enter') createAndMove(g.text); }}
+                        onKeyDown={ev => { if (ev.key === 'Enter') createAndMove(g.text, row.id); }}
                       />
-                      <button className="followup-newcat-save" disabled={creatingNow} onClick={() => createAndMove(g.text)}>
+                      <button className="followup-newcat-save" disabled={creatingNow} onClick={() => createAndMove(g.text, row.id)}>
                         {t.followUpSave}
                       </button>
                       <button className="followup-newcat-cancel" onClick={() => setNamingPlace(null)}>
@@ -844,7 +897,10 @@ export const FollowUpTab = ({
           {span === 1 && entries.length > 0 && (
             <button className="followup-clear" onClick={clearMonth}>{t.followUpClear}</button>
           )}
-          <button className="followup-import" onClick={() => setImporting(true)}>
+          {anyRecorded && (
+            <button className="followup-clear followup-clear-all" onClick={clearAll}>⚠️ {t.followUpClearAll}</button>
+          )}
+          <button className="followup-import" data-guide="import" onClick={() => setImporting(true)}>
             ⬆ {t.followUpImport}
           </button>
           <button
@@ -885,7 +941,7 @@ export const FollowUpTab = ({
           <span className="followup-span-range">
             {t.followUpSpanRange(
               `${MONTHS[lang][months[0].month]} ${months[0].year}`,
-              `${MONTHS[lang][month]} ${year}`,
+              monthTitle(month, year, lang),
             )}
           </span>
         )}
@@ -952,7 +1008,7 @@ export const FollowUpTab = ({
                 className="followup-toast-go"
                 onClick={() => onGoToMonth(m.year, m.month)}
               >
-                {t.csvGoToMonth(`${MONTHS[lang][m.month]} ${m.year}`)}
+                {t.csvGoToMonth(monthInText(m.month, m.year, lang))}
               </button>
             ))}
         </p>
@@ -969,6 +1025,7 @@ export const FollowUpTab = ({
           onClose={() => setImporting(false)}
           onRecordUndo={onRecordUndo}
           onImported={(summary, months) => {
+            onActualsChanged?.();
             setImporting(false);
             setToast({ text: summary, months });
             // Re-read rather than merge in memory: the import may have written
@@ -1002,7 +1059,7 @@ export const FollowUpTab = ({
       )}
 
       {!nothingYet && (
-        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} />
+        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal} />
       )}
 
       {/* ── The leftover pile, as a short list of decisions ──────────────
@@ -1036,7 +1093,7 @@ export const FollowUpTab = ({
                     {d.categoryId && (
                       <button
                         className="triage-accept"
-                        onClick={() => movePlace(d.text, d.categoryId!)}
+                        onClick={() => movePlace(d.text, d.categoryId!, UNSORTED_ACTUAL_ID)}
                       >
                         {categoryLabel(d.categoryId)}
                         {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
@@ -1046,7 +1103,7 @@ export const FollowUpTab = ({
                       <button
                         className="triage-accept triage-accept-new"
                         disabled={creatingNow}
-                        onClick={() => createStandardAndMove(d.text, d.create!)}
+                        onClick={() => createStandardAndMove(d.text, d.create!, UNSORTED_ACTUAL_ID)}
                       >
                         {t.triageCreate(standardName(d.create))}
                         {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
@@ -1056,7 +1113,7 @@ export const FollowUpTab = ({
                       className="triage-other"
                       value=""
                       aria-label={t.followUpMoveTo(d.text)}
-                      onChange={ev => { if (ev.target.value) movePlace(d.text, ev.target.value); }}
+                      onChange={ev => { if (ev.target.value) movePlace(d.text, ev.target.value, UNSORTED_ACTUAL_ID); }}
                     >
                       <option value="">{t.triageOther}</option>
                       <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
@@ -1246,7 +1303,8 @@ const AddEntryForm = ({ year, month, minDate, maxDate, onAdd, onCancel }: {
   month: number;
   minDate: string;
   maxDate: string;
-  onAdd: (date: string, text: string, amount: number) => void;
+  /** Resolves once the entry is stored (or refused). */
+  onAdd: (date: string, text: string, amount: number) => Promise<unknown>;
   onCancel: () => void;
 }) => {
   const { t } = useLang();
@@ -1261,8 +1319,14 @@ const AddEntryForm = ({ year, month, minDate, maxDate, onAdd, onCancel }: {
   const [text, setText] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // One save at a time. In the apps the entry waits for the database, and the
+  // form stays open until it answers — so a second tap on Add (or a second
+  // Enter) used to file the same purchase twice (full sweep 2026-10-08).
+  const busy = useRef(false);
+  const [saving, setSaving] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
+    if (busy.current) return;
     const r = parseMoneyOrZero(amount);
     if (!r.ok || r.value <= 0) { setError(t.followUpBadAmount); return; }
     if (!text.trim()) { setError(t.followUpBadText); return; }
@@ -1270,7 +1334,14 @@ const AddEntryForm = ({ year, month, minDate, maxDate, onAdd, onCancel }: {
       setError(t.followUpBadDate);
       return;
     }
-    onAdd(date, text.trim(), r.value);
+    busy.current = true;
+    setSaving(true);
+    try {
+      await onAdd(date, text.trim(), r.value);
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
   };
 
   return (
@@ -1286,10 +1357,10 @@ const AddEntryForm = ({ year, month, minDate, maxDate, onAdd, onCancel }: {
       <input
         className="followup-form-amount" inputMode="decimal" value={amount} placeholder={t.followUpAmount}
         onChange={e => { setAmount(e.target.value); setError(null); }} aria-label={t.followUpAmount}
-        onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+        onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
       />
       <div className="followup-form-actions">
-        <button className="followup-form-save" onClick={submit}>{t.followUpSave}</button>
+        <button className="followup-form-save" disabled={saving} onClick={() => void submit()}>{t.followUpSave}</button>
         <button className="followup-form-cancel" onClick={onCancel}>{t.followUpCancel}</button>
       </div>
       {error && <p className="followup-form-error" role="alert">{error}</p>}

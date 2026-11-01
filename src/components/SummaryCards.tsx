@@ -63,7 +63,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
   const prevRemaining = prevIncome - prevExpenses;
 
   return (
-    <div className="summary-cards">
+    <div className="summary-cards" data-guide="summary">
       <div className="summary-card income-card">
         <div className="card-label">{t.income}</div>
         <div className={`card-amount income-amount${longAmount(totalIncome)}`}>{cardMoney(totalIncome)}</div>

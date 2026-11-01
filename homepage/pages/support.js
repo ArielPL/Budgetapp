@@ -1,0 +1,554 @@
+// The support page: common questions, in 11 languages. {MAIL}, {APPLE}, {GOOGLE:text}
+// and {PRIV:text} become links. `note` is the line about the app being in beta. Rendered by scripts/build-home.mjs.
+window.YB_SUPPORT = {
+ "sv": {
+  "title": "Support",
+  "intro": "YourBudget är en budgetapp utan konto. Allt du skriver sparas på din enhet, och appen skickar det ingenstans. Här finns svar på de vanligaste frågorna.",
+  "note": "Just nu testas appen av betatestare, och den släpps för alla i januari 2027. Svaren här gäller redan nu och fortsätter att gälla efter lanseringen. Frågorna om köp och återbetalning gäller från lanseringen.",
+  "updated": "Senast uppdaterad 1 november 2026.",
+  "blocks": [
+   {
+    "h": "Hur kontaktar jag dig?",
+    "ps": [
+     "Mejla {MAIL}. Skriv vilken telefon eller surfplatta du använder och vad som hände. Skicka aldrig din säkerhetskopia eller dina riktiga belopp — det behövs inte."
+    ]
+   },
+   {
+    "h": "Hur kommer jag igång?",
+    "ps": [
+     "Öppna Meny → Kom igång – så fungerar appen. Guiden förklarar varje del, och Visa mig lyser upp rätt knapp i appen."
+    ]
+   },
+   {
+    "h": "Var sparas min budget?",
+    "ps": [
+     "På din enhet, och appen skickar den ingenstans. Det finns inget konto och ingen server, så ingen annan — inte heller utvecklaren — kan se eller återställa din data. Har du iCloud- eller Google-säkerhetskopiering påslagen kan telefonen också spara en kopia i ditt eget konto. Läs mer i {PRIV:integritetspolicyn}."
+    ]
+   },
+   {
+    "h": "Hur säkerhetskopierar jag, eller flyttar till en ny telefon?",
+    "ps": [
+     "Välj Meny → Exportera data och spara filen någonstans du litar på. På den nya enheten väljer du Meny → Importera data och väljer filen. Har du säkerhetskopiering i iCloud eller Google påslagen kan den också ta med budgeten till en ny telefon."
+    ]
+   },
+   {
+    "h": "Måste jag betala igen på en ny telefon?",
+    "ps": [
+     "Nej. Ladda ner appen igen med samma Apple-ID eller Google-konto. Köpet följer med kontot, men budgeten följer bara med om du har en säkerhetskopia. Byter du mellan iPhone och Android köper du appen en gång till i den andra butiken."
+    ]
+   },
+   {
+    "h": "Hur får jag pengarna tillbaka?",
+    "ps": [
+     "Köp och återbetalningar sköts av Apple och Google. För App Store: {APPLE}. För Google Play: {GOOGLE:Google Plays hjälp om återbetalning}."
+    ]
+   },
+   {
+    "h": "Hur raderar jag allt?",
+    "ps": [
+     "Ta bort appen, så raderas allt den har sparat på enheten. En säkerhetskopia du själv har sparat, eller en kopia i iCloud eller Google, bestämmer du själv över."
+    ]
+   }
+  ]
+ },
+ "en": {
+  "title": "Support",
+  "intro": "YourBudget is a budgeting app without an account. Everything you type is saved on your device, and the app sends it nowhere. Here are answers to the most common questions.",
+  "note": "The app is currently being tested by beta testers and is released to everyone in January 2027. The answers here apply now and keep applying after the launch. The questions about purchases and refunds apply from the launch.",
+  "updated": "Last updated 1 November 2026.",
+  "blocks": [
+   {
+    "h": "How do I contact you?",
+    "ps": [
+     "Email {MAIL}. Say which phone or tablet you use and what happened. Never send your backup or your real amounts — they are not needed."
+    ]
+   },
+   {
+    "h": "How do I get started?",
+    "ps": [
+     "Open Menu → Get started – how the app works. The guide explains every part, and Show me lights up the right button in the app."
+    ]
+   },
+   {
+    "h": "Where is my budget saved?",
+    "ps": [
+     "On your device, and the app sends it nowhere. There is no account and no server, so nobody else — the developer included — can see or restore your data. If iCloud or Google backup is turned on, your phone can also keep a copy in your own account. Read more in the {PRIV:privacy policy}."
+    ]
+   },
+   {
+    "h": "How do I back up, or move to a new phone?",
+    "ps": [
+     "Choose Menu → Export data and save the file somewhere you trust. On the new device, choose Menu → Import data and pick the file. If backup to iCloud or Google is turned on, it can also bring your budget to a new phone."
+    ]
+   },
+   {
+    "h": "Do I have to pay again on a new phone?",
+    "ps": [
+     "No. Download the app again with the same Apple ID or Google account. The purchase follows the account, but your budget only follows if you have a backup. If you switch between iPhone and Android, you buy the app once more in the other store."
+    ]
+   },
+   {
+    "h": "How do I get a refund?",
+    "ps": [
+     "Purchases and refunds are handled by Apple and Google. For the App Store: {APPLE}. For Google Play: {GOOGLE:Google Play refund help}."
+    ]
+   },
+   {
+    "h": "How do I delete everything?",
+    "ps": [
+     "Delete the app, and everything it has saved on the device is gone. A backup you saved yourself, or a copy in iCloud or Google, is yours to keep or delete."
+    ]
+   }
+  ]
+ },
+ "es": {
+  "title": "Soporte",
+  "intro": "YourBudget es una app de presupuesto sin cuenta. Todo lo que escribes se guarda en tu dispositivo, y la app no lo envía a ninguna parte. Aquí tienes respuestas a las preguntas más comunes.",
+  "note": "Ahora mismo la app la prueban los probadores beta y se lanzará para todos en enero de 2027. Las respuestas valen desde ya y seguirán valiendo después del lanzamiento. Las preguntas sobre compras y reembolsos valen desde el lanzamiento.",
+  "updated": "Última actualización: 1 de noviembre de 2026.",
+  "blocks": [
+   {
+    "h": "¿Cómo te contacto?",
+    "ps": [
+     "Escribe a {MAIL}. Indica qué teléfono o tableta usas y qué pasó. No envíes nunca tu copia de seguridad ni tus importes reales: no hacen falta."
+    ]
+   },
+   {
+    "h": "¿Cómo empiezo?",
+    "ps": [
+     "Abre Menú → Primeros pasos: cómo funciona la app. La guía explica cada parte, y Muéstramelo ilumina el botón correcto en la app."
+    ]
+   },
+   {
+    "h": "¿Dónde se guarda mi presupuesto?",
+    "ps": [
+     "En tu dispositivo, y la app no lo envía a ninguna parte. No hay cuenta ni servidor, así que nadie más —ni siquiera el desarrollador— puede ver ni recuperar tus datos. Si tienes activada la copia de seguridad de iCloud o Google, el teléfono también puede guardar una copia en tu propia cuenta. Lee más en la {PRIV:política de privacidad}."
+    ]
+   },
+   {
+    "h": "¿Cómo hago una copia de seguridad o me paso a un teléfono nuevo?",
+    "ps": [
+     "Elige Menú → Exportar datos y guarda el archivo en un sitio de confianza. En el dispositivo nuevo, elige Menú → Importar datos y selecciona el archivo. Si tienes activada la copia de seguridad de iCloud o Google, también puede llevar tu presupuesto al teléfono nuevo."
+    ]
+   },
+   {
+    "h": "¿Tengo que pagar otra vez en un teléfono nuevo?",
+    "ps": [
+     "No. Vuelve a descargar la app con el mismo Apple ID o cuenta de Google. La compra va con la cuenta, pero el presupuesto solo te acompaña si tienes una copia de seguridad. Si cambias entre iPhone y Android, tendrás que comprar la app otra vez en la otra tienda."
+    ]
+   },
+   {
+    "h": "¿Cómo pido un reembolso?",
+    "ps": [
+     "Las compras y los reembolsos los gestionan Apple y Google. Para App Store: {APPLE}. Para Google Play: {GOOGLE:la ayuda de reembolsos de Google Play}."
+    ]
+   },
+   {
+    "h": "¿Cómo lo borro todo?",
+    "ps": [
+     "Elimina la app y se borra todo lo que guardó en el dispositivo. Una copia que hayas guardado tú, o una copia en iCloud o Google, la conservas o borras tú."
+    ]
+   }
+  ]
+ },
+ "fr": {
+  "title": "Assistance",
+  "intro": "YourBudget est une app de budget sans compte. Tout ce que vous saisissez est enregistré sur votre appareil, et l'app ne l'envoie nulle part. Voici les réponses aux questions les plus fréquentes.",
+  "note": "Pour l’instant, l’app est testée par des testeurs bêta et sortira pour tout le monde en janvier 2027. Les réponses valent dès maintenant et resteront valables après le lancement. Les questions sur l’achat et le remboursement valent à partir du lancement.",
+  "updated": "Dernière mise à jour : 1er novembre 2026.",
+  "blocks": [
+   {
+    "h": "Comment vous contacter ?",
+    "ps": [
+     "Écrivez à {MAIL}. Indiquez le téléphone ou la tablette que vous utilisez et ce qui s'est passé. N'envoyez jamais votre sauvegarde ni vos vrais montants : ce n'est pas nécessaire."
+    ]
+   },
+   {
+    "h": "Comment commencer ?",
+    "ps": [
+     "Ouvrez Menu → Bien démarrer – comment fonctionne l’app. Le guide explique chaque partie, et Montrez-moi éclaire le bon bouton dans l'app."
+    ]
+   },
+   {
+    "h": "Où mon budget est-il enregistré ?",
+    "ps": [
+     "Sur votre appareil, et l'app ne l'envoie nulle part. Il n'y a ni compte ni serveur : personne d'autre, pas même le développeur, ne peut voir ni restaurer vos données. Si la sauvegarde iCloud ou Google est activée, votre téléphone peut aussi en garder une copie dans votre propre compte. Pour en savoir plus, lisez la {PRIV:politique de confidentialité}."
+    ]
+   },
+   {
+    "h": "Comment faire une sauvegarde ou passer à un nouveau téléphone ?",
+    "ps": [
+     "Choisissez Menu → Exporter les données et enregistrez le fichier dans un endroit de confiance. Sur le nouvel appareil, choisissez Menu → Importer des données et sélectionnez le fichier. Si la sauvegarde iCloud ou Google est activée, elle peut aussi transférer votre budget sur le nouveau téléphone."
+    ]
+   },
+   {
+    "h": "Dois-je payer à nouveau sur un nouveau téléphone ?",
+    "ps": [
+     "Non. Retéléchargez l'app avec le même identifiant Apple ou compte Google. L'achat suit le compte, mais votre budget ne suit que si vous avez une sauvegarde. Si vous passez d’un iPhone à un Android (ou l’inverse), vous achetez l’app une nouvelle fois dans l’autre boutique."
+    ]
+   },
+   {
+    "h": "Comment obtenir un remboursement ?",
+    "ps": [
+     "Les achats et remboursements sont gérés par Apple et Google. Pour l'App Store : {APPLE}. Pour Google Play : {GOOGLE:l'aide Google Play sur les remboursements}."
+    ]
+   },
+   {
+    "h": "Comment tout supprimer ?",
+    "ps": [
+     "Supprimez l'app : tout ce qu'elle a enregistré sur l'appareil disparaît. Une sauvegarde que vous avez faite vous-même, ou une copie dans iCloud ou Google, reste à votre main."
+    ]
+   }
+  ]
+ },
+ "de": {
+  "title": "Support",
+  "intro": "YourBudget ist eine Budget-App ohne Konto. Alles, was du eingibst, wird auf deinem Gerät gespeichert, und die App sendet es nirgendwohin. Hier findest du Antworten auf die häufigsten Fragen.",
+  "note": "Im Moment wird die App von Beta-Testern ausprobiert und erscheint im Januar 2027 für alle. Die Antworten gelten schon jetzt und auch nach dem Start. Die Fragen zu Kauf und Erstattung gelten ab dem Start.",
+  "updated": "Zuletzt aktualisiert am 1. November 2026.",
+  "blocks": [
+   {
+    "h": "Wie erreiche ich dich?",
+    "ps": [
+     "Schreib an {MAIL}. Nenn das Handy oder Tablet, das du nutzt, und was passiert ist. Schick nie deine Sicherung oder deine echten Beträge – die braucht es nicht."
+    ]
+   },
+   {
+    "h": "Wie fange ich an?",
+    "ps": [
+     "Öffne Menü → Erste Schritte – so funktioniert die App. Die Anleitung erklärt jeden Teil, und Zeig es mir hebt die richtige Schaltfläche in der App hervor."
+    ]
+   },
+   {
+    "h": "Wo wird mein Budget gespeichert?",
+    "ps": [
+     "Auf deinem Gerät, und die App sendet es nirgendwohin. Es gibt kein Konto und keinen Server, also kann niemand sonst – auch nicht der Entwickler – deine Daten sehen oder wiederherstellen. Ist die iCloud- oder Google-Sicherung eingeschaltet, kann dein Handy auch eine Kopie in deinem eigenen Konto ablegen. Mehr dazu in der {PRIV:Datenschutzerklärung}."
+    ]
+   },
+   {
+    "h": "Wie mache ich eine Sicherung oder ziehe auf ein neues Handy um?",
+    "ps": [
+     "Wähle Menü → Daten exportieren und speichere die Datei an einem Ort, dem du vertraust. Auf dem neuen Gerät wählst du Menü → Daten importieren und die Datei. Ist die Sicherung in iCloud oder bei Google eingeschaltet, kann sie dein Budget auch auf ein neues Handy mitnehmen."
+    ]
+   },
+   {
+    "h": "Muss ich auf einem neuen Handy noch einmal bezahlen?",
+    "ps": [
+     "Nein. Lade die App mit derselben Apple-ID oder demselben Google-Konto erneut. Der Kauf gehört zum Konto, dein Budget kommt aber nur mit, wenn du eine Sicherung hast. Wechselst du zwischen iPhone und Android, kaufst du die App im anderen Store noch einmal."
+    ]
+   },
+   {
+    "h": "Wie bekomme ich mein Geld zurück?",
+    "ps": [
+     "Käufe und Erstattungen laufen über Apple und Google. Für den App Store: {APPLE}. Für Google Play: {GOOGLE:die Google-Play-Hilfe zu Erstattungen}."
+    ]
+   },
+   {
+    "h": "Wie lösche ich alles?",
+    "ps": [
+     "Lösch die App, dann ist alles weg, was sie auf dem Gerät gespeichert hat. Über eine Sicherung, die du selbst gespeichert hast, oder eine Kopie in iCloud oder bei Google entscheidest du selbst."
+    ]
+   }
+  ]
+ },
+ "it": {
+  "title": "Assistenza",
+  "intro": "YourBudget è un'app per il budget senza account. Tutto ciò che scrivi viene salvato sul tuo dispositivo, e l'app non lo invia da nessuna parte. Ecco le risposte alle domande più frequenti.",
+  "note": "Per ora l’app è in prova con i beta tester e uscirà per tutti a gennaio 2027. Le risposte valgono già adesso e continueranno a valere dopo il lancio. Le domande su acquisto e rimborso valgono dal lancio.",
+  "updated": "Ultimo aggiornamento: 1° novembre 2026.",
+  "blocks": [
+   {
+    "h": "Come ti contatto?",
+    "ps": [
+     "Scrivi a {MAIL}. Indica il telefono o il tablet che usi e cosa è successo. Non inviare mai il tuo backup o i tuoi importi reali: non servono."
+    ]
+   },
+   {
+    "h": "Come inizio?",
+    "ps": [
+     "Apri Menu → Per iniziare – come funziona l'app. La guida spiega ogni parte, e Mostramelo illumina il pulsante giusto nell'app."
+    ]
+   },
+   {
+    "h": "Dove viene salvato il mio budget?",
+    "ps": [
+     "Sul tuo dispositivo, e l'app non lo invia da nessuna parte. Non c'è account né server, quindi nessun altro, nemmeno lo sviluppatore, può vedere o recuperare i tuoi dati. Se il backup di iCloud o Google è attivo, il telefono può anche conservarne una copia nel tuo account. Per saperne di più leggi l'{PRIV:informativa sulla privacy}."
+    ]
+   },
+   {
+    "h": "Come faccio un backup o passo a un nuovo telefono?",
+    "ps": [
+     "Scegli Menu → Esporta dati e salva il file in un posto di cui ti fidi. Sul nuovo dispositivo scegli Menu → Importa dati e seleziona il file. Se il backup su iCloud o Google è attivo, può anche portare il budget sul nuovo telefono."
+    ]
+   },
+   {
+    "h": "Devo pagare di nuovo su un nuovo telefono?",
+    "ps": [
+     "No. Scarica di nuovo l'app con lo stesso ID Apple o account Google. L'acquisto segue l'account, ma il budget ti segue solo se hai un backup. Se passi da iPhone ad Android (o il contrario), acquisti l’app una seconda volta nell’altro store."
+    ]
+   },
+   {
+    "h": "Come ottengo un rimborso?",
+    "ps": [
+     "Acquisti e rimborsi sono gestiti da Apple e Google. Per l'App Store: {APPLE}. Per Google Play: {GOOGLE:la guida di Google Play sui rimborsi}."
+    ]
+   },
+   {
+    "h": "Come cancello tutto?",
+    "ps": [
+     "Elimina l'app e tutto ciò che ha salvato sul dispositivo sparisce. Un backup che hai salvato tu, o una copia su iCloud o Google, resta sotto il tuo controllo."
+    ]
+   }
+  ]
+ },
+ "pt": {
+  "title": "Suporte",
+  "intro": "YourBudget é um app de orçamento sem conta. Tudo o que você digita fica salvo no seu dispositivo, e o app não o envia para lugar nenhum. Aqui estão as respostas para as perguntas mais comuns.",
+  "note": "No momento, o app está sendo testado por beta testers e será lançado para todos em janeiro de 2027. As respostas valem desde já e continuam valendo depois do lançamento. As perguntas sobre compra e reembolso valem a partir do lançamento.",
+  "updated": "Última atualização em 1º de novembro de 2026.",
+  "blocks": [
+   {
+    "h": "Como entro em contato?",
+    "ps": [
+     "Escreva para {MAIL}. Diga qual celular ou tablet você usa e o que aconteceu. Nunca envie seu backup nem seus valores reais — não são necessários."
+    ]
+   },
+   {
+    "h": "Como começo?",
+    "ps": [
+     "Abra Menu → Comece aqui – como o app funciona. O guia explica cada parte, e Mostre-me destaca o botão certo no app."
+    ]
+   },
+   {
+    "h": "Onde meu orçamento fica salvo?",
+    "ps": [
+     "No seu dispositivo, e o app não o envia para lugar nenhum. Não há conta nem servidor, então ninguém mais — nem o desenvolvedor — pode ver ou recuperar seus dados. Se o backup do iCloud ou do Google estiver ativado, o celular também pode guardar uma cópia na sua própria conta. Saiba mais na {PRIV:política de privacidade}."
+    ]
+   },
+   {
+    "h": "Como faço backup ou passo para um celular novo?",
+    "ps": [
+     "Escolha Menu → Exportar dados e salve o arquivo num lugar de confiança. No novo dispositivo, escolha Menu → Importar dados e selecione o arquivo. Se o backup do iCloud ou do Google estiver ativado, ele também pode levar seu orçamento para o celular novo."
+    ]
+   },
+   {
+    "h": "Preciso pagar de novo num celular novo?",
+    "ps": [
+     "Não. Baixe o app de novo com o mesmo ID Apple ou conta Google. A compra acompanha a conta, mas o orçamento só vai junto se você tiver um backup. Se você trocar entre iPhone e Android, compra o app mais uma vez na outra loja."
+    ]
+   },
+   {
+    "h": "Como peço reembolso?",
+    "ps": [
+     "Compras e reembolsos são feitos pela Apple e pelo Google. Na App Store: {APPLE}. No Google Play: {GOOGLE:a ajuda de reembolso do Google Play}."
+    ]
+   },
+   {
+    "h": "Como apago tudo?",
+    "ps": [
+     "Exclua o app, e tudo o que ele salvou no dispositivo é apagado. Um backup que você mesmo salvou, ou uma cópia no iCloud ou no Google, fica sob seu controle."
+    ]
+   }
+  ]
+ },
+ "ru": {
+  "title": "Поддержка",
+  "intro": "YourBudget — приложение для бюджета без учётной записи. Всё, что вы вводите, хранится на вашем устройстве, и приложение никуда это не отправляет. Здесь ответы на самые частые вопросы.",
+  "note": "Сейчас приложение тестируют бета-тестеры, а для всех оно выйдет в январе 2027 года. Ответы действуют уже сейчас и останутся в силе после запуска. Вопросы о покупке и возврате денег действуют с момента запуска.",
+  "updated": "Последнее обновление: 1 ноября 2026 г.",
+  "blocks": [
+   {
+    "h": "Как с вами связаться?",
+    "ps": [
+     "Напишите на {MAIL}. Укажите, какой у вас телефон или планшет и что произошло. Никогда не отправляйте резервную копию или реальные суммы — они не нужны."
+    ]
+   },
+   {
+    "h": "С чего начать?",
+    "ps": [
+     "Откройте Меню → Начало работы — как устроено приложение. Руководство объясняет каждую часть, а кнопка «Показать в приложении» подсвечивает нужную кнопку."
+    ]
+   },
+   {
+    "h": "Где хранится мой бюджет?",
+    "ps": [
+     "На вашем устройстве, и приложение никуда его не отправляет. Нет ни учётной записи, ни сервера, поэтому никто другой — включая разработчика — не может увидеть или восстановить ваши данные. Если включено резервное копирование iCloud или Google, телефон может также хранить копию в вашем собственном аккаунте. Подробнее — в {PRIV:политике конфиденциальности}."
+    ]
+   },
+   {
+    "h": "Как сделать резервную копию или перейти на новый телефон?",
+    "ps": [
+     "Выберите Меню → Экспорт данных и сохраните файл в надёжном месте. На новом устройстве выберите Меню → Импорт данных и укажите файл. Если включено резервное копирование iCloud или Google, оно тоже может перенести бюджет на новый телефон."
+    ]
+   },
+   {
+    "h": "Нужно ли платить снова на новом телефоне?",
+    "ps": [
+     "Нет. Скачайте приложение снова с тем же Apple ID или аккаунтом Google. Покупка привязана к аккаунту, но бюджет переедет только если у вас есть резервная копия. Если вы переходите с iPhone на Android (или наоборот), приложение нужно купить ещё раз в другом магазине."
+    ]
+   },
+   {
+    "h": "Как вернуть деньги?",
+    "ps": [
+     "Покупками и возвратами занимаются Apple и Google. Для App Store: {APPLE}. Для Google Play: {GOOGLE:справка Google Play о возврате средств}."
+    ]
+   },
+   {
+    "h": "Как удалить всё?",
+    "ps": [
+     "Удалите приложение — всё, что оно сохранило на устройстве, исчезнет. Резервной копией, которую вы сохранили сами, или копией в iCloud или Google вы распоряжаетесь сами."
+    ]
+   }
+  ]
+ },
+ "tr": {
+  "title": "Destek",
+  "intro": "YourBudget hesap gerektirmeyen bir bütçe uygulamasıdır. Yazdığınız her şey cihazınızda saklanır ve uygulama bunu hiçbir yere göndermez. En sık sorulan soruların yanıtları burada.",
+  "note": "Uygulama şu anda beta test kullanıcıları tarafından deneniyor ve Ocak 2027’de herkes için yayınlanacak. Buradaki yanıtlar şimdiden geçerlidir ve lansmandan sonra da geçerli olmaya devam eder. Satın alma ve iade ile ilgili sorular lansmandan itibaren geçerlidir.",
+  "updated": "Son güncelleme: 1 Kasım 2026.",
+  "blocks": [
+   {
+    "h": "Size nasıl ulaşırım?",
+    "ps": [
+     "{MAIL} adresine yazın. Hangi telefonu veya tableti kullandığınızı ve ne olduğunu belirtin. Yedeğinizi veya gerçek tutarlarınızı asla göndermeyin; gerek yok."
+    ]
+   },
+   {
+    "h": "Nasıl başlarım?",
+    "ps": [
+     "Menü → Başlarken – uygulama nasıl çalışır bölümünü açın. Rehber her bölümü açıklar ve Uygulamada göster doğru düğmeyi işaretler."
+    ]
+   },
+   {
+    "h": "Bütçem nerede saklanıyor?",
+    "ps": [
+     "Cihazınızda; uygulama onu hiçbir yere göndermez. Hesap ve sunucu yoktur; bu yüzden geliştirici dahil hiç kimse verilerinizi göremez veya geri getiremez. iCloud veya Google yedeklemesi açıksa, cihazınız bütçenizin bir kopyasını kendi hesabınızda da saklayabilir. Daha fazlası için {PRIV:gizlilik politikasını} okuyun."
+    ]
+   },
+   {
+    "h": "Nasıl yedek alırım veya yeni telefona geçerim?",
+    "ps": [
+     "Menü → Verileri dışa aktar seçeneğini seçin ve dosyayı güvendiğiniz bir yere kaydedin. Yeni cihazda Menü → Verileri içe aktar seçeneğini seçip dosyayı seçin. iCloud veya Google yedeklemesi açıksa bütçenizi yeni telefona da taşıyabilir."
+    ]
+   },
+   {
+    "h": "Yeni telefonda tekrar ödemem gerekir mi?",
+    "ps": [
+     "Hayır. Uygulamayı aynı Apple Kimliği veya Google hesabıyla yeniden indirin. Satın alma hesapla birlikte gelir, ancak bütçeniz yalnızca bir yedeğiniz varsa gelir. iPhone ile Android arasında geçiş yaparsanız, uygulamayı diğer mağazadan bir kez daha satın alırsınız."
+    ]
+   },
+   {
+    "h": "Nasıl para iadesi alırım?",
+    "ps": [
+     "Satın almalar ve iadeler Apple ve Google tarafından yürütülür. App Store için: {APPLE}. Google Play için: {GOOGLE:Google Play iade yardımı}."
+    ]
+   },
+   {
+    "h": "Her şeyi nasıl silerim?",
+    "ps": [
+     "Uygulamayı silin; cihazda kaydettiği her şey silinir. Kendi kaydettiğiniz bir yedek veya iCloud ya da Google’daki bir kopya üzerinde karar sizindir."
+    ]
+   }
+  ]
+ },
+ "ja": {
+  "title": "サポート",
+  "intro": "YourBudget はアカウント不要の家計簿アプリです。入力した内容はすべてお使いの端末に保存され、アプリがどこかへ送信することはありません。よくある質問への回答をまとめました。",
+  "note": "現在、アプリはベータテスターの皆さんにお試しいただいており、2027 年 1 月に一般公開される予定です。ここにある回答は今すぐ当てはまり、公開後も変わりません。購入と返金に関する質問は、公開後に当てはまります。",
+  "updated": "最終更新日：2026年11月1日。",
+  "blocks": [
+   {
+    "h": "連絡するには？",
+    "ps": [
+     "{MAIL} までメールしてください。お使いのスマートフォンやタブレットと、何が起きたかを書いてください。バックアップや実際の金額は送らないでください。必要ありません。"
+    ]
+   },
+   {
+    "h": "使い始めるには？",
+    "ps": [
+     "メニュー → はじめに – アプリの使い方 を開いてください。ガイドが各部分を説明し、「アプリで見る」で正しいボタンを光で示します。"
+    ]
+   },
+   {
+    "h": "予算はどこに保存されますか？",
+    "ps": [
+     "お使いの端末に保存され、アプリがどこかへ送信することはありません。アカウントもサーバーもないため、開発者を含めほかの誰もあなたのデータを見たり復元したりできません。iCloud または Google のバックアップをオンにしている場合は、ご自身のアカウントにもコピーが保存されることがあります。詳しくは{PRIV:プライバシーポリシー}をご覧ください。"
+    ]
+   },
+   {
+    "h": "バックアップや機種変更はどうすれば？",
+    "ps": [
+     "メニュー → データをエクスポート を選び、信頼できる場所にファイルを保存します。新しい端末で メニュー → データをインポート を選び、そのファイルを選んでください。iCloud や Google のバックアップをオンにしていれば、予算を新しい端末に引き継ぐこともできます。"
+    ]
+   },
+   {
+    "h": "新しい端末でもう一度購入が必要ですか？",
+    "ps": [
+     "いいえ。同じ Apple ID または Google アカウントでアプリを再ダウンロードしてください。購入はアカウントに紐づきますが、予算はバックアップがある場合にだけ引き継がれます。 iPhone と Android の間で乗り換える場合は、もう一方のストアでもう一度購入が必要です。"
+    ]
+   },
+   {
+    "h": "返金を受けるには？",
+    "ps": [
+     "購入と返金は Apple と Google が扱います。App Store：{APPLE}。Google Play：{GOOGLE:Google Play の返金ヘルプ}。"
+    ]
+   },
+   {
+    "h": "すべて削除するには？",
+    "ps": [
+     "アプリを削除すると、端末に保存された内容はすべて消えます。ご自身で保存したバックアップや、iCloud・Google のコピーはご自身で管理してください。"
+    ]
+   }
+  ]
+ },
+ "zh": {
+  "title": "支持",
+  "intro": "YourBudget 是一款无需账户的预算应用。你输入的一切都保存在你的设备上，应用不会把它发送到任何地方。以下是常见问题的解答。",
+  "note": "目前应用正由测试人员试用，将于 2027 年 1 月向所有人发布。这里的解答现在就适用，发布后也继续适用。有关购买和退款的问题，从发布时起适用。",
+  "updated": "最后更新于 2026 年 11 月 1 日。",
+  "blocks": [
+   {
+    "h": "如何联系你？",
+    "ps": [
+     "请发邮件至 {MAIL}。说明你使用的手机或平板以及发生了什么。请勿发送你的备份或真实金额——不需要这些。"
+    ]
+   },
+   {
+    "h": "如何开始使用？",
+    "ps": [
+     "打开 菜单 → 入门 – 应用使用方法。指南会讲解每个部分，“在应用中查看”会点亮应用中对应的按钮。"
+    ]
+   },
+   {
+    "h": "我的预算保存在哪里？",
+    "ps": [
+     "保存在你的设备上，应用不会把它发送到任何地方。没有账户也没有服务器，所以任何其他人——包括开发者——都无法查看或恢复你的数据。如果你开启了 iCloud 或 Google 备份，手机也可能在你自己的账户中保存一份副本。详情请阅读{PRIV:隐私政策}。"
+    ]
+   },
+   {
+    "h": "如何备份或换到新手机？",
+    "ps": [
+     "选择 菜单 → 导出数据，把文件保存到你信任的地方。在新设备上选择 菜单 → 导入数据 并选择该文件。如果开启了 iCloud 或 Google 备份，也可以把预算带到新手机上。"
+    ]
+   },
+   {
+    "h": "换新手机需要再付费吗？",
+    "ps": [
+     "不需要。用同一个 Apple ID 或 Google 账户重新下载应用即可。购买随账户走，但只有在你有备份时预算才会跟过去。 如果在 iPhone 和 Android 之间换机，需要在另一个商店再购买一次。"
+    ]
+   },
+   {
+    "h": "如何申请退款？",
+    "ps": [
+     "购买和退款由 Apple 和 Google 处理。App Store：{APPLE}。Google Play：{GOOGLE:Google Play 退款帮助}。"
+    ]
+   },
+   {
+    "h": "如何删除所有内容？",
+    "ps": [
+     "删除应用，它在设备上保存的一切都会被删除。你自己保存的备份，或 iCloud、Google 中的副本，由你自己决定保留或删除。"
+    ]
+   }
+  ]
+ }
+};

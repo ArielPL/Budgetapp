@@ -289,6 +289,22 @@ function actualKeys(storage: StorageLike): { key: string; year: number; month: n
   return out;
 }
 
+/** Every recorded entry on the device, counted for the question asked before
+ *  "Clear all actuals": how many entries, across how many months, and the
+ *  keys that hold them. Read out first, removed after, like every walk here. */
+export function allActuals(storage: StorageLike): { keys: string[]; entries: number; months: number } {
+  const keys: string[] = [];
+  let entries = 0;
+  let months = 0;
+  for (const { key, year, month } of actualKeys(storage)) {
+    keys.push(key);
+    const n = loadActuals(storage, year, month).length;
+    entries += n;
+    if (n > 0) months += 1;
+  }
+  return { keys, entries, months };
+}
+
 export interface RefilePlan {
   /** Entries that would land in a different file than they sit in now. */
   moving: number;

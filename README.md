@@ -2,11 +2,12 @@
 
 A personal monthly budget. Track income, expenses and savings per month, set
 savings goals, follow up what was actually spent, review the whole year, and
-build a fully custom budget dashboard — in Swedish, English or Spanish.
+build a fully custom budget dashboard — in Swedish, English, Spanish, French,
+German, Italian, Portuguese (Brazil), Russian, Turkish, Japanese or Simplified Chinese.
 
 One code base, three apps:
 
-- **Web** (a PWA) — **live:** https://budgetapp-indol.vercel.app
+- **Web** (a PWA) — **live:** https://www.yourofflinebudget.com (also https://budgetapp-indol.vercel.app)
 - **iOS** and **Android** — the same web app inside a native shell
   ([Capacitor 8](https://capacitorjs.com)), in `ios/` and `android/`. Not in
   the App Store or Google Play yet.

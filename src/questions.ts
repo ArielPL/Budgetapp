@@ -102,9 +102,14 @@ export function categoryOverMonths(months: MonthEntries[], categoryId: string): 
 
 /** How many months a payment must turn up in to count as recurring. */
 export const RECURRING_MIN_MONTHS = 3;
-/** How far a month's charge may stray from the usual one: a price rise of a
- *  few percent is the same subscription, a grocery bill is not. */
+/** How far the charge may move in all: a price rise of a few percent is the
+ *  same subscription, a grocery bill is not. */
 const RECURRING_SPREAD = 0.15;
+/** How many times the charge may change from one month to the next. A
+ *  subscription costs the SAME every month and changes price now and then; a
+ *  restaurant visited once a month for 310, 335, 320 kr is not one, however
+ *  close the bills (store screenshots, 2026-10-05: four of them were). */
+const RECURRING_PRICE_CHANGES = 1;
 /** Rent, loans and savings recur too, but nobody means them by "subscriptions",
  *  and they have their own places in the app. */
 const NOT_SUBSCRIPTIONS = new Set(['boende', 'lan', ...PUT_ASIDE]);
@@ -170,6 +175,10 @@ export function recurringPayments(months: MonthEntries[]): RecurringAnswer {
     if (![...g.byMonth.keys()].some(k => recent.has(k))) continue;
     const sums = slots.map(s => s.sum);
     if (Math.max(...sums) - Math.min(...sums) > median(sums) * RECURRING_SPREAD) continue;
+    let changes = 0;
+    // In whole öre: an amount read from a file must not differ by float dust.
+    for (let i = 1; i < sums.length; i++) if (Math.round(sums[i] * 100) !== Math.round(sums[i - 1] * 100)) changes++;
+    if (changes > RECURRING_PRICE_CHANGES) continue;
     // Map order is insertion order, and months were walked oldest first.
     items.push({ text: g.text, categoryId: g.categoryId, typical: sums[sums.length - 1], months: slots.length });
   }

@@ -24,6 +24,8 @@ const DebtTab = lazy(() => import('./components/DebtTab').then(m => ({ default: 
 // should have to download.
 const BudgetImport = lazy(() => import('./components/BudgetImport').then(m => ({ default: m.BudgetImport })));
 const CustomPanel = lazy(() => import('./components/CustomPanel').then(m => ({ default: m.CustomPanel })));
+const Guide = lazy(() => import('./components/Guide').then(m => ({ default: m.Guide })));
+const BeginnerStart = lazy(() => import('./components/BeginnerStart').then(m => ({ default: m.BeginnerStart })));
 const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ default: m.WalletArea })));
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
@@ -34,16 +36,19 @@ import { UndoBar } from './components/UndoBar';
 import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
-import { shortWhen, longDate } from './dateLabel';
+import { shortWhen, longDate, inSentence, monthInText, monthTitle, formatPeriodRange } from './dateLabel';
 import { loadCustomMode, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
+import type { NewGoalRequest } from './components/QuestionCards';
 import { goalsJustReached, celebrate } from './rewards';
+import { tellNativeLang, tellNativeTheme } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
-import { LanguageContext, translations, MONTHS, formatMoney, isLang, isCurrency, deviceLang, deviceCurrency, type Lang, type Currency } from './i18n';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, beginnerMonthData, type BeginnerAnswers, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { LanguageContext, translations, MONTHS, MONTHS_SHORT, formatMoney, isLang, isCurrency, deviceLang, LANG_CHOICES, CURRENCIES, type Lang, type Currency } from './i18n';
+import { applyTextSize, loadTextSize, TEXT_SIZES, TEXT_SIZE_KEY, type TextSize } from './textSize';
 import {
   loadThemeState,
   resolveVars,
@@ -62,8 +67,9 @@ import { savingsStreakFrom } from './insight';
 import { hasBudgetContent } from './monthContent';
 import {
   loadStartDay, isValidStartDay, PERIOD_START_KEY,
-  loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, type PeriodLocks,
+  loadPeriodLocks, lockKey, PERIOD_LOCKS_KEY, periodRange, type PeriodLocks,
 } from './periodLabel';
+import { ConfirmChange } from './components/ConfirmChange';
 import { buildBackup, backupFilename, checkBackup, applyBackup, importErrorText, isPlanData } from './backup';
 import { useModalFocus, closeTopLayer } from './useModalFocus';
 import './index.css';
@@ -74,6 +80,14 @@ import {
 import { safeSetItem, safeRemoveItem, commitStorageChangesOutcome, type StorageChange } from './storageWrite';
 import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
+import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
+import type { SpotTarget } from './guide/spots';
+import { Spotlight } from './components/Spotlight';
+
+/** The year whose "copy to the rest of the year" offer was declined. */
+const COPY_OFFER_KEY = 'budget_copy_offer_dismissed';
+const GUIDE_NUDGE_KEY = 'budget_guide_nudge_seen';
+import { newBlank, loadWallets, walletsChange, walletWeek, isoWeek, isoDay, WALLETS_KEY, OPEN_PANEL_KEY } from './wallets';
 
 
 
@@ -106,6 +120,8 @@ interface AppProps {
   startupRepair?: UndoEntry | null;
 }
 
+
+
 function App({ startupRepair = null }: AppProps) {
   const now = new Date();
   // Validate, never cast: a damaged value must not be able to lock the user out
@@ -129,6 +145,9 @@ function App({ startupRepair = null }: AppProps) {
   const [planData, setPlanData] = useState<PlanData>(() => loadPlanData(lang));
   const [debtState, setDebtState] = useState<DebtState>(() => loadDebts(appStorage));
   const [budgetImportOpen, setBudgetImportOpen] = useState(false);
+  /** Bumped when recorded entries are stored or moved, for views that read
+   *  them from storage beside Follow-up (the Debt tab in Combined). */
+  const [actualsRevision, bumpActuals] = useReducer((n: number) => n + 1, 0);
   // ── Theme Builder: palette family + light/dark mode + override map ──
   // Loaded once via a lazy useState (never re-read; reading a ref during render
   // is disallowed by react-hooks/refs).
@@ -139,9 +158,13 @@ function App({ startupRepair = null }: AppProps) {
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   /** The wallets as a screen of their own, opened from the menu in any layout. */
   const [walletsScreen, setWalletsScreen] = useState(false);
+  const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize(appStorage));
   const [currency, setCurrency] = useState<Currency>(() => {
     const stored = appStorage.getItem('budget_currency');
-    return isCurrency(stored) ? stored : deviceCurrency();
+    // Nothing stored means a brand-new install, which the first-run step asks
+    // (currencyPending below) — kronor only stands behind that question, or in
+    // for data so old it predates the setting, from when the app was Swedish.
+    return isCurrency(stored) ? stored : 'sek';
   });
   // App layout: 'classic' (tabbed), 'combined' (all tabs on one page), or
   // 'custom' (card-level build-your-own dashboard).
@@ -214,6 +237,46 @@ function App({ startupRepair = null }: AppProps) {
   // A refused flag write is not worth a banner: the only cost is that the hero
   // appears again next launch. The dismissal itself still takes effect now.
   const dismissBudgetHero = () => { safeSetItem(appStorage, 'budget_onboard_budget', '1'); setOnboardBudgetDone(true); };
+
+  /** The beginner's answers, as a budget for this month and every month left
+   *  this year — one confirmed write, one step back. Months that already hold
+   *  a budget are left alone: the question is only asked on an empty start,
+   *  but a restore could have filled one meanwhile. */
+  // Once, right after a first budget is made: a pointer to the guide's row,
+  // "here is where everything is explained" (Ariel, 2026-10-20). Not when the
+  // row was hidden — someone who hid it knows it is there.
+  const [guideNudge, setGuideNudge] = useState(false);
+  const offerGuideNudge = () => {
+    if (appStorage.getItem(GUIDE_NUDGE_KEY) || appStorage.getItem(GUIDE_ROW_HIDDEN_KEY) === '1') return;
+    setGuideNudge(true);
+  };
+  const closeGuideNudge = (openGuide: boolean) => {
+    setGuideNudge(false);
+    safeSetItem(appStorage, GUIDE_NUDGE_KEY, '1');
+    if (openGuide) setGuideOpen(true);
+  };
+
+  const createBeginnerBudget = async (answers: BeginnerAnswers, restOfYear: boolean): Promise<boolean> => {
+    const built = ensureGoalLinkedBudgetRows(beginnerMonthData(answers, lang), planData.goals, lang);
+    const months = restOfYear
+      ? Array.from({ length: 12 - month }, (_, i) => month + i)
+        .filter(m => m === month || !hasBudgetContent(loadMonthData(year, m, lang)))
+      : [month];
+    const keys = months.map(m => storageKey(year, m));
+    const before = captureKeys(appStorage, keys);
+    const outcome = await commitStorageChangesOutcome(appStorage, keys.map(key => ({ key, value: JSON.stringify(built) })));
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    recordUndo({ at: new Date().toISOString(), action: 'startBudget', changes: before });
+    setData(built);
+    dismissBudgetHero();
+    setCopyOfferHidden(true);
+    setStartChoiceOpen(false);
+    offerGuideNudge();
+    return true;
+  };
   const dismissSavingsHero = () => { safeSetItem(appStorage, 'budget_onboard_savings', '1'); setOnboardSavingsDone(true); };
 
   // First-run welcome/introduction — shown once, before anything else, until the
@@ -241,7 +304,29 @@ function App({ startupRepair = null }: AppProps) {
     }
     return true;
   });
-  const dismissIntro = () => { safeSetItem(appStorage, 'budget_welcome_seen', '1'); setIntroOpen(false); };
+  // After the intro, a new install with nothing in its budget is asked whether
+  // it has made a budget before (Ariel, 2026-10-19) — see BeginnerStart.
+  const [startChoiceOpen, setStartChoiceOpen] = useState(false);
+  const dismissIntro = () => {
+    safeSetItem(appStorage, 'budget_welcome_seen', '1');
+    setIntroOpen(false);
+    if (data.income.length === 0 && data.expenses.length === 0) setStartChoiceOpen(true);
+  };
+  // A new user chooses the currency; the app does not guess it (review
+  // 2026-10-17, P1). Nothing is stored until they have, so a first run that is
+  // closed before the choice asks again. Anyone with a stored currency —
+  // everyone updating — is never asked.
+  const [currencyPending, setCurrencyPending] = useState(
+    () => introOpen && !isCurrency(appStorage.getItem('budget_currency')));
+  const chooseCurrency = (c: Currency) => { setCurrency(c); setCurrencyPending(false); };
+  // "Get started": the guide to every part of the app. Its row at the top of
+  // Budget can be hidden; the first item in the menu always stays.
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideRowHidden, setGuideRowHidden] = useState(() => appStorage.getItem(GUIDE_ROW_HIDDEN_KEY) === '1');
+  const hideGuideRow = () => {
+    setGuideRowHidden(true);
+    if (!safeSetItem(appStorage, GUIDE_ROW_HIDDEN_KEY, '1')) setSaveFailed(true);
+  };
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const dismissWelcome = () => setWelcomeOpen(false);
@@ -294,7 +379,10 @@ function App({ startupRepair = null }: AppProps) {
   // the saved theme before first paint; this keeps :root in sync on changes.
   useEffect(() => {
     const state = { palette: themePalette, mode: themeMode, custom: themeCustom };
-    applyVars(resolveVars(state), themeMode);
+    const vars = resolveVars(state);
+    applyVars(vars, themeMode);
+    // The iOS app-switcher cover in this theme's own background.
+    tellNativeTheme(themeMode, vars['--bg'] ?? '');
     let ok = safeSetItem(appStorage, LS_PALETTE, themePalette);
     ok = safeSetItem(appStorage, LS_MODE, themeMode) && ok;
     // Stored for any family, not only the legacy 'custom' palette — the whole
@@ -357,14 +445,22 @@ function App({ startupRepair = null }: AppProps) {
     // pronounces an English or Spanish UI with Swedish rules — and since the
     // app opens in the DEVICE's language, that is not a rare case.
     document.documentElement.lang = lang;
+    tellNativeLang(lang);
     // The tab title too — it was Swedish on every device, whatever the UI said.
     document.title = t.appTitle;
   }, [lang, t]);
 
+  // ── Text size (applied to the root, so every rem follows) ──────────
+  useEffect(() => {
+    applyTextSize(textSize);
+    if (!safeSetItem(appStorage, TEXT_SIZE_KEY, textSize)) setSaveFailed(true);
+  }, [textSize]);
+
   // ── Currency (symbol/format only — never converts amounts) ─────────
   useEffect(() => {
+    if (currencyPending) return;
     if (!safeSetItem(appStorage, 'budget_currency', currency)) setSaveFailed(true);
-  }, [currency]);
+  }, [currency, currencyPending]);
 
   // ── Budget tab layout (classic / combined) ─────────────────────────
   useEffect(() => {
@@ -511,7 +607,11 @@ function App({ startupRepair = null }: AppProps) {
   useEffect(() => {
     if (!menuOpen) return;
     const mouseHandler = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current?.contains(e.target as Node)) return;
+      // The guide's bubble and bar, when "Show me" opened the menu: closing it
+      // on mousedown would move the bubble before its own click landed.
+      if (e.target instanceof Element && e.target.closest('.spot-root, .guide-bar')) return;
+      setMenuOpen(false);
     };
     const keyHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false);
@@ -591,8 +691,10 @@ function App({ startupRepair = null }: AppProps) {
           return;
         }
         // Sent to another app, which may or may not have kept it: ask, as the
-        // web's plain download does, and write the date only on a yes.
-        if (window.confirm(t.backupConfirmSaved)) markBackupDone();
+        // web's plain download does, and write the date only on a yes. In the
+        // share sheet's own words — nothing was "downloaded" here (full sweep
+        // 2026-10-08).
+        if (window.confirm(t.backupConfirmShared)) markBackupDone();
       } catch {
         alert(t.backupShareFailed);
       }
@@ -770,6 +872,7 @@ function App({ startupRepair = null }: AppProps) {
       return false;
     }
     if (plan.moving > 0) {
+      bumpActuals();
       recordUndo({
         at: new Date().toISOString(),
         action: 'periodChange',
@@ -790,7 +893,7 @@ function App({ startupRepair = null }: AppProps) {
       key: PERIOD_LOCKS_KEY,
       value: Object.keys(next).length === 0 ? null : JSON.stringify(next),
     };
-    if (!(await applyPeriodChange(periodStartDay, next, `${MONTHS[lang][m]} ${y}`, setting))) return;
+    if (!(await applyPeriodChange(periodStartDay, next, monthInText(m, y, lang), setting))) return;
     setPeriodLocks(next);
   };
 
@@ -818,16 +921,25 @@ function App({ startupRepair = null }: AppProps) {
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
 
+  // The guide's "Show me": open the part's tab, and the menu when the control
+  // lives there; null is the way back to the guide, which closes the menu.
+  const showGuideSpot = (target: SpotTarget | null) => {
+    if (!target) { setMenuOpen(false); return; }
+    if (target.tab) changeTab(target.tab);
+    else setWalletsScreen(false);
+    setMenuOpen(!!target.menu);
+  };
+
   // ── Android's Back button ─────────────────────────────────────────────
   // What a user expects, in order: close whatever is on top (any panel, dialog
   // or menu — see closeTopLayer), then the month picker, then go back to the
   // Budget tab, and only from there leave — minimised, like Home, so nothing
   // in progress is lost. Without this, Back with the menu open closed the app
   // (iOS/Android review, 2026-09-26). iPhones have no such button.
-  const backState = useRef({ activeTab, pickerOpen, tabbed: false });
+  const backState = useRef({ activeTab, pickerOpen, walletsScreen, tabbed: false });
   useEffect(() => {
     backState.current = {
-      activeTab, pickerOpen,
+      activeTab, pickerOpen, walletsScreen,
       tabbed: layout === 'classic' || (layout === 'custom' && customTabs),
     };
   });
@@ -839,6 +951,10 @@ function App({ startupRepair = null }: AppProps) {
       if (closeTopLayer()) return;
       const now = backState.current;
       if (now.pickerOpen) { setPickerOpen(false); return; }
+      // The wallets are a screen opened from the menu, not the budget: Back
+      // returns to the budget rather than leaving the app from a wallet (full
+      // sweep 2026-10-08).
+      if (now.walletsScreen) { setWalletsScreen(false); return; }
       if (now.tabbed && now.activeTab !== 'budget') { changeTab('budget'); return; }
       void NativeApp.minimizeApp();
     })).then(h => {
@@ -882,7 +998,8 @@ function App({ startupRepair = null }: AppProps) {
     // names, categories, an order and a per-year marking — all of it the user's,
     // and all of it about to be replaced.
     if (hasBudgetContent(data) && !window.confirm(
-      t.copyPrevMonthConfirm(prevName, `${MONTHS[lang][month]} ${year}`),
+      // Both months sit mid-sentence: lower case in sv and es (inSentence).
+      t.copyPrevMonthConfirm(inSentence(prevName, lang), monthInText(month, year, lang)),
     )) return;
 
     // Captured before setData, like every other step back here: the save effect
@@ -981,11 +1098,11 @@ function App({ startupRepair = null }: AppProps) {
     const nextMth  = month === 11 ? 0 : month + 1;
     // Ask before replacing a month the user has already built.
     if (occupiedTargets([{ y: nextYear, m: nextMth }]).length > 0 && !window.confirm(
-      t.copyOverwriteOne(`${MONTHS[lang][nextMth]} ${nextYear}`, `${MONTHS[lang][month]} ${year}`),
+      t.copyOverwriteOne(monthTitle(nextMth, nextYear, lang), monthInText(month, year, lang)),
     )) return;
     if (!(await applyCopy([{ y: nextYear, m: nextMth }]))) return;
     setMenuOpen(false);
-    showMsg(t.copiedTo(MONTHS[lang][nextMth]));
+    showMsg(t.copiedTo(inSentence(MONTHS[lang][nextMth], lang)));
   };
 
   const copyToAllRemaining = async () => {
@@ -1000,7 +1117,25 @@ function App({ startupRepair = null }: AppProps) {
     // rather than leaving the year half copied and saying it worked.
     if (!(await applyCopy(targets))) return;
     setMenuOpen(false);
+    setCopyOfferHidden(true);
     showMsg(t.copiedToMonths(targets.length));
+  };
+
+  // "A button that copies ALL months" (tester, 2026-10-19) — it existed, deep in
+  // the menu. Offered where the budget is, once: when this month has a budget
+  // and every month left this year is still empty, so nothing is overwritten.
+  const [copyOfferHidden, setCopyOfferHidden] = useState(
+    () => appStorage.getItem(COPY_OFFER_KEY) === String(year));
+  const restOfYearEmpty = useMemo(
+    () => month < 11 && Array.from({ length: 11 - month }, (_, i) => month + 1 + i)
+      .every(m => !hasBudgetContent(loadMonthData(year, m, lang))),
+    // Re-read on a month or year change; a copy hides the offer itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [year, month],
+  );
+  const dismissCopyOffer = () => {
+    setCopyOfferHidden(true);
+    safeSetItem(appStorage, COPY_OFFER_KEY, String(year));
   };
 
   // Reset ONLY the currently-selected month back to fresh defaults, then re-add
@@ -1008,7 +1143,8 @@ function App({ startupRepair = null }: AppProps) {
   // month-load effect). The save effect persists this to the current month's key.
   const resetCurrentMonth = () => {
     // Name the exact month in the confirm so the user knows what's being wiped.
-    const name = `${MONTHS[lang][month]} ${year}`;
+    // Mid-sentence ('för oktober 2026'): lower case in sv and es.
+    const name = monthInText(month, year, lang);
     // The month's RECORDED ENTRIES are deliberately not cleared. A plan can be
     // retyped in a minute; the record of what was actually spent has to be
     // imported from the bank again. But the dialog has to say so — it used to
@@ -1073,6 +1209,13 @@ function App({ startupRepair = null }: AppProps) {
   // Picker: selecting a month collapses the strip.
   const selectMonth = (m: number) => { setMonth(m); setPickerOpen(false); };
 
+  /** Whether a row in `before` has a different name in `after`. */
+  const renamedARow = (before: BudgetRow[], after: BudgetRow[]) =>
+    before.some(r => {
+      const now = after.find(x => x.id === r.id);
+      return now !== undefined && now.label !== r.label;
+    });
+
   // ── Income ────────────────────────────────────────────────────────
   const setIncome = (rows: BudgetRow[]) => {
     // A row that disappeared is a DELETE, not an edit — and a deleted row is
@@ -1080,6 +1223,7 @@ function App({ startupRepair = null }: AppProps) {
     // than inside IncomeSection so every path that removes a row is covered,
     // including any future one.
     if (rows.length < data.income.length) recordMonthUndo('deleteRow');
+    else if (renamedARow(data.income, rows)) recordMonthUndo('renameRow');
     setData(d => ({ ...d, income: rows }));
   };
 
@@ -1101,6 +1245,13 @@ function App({ startupRepair = null }: AppProps) {
           && previous.rows.some(r => r.id === g.budgetRowId)
           && !updatedCat.rows.some(r => r.id === g.budgetRowId));
       recordMonthUndo('deleteRow', willUnlink ? ['budget_plan'] : []);
+    } else if (previous && renamedARow(
+      // A goal's row renames the goal and its row in every month too; that is
+      // undone by renaming the goal back, not by one month's step.
+      previous.rows.filter(r => !planData.goals.some(g => g.budgetRowId === r.id)),
+      updatedCat.rows,
+    )) {
+      recordMonthUndo('renameRow');
     }
     // When "sparande" changes, sync both amount AND label back to the linked goal
     if (updatedCat.id === 'sparande') {
@@ -1108,6 +1259,8 @@ function App({ startupRepair = null }: AppProps) {
       if (oldSparande) {
         let goalsChanged = false;
         let unlinkedName = '';
+        // Linked rows renamed here, as rowId → new label, for the other months.
+        const renamedRows = new Map<string, string>();
         const updatedGoals = planData.goals.map(goal => {
           if (!goal.budgetRowId) return goal;
           const oldRow = oldSparande.rows.find(r => r.id === goal.budgetRowId);
@@ -1143,6 +1296,7 @@ function App({ startupRepair = null }: AppProps) {
           if (newRow.label !== oldRow.label) {
             updated = { ...updated, name: newRow.label };
             goalsChanged = true;
+            renamedRows.set(newRow.id, newRow.label);
           }
 
           return updated;
@@ -1150,6 +1304,15 @@ function App({ startupRepair = null }: AppProps) {
         if (goalsChanged) {
           setPlanData(pd => ({ ...pd, goals: updatedGoals }));
           rewardReachedGoals(planData.goals, updatedGoals);
+        }
+        // The same row in every other month takes the new name too — the
+        // sweep a goal renamed in Plan already gets (handlePlanDataChange).
+        // Renamed here, August kept the old name while September and the goal
+        // said the new one (full sweep 2026-10-08). The month on screen is
+        // renamed in state below, so its key is skipped.
+        if (renamedRows.size > 0
+          && !sweepGoalRows(appStorage, new Set(), renamedRows, storageKey(year, month))) {
+          setSaveFailed(true);
         }
         // Say so out loud — an unlink is invisible otherwise, and the row not
         // coming back is exactly the behaviour change worth explaining.
@@ -1294,23 +1457,54 @@ function App({ startupRepair = null }: AppProps) {
    * the budget row it was promised, nor the row without the debt. Nothing on
    * screen changes until it is stored; a refusal says so and changes nothing.
    */
-  const commitDebts = async (
-    next: DebtState, row?: { id: string; label: string; amount: number },
+  //
+  // Debt changes are queued, and each is a function of the LAST STORED state,
+  // not of the copy on screen. Two quick ones — a new extra amount, then a
+  // strategy — used to be built from the same old copy, and the second write
+  // put the old extra back (deep review 2026-10-14, P1). The month a row goes
+  // into is read from storage for the same reason: an earlier queued change
+  // may have put a row there that the screen's copy does not have yet.
+  const debtsStored = useRef<DebtState>(debtState);
+  const debtLine = useRef<Promise<unknown>>(Promise.resolve());
+  const queueDebts = <T,>(job: () => Promise<T>, failed: T): Promise<T> => {
+    const run = debtLine.current.then(job);
+    debtLine.current = run.catch(() => failed);
+    return run;
+  };
+  /** After a refused or half-done write, show what storage actually holds. */
+  const reloadDebts = () => {
+    const actual = loadDebts(appStorage);
+    debtsStored.current = actual;
+    setDebtState(actual);
+  };
+  const commitDebts = (
+    change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number },
+    undo?: UndoAction,
   ): Promise<boolean> => {
-    const changes: StorageChange[] = [debtsChange(next)];
     const atYear = year;
     const atMonth = month;
-    const withRow = row ? withLoanRow(data, row, lang) : data;
-    if (withRow !== data) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
-    const outcome = await commitStorageChangesOutcome(appStorage, changes);
-    if (outcome !== 'stored') {
-      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
-      return false;
-    }
-    setDebtState(next);
-    // Into the screen's copy only if it still shows that month — see stillShows.
-    if (row && withRow !== data && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
-    return true;
+    return queueDebts(async () => {
+      const prev = debtsStored.current;
+      const next = change(prev);
+      const stored = row ? loadMonthData(atYear, atMonth, lang) : null;
+      const withRow = row && stored ? withLoanRow(stored, row, lang) : stored;
+      if (next === prev && withRow === stored) return true;
+      const changes: StorageChange[] = [debtsChange(next)];
+      if (withRow !== stored) changes.push({ key: storageKey(atYear, atMonth), value: JSON.stringify(withRow) });
+      const before = undo ? captureKeys(appStorage, changes.map(c => c.key)) : null;
+      const outcome = await commitStorageChangesOutcome(appStorage, changes);
+      if (outcome !== 'stored') {
+        reloadDebts();
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return false;
+      }
+      debtsStored.current = next;
+      setDebtState(next);
+      if (undo && before) recordUndo({ at: new Date().toISOString(), action: undo, changes: before });
+      // Into the screen's copy only if it still shows that month — see stillShows.
+      if (row && withRow !== stored && stillShows(atYear, atMonth)) setData(d => withLoanRow(d, row, lang));
+      return true;
+    }, false);
   };
 
   /**
@@ -1327,38 +1521,45 @@ function App({ startupRepair = null }: AppProps) {
    * month is not offered back either. Recorded follow-up entries are never
    * touched. One step back covers the debt and the month.
    */
-  const deleteDebt = async (id: string, removeRow: boolean): Promise<string | null> => {
-    const debt = debtState.debts.find(d => d.id === id);
-    if (!debt) return null;
+  const deleteDebt = (id: string, removeRow: boolean): Promise<string | null> => {
     const atYear = year;
     const atMonth = month;
-    const rowId = debt.budgetRowId;
-    const next: DebtState = {
-      ...debtState,
-      debts: debtState.debts.filter(d => d.id !== id),
-      plainRows: rowId && !debtState.plainRows.includes(rowId) ? [...debtState.plainRows, rowId] : debtState.plainRows,
-    };
-    const withoutRow = (d: MonthData): MonthData => ({
-      ...d,
-      expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
-    });
-    const rowHere = rowId !== undefined && data.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
-    const dropRow = removeRow && rowHere;
-    const monthKey = storageKey(atYear, atMonth);
-    const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
-    const changes: StorageChange[] = [debtsChange(next)];
-    if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(data)) });
-    const outcome = await commitStorageChangesOutcome(appStorage, changes);
-    if (outcome !== 'stored') {
-      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
-      return null;
-    }
-    setDebtState(next);
-    if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
-    recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
-    // What became of the row, said on the tab where it was asked — the brief
-    // header message is gone in two seconds and too narrow for it on a phone.
-    return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
+    // In the same queue as every other debt change, built from what is stored.
+    return queueDebts(async () => {
+      const prev = debtsStored.current;
+      const debt = prev.debts.find(d => d.id === id);
+      if (!debt) return null;
+      const rowId = debt.budgetRowId;
+      const next: DebtState = {
+        ...prev,
+        debts: prev.debts.filter(d => d.id !== id),
+        plainRows: rowId && !prev.plainRows.includes(rowId) ? [...prev.plainRows, rowId] : prev.plainRows,
+      };
+      const withoutRow = (d: MonthData): MonthData => ({
+        ...d,
+        expenses: d.expenses.map(c => (c.id === 'lan' ? { ...c, rows: c.rows.filter(r => r.id !== rowId) } : c)),
+      });
+      const stored = loadMonthData(atYear, atMonth, lang);
+      const rowHere = rowId !== undefined && stored.expenses.some(c => c.id === 'lan' && c.rows.some(r => r.id === rowId));
+      const dropRow = removeRow && rowHere;
+      const monthKey = storageKey(atYear, atMonth);
+      const before = captureKeys(appStorage, dropRow ? [DEBTS_KEY, monthKey] : [DEBTS_KEY]);
+      const changes: StorageChange[] = [debtsChange(next)];
+      if (dropRow) changes.push({ key: monthKey, value: JSON.stringify(withoutRow(stored)) });
+      const outcome = await commitStorageChangesOutcome(appStorage, changes);
+      if (outcome !== 'stored') {
+        reloadDebts();
+        alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+        return null;
+      }
+      debtsStored.current = next;
+      setDebtState(next);
+      if (dropRow && stillShows(atYear, atMonth)) setData(withoutRow);
+      recordUndo({ at: new Date().toISOString(), action: 'deleteDebt', changes: before });
+      // What became of the row, said on the tab where it was asked — the brief
+      // header message is gone in two seconds and too narrow for it on a phone.
+      return dropRow ? t.debtDeletedBoth(debt.name) : rowHere ? t.debtDeletedKept(debt.name) : t.debtDeleted(debt.name);
+    }, null);
   };
 
   /**
@@ -1572,6 +1773,85 @@ function App({ startupRepair = null }: AppProps) {
     rewardReachedGoals(oldGoals, newGoals);
   };
 
+  /**
+   * A goal made by "What do I need to save?" (tools.ts), after the user
+   * confirmed it: the goal itself, and the monthly amount in the savings row
+   * of the month the tool worked from — in ONE write, with a step back. The
+   * month is the stored one, or the screen's copy when it is the month on
+   * screen, so nothing typed there is lost.
+   */
+  const createGoalFromTool = async (g: NewGoalRequest): Promise<boolean> => {
+    const monthKey = storageKey(g.at.year, g.at.month);
+    const before = captureKeys(appStorage, ['budget_plan', monthKey]);
+    const goal: SavingsGoal = {
+      id: generateId(),
+      budgetRowId: generateId(),
+      name: g.name,
+      userNamed: true,
+      targetAmount: g.target,
+      currentAmount: g.saved,
+      deadline: g.deadline,
+      color: makeGoalColor(planData.goals.length),
+    };
+    const nextPlan: PlanData = { ...planData, goals: [...planData.goals, goal] };
+    const here = stillShows(g.at.year, g.at.month);
+    const base = here ? data : loadMonthData(g.at.year, g.at.month, lang);
+    const linked = ensureGoalLinkedBudgetRows(base, nextPlan.goals, lang);
+    const withAmount: MonthData = {
+      ...linked,
+      expenses: linked.expenses.map(c => (c.id !== 'sparande' ? c : {
+        ...c, rows: c.rows.map(r => (r.id === goal.budgetRowId ? { ...r, amount: g.monthly } : r)),
+      })),
+    };
+    const outcome = await commitStorageChangesOutcome(appStorage, [
+      { key: 'budget_plan', value: JSON.stringify(nextPlan) },
+      { key: monthKey, value: JSON.stringify(withAmount) },
+    ]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.toolGoalFailed);
+      return false;
+    }
+    setPlanData(nextPlan);
+    if (here && stillShows(g.at.year, g.at.month)) setData(withAmount);
+    recordUndo({ at: new Date().toISOString(), action: 'createGoal', changes: before });
+    return true;
+  };
+
+  // ── A wallet from Left to live on (Ariel, 2026-10-18) ────────────────
+  // The week's or the month's amount becomes a wallet: a plan for everyday
+  // spending, filled in as the money goes. A snapshot — the budget is not
+  // touched, and changing the budget later does not change the wallet.
+  const [walletDraft, setWalletDraft] = useState<{ name: string; total: number; from: Date; to: Date } | null>(null);
+  const planWallet = (span: 'week' | 'month', amount: number) => {
+    const monthSpan = periodStartDay !== null || Object.keys(periodLocks).length > 0
+      ? periodRange(year, month, periodStartDay ?? 1, periodLocks)
+      : { from: new Date(year, month, 1), to: new Date(year, month + 1, 0) };
+    if (span === 'month') {
+      setWalletDraft({ name: t.walletNameMonth(inSentence(MONTHS[lang][month], lang)), total: amount, ...monthSpan });
+    } else {
+      const week = walletWeek(new Date(), monthSpan);
+      setWalletDraft({ name: t.walletNameWeek(isoWeek(week.from)), total: amount, ...week });
+    }
+  };
+  const createWalletFromBudget = async (): Promise<boolean> => {
+    if (!walletDraft) return false;
+    const before = captureKeys(appStorage, [WALLETS_KEY]);
+    const wallet = newBlank({
+      id: generateId(), name: walletDraft.name, total: walletDraft.total,
+      from: isoDay(walletDraft.from), to: isoDay(walletDraft.to),
+    });
+    const outcome = await commitStorageChangesOutcome(appStorage, [walletsChange([...loadWallets(appStorage), wallet])]);
+    if (outcome !== 'stored') {
+      alert(outcome === 'partial' ? t.changePartlySaved : t.changeNotSaved);
+      return false;
+    }
+    recordUndo({ at: new Date().toISOString(), action: 'createWallet', changes: before });
+    // Straight to it: the wallets screen opens on the wallet just made.
+    safeSetItem(appStorage, OPEN_PANEL_KEY, wallet.id);
+    setWalletsScreen(true);
+    return true;
+  };
+
   /** A goal the user's own change just completed: say so, and buzz a phone. */
   const rewardReachedGoals = (before: SavingsGoal[], after: SavingsGoal[]) => {
     const reached = goalsJustReached(before, after);
@@ -1622,7 +1902,7 @@ function App({ startupRepair = null }: AppProps) {
       <h2 className="onboard-title">🚀 {t.onboardBudgetTitle}</h2>
       <p className="onboard-body">{t.onboardBudgetBody}</p>
       <div className="onboard-actions">
-        <button className="custom-primary-btn" onClick={addStarterBudget}>✨ {t.useBudgetTemplate}</button>
+        <button className="custom-primary-btn" onClick={() => { addStarterBudget(); offerGuideNudge(); }}>✨ {t.useBudgetTemplate}</button>
         <button className="custom-secondary-btn" onClick={dismissBudgetHero}>{t.startFromEmpty}</button>
         <button className="custom-secondary-btn" onClick={() => setBudgetImportOpen(true)}>{t.bimHeroButton}</button>
       </div>
@@ -1656,9 +1936,34 @@ function App({ startupRepair = null }: AppProps) {
   // Each tab's content, rendered once and reused by both layouts: Classic
   // shows one at a time (tabbed); Combined stacks all four on one page.
   // Same components/data/handlers either way — no duplication.
+  const copyOffer = !copyOfferHidden && restOfYearEmpty && !isHistoricMonth(year, month)
+    && totalIncome > 0 && totalExpenses > 0 ? (
+      <section className="copy-offer">
+        <div className="copy-offer-text">
+          <strong>{t.copyOfferTitle}</strong>
+          <span>{t.copyOfferBody(11 - month)}</span>
+        </div>
+        <div className="copy-offer-actions">
+          <button className="custom-primary-btn" onClick={() => void copyToAllRemaining()}>{t.copyOfferButton(11 - month)}</button>
+          <button className="custom-secondary-btn" onClick={dismissCopyOffer}>{t.copyOfferDismiss}</button>
+        </div>
+      </section>
+    ) : null;
+
   const budgetView = (
     <>
+      {!guideRowHidden && (
+        <div className="guide-row">
+          <button className="guide-row-open" onClick={() => setGuideOpen(true)}>
+            <span aria-hidden="true">📖</span>
+            <span className="guide-row-text">{t.guideEntry}</span>
+            <span className="guide-row-chevron" aria-hidden="true">›</span>
+          </button>
+          <button className="guide-row-hide" onClick={hideGuideRow} aria-label={t.guideHide} title={t.guideHide}>✕</button>
+        </div>
+      )}
       {budgetHero}
+      {copyOffer}
       <SummaryCards totalIncome={totalIncome} totalExpenses={totalExpenses} year={year} month={month} />
       {/* Says something about the numbers instead of only showing them. Names
           are resolved here so the insight text follows the current language. */}
@@ -1685,6 +1990,7 @@ function App({ startupRepair = null }: AppProps) {
           month={month}
           periodStartDay={periodStartDay}
           periodLocks={periodLocks}
+          onMakeWallet={planWallet}
         />
       )}
       <div className="budget-grid">
@@ -1698,7 +2004,7 @@ function App({ startupRepair = null }: AppProps) {
               onDelete={deleteExpenseCategory}
             />
           ))}
-          <button className="add-category-btn" onClick={addExpenseCategory}>
+          <button className="add-category-btn" data-guide="addCategory" onClick={addExpenseCategory}>
             {t.addCategory}
           </button>
           {budgetStarter}
@@ -1739,6 +2045,7 @@ function App({ startupRepair = null }: AppProps) {
         savedThisMonth={savedThisMonthAmount}
         year={year}
         month={month}
+        monthData={data}
       />
     </Suspense>
   );
@@ -1759,13 +2066,15 @@ function App({ startupRepair = null }: AppProps) {
         onLockPeriod={lockPeriod}
         planNamedCategory={planNamedCategory}
         onRecordUndo={recordUndo}
+        onActualsChanged={bumpActuals}
+        onCreateGoal={createGoalFromTool}
       />
     </Suspense>
   );
 
   const yearView = (
     <Suspense fallback={lazyFallback}>
-      <YearTab year={year} />
+      <YearTab year={year} live={{ month, data }} />
     </Suspense>
   );
 
@@ -1780,6 +2089,7 @@ function App({ startupRepair = null }: AppProps) {
         loanRows={data.expenses.find(c => c.id === 'lan')?.rows ?? []}
         onSave={commitDebts}
         onDelete={deleteDebt}
+        actualsRevision={actualsRevision}
       />
     </Suspense>
   );
@@ -1789,7 +2099,13 @@ function App({ startupRepair = null }: AppProps) {
     <div className="app">
       <header className="app-header" ref={headerRef}>
         <div className="header-top">
-          <MonthNav
+          {/* A wallet belongs to no month: on the wallets' own screen the
+              header says where you are instead of offering months. */}
+          {walletsScreen ? (
+            <div className="month-nav-wrap">
+              <div className="month-nav"><span className="month-title">✈️ {t.wMenu}</span></div>
+            </div>
+          ) : <MonthNav
             year={year}
             month={month}
             onPrev={prevMonth}
@@ -1800,13 +2116,14 @@ function App({ startupRepair = null }: AppProps) {
             periodStartDay={periodStartDay}
             periodLocks={periodLocks}
             onPeriodLabelChange={label => setData(d => ({ ...d, periodLabel: label }))}
-          />
+          />}
 
           {/* Single utilities menu: language, theme, copy budget, data */}
           <div className="menu-wrap" ref={menuRef}>
             {copyMsg && <span className="copy-msg">{copyMsg}</span>}
             <button
               className={`menu-btn${menuOpen ? ' menu-btn-open' : ''}`}
+              data-guide="menu"
               onClick={() => setMenuOpen(o => !o)}
               title={t.menuTitle}
               aria-label={t.ariaOpenMenu}
@@ -1835,103 +2152,96 @@ function App({ startupRepair = null }: AppProps) {
                   {/* Scrollable body — the drag handle + header above stay put
                       on mobile so the ✕ is always reachable (UX review §14). */}
                   <div className="utils-menu-scroll">
+                  <button className="utils-guide-btn" onClick={() => { setMenuOpen(false); setGuideOpen(true); }}>
+                    <span aria-hidden="true">📖</span> {t.guideEntry}
+                  </button>
                   {/* Language */}
-                  <div className="utils-row">
-                    <span className="utils-row-label">{t.language}</span>
-                    <div className="utils-seg">
-                      <button
-                        className={`seg-btn${lang === 'sv' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('sv')}
-                      >
-                        🇸🇪 SV
-                      </button>
-                      <button
-                        className={`seg-btn${lang === 'en' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('en')}
-                      >
-                        🇬🇧 EN
-                      </button>
-                      <button
-                        className={`seg-btn${lang === 'es' ? ' seg-active' : ''}`}
-                        onClick={() => setLang('es')}
-                      >
-                        🇪🇸 ES
-                      </button>
-                    </div>
+                  <div className="utils-row" data-guide="language">
+                    <label className="utils-row-label" htmlFor="lang-pick">{t.language}</label>
+                    {/* A list rather than buttons: seven languages do not fit a row
+                        on a phone. Each in its own name, so anyone can find theirs. */}
+                    <select
+                      id="lang-pick"
+                      className="label-input lang-pick"
+                      value={lang}
+                      onChange={e => { if (isLang(e.target.value)) setLang(e.target.value); }}
+                    >
+                      {LANG_CHOICES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                    </select>
                   </div>
 
-                  {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own) */}
-                  <div className="utils-row utils-row-stack">
-                    <span className="utils-row-label">{t.layout}</span>
-                    <div className="utils-seg">
-                      {/* Close the menu after picking a layout so the change
-                          is immediately visible (especially on mobile). */}
-                      <button
-                        className={`seg-btn${layout === 'classic' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('classic'); setMenuOpen(false); }}
-                      >
-                        {t.layoutClassic}
-                      </button>
-                      <button
-                        className={`seg-btn${layout === 'combined' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('combined'); setMenuOpen(false); }}
-                      >
-                        {t.layoutCombined}
-                      </button>
-                      <button
-                        className={`seg-btn${layout === 'custom' ? ' seg-active' : ''}`}
-                        onClick={() => { setLayout('custom'); setMenuOpen(false); }}
-                      >
-                        {t.layoutCustom}
-                      </button>
-                    </div>
+                  {/* Layout: classic (tabbed) / combined (one page) / custom (build-your-own).
+                      A list, like Language and Currency: the same control for
+                      every choice in the menu, and long names in any language
+                      fit (Ariel, 2026-10-18). Picking one closes the menu so the
+                      change is visible at once, especially on a phone. */}
+                  <div className="utils-row">
+                    <label className="utils-row-label" htmlFor="layout-pick">{t.layout}</label>
+                    <select
+                      id="layout-pick"
+                      className="label-input lang-pick"
+                      value={layout}
+                      onChange={e => {
+                        const v = e.target.value;
+                        if (v !== 'classic' && v !== 'combined' && v !== 'custom') return;
+                        // Choosing Custom shows Custom — its own start, not the
+                        // wallet last opened from the menu (review 2026-10-21,
+                        // P2). Inside Custom the open wallet is remembered as before.
+                        if (v === 'custom' && layout !== 'custom') {
+                          try { appStorage.removeItem(OPEN_PANEL_KEY); } catch { /* opens a wallet; still reachable */ }
+                        }
+                        setLayout(v);
+                        setWalletsScreen(false);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <option value="classic">{t.layoutClassic}</option>
+                      <option value="combined">{t.layoutCombined}</option>
+                      <option value="custom">{t.layoutCustom}</option>
+                    </select>
                   </div>
 
-                  {/* Currency (symbol/format only — amounts are never converted) */}
+                  {/* Currency (symbol/format only — amounts are never converted).
+                      A list with each symbol's name: nine symbols as buttons
+                      were cramped on a phone, and "₹ indisk rupie" says what
+                      a bare ₹ cannot. */}
                   <div className="utils-row">
-                    <span className="utils-row-label">{t.currency}</span>
-                    <div className="utils-seg">
-                      <button
-                        className={`seg-btn${currency === 'sek' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('sek')}
-                        title="Svenska kronor"
-                      >
-                        kr
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'eur' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('eur')}
-                        title="Euro"
-                      >
-                        €
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'usd' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('usd')}
-                        title="US Dollar"
-                      >
-                        $
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'gbp' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('gbp')}
-                        title="British Pound"
-                      >
-                        £
-                      </button>
-                      <button
-                        className={`seg-btn${currency === 'jpy' ? ' seg-active' : ''}`}
-                        onClick={() => setCurrency('jpy')}
-                        title="Japanese yen"
-                      >
-                        ¥
-                      </button>
-                    </div>
+                    <label className="utils-row-label" htmlFor="currency-pick">{t.currency}</label>
+                    <select
+                      id="currency-pick"
+                      className="label-input lang-pick"
+                      value={currency}
+                      onChange={e => { if (isCurrency(e.target.value)) setCurrency(e.target.value); }}
+                    >
+                      {(Object.keys(CURRENCIES) as Currency[]).map(c => (
+                        <option key={c} value={c}>{CURRENCIES[c].symbol} {t.currencyNames[c]}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="utils-hint">{t.currencyHint}</div>
 
+                  {/* Text size: the same letter at three sizes, so the choice
+                      reads without words (tester, 2026-10-17). */}
+                  <div className="utils-row">
+                    <span className="utils-row-label">{t.textSize}</span>
+                    <div className="utils-seg" role="group" aria-label={t.textSize}>
+                      {TEXT_SIZES.map((s, i) => (
+                        <button
+                          key={s}
+                          className={`seg-btn text-size-btn text-size-${s}${textSize === s ? ' seg-active' : ''}`}
+                          aria-pressed={textSize === s}
+                          aria-label={t.textSizeName[i]}
+                          title={t.textSizeName[i]}
+                          onClick={() => setTextSize(s)}
+                        >
+                          A
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Wallets — a trip's own budget, reachable from every layout */}
-                  <button className="utils-action" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
+                  <button className="utils-action" data-guide="wallets" onClick={() => { setMenuOpen(false); setWalletsScreen(true); }}>
                     ✈️ {t.wMenu}
                   </button>
 
@@ -1970,7 +2280,7 @@ function App({ startupRepair = null }: AppProps) {
                       no amounts, which the hint says out loud so nobody expects
                       their totals to move. */}
                   <div className="utils-group-label">{t.periodSection}</div>
-                  <div className="utils-row">
+                  <div className="utils-row" data-guide="payPeriod">
                     <span className="utils-row-label">{t.periodStartDay}</span>
                     <select
                       className="utils-select"
@@ -1995,16 +2305,16 @@ function App({ startupRepair = null }: AppProps) {
                       were not looking at, and reported success (review
                       2026-09-05, F2). A LINKED panel shows exactly that budget,
                       so there they are the same actions on the same numbers. */}
-                  {showsRegularBudget && (
+                  {showsRegularBudget && !walletsScreen && (
                     <>
                       <div className="utils-divider" />
 
                       <div className="utils-group-label">{t.copyBudget}</div>
                       <button className="utils-action" onClick={copyFromPrevMonth}>
-                        ← {t.copyPrevMonth(MONTHS[lang][month === 0 ? 11 : month - 1])}
+                        ← {t.copyPrevMonth(inSentence(MONTHS[lang][month === 0 ? 11 : month - 1], lang))}
                       </button>
-                      <button className="utils-action" onClick={copyToNextMonth}>
-                        → {t.copyNextMonth} ({MONTHS[lang][month === 11 ? 0 : month + 1]})
+                      <button className="utils-action" data-guide="copyBudget" onClick={copyToNextMonth}>
+                        → {t.copyNextMonth} ({inSentence(MONTHS[lang][month === 11 ? 0 : month + 1], lang)})
                       </button>
                       <button className="utils-action" onClick={() => { setMenuOpen(false); setBudgetImportOpen(true); }}>
                         {t.bimMenu}
@@ -2021,7 +2331,7 @@ function App({ startupRepair = null }: AppProps) {
 
                   {/* Data */}
                   <div className="utils-group-label">{t.backup}</div>
-                  <button className="utils-action" onClick={exportData}>{t.exportData}</button>
+                  <button className="utils-action" data-guide="export" onClick={exportData}>{t.exportData}</button>
                   <button className="utils-action" onClick={() => fileInputRef.current?.click()}>
                     {t.importData}
                   </button>
@@ -2030,6 +2340,9 @@ function App({ startupRepair = null }: AppProps) {
                   <p className={`utils-backup-age${lastBackup.level === 'urgent' || lastBackup.level === 'never' ? ' is-late' : ''}`}>
                     {lastBackup.at === null ? t.backupNever : t.backupLast(longDate(lastBackup.at, lang))}
                   </p>
+                  {/* The file is the whole budget, unencrypted (App Store review,
+                      2026-10-23): said where the export is chosen, not after. */}
+                  <div className="utils-hint">{t.backupPlainHint}</div>
 
                   {/* The way back, offered next to the buttons that need it.
                       Shows WHAT and WHEN, because a bare "Undo" a week after
@@ -2050,7 +2363,9 @@ function App({ startupRepair = null }: AppProps) {
                       whatever layout is on screen, so beside a standalone panel
                       it would wipe invisible data and say it was done. A
                       standalone panel clears its own amounts from its toolbar. */}
-                  {showsRegularBudget && (
+                  {/* Not beside the wallets either: they belong to no month, and
+                      "Reset month" there would blank one the user cannot see. */}
+                  {showsRegularBudget && !walletsScreen && (
                     <>
                       <div className="utils-divider" />
 
@@ -2087,7 +2402,7 @@ function App({ startupRepair = null }: AppProps) {
             hidden — the user scrolls through all sections instead. */}
         {layout === 'classic' && (
           <div className="header-bottom">
-            <TabNav active={activeTab} onChange={changeTab} />
+            <TabNav active={walletsScreen ? null : activeTab} onChange={changeTab} />
           </div>
         )}
         {/* A linked Custom panel is the regular budget laid out another way, so
@@ -2095,12 +2410,54 @@ function App({ startupRepair = null }: AppProps) {
             and gets no tabs rather than tabs about someone else's numbers. */}
         {layout === 'custom' && customTabs && (
           <div className="header-bottom">
-            <TabNav active={activeTab} onChange={changeTab} variant="custom" />
+            <TabNav active={walletsScreen ? null : activeTab} onChange={changeTab} variant="custom" />
           </div>
         )}
       </header>
 
-      {introOpen && <Intro onDone={dismissIntro} />}
+      {startChoiceOpen && (
+        <Suspense fallback={null}>
+          <BeginnerStart
+            span={{
+              from: inSentence(MONTHS_SHORT[lang][month], lang),
+              to: month < 11 ? inSentence(MONTHS_SHORT[lang][11], lang) : null,
+            }}
+            onExpert={() => setStartChoiceOpen(false)}
+            onTemplate={() => { addStarterBudget(); setStartChoiceOpen(false); offerGuideNudge(); }}
+            onCreate={createBeginnerBudget}
+          />
+        </Suspense>
+      )}
+      {walletDraft && (
+        <ConfirmChange
+          title={t.wCreate}
+          lines={[
+            { label: t.wName, after: walletDraft.name },
+            { label: t.wTotal, after: money(walletDraft.total) },
+            { label: t.walletPeriod, after: formatPeriodRange(walletDraft, lang) },
+          ]}
+          onConfirm={createWalletFromBudget}
+          onClose={() => setWalletDraft(null)}
+        />
+      )}
+      {guideOpen && (
+        <Suspense fallback={null}>
+          <Guide onClose={() => setGuideOpen(false)} onShow={showGuideSpot} />
+        </Suspense>
+      )}
+      {guideNudge && !guideOpen && (
+        <Spotlight
+          selector=".guide-row"
+          title={t.guideNudgeTitle}
+          text={t.guideNudgeBody}
+          onDismiss={() => closeGuideNudge(false)}
+          actions={[
+            { label: t.guideNudgeLater, onClick: () => closeGuideNudge(false) },
+            { label: t.guideNudgeOpen, onClick: () => closeGuideNudge(true), primary: true },
+          ]}
+        />
+      )}
+      {introOpen && <Intro onDone={dismissIntro} askCurrency={currencyPending} onCurrency={chooseCurrency} />}
 
       {welcomeOpen && (
         <>
@@ -2160,6 +2517,15 @@ function App({ startupRepair = null }: AppProps) {
                     ? <h3 className="privacy-heading" key={i}>{para.slice(3)}</h3>
                     : <p key={i}>{para}</p>
                 ))}
+                {/* The phone locks apps itself (iOS 18: Require Face ID; many
+                    Android brands: app lock), so the app points there rather
+                    than shipping a lock of its own (decided 2026-10-11). */}
+                {Capacitor.getPlatform() !== 'web' && (
+                  <>
+                    <h3 className="privacy-heading">{t.lockTipTitle}</h3>
+                    <p>{Capacitor.getPlatform() === 'ios' ? t.lockTipIos : t.lockTipAndroid}</p>
+                  </>
+                )}
                 <p className="privacy-updated">{t.privacyUpdated}</p>
               </div>
               <button className="welcome-start-btn" onClick={() => setPrivacyOpen(false)}>
@@ -2330,6 +2696,7 @@ function App({ startupRepair = null }: AppProps) {
         {budgetImportOpen && (
           <Suspense fallback={null}>
             <BudgetImport year={year} month={month}
+              monthData={(y, m) => (y === year && m === month ? data : loadMonthData(y, m, lang))}
               onClose={() => setBudgetImportOpen(false)} onImport={importBudget} />
           </Suspense>
         )}

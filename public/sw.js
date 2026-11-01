@@ -1,7 +1,17 @@
-const CACHE = 'budget-v3';
-const PRECACHE = ['/', '/index.html', '/manifest.json'];
+// The build fills these in (vite.config.ts, src/swStamp.ts): an id for this
+// build and every hashed bundle it serves. A new build is a new worker with a
+// cache of its own; see the note in swStamp.ts. Unstamped (the dev server),
+// the worker is never registered — index.html skips localhost.
+const BUILD = '__BUILD_ID__';
+const ASSETS = /*__ASSETS__*/[];
+const PREFIX = 'budget-';
+const CACHE = PREFIX + BUILD;
+const PRECACHE = ['/', '/index.html', '/manifest.json', ...ASSETS];
 
 self.addEventListener('install', e => {
+  // Every bundle up front, so starting offline needs nothing that was only
+  // ever fetched on the way. If any of it fails, the install fails and the
+  // previous worker keeps serving its own complete cache.
   e.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll(PRECACHE))
   );
@@ -9,10 +19,17 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
+  // Drop older builds' caches — this is what keeps storage from growing with
+  // every deploy. The one just before this build is kept for one more
+  // generation: a tab still open on it may yet load a lazy bundle of its own.
+  // Only caches this app named are touched, and nothing here is user data.
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => {
+      const ours = keys.filter(k => k.startsWith(PREFIX));
+      const others = ours.filter(k => k !== CACHE);
+      const keep = new Set([CACHE, others[others.length - 1]]);
+      return Promise.all(ours.filter(k => !keep.has(k)).map(k => caches.delete(k)));
+    })
   );
   self.clients.claim();
 });

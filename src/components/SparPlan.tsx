@@ -4,6 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { loadMonthData } from '../defaults';
+import type { MonthData } from '../types';
 import { calculateSavingsMetrics } from '../metrics';
 import { useLang, MONTHS_SHORT, formatAxisTick, type Translations } from '../i18n';
 import { chartColors } from '../themes';
@@ -72,7 +73,12 @@ const VsTooltip = ({ active, payload, label, money, t }: {
   );
 };
 
-export const SparPlanSection = () => {
+export const SparPlanSection = ({ live }: {
+  /** The month on screen as the app holds it now — see YearTab's `live`: read
+   *  from storage it is one edit behind wherever savings and the plan share a
+   *  page (the Combined layout). */
+  live?: { year: number; month: number; data: MonthData };
+} = {}) => {
   const { lang, t, money } = useLang();
   const { text: tickColor, grid: gridColor } = chartColors();
 
@@ -240,7 +246,8 @@ export const SparPlanSection = () => {
       labels.push(MONTHS_SHORT[lang][mi]);
       // An unrecorded month is unknown, not a balance of 0 — pass null through
       // so the line breaks rather than diving to the axis.
-      const snap = calculateSavingsMetrics(loadMonthData(y, mi, lang));
+      const isLive = live !== undefined && live.year === y && live.month === mi;
+      const snap = calculateSavingsMetrics(isLive ? live.data : loadMonthData(y, mi, lang));
       balances.push(snap.hasSnapshot ? snap.balance : null);
     }
     vsRows = planVsActual(balances, planSeries).map((p, k) => ({ label: labels[k], ...p }));
@@ -295,7 +302,7 @@ export const SparPlanSection = () => {
         <h2 className="plan-section-title">📈 {t.sparplanTitle}</h2>
       </div>
 
-      <div className="sparplan-card">
+      <div className="sparplan-card" data-guide="sparplan">
         <p className="sparplan-body">{t.sparplanBody}</p>
         {/* Until a number is changed, nothing here is the user's: the figures
             are defaults, and "143 197 kr in 5 years" on a fresh app read like

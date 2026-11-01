@@ -15,6 +15,8 @@ import { appStorage } from '../storage';
 interface Props {
   blocks: YearBlockLike[];
   year: number;
+  /** Which budget's months to read (customYear.ts). */
+  ns?: string;
 }
 
 interface TooltipProps {
@@ -40,12 +42,12 @@ const YearTooltip = ({ active, payload, label, money }: TooltipProps) => {
   );
 };
 
-export const CustomYear = ({ blocks, year }: Props) => {
+export const CustomYear = ({ blocks, year, ns }: Props) => {
   const { lang, t, money } = useLang();
   const { text: tickColor, grid: gridColor } = chartColors();
 
   // Twelve localStorage reads + parses — not something to redo on every render.
-  const rows = useMemo(() => customYearRows(appStorage, blocks, year), [blocks, year]);
+  const rows = useMemo(() => customYearRows(appStorage, blocks, year, ns), [blocks, year, ns]);
   const totals = useMemo(() => customYearTotals(rows), [rows]);
 
   const hasData = rows.some(r => r.hasData);

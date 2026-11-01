@@ -101,7 +101,9 @@ describe('legacy Custom months are protected before they can be edited', () => {
   it('runs it once on mount, not on every structure change', () => {
     // Mid-session it would freeze a filing the user is in the middle of
     // changing. Mount is the last moment the stored past is still the past.
+    // `ns` is the only dependency allowed: a budget's namespace is fixed for
+    // the component's life (each budget is mounted under its own key).
     const at = src.indexOf('migrateLegacySnapshots(appStorage');
-    expect(src.slice(at, at + 120)).toContain('}, []);');
+    expect(src.slice(at, at + 120)).toMatch(/\}, \[(ns)?\]\);/);
   });
 });

@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { isCollapsed, setCollapsedStored } from '../collapsed';
 import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
@@ -46,7 +47,11 @@ interface Props {
 
 export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow', showZero }: Props) => {
   const { t, lang, money, currency } = useLang();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => isCollapsed(category.id));
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+    setCollapsedStored(category.id, !collapsed);
+  };
   const [editing, setEditing] = useState(false);
 
   const protectedCat = isProtectedCategory(category.id);
@@ -98,7 +103,7 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
         <h2
           className="section-title"
           title={shownName(category, lang)}
-          onClick={() => setCollapsed(c => !c)}
+          onClick={toggleCollapsed}
           style={{ cursor: 'pointer' }}
         >
           {shownName(category, lang)}
@@ -108,13 +113,13 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
             stays reachable via title= (main review §12). */}
         <span
           className="section-total"
-          style={{ color: category.color }}
           title={Math.abs(total) >= 1e9 ? money(total) : undefined}
         >
           {Math.abs(total) >= 1e9 ? formatMoneyCompact(total, currency, lang) : money(total)}
         </span>
         <button
           className="cat-edit-btn"
+          data-guide="categoryEdit"
           onClick={() => setEditing(e => !e)}
           title={t.editCategory}
           aria-label={t.ariaEditCategory(shownName(category, lang))}
@@ -124,12 +129,12 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
         </button>
         <button
           className="collapse-arrow"
-          onClick={() => setCollapsed(c => !c)}
+          onClick={toggleCollapsed}
           aria-label={collapsed
             ? t.ariaExpand(shownName(category, lang))
             : t.ariaCollapse(shownName(category, lang))}
           aria-expanded={!collapsed}
-          style={{ color: category.color, cursor: 'pointer', background: 'none', border: 'none', font: 'inherit', padding: 0 }}
+          style={{ cursor: 'pointer', background: 'none', border: 'none', font: 'inherit', padding: 0 }}
         >
           {collapsed ? '▸' : '▾'}
         </button>
@@ -212,15 +217,15 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                   </span>
                 )}
                 <span className="row-action">
-                  {row.isCustom && (
-                    <button className="delete-btn" onClick={() => deleteRow(row.id)}
-                      title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
-                  )}
+                  {/* Every row, the template's too: someone with no car or mortgage must
+                      be able to remove them (tester, 2026-10-19). Undoable like any removal. */}
+                  <button className="delete-btn" onClick={() => deleteRow(row.id)}
+                    title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
                 </span>
               </div>
             ))}
           </div>
-          <button className="add-row-btn" onClick={addRow} style={{ color: category.color }}>
+          <button className="add-row-btn" onClick={addRow}>
             {t.addRow}
           </button>
         </>

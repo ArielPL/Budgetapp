@@ -244,6 +244,67 @@ describe('Follow-up', () => {
     expect(undoOnDisk()).toEqual([]);
   });
 
+  describe('"Clear all actuals" (Ariel, 2026-10-23)', () => {
+    const AUGUST = JSON.stringify([
+      { id: 'a1', date: '2026-08-12', text: 'SYNT AUG', amount: 50, direction: 'out', categoryId: 'boende' },
+    ]);
+    const clearAll = () => fireEvent.click(document.querySelector('.followup-clear-all')!);
+
+    it('empties every month, keeps the budgets and what sorting has learned, and can be undone', async () => {
+      b.disk.set('budget_actuals_2026_7', AUGUST);
+      b.disk.set('budget_category_rules', '{"synt a":"boende"}');
+      const budget = b.disk.get('budget_2026_8');
+      await openFollowUp();
+      clearAll();
+      await waitFor(() => expect(b.disk.has('budget_actuals_2026_8')).toBe(false));
+      expect(b.disk.has('budget_actuals_2026_7')).toBe(false);
+      expect(b.disk.get('budget_2026_8')).toBe(budget);
+      expect(b.disk.get('budget_category_rules')).toBe('{"synt a":"boende"}');
+      await waitFor(() => expect(shownEntries()).toEqual([]));
+      await waitFor(() => expect(undoOnDisk().map(u => u.action)).toEqual(['clearAllActuals']));
+      const step = undoOnDisk()[0] as unknown as { count: number; changes: { key: string; value: string }[] };
+      expect(step.count).toBe(4);
+      expect(Object.fromEntries(step.changes.map(c => [c.key, c.value]))).toEqual({
+        budget_actuals_2026_7: AUGUST, budget_actuals_2026_8: ENTRIES,
+      });
+    });
+
+    it('asks first, naming how many entries and months', async () => {
+      b.disk.set('budget_actuals_2026_7', AUGUST);
+      let asked = '';
+      vi.stubGlobal('confirm', (m: string) => { asked = m; return false; });
+      await openFollowUp();
+      clearAll();
+      // Asked once any edit still saving has landed, so it waits a turn.
+      await waitFor(() => expect(asked).toBe(sv.followUpClearAllConfirm(4, 2)));
+      await settle();
+      expect(b.disk.has('budget_actuals_2026_7')).toBe(true);
+      expect(shownEntries()).toHaveLength(3);
+    });
+
+    it('changes nothing, offers no step back and says so when the database refuses', async () => {
+      await openFollowUp();
+      b.refuse.add('budget_actuals_2026_8');
+      clearAll();
+      await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
+      expect(JSON.parse(b.disk.get('budget_actuals_2026_8')!)).toHaveLength(3);
+      expect(shownEntries()).toHaveLength(3);
+      expect(undoOnDisk()).toEqual([]);
+    });
+
+    it('a delete still saving when it is pressed cannot bring an entry back', async () => {
+      await openFollowUp();
+      b.hold();
+      del('SYNT A');
+      clearAll();
+      b.release();
+      await waitFor(() => expect(b.disk.has('budget_actuals_2026_8')).toBe(false));
+      await settle();
+      expect(b.disk.has('budget_actuals_2026_8')).toBe(false);
+      expect(shownEntries()).toEqual([]);
+    });
+  });
+
   it('loses neither of two quick deletes made while the first is still saving', async () => {
     await openFollowUp();
     b.hold();
@@ -1180,7 +1241,8 @@ describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
     await ask(sv.qGoal);
     expect(document.querySelector('.q-answer')?.textContent).toContain(sv.qGoalNone);
     fireEvent.click(document.querySelector('.q-back')!);
-    expect(document.querySelectorAll('.q-ask')).toHaveLength(6);
+    // Six questions and the two tools (2026-10-17).
+    expect(document.querySelectorAll('.q-ask')).toHaveLength(8);
   });
 });
 
@@ -1203,7 +1265,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   };
   const createTrip = async () => {
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
-    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fireEvent.click(buttonWith(`+ ${sv.wNew}`)!);
     fireEvent.click(buttonWith(sv.wKindTrip)!);
     fill(sv.wName, 'SYNT RESA');
     fill(sv.wTotal, '10000');
@@ -1233,7 +1295,7 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
   it('starts empty unless the trip template is chosen: the user makes the parts', async () => {
     await openCustom();
     fireEvent.click(document.querySelector('.wallet-switch-toggle')!);
-    fireEvent.click(document.querySelector('.wallet-switch-new')!);
+    fireEvent.click(buttonWith(`+ ${sv.wNew}`)!);
     fill(sv.wName, 'SYNT RENOVERING');
     fill(sv.wTotal, '25000');
     fireEvent.click(buttonWith(sv.wCreate)!);
@@ -1356,6 +1418,17 @@ describe('wallets in Custom (Ariel, 2026-10-04)', () => {
     expect(b.disk.get('budget_layout')).toBe('classic');
   });
 
+  it('the menu beside the wallets offers no month tools (store screenshots, 2026-10-05)', async () => {
+    await openApp();
+    openMenu();
+    expect(buttonWith(sv.copyNextMonth)).toBeTruthy();
+    fireEvent.click(buttonWith(`✈️ ${sv.wMenu}`)!);
+    await waitFor(() => expect(document.querySelector('.wallet')).not.toBeNull());
+    openMenu();
+    expect(buttonWith(sv.copyNextMonth)).toBeUndefined();
+    expect(buttonWith(sv.resetMonth)).toBeUndefined();
+  });
+
   it('deleting the wallet asks first, and leaves a step back', async () => {
     await openCustom();
     await createTrip();
@@ -1416,5 +1489,33 @@ describe('the savings plan shows only what is stored (deep review 2026-10-04, P1
     await waitFor(() => expect(alerts).toContain(sv.changeNotSaved));
     expect(storedPlan()?.monthlyAmount).toBe(1000);
     expect(buttonWith(sv.sparplanDelete)).toBeTruthy();
+  });
+});
+
+describe('App Store review, 2026-10-23', () => {
+  it('a statement over the size limit is refused before it is read, with a reason', async () => {
+    await openApp();
+    fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(buttonWith(sv.followUpImport)).toBeTruthy());
+    fireEvent.click(buttonWith(sv.followUpImport)!);
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('input[type=file][accept*=csv]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    const file = new File([CSV], 'synt.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'size', { value: 10 * 1024 * 1024 + 1 });
+    const read = vi.spyOn(file, 'arrayBuffer');
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(document.body.textContent).toContain(sv.csvErrTooBig));
+    expect(read).not.toHaveBeenCalled();
+    expect(document.querySelector('.csv-cols, .csv-groups')).toBeNull();
+  });
+
+  it('the menu says, next to Export, that the backup is the whole budget in readable form', async () => {
+    await openApp();
+    openMenu();
+    const hint = [...document.querySelectorAll('.utils-hint')].find(el => el.textContent === sv.backupPlainHint);
+    expect(hint).toBeTruthy();
   });
 });

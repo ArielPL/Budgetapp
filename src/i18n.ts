@@ -1,8 +1,16 @@
 import { createContext, useContext } from 'react';
 import type { DebtKind } from './debts';
 import type { UndoAction } from './undo';
+import { fr } from './locales/fr';
+import { de } from './locales/de';
+import { ja } from './locales/ja';
+import { zh } from './locales/zh';
+import { it } from './locales/it';
+import { pt } from './locales/pt';
+import { ru } from './locales/ru';
+import { tr } from './locales/tr';
 
-export type Lang = 'sv' | 'en' | 'es';
+export type Lang = 'sv' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru' | 'tr' | 'ja' | 'zh';
 
 /** Runtime check for a stored/imported language. A TypeScript `as Lang` cast
  *  proves nothing at runtime: "xx" sailed through it, `translations["xx"]` came
@@ -43,38 +51,17 @@ export function deviceLang(): Lang {
   return pickLang(tags);
 }
 
-/**
- * The currency to start with, from the same signal.
- *
- * Symbol and formatting only — it never converts an amount, here or anywhere
- * else. English text next to "kr" was the old default's other half: coherent
- * for a Swede, puzzling for anyone else.
- */
-export function pickCurrency(tags: readonly string[]): Currency {
-  for (const tag of tags) {
-    const lower = tag.toLowerCase();
-    const [base, region] = lower.split('-');
-    if (base === 'sv') return 'sek';
-    if (base === 'es') return 'eur';
-    if (base === 'en') return region === 'gb' ? 'gbp' : 'usd';
-    if (base === 'ja') return 'jpy';
-    // Somebody else's European locale: the euro is the better guess than kronor.
-    if (['de', 'fr', 'it', 'pt', 'nl', 'fi', 'el', 'ga', 'et', 'lv', 'lt', 'sk', 'sl'].includes(base)) {
-      return 'eur';
-    }
-  }
-  // Nothing to go on. Dollars rather than kronor, to match the language this
-  // same silence gets: English text beside "kr" is the incoherent pair, and a
-  // device that tells us nothing is not more likely to be Swedish than not.
-  return 'usd';
-}
+/** The language list (menu and first-run step), each language named in itself. */
+export const LANG_CHOICES: [Lang, string][] = [
+  ['sv', '🇸🇪 Svenska'], ['en', '🇬🇧 English'], ['es', '🇪🇸 Español'],
+  ['fr', '🇫🇷 Français'], ['de', '🇩🇪 Deutsch'], ['it', '🇮🇹 Italiano'], ['pt', '🇧🇷 Português (Brasil)'],
+  ['ru', '🇷🇺 Русский'], ['tr', '🇹🇷 Türkçe'], ['ja', '🇯🇵 日本語'], ['zh', '🇨🇳 中文（简体）'],
+];
 
-export function deviceCurrency(): Currency {
-  const nav: Navigator | undefined = globalThis.navigator;
-  const tags = nav?.languages?.length ? [...nav.languages]
-    : (nav?.language ? [nav.language] : []);
-  return pickCurrency(tags);
-}
+// No guessed currency. The language follows the phone, but a currency guessed
+// from it was wrong exactly where it mattered — es-MX got euros, fr-CA euros,
+// zh-CN dollars (review 2026-10-17, P1). A new user picks it on the first-run
+// step instead (Intro.tsx), from symbols that say what they stand for.
 
 export const MONTHS: Record<Lang, string[]> = {
   sv: [
@@ -89,21 +76,57 @@ export const MONTHS: Record<Lang, string[]> = {
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ],
+  fr: [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ],
+  de: [
+    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+  ],
+  it: [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
+  ],
+  pt: [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ],
+  // Nominative, as a heading says it ("Октябрь 2026"). A month inside a
+  // sentence takes another case; dateLabel.ts gives those (RU_MONTH_IN).
+  ru: [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  ],
+  tr: [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  ],
+  ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
 
 export const MONTHS_SHORT: Record<Lang, string[]> = {
   sv: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
   en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   es: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  fr: ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'],
+  de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  it: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+  pt: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+  ru: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+  tr: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+  ja: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
 };
 
 // ── Currency ────────────────────────────────────────────────────────
 // Switching currency changes the SYMBOL/FORMAT ONLY — amounts are never
 // converted (no exchange rates). The user's numbers stay the same.
-export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy';
+export type Currency = 'sek' | 'eur' | 'usd' | 'gbp' | 'jpy' | 'rub' | 'brl' | 'inr' | 'try';
 
 interface CurrencyConfig {
-  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY';
+  code: 'SEK' | 'EUR' | 'USD' | 'GBP' | 'JPY' | 'RUB' | 'BRL' | 'INR' | 'TRY';
   locale: string;
   symbol: string;
   /** The yen has no smaller unit: its amounts are always shown whole. */
@@ -118,6 +141,14 @@ export const CURRENCIES: Record<Currency, CurrencyConfig> = {
   // en-US rather than ja-JP: Japanese formatting writes the full-width "￥",
   // and the symbol asked for is the ordinary ¥ (Ariel, 2026-10-03).
   jpy: { code: 'JPY', locale: 'en-US', symbol: '¥', wholeOnly: true },
+  // With Russian and Brazilian Portuguese (2026-10-18): each written the way
+  // its own country writes it — "1 234 ₽", "R$ 1.234,50".
+  rub: { code: 'RUB', locale: 'ru-RU', symbol: '₽' },
+  brl: { code: 'BRL', locale: 'pt-BR', symbol: 'R$' },
+  // With Turkish (2026-10-18): the Indian rupee groups in lakhs as India does
+  // ("₹1,23,456"), the lira as Turkey does ("₺1.234,50").
+  inr: { code: 'INR', locale: 'en-IN', symbol: '₹' },
+  try: { code: 'TRY', locale: 'tr-TR', symbol: '₺' },
 };
 
 /** Runtime check for a stored/imported currency — same story as isLang: an
@@ -154,14 +185,19 @@ function getFormatter(currency: Currency, withCents: boolean): Intl.NumberFormat
 /** Format an amount with the given currency's symbol/grouping (no conversion).
  *  Whole amounts get no decimals; fractional amounts get exactly two. */
 export function formatMoney(amount: number, currency: Currency): string {
-  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount));
-  const rounded = Math.round(amount * 100) / 100;
+  // `|| 0` turns −0 into 0: Intl prints negative zero as "−0 kr", and a tiny
+  // negative remainder rounds to exactly that (full sweep 2026-10-08).
+  if (CURRENCIES[currency].wholeOnly) return getFormatter(currency, false).format(Math.round(amount) || 0);
+  const rounded = Math.round(amount * 100) / 100 || 0;
   const hasCents = !Number.isInteger(rounded);
   return getFormatter(currency, hasCents).format(rounded);
 }
 
 // Language → locale for numeric formatting on chart axes (decimal separator).
-const AXIS_LOCALE: Record<Lang, string> = { sv: 'sv-SE', en: 'en-US', es: 'es-ES' };
+const AXIS_LOCALE: Record<Lang, string> = {
+  sv: 'sv-SE', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+  it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU', tr: 'tr-TR', ja: 'ja-JP', zh: 'zh-CN',
+};
 
 // Magnitude suffixes per language. "Billion" is a false friend: a Swedish
 // "biljon" is 1e12, so sv uses md (miljard) / bn (biljon); es follows the
@@ -170,6 +206,15 @@ const AXIS_SUFFIX: Record<Lang, { m: string; b: string; t: string }> = {
   sv: { m: 'M', b: 'md', t: 'bn' },
   en: { m: 'M', b: 'B', t: 'T' },
   es: { m: 'M', b: 'mil M', t: 'B' },
+  fr: { m: 'M', b: 'Md', t: 'Bn' },
+  de: { m: 'Mio', b: 'Mrd', t: 'Bio' },
+  it: { m: 'Mln', b: 'Mld', t: 'Bln' },
+  pt: { m: 'mi', b: 'bi', t: 'tri' },
+  ru: { m: 'млн', b: 'млрд', t: 'трлн' },
+  tr: { m: 'Mn', b: 'Mr', t: 'Tn' },
+  // Short-scale letters: 万/億 grouping does not fit the thousand-step tiers.
+  ja: { m: 'M', b: 'B', t: 'T' },
+  zh: { m: 'M', b: 'B', t: 'T' },
 };
 
 /**
@@ -205,15 +250,19 @@ export function formatAxisTick(value: number, lang: Lang): string {
  */
 export function formatMoneyCompact(amount: number, currency: Currency, lang: Lang): string {
   const compact = formatAxisTick(amount, lang);
-  const symbol: Record<Currency, string> = { sek: 'kr', eur: '€', usd: '$', gbp: '£', jpy: '¥' };
-  return currency === 'usd' || currency === 'gbp' || currency === 'jpy'
-    ? `${symbol[currency]}${compact}`
-    : `${compact} ${symbol[currency]}`;
+  const symbol = CURRENCIES[currency].symbol;
+  // Before the number where the country writes it before: $10B, R$ 10 bi.
+  return currency === 'usd' || currency === 'gbp' || currency === 'jpy' || currency === 'brl'
+    || currency === 'inr' || currency === 'try'
+    ? `${symbol}${currency === 'brl' ? ' ' : ''}${compact}`
+    : `${compact} ${symbol}`;
 }
 
 export interface Translations {
   // Tabs
   tabBudget: string;
+  /** Under the icon on a phone, where six tabs share the width. */
+  tabBudgetShort: string;
   tabSavings: string;
   tabSavingsShort: string;
   tabPlan: string;
@@ -291,6 +340,15 @@ export interface Translations {
   bimAmountColumn: string;
   bimColumn: (n: number) => string;
   bimNote: string;
+  /** The preview, row by row (review 2026-10-21): what the row will do. */
+  bimRowReplaces: (label: string) => string;
+  bimRowNew: string;
+  /** A near name in the same place ("Hyra" beside "Hyra/Bolån"): ask. */
+  bimNearAsk: (label: string) => string;
+  bimNearAdd: string;
+  bimNearReplace: (label: string) => string;
+  /** Above the totals the month will have once imported. */
+  bimAfterTitle: (month: string) => string;
   bimSkip: string;
   bimOther: string;
   bimNewGroup: string;
@@ -301,6 +359,13 @@ export interface Translations {
   bimErrTooBig: string;
   bimErrTooLarge: string;
   bimErrUnreadable: string;
+  /** .doc, .xls, Pages, Numbers, OpenDocument: save as a format the app reads. */
+  bimErrConvert: string;
+  /** A credit (a minus) taken off the row above it in the same month. */
+  bimCreditTaken: (amount: string, row: string) => string;
+  bimCreditLeft: (amount: string) => string;
+  /** A minus that is not a credit, read as a cost — said, not silent. */
+  bimNegativeRead: string;
   bimErrEmpty: string;
   bimErrNoAmounts: string;
   bimBack: string;
@@ -319,6 +384,10 @@ export interface Translations {
   followUpColPlan: string;
   followUpColActual: string;
   followUpColDiff: string;
+  /** Said under the difference, so it never rests on a sign alone: an expense
+   *  under plan has money LEFT, over plan is OVER; income above plan is EXTRA,
+   *  below is SHORT (tester, 2026-10-19: "minus feels like something good?"). */
+  followUpDiffWords: { left: string; over: string; extra: string; short: string };
   followUpTotalOut: string;
   followUpNotRecorded: string;
   followUpNoEntries: string;
@@ -381,6 +450,8 @@ export interface Translations {
   /** The file's text encoding is none the app can read (see decodeCsv). */
   csvUnknownEncoding: string;
   csvNoRows: string;
+  /** A CSV over the import's size limit. */
+  csvErrTooBig: string;
   csvNoText: string;
   csvColumnsLead: string;
   csvRoleDate: string;
@@ -411,6 +482,9 @@ export interface Translations {
   followUpClear: string;
   followUpClearConfirm: (n: number, monthName: string) => string;
   followUpClearDone: (n: number) => string;
+  /** Every recorded entry in every month, after a question naming how many. */
+  followUpClearAll: string;
+  followUpClearAllConfirm: (entries: number, months: number) => string;
   followUpSpan: (n: number) => string;
   followUpSpanAria: string;
   followUpSpanRange: (from: string, to: string) => string;
@@ -677,7 +751,26 @@ export interface Translations {
   newNoteName: string;
   notePlaceholder: string;
   currency: string;
+  textSize: string;
+  /** Normal, large, larger — read aloud for the three "A" buttons. */
+  textSizeName: [string, string, string];
   currencyHint: string;
+  /** What each symbol stands for, in brackets after it: the symbol is all the
+   *  app shows, so "$" serves the peso as well as the dollar. */
+  currencyNames: Record<Currency, string>;
+  /** The first-run step that asks for the currency (and offers the language). */
+  introSetupTitle: string;
+  introSetupBody: string;
+  introPickCurrency: string;
+  /** The "Get started" guide's row at the top of Budget and first menu item. */
+  guideEntry: string;
+  /** The ✕ that hides that row; the menu item stays. */
+  guideHide: string;
+  /** The one-time pointer to the guide after a first budget is made. */
+  guideNudgeTitle: string;
+  guideNudgeBody: string;
+  guideNudgeOpen: string;
+  guideNudgeLater: string;
   theme: string;
   whatsNew: string;
   whatsNewLatest: string;
@@ -731,6 +824,29 @@ export interface Translations {
   copyAllRemaining: (n: number) => string;
   copiedTo: (month: string) => string;
   copiedToMonths: (n: number) => string;
+  /** Offered once a month has a budget and the rest of the year is empty. */
+  copyOfferTitle: string;
+  copyOfferBody: (n: number) => string;
+  copyOfferButton: (n: number) => string;
+  copyOfferDismiss: string;
+  /** The first-run question (Ariel, 2026-10-19) and the beginner's questions. */
+  startChoiceTitle: string;
+  startChoiceBody: string;
+  startExpert: string;
+  startExpertSub: string;
+  startBeginner: string;
+  startBeginnerSub: string;
+  /** Salary, housing, phone, getting to work, loans, savings — in that order. */
+  begQuestions: { title: string; hint: string }[];
+  begSkip: string;
+  begNext: string;
+  begBack: string;
+  begSummaryTitle: string;
+  begLeftover: string;
+  begCreate: (from: string, to: string) => string;
+  begCreateOne: (month: string) => string;
+  begEmpty: string;
+  begTemplate: string;
   copyPrevMonth: (month: string) => string;
   copyPrevMonthConfirm: (from: string, to: string) => string;
   copyPrevMonthEmpty: (month: string) => string;
@@ -839,6 +955,10 @@ export interface Translations {
   privacyBody: string[];
   privacyUpdated: string;
   privacyClose: string;
+  /** In the apps only: how to lock the app with the phone's own lock. */
+  lockTipTitle: string;
+  lockTipIos: string;
+  lockTipAndroid: string;
   goalErrorName: string;
   /** One message per real problem — "must be greater than 0" was shown for
    *  unparseable input too, which described the wrong mistake. */
@@ -852,6 +972,14 @@ export interface Translations {
   dailyBudgetDaysInMonth: (n: number, month: string) => string;
   dailyBudgetPerDay: string;
   dailyBudgetPerWeek: string;
+  dailyBudgetPerMonth: string;
+  /** The hint on a tile that makes a wallet of its amount ("+ plånbok"). */
+  dailyBudgetToWallet: string;
+  dailyBudgetWalletAria: (amount: string) => string;
+  walletPeriod: string;
+  /** A wallet made from Left to live on: "Vardag oktober", "Vardag v. 42". */
+  walletNameMonth: (month: string) => string;
+  walletNameWeek: (week: number) => string;
   // Sparplan (savings plan projection + plan-vs-actual)
   sparplanTitle: string;
   sparplanBody: string;
@@ -989,6 +1117,54 @@ export interface Translations {
   qGoalReached: string;
   qGoalNoMonthly: (month: string) => string;
   qGoalRule: string;
+  /** Tools (tools.ts): try a change before making it. */
+  qWhatIf: string;
+  qWhatIfLead: (month: string) => string;
+  qWhatIfWhat: string;
+  qWhatIfIncome: string;
+  qWhatIfAmount: string;
+  qWhatIfHint: string;
+  qWhatIfRemaining: string;
+  qWhatIfPerDay: string;
+  qWhatIfSavings: string;
+  qWhatIfSame: string;
+  qNeedToSave: string;
+  qNeedName: string;
+  qNeedNamePlaceholder: string;
+  qNeedTarget: string;
+  qNeedBy: string;
+  qNeedSaved: string;
+  qNeedAnswer: (perMonth: string) => string;
+  qNeedSub: (left: string, months: number) => string;
+  qNeedShare: (pct: number, month: string) => string;
+  qNeedReached: string;
+  qNeedPast: string;
+  qNeedCreate: string;
+  qSearch: string;
+  qSearchPlaceholder: string;
+  qSearchSub: (count: number) => string;
+  qSearchNone: (query: string) => string;
+  qSearchMostly: (category: string) => string;
+  qSearchCount: (count: number) => string;
+  toolConfirm: string;
+  toolConfirmUndo: string;
+  toolGoalTitle: string;
+  toolGoalDefaultName: string;
+  toolGoalName: string;
+  toolGoalInBudget: (month: string) => string;
+  toolPerMonth: (amount: string) => string;
+  toolGoalFailed: string;
+  debtTry: string;
+  debtTryLead: string;
+  debtTryAmount: string;
+  debtTryDebtFree: string;
+  debtTryInterest: string;
+  debtTryNever: string;
+  debtTrySaves: (amount: string) => string;
+  debtTryCosts: (amount: string) => string;
+  debtTryUse: (amount: string) => string;
+  debtTryTitle: string;
+  debtTryExtra: string;
   qGoalNone: string;
   qBasisMonths: (covered: number, asked: number) => string;
   qBasisUnsorted: (amount: string, count: number) => string;
@@ -1004,6 +1180,14 @@ export interface Translations {
   wTagSeparate: string;
   wNew: string;
   wNewLead: string;
+  /** A budget added beside the Custom panel's own (customBudgets.ts). */
+  cbNew: string;
+  cbNewLead: string;
+  cbNamePlaceholder: string;
+  cbCreate: string;
+  cbRename: string;
+  cbDelete: string;
+  cbDeleteConfirm: (name: string) => string;
   wName: string;
   wNamePlaceholder: string;
   wTotal: string;
@@ -1031,6 +1215,9 @@ export interface Translations {
   wStartsIn: (days: number) => string;
   wEnded: string;
   wPerDay: (amount: string) => string;
+  /** The same for a wallet that is not a trip: a period, not a journey. */
+  wPerDayPeriod: (amount: string) => string;
+  wEndedPeriod: string;
   wOver: (over: string) => string;
   wAddExpense: string;
   wAmount: string;
@@ -1076,10 +1263,15 @@ export interface Translations {
   /** Always visible in the menu, so the user never has to guess. */
   backupLast: (date: string) => string;
   backupNever: string;
+  /** Under Export in the menu: the file is the whole budget, unencrypted. */
+  backupPlainHint: string;
   /** Shown after a plain browser download, which the web platform cannot report
    *  on. The date in the menu is a promise that a file exists, so it is only
    *  written on a yes (review 2026-09-18, F5). */
   backupConfirmSaved: string;
+  /** The same question in the apps, after the share sheet: nothing was
+   *  downloaded there, the file went to another app. */
+  backupConfirmShared: string;
   /** The share sheet's title for a backup file (iOS/Android). */
   backupShareTitle: string;
   backupShareFailed: string;
@@ -1105,6 +1297,7 @@ export interface Translations {
 export const translations: Record<Lang, Translations> = {
   sv: {
     tabBudget: 'Budget',
+    tabBudgetShort: 'Budget',
     tabSavings: 'Sparande & Investeringar',
     tabSavingsShort: 'Sparande',
     tabPlan: 'Plan & Översikt',
@@ -1168,9 +1361,9 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Här blir båda vägarna samma, eftersom de minsta skulderna också har högst ränta.',
     debtFromBudget: (amount) => `Från budgeten · ${amount} per månad`,
     bimTitle: 'Importera budget',
-    bimMenu: '📥 Importera budget från Excel',
-    bimHeroButton: '📥 Importera från Excel',
-    bimLead: 'Har du redan en budget i Excel, Google Kalkylark eller Numbers? Välj filen (.xlsx eller CSV), eller markera cellerna där och klistra in dem här.',
+    bimMenu: '📥 Importera budget från fil',
+    bimHeroButton: '📥 Importera budget',
+    bimLead: 'Har du redan en budget i Excel, Google Kalkylark, Numbers eller Word? Välj filen (.xlsx, .docx eller CSV), eller markera cellerna där och klistra in dem här.',
     bimPick: 'Välj fil',
     bimPasteLabel: 'Eller klistra in cellerna',
     bimPastePlaceholder: 'Hyra\t9500\nMat\t4000',
@@ -1180,7 +1373,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Läggs in i ${n} månader: ${from} – ${to}.`,
     bimAmountColumn: 'Belopp från kolumnen',
     bimColumn: (n) => `Kolumn ${n}`,
-    bimNote: 'Finns raden redan i budgeten får den det nya beloppet. Inget tas bort, och du kan ångra efteråt.',
+    bimNote: 'Bara en rad med exakt samma namn på samma ställe får nytt belopp. Andra namn läggs till som nya rader. Inget tas bort, och du kan ångra efteråt.',
+    bimRowReplaces: (label) => `ersätter ”${label}”`,
+    bimRowNew: 'ny rad',
+    bimNearAsk: (label) => `Liknar ”${label}”. Samma sak?`,
+    bimNearAdd: 'Nej, lägg till som ny rad',
+    bimNearReplace: (label) => `Ja, ersätt ”${label}”`,
+    bimAfterTitle: (month) => `Så blir ${month} efter importen`,
     bimSkip: 'Hoppa över',
     bimOther: 'Övrigt',
     bimNewGroup: 'Ny kategori',
@@ -1190,7 +1389,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
     bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
     bimErrTooLarge: 'Tabellen är för stor för att vara en budget (högst 5 000 rader, 200 kolumner och 50 blad).',
-    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx eller CSV och försök igen.',
+    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx, .docx eller CSV och försök igen.',
+    bimErrConvert: 'Appen kan inte läsa det här formatet direkt (till exempel .doc, .xls, .pages eller .numbers). Spara eller exportera filen som .xlsx, .docx eller CSV och försök igen.',
+    bimCreditTaken: (amount, row) => `Minusbelopp i filen: ${amount} dras av från ${row} samma månad.`,
+    bimCreditLeft: (amount) => `${amount} kunde inte dras av någonstans och tas inte med.`,
+    bimNegativeRead: 'Minus i filen läses som en kostnad.',
     bimErrEmpty: 'Hittade inga rader att importera.',
     bimErrNoAmounts: 'Hittade inga belopp. Se till att en kolumn innehåller siffror.',
     bimBack: 'Välj en annan fil',
@@ -1209,6 +1412,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Utfall',
     followUpColDiff: 'Skillnad',
+    followUpDiffWords: { left: 'kvar', over: 'över', extra: 'extra', short: 'saknas' },
     followUpTotalOut: 'Totalt ut',
     followUpNotRecorded: 'Inget registrerat här ännu',
     followUpNoEntries: 'Inga poster ännu.',
@@ -1268,6 +1472,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
     csvUnknownEncoding: 'Filen är sparad i en teckenkodning appen inte kan läsa, så texten skulle bli fel. Spara den som UTF-8 (i Excel: "CSV UTF-8") och försök igen.',
     csvNoRows: 'Hittade inga transaktioner i filen.',
+    csvErrTooBig: 'Filen är för stor för att vara ett kontoutdrag (högst 10 MB).',
     csvNoText: '(utan text)',
     csvColumnsLead: 'Stämmer det här? Välj vad varje kolumn innehåller.',
     csvRoleDate: 'Datum',
@@ -1297,6 +1502,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: 'Rensa månadens utfall',
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `Detta tar bort den enda posten för ${monthName}` : `Detta tar bort alla ${n} poster för ${monthName}`}.\n\nBudgeten påverkas inte, och du kan ångra det direkt efteråt.\n\nVill du fortsätta?`,
     followUpClearDone: (n) => (n === 1 ? '1 post borttagen' : `${n} poster borttagna`),
+    followUpClearAll: 'Rensa allt utfall',
+    followUpClearAllConfirm: (n, m) => `Detta tar bort ALLT utfall: ${n === 1 ? '1 post' : `${n} poster`} ${m === 1 ? 'i 1 månad' : `i ${m} månader`}.\n\nBudgetarna påverkas inte, och det appen lärt sig om dina butiker finns kvar. Du kan ångra det direkt efteråt. Vill du vara extra säker kan du först spara en säkerhetskopia under Meny → Exportera data.\n\nVill du fortsätta?`,
     followUpSpan: (n) => (n === 1 ? 'Månad' : `${n} mån`),
     followUpSpanAria: 'Hur många månader som visas',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -1406,7 +1613,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Se vad som faktiskt hände',
-        body: 'Under Uppföljning läser du in bankens CSV-fil. Appen sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
+        body: 'Under Uppföljning läser du in en CSV-fil som du själv laddat ner från din internetbank. Appen kopplar aldrig upp mot banken och ser aldrig dina inloggningar. Den sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
       },
     ],
     introNext: 'Nästa',
@@ -1414,14 +1621,15 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Kom igång',
     introStep: (n, of) => `Steg ${n} av ${of}`,
     introPrivacyNativeTitle: 'Din budget är din',
-    introPrivacyNativeBody: 'Ingen inloggning, inget konto och ingen server hos oss. Det du skriver sparas i appen på telefonen, och appen skickar det inte till oss eller någon annan. Är telefonens säkerhetskopiering påslagen (iCloud eller Google) kan den kopiera budgeten till ditt eget konto där. En backupfil som du själv delar hamnar där du väljer.',
-    welcomeTitle: 'Välkommen till Budgetapp!',
+    introPrivacyNativeBody: 'Ingen inloggning, inget konto och ingen server hos oss. Det du skriver sparas i appen på din enhet, och appen skickar det inte till oss eller någon annan. Är enhetens säkerhetskopiering påslagen (iCloud eller Google) kan den kopiera budgeten till ditt eget konto där. En backupfil som du själv delar hamnar där du väljer.',
+    welcomeTitle: 'Välkommen till YourBudget!',
     welcomeLetter: [
       'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
-      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy, men jag upptäckte att den fungerar lika bra som en liten plånbok för en resa.',
+      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy. Med tiden kom plånböckerna också – en egen liten budget för en resa eller en renovering, skild från månaden.',
       'Ekonomi är det som får vardagen att rulla — mat, fritid, nöje, ansvar. Just därför tycker jag att den ska vara din att styra, utan distraktioner.',
-      'Därför är appen lokal. Allt lagras på din enhet. Du exporterar och importerar när du vill, utan att någon ser eller lägger sig i. Inga molntjänster, ingen bankkoppling, ingen utomstående.',
+      'Därför är appen lokal. Allt lagras på din enhet. Du exporterar och importerar när du vill, utan att någon ser eller lägger sig i. Ingen molntjänst hos mig, ingen bankkoppling, ingen utomstående.',
       'Numera betyder lokalt inte tjatigt. Du hämtar kontoutdraget som fil från banken, och appen läser och sorterar posterna åt dig — på din egen enhet, utan att filen lämnar den. Rättar du en kategori minns den det, så nästa månad blir mindre jobb än den här.',
+      'Känns något nytt finns guiden. Den förklarar varje del och kan lysa upp precis var saken finns i appen.',
       'Vad som kommer härnäst vet jag inte exakt. Jag bygger på det jag själv saknar, och hittills har det visat sig att andra saknar ungefär samma saker.',
       'Du och din ekonomi. Jag hoppas att den hjälper dig framåt.',
     ],
@@ -1571,7 +1779,19 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Anteckning',
     notePlaceholder: 'Skriv en anteckning…',
     currency: 'Valuta',
+    textSize: 'Textstorlek',
+    textSizeName: ['Normal', 'Stor', 'Störst'],
     currencyHint: 'Byter bara symbol och format — beloppen räknas inte om',
+    currencyNames: { sek: 'kronor – svenska, norska, danska', eur: 'euro', usd: 'dollar, peso m.fl.', gbp: 'pund', jpy: 'yen, yuan', rub: 'rubel', brl: 'brasiliansk real', inr: 'indisk rupie', try: 'turkisk lira' },
+    introSetupTitle: 'Språk och valuta',
+    introSetupBody: 'Välj språk och den valuta du använder. Du kan ändra båda i menyn senare.',
+    introPickCurrency: 'Välj en valuta för att fortsätta',
+    guideEntry: 'Kom igång – så fungerar appen',
+    guideHide: 'Dölj raden. Guiden finns kvar i menyn.',
+    guideNudgeTitle: 'Din budget är klar.',
+    guideNudgeBody: 'Här hittar du guiden. Den visar var allt finns, steg för steg.',
+    guideNudgeOpen: 'Öppna guiden',
+    guideNudgeLater: 'Senare',
     theme: 'Tema',
     whatsNew: 'Nyheter',
     whatsNewLatest: 'Senaste',
@@ -1579,7 +1799,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Ljust',
     themeDark: 'Mörkt',
     themeTitle: 'Tema',
-    appTitle: 'Budget – Månadsbudget',
+    appTitle: 'YourBudget – Månadsbudget',
     themeClose: 'Stäng',
     presets: 'Förinställningar',
     accent: 'Accentfärg',
@@ -1609,16 +1829,36 @@ export const translations: Record<Lang, Translations> = {
     },
     saveFailedTitle: 'Kunde inte spara',
     storageOpenFailedTitle: 'Appen kunde inte öppna din budget',
-    storageOpenFailedBody: 'Lagringen på telefonen gick inte att öppna just nu. Ingenting har raderats. Försök igen, och starta om telefonen om det inte hjälper.',
+    storageOpenFailedBody: 'Lagringen på enheten gick inte att öppna just nu. Ingenting har raderats. Försök igen, och starta om enheten om det inte hjälper.',
     storageOpenFailedRetry: 'Försök igen',
     saveFailedBody: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme i webbläsaren eller exportera dina data, och försök sedan igen.',
-    saveFailedBodyApp: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme på telefonen eller exportera dina data, och försök sedan igen.',
+    saveFailedBodyApp: 'Ändringen syns på skärmen men är inte sparad. Frigör utrymme på enheten eller exportera dina data, och försök sedan igen.',
     saveRetry: 'Försök spara igen',
     copyBudget: 'Kopiera budget',
     copyNextMonth: 'Nästa månad',
-    copyAllRemaining: (n) => `Alla återstående (${n} månader)`,
+    copyAllRemaining: (n) => (n === 1 ? 'Alla återstående (1 månad)' : `Alla återstående (${n} månader)`),
     copiedTo: (month) => `✓ Kopierat till ${month}`,
-    copiedToMonths: (n) => `✓ Kopierat till ${n} månader`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Kopierat till 1 månad' : `✓ Kopierat till ${n} månader`),
+    copyOfferTitle: 'Samma budget resten av året?',
+    copyOfferBody: (n) => `Kopiera den här månadens budget till de ${n} månader som är kvar i år. Du kan ändra varje månad efteråt.`,
+    copyOfferButton: (n) => `Kopiera till ${n} månader`,
+    copyOfferDismiss: 'Inte nu',
+    startChoiceTitle: "Har du gjort en budget förut?",
+    startChoiceBody: "Välj hur du vill börja. Allt går att ändra efteråt.",
+    startExpert: "Ja, jag utforskar själv",
+    startExpertSub: "Mall, tom budget eller import",
+    startBeginner: "Nej, hjälp mig att börja",
+    startBeginnerSub: "Några enkla frågor, sedan är budgeten klar",
+    begQuestions: [{ title: "Hur mycket får du ut i lön varje månad?", hint: "Det som kommer in på kontot, efter skatt." }, { title: "Vad betalar du för boendet varje månad?", hint: "Hyra, avgift eller lån för bostaden." }, { title: "Vad kostar ditt mobilabonnemang?", hint: "Per månad." }, { title: "Vad kostar resor till jobbet eller skolan?", hint: "Busskort, tåg eller bensin, per månad." }, { title: "Betalar du av på några lån?", hint: "Till exempel studielån, billån eller kreditkort, per månad." }, { title: "Hur mycket vill du spara varje månad?", hint: "Även lite räknas. Lämna tomt om du inte vet än." }],
+    begSkip: "Hoppa över",
+    begNext: "Nästa",
+    begBack: "Tillbaka",
+    begSummaryTitle: "Din budget",
+    begLeftover: "Kvar till mat och allt annat",
+    begCreate: (from, to) => `Skapa för ${from}–${to}`,
+    begCreateOne: (m) => `Skapa för ${m}`,
+    begEmpty: "Du har inte fyllt i något än. Gå tillbaka, eller börja med mallen i stället.",
+    begTemplate: "Använd mallen i stället",
     copyPrevMonth: (month) => `Hämta från ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `Detta ersätter inkomster och utgifter i ${to} med de från ${from}. Sparande rörs inte. Vill du fortsätta?`,
@@ -1639,9 +1879,10 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `Budgeten för ${where} nollställdes`;
       if (action === 'clearActuals') return count === 1 ? `1 post togs bort i ${where}` : `${count} poster togs bort i ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'Allt utfall rensades (1 post)' : `Allt utfall rensades (${count} poster)`;
       if (action === 'import') return count === 1 ? '1 post importerades' : `${count} poster importerades`;
       if (action === 'restoreBackup') return 'Säkerhetskopian lästes in';
-      if (action === 'copyBudget') return count > 1 ? `Budgeten skrevs över i ${count} månader` : `Budgeten skrevs över i ${where}`;
+      if (action === 'copyBudget') return count > 1 ? `Budgeten kopierades till ${count} månader` : `Budgeten kopierades till ${where}`;
       if (action === 'deleteCategory') return `En kategori togs bort i ${where}`;
       if (action === 'deleteRow') return where ? `En rad togs bort i ${where}` : 'En rad togs bort';
       if (action === 'deleteEntry') return `En post togs bort i ${where}`;
@@ -1653,7 +1894,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (action === 'resetCustom') return 'Anpassad började om från början';
       if (action === 'deleteWallet') return 'En plånbok togs bort';
+      if (action === 'deleteCustomBudget') return 'En budget togs bort';
       if (action === 'deleteWalletExpense') return 'En utgift togs bort ur en plånbok';
+      if (action === 'createGoal') return 'Ett sparmål skapades';
+      if (action === 'createWallet') return 'En plånbok skapades';
+      if (action === 'startBudget') return "En budget skapades";
+      if (action === 'renameRow') return `En rad bytte namn i ${where}`;
+      if (action === 'debtExtra') return 'Extrabeloppet för skulderna ändrades';
       if (count === 1) return 'Löneperioden ändrades — 1 post flyttades';
       return count > 0 ? `Löneperioden ändrades — ${count} poster flyttades` : 'Löneperioden ändrades';
     },
@@ -1714,31 +1961,34 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Avbryt',
     privacyTitle: "Integritet",
     privacyBody: [
-      "Budgetappen samlar inte in, överför eller delar några personuppgifter.",
-      "## Vad Budgetappen är i dag",
-      "Budgetappen är en webbsida som du öppnar i webbläsaren och kan lägga till på hemskärmen. Det finns ingen version i App Store eller på Google Play än. Den dagen det gör det uppdateras den här texten — fram till dess beskriver den en webbsida.",
+      "YourBudget samlar inte in, överför eller delar några personuppgifter.",
+      "## Vad YourBudget är i dag",
+      "YourBudget finns som webbsida, som du öppnar i webbläsaren och kan lägga till på hemskärmen, och som app för iPhone, iPad och Android. Det som står här gäller både webbsidan och appen.",
       "## Allt stannar på din enhet",
       "Din budget, dina registrerade utgifter och de kontoutdrag du importerar behandlas och sparas lokalt i din webbläsare. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen databas att skicka något till.",
-      "## I appen för iPhone och Android",
-      "När Budget används som app på iPhone eller Android sparas allt i en databas på telefonen i stället för i webbläsaren. Appen skickar ingenting till utvecklaren eller någon tredje part: det finns ingen server, inget konto, ingen analys och ingen spårning.",
-      "Telefonens egen säkerhetskopiering — iCloud på iPhone, Googles säkerhetskopiering på Android — kan, om du har den påslagen, kopiera databasen till ditt eget konto hos Apple eller Google, så att budgeten följer med till en ny telefon. Det sköts av telefonen och ditt konto, inte av appen, och utvecklaren har ingen åtkomst till det. Vill du inte det ändrar du säkerhetskopieringen i telefonens inställningar. En backupfil som du själv sparar eller delar från appen hamnar där du väljer.",
-      "Tar du bort appen raderas databasen från telefonen. Det som finns i din egen säkerhetskopia styrs av dina inställningar för den.",
-      "## Kontoutdrag läses på plats",
-      "När du importerar en CSV-fil läses den där du är, på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen eller namnen på ställen du handlat.",
+      "## I appen för iPhone, iPad och Android",
+      "När YourBudget används som app på iPhone, iPad eller Android sparas allt i en databas på enheten i stället för i webbläsaren. Appen skickar ingenting till utvecklaren eller någon tredje part: det finns ingen server, inget konto, ingen analys och ingen spårning.",
+      "Enhetens egen säkerhetskopiering — iCloud på iPhone och iPad, Googles säkerhetskopiering på Android — kan, om du har den påslagen, kopiera databasen till ditt eget konto hos Apple eller Google, så att budgeten följer med till en ny enhet. Det sköts av enheten och ditt konto, inte av appen, och utvecklaren har ingen åtkomst till det. Vill du inte det ändrar du säkerhetskopieringen i enhetens inställningar. En backupfil som du själv sparar eller delar från appen hamnar där du väljer.",
+      "Tar du bort appen raderas databasen från enheten. Det som finns i din egen säkerhetskopia styrs av dina inställningar för den.",
+      "## Filer du importerar läses på plats",
+      "När du importerar ett kontoutdrag (CSV) eller en budget från en fil, till exempel Excel, Numbers eller Word, läses filen där du är, på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen, budgetens rader eller namnen på ställen du handlat.",
       "## Ingen reklam, ingen analys, ingen spårning",
       "Det finns inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg. Inte heller några tredjepartsskript som samlar in data i bakgrunden.",
-      "Sorteringen som känner igen butiker är en lista som följer med sidan, inte en tjänst den frågar. Den fungerar utan nätverk.",
+      "Sorteringen som känner igen butiker är en lista som följer med webbsidan och appen, inte en tjänst de frågar. Den fungerar utan nätverk.",
       "## Ingenting hämtas medan du använder den",
       "Typsnitt, bilder och kod ligger på samma plats som sidan själv — ingenting hämtas från externa servrar. Efter första besöket fungerar den även utan internetanslutning.",
       "## Webbservern",
-      "Sidan levereras av en webbserver. Den för, som alla webbservrar, en teknisk logg över förfrågningar som innehåller IP-adress. Loggen används bara för drift. Den kopplas aldrig till något du skrivit in, av det enkla skälet att ingenting du skriver in någonsin skickas dit.",
+      "Sidan levereras av en webbserver. Den för, som alla webbservrar, en teknisk logg över förfrågningar som innehåller IP-adress. Loggen används bara för drift. Den kopplas aldrig till något du skrivit in, av det enkla skälet att ingenting du skriver in någonsin skickas dit. Appen för iPhone, iPad och Android har allt inbyggt och kontaktar inte webbservern.",
       "## Radering",
       "Rensar du webbläsarens lagrade data för sidan försvinner allt den har sparat. Utvecklaren har ingen kopia och kan inte återskapa den. Vill du ha en säkerhetskopia gör du den själv via Meny → Exportera data — filen hamnar där du väljer.",
       "## Frågor",
       "Har du en fråga om hur appen hanterar dina uppgifter kan du mejla ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Senast uppdaterad 27 september 2026.",
+    privacyUpdated: "Senast uppdaterad 22 oktober 2026.",
     privacyClose: "Stäng",
+    lockTipTitle: 'Lås appen',
+    lockTipIos: 'Vill du att appen kräver Face ID? Håll fingret på appikonen på hemskärmen och välj Kräv Face ID (eller Touch ID). Då låser din iPhone eller iPad appen, och innehållet syns inte heller i appväxlaren. Det finns i iOS och iPadOS 18 och senare.',
+    lockTipAndroid: 'Vill du låsa appen med fingeravtryck eller kod? Många telefoner kan det själva, till exempel Samsung, Xiaomi och OnePlus. Sök på ”applås” i telefonens inställningar.',
     goalErrorName: 'Ange ett namn på målet',
     goalErrorTarget: 'Målbeloppet måste vara större än 0',
     goalErrorTargetRequired: 'Ange ett målbelopp',
@@ -1747,6 +1997,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `utslaget på ${month} (${n} dagar)`,
     dailyBudgetPerDay: 'Per dag',
     dailyBudgetPerWeek: 'Per vecka',
+    dailyBudgetPerMonth: 'Per månad',
+    dailyBudgetToWallet: '+ plånbok',
+    dailyBudgetWalletAria: (amount) => `Skapa en plånbok med ${amount}`,
+    walletPeriod: 'Period',
+    walletNameMonth: (month) => `Vardag ${month}`,
+    walletNameWeek: (week) => `Vardag v. ${week}`,
     sparplanTitle: 'Sparplan',
     sparplanBody: 'Planera ditt månadssparande och din förväntade avkastning — och se hur det växer med ränta på ränta.',
     sparplanMonthly: 'Månadssparande',
@@ -1865,6 +2121,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Redan nått 🎉',
     qGoalNoMonthly: (month) => `Inget sparbelopp för målet i budgeten för ${month}.`,
     qGoalRule: 'Räknar med att du sparar samma belopp varje månad, utan ränta eller avkastning.',
+    qWhatIf: 'Vad händer om…?',
+    qWhatIfLead: (month) => `Provräkna en ändring i budgeten för ${month}. Inget sparas.`,
+    qWhatIfWhat: 'Vad ändras',
+    qWhatIfIncome: 'Inkomst',
+    qWhatIfAmount: 'Ändring per månad',
+    qWhatIfHint: 'Minus för en sänkning, till exempel −500.',
+    qWhatIfRemaining: 'Kvar',
+    qWhatIfPerDay: 'Kvar att leva på per dag',
+    qWhatIfSavings: 'Sparande',
+    qWhatIfSame: 'oförändrat',
+    qNeedToSave: 'Vad behöver jag spara?',
+    qNeedName: 'Vad sparar du till?',
+    qNeedNamePlaceholder: 'Resa',
+    qNeedTarget: 'Mål',
+    qNeedBy: 'Senast',
+    qNeedSaved: 'Redan sparat',
+    qNeedAnswer: (perMonth) => `${perMonth} per månad`,
+    qNeedSub: (left, months) => `${left} kvar att spara på ${months === 1 ? '1 månad' : `${months} månader`}, den här inräknad`,
+    qNeedShare: (pct, month) => `Det är ${pct} % av det som är kvar i budgeten för ${month}.`,
+    qNeedReached: 'Du har redan sparat ihop till målet.',
+    qNeedPast: 'Den månaden har redan varit. Välj en senare.',
+    qNeedCreate: 'Skapa som sparmål',
+    qSearch: 'Sök bland köpen',
+    qSearchPlaceholder: 'ICA, kafé, gym …',
+    qSearchSub: (count) => `${count === 1 ? '1 köp' : `${count} köp`} de senaste 12 månaderna`,
+    qSearchNone: (query) => `Inga köp med ”${query}” de senaste 12 månaderna.`,
+    qSearchMostly: (category) => `Oftast under ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 köp' : `${count} köp`),
+    toolConfirm: 'Bekräfta',
+    toolConfirmUndo: 'Du kan ångra det direkt efteråt.',
+    toolGoalTitle: 'Skapa sparmål',
+    toolGoalDefaultName: 'Sparmål',
+    toolGoalName: 'Namn',
+    toolGoalInBudget: (month) => `I budgeten för ${month}`,
+    toolPerMonth: (amount) => `${amount} per månad`,
+    toolGoalFailed: 'Sparmålet kunde inte sparas. Ingenting har ändrats.',
+    debtTry: 'Prova ett belopp',
+    debtTryLead: 'Se vad ett annat extrabelopp gör innan du ändrar något.',
+    debtTryAmount: 'Extra per månad att prova',
+    debtTryDebtFree: 'Skuldfri',
+    debtTryInterest: 'Ränta på vägen',
+    debtTryNever: 'inte inom 50 år',
+    debtTrySaves: (amount) => `${amount} mindre i ränta`,
+    debtTryCosts: (amount) => `${amount} mer i ränta`,
+    debtTryUse: (amount) => `Använd ${amount}`,
+    debtTryTitle: 'Ändra extrabeloppet',
+    debtTryExtra: 'Extra per månad',
     qGoalNone: 'Du har inga sparmål än. Lägg till ett under Plan.',
     qBasisMonths: (covered, asked) => `Bygger på ${covered} av ${asked} månader. De andra har inga importerade poster.`,
     qBasisUnsorted: (amount, count) => `${amount} i ${count} ${count === 1 ? 'osorterad post' : 'osorterade poster'} kan ändra svaret.`,
@@ -1879,6 +2182,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Fristående plånbok',
     wNew: 'Ny plånbok',
     wNewLead: 'Egna belopp. Påverkar inte din budget.',
+    cbNew: 'Ny budget',
+    cbNewLead: 'En egen budget med egna månader, till exempel för ett litet företag. Den räknas inte in i din vanliga budget.',
+    cbNamePlaceholder: 'Firman',
+    cbCreate: 'Skapa budget',
+    cbRename: 'Byt namn',
+    cbDelete: 'Ta bort budgeten',
+    cbDeleteConfirm: (name) => `Ta bort budgeten ”${name}” med alla dess månader? Det går att ångra direkt efteråt.`,
     wName: 'Namn',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
@@ -1906,6 +2216,8 @@ export const translations: Record<Lang, Translations> = {
     wStartsIn: (days) => `Börjar om ${days} ${days === 1 ? 'dag' : 'dagar'}`,
     wEnded: 'Resan är slut',
     wPerDay: (amount) => `${amount} per dag resten av resan`,
+    wPerDayPeriod: (amount) => `${amount} per dag resten av perioden`,
+    wEndedPeriod: 'Perioden är slut',
     wOver: (over) => `${over} över budgeten`,
     wAddExpense: '+ Lägg till utgift',
     wAmount: 'Belopp',
@@ -1945,8 +2257,10 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Din senaste säkerhetskopia är ${months} månader gammal. Försvinner enheten finns ingenting att återställa från.`,
     backupLast: (date) => `Senaste säkerhetskopia: ${date}`,
     backupNever: 'Senaste säkerhetskopia: aldrig',
+    backupPlainHint: 'Säkerhetskopian innehåller hela din budget i läsbar form. Spara eller skicka den bara dit du litar på.',
     backupConfirmSaved: 'Kontrollera att filen verkligen sparades.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om nedladdningen inte gick igenom — då står datumet kvar som förut.',
-    backupShareTitle: 'Budget – säkerhetskopia',
+    backupConfirmShared: 'Kontrollera att filen kom fram dit du skickade den.\n\nTryck OK så antecknar appen att du har en säkerhetskopia från idag. Avbryt om den inte sparades där — då står datumet kvar som förut.',
+    backupShareTitle: 'YourBudget – säkerhetskopia',
     backupShareFailed: 'Säkerhetskopian kunde inte skapas. Ingenting har ändrats — försök igen.',
     backupSaved: '✓ Säkerhetskopia sparad',
     followUpHelp: 'Hjälp',
@@ -1961,7 +2275,7 @@ export const translations: Record<Lang, Translations> = {
       'Får du lön den 25:e lever du inte i kalendermånader. Ställ in startdagen, så räknas utfallet från lönedag till lönedag: 25 juli till 24 augusti.',
       'Infaller den 25:e på en helg flyttar appen till närmaste vardag före, för det är då pengarna kom. Blir det ändå fel kan du nåla fast en enskild period för hand — det gäller bara den månaden.',
       '## Sorteraren',
-      'Det är ingen AI, och ingenting laddas ner. Det är en lista med namn på butiker, banker och tjänster — från Sverige, USA, Spanien, Australien, Sydafrika, Mexiko, Japan och Colombia, plus internationella — och dina egna rättelser.',
+      'Det är ingen AI, och ingenting laddas ner. Det är en lista med namn på butiker, banker och tjänster — från Sverige, USA, Spanien, Australien, Sydafrika, Mexiko, Japan, Colombia, Brasilien, Portugal, Ryssland, Turkiet, Italien, Frankrike, Tyskland och Kina, plus internationella — och dina egna rättelser.',
       '1. Den läser texten på raden och letar efter ett namn den känner igen. "ICA NÄRA KUNGSHOLMEN 4711" är ICA.',
       '2. Känner den inte igen något lägger den posten i Övrigt i stället för att gissa. En fel kategori kostar mer än en tom.',
       '3. Flyttar du ett ställe till rätt kategori minns den det. Nästa gång väger din rättelse tyngre än listan.',
@@ -1989,6 +2303,7 @@ export const translations: Record<Lang, Translations> = {
   },
   en: {
     tabBudget: 'Budget',
+    tabBudgetShort: 'Budget',
     tabSavings: 'Savings & Investments',
     tabSavingsShort: 'Savings',
     tabPlan: 'Plan & Overview',
@@ -2052,9 +2367,9 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Here both ways are the same, because the smallest debts also have the highest interest.',
     debtFromBudget: (amount) => `From the budget · ${amount} a month`,
     bimTitle: 'Import a budget',
-    bimMenu: '📥 Import a budget from Excel',
-    bimHeroButton: '📥 Import from Excel',
-    bimLead: 'Already have a budget in Excel, Google Sheets or Numbers? Choose the file (.xlsx or CSV), or select the cells there and paste them here.',
+    bimMenu: '📥 Import a budget from a file',
+    bimHeroButton: '📥 Import a budget',
+    bimLead: 'Already have a budget in Excel, Google Sheets, Numbers or Word? Choose the file (.xlsx, .docx or CSV), or select the cells there and paste them here.',
     bimPick: 'Choose file',
     bimPasteLabel: 'Or paste the cells',
     bimPastePlaceholder: 'Rent\t1200\nFood\t400',
@@ -2064,7 +2379,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Goes into ${n} months: ${from} – ${to}.`,
     bimAmountColumn: 'Amounts from the column',
     bimColumn: (n) => `Column ${n}`,
-    bimNote: 'A row already in the budget gets the new amount. Nothing is removed, and you can undo it afterwards.',
+    bimNote: 'Only a row with exactly the same name in the same place gets the new amount. Other names are added as new rows. Nothing is removed, and you can undo it afterwards.',
+    bimRowReplaces: (label) => `replaces “${label}”`,
+    bimRowNew: 'new row',
+    bimNearAsk: (label) => `Looks like “${label}”. The same thing?`,
+    bimNearAdd: 'No, add it as a new row',
+    bimNearReplace: (label) => `Yes, replace “${label}”`,
+    bimAfterTitle: (month) => `${month} after the import`,
     bimSkip: 'Leave out',
     bimOther: 'Other',
     bimNewGroup: 'New category',
@@ -2074,7 +2395,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
     bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
     bimErrTooLarge: 'The table is too big to be a budget (at most 5,000 rows, 200 columns and 50 sheets).',
-    bimErrUnreadable: 'The file could not be read. Save it as .xlsx or CSV and try again.',
+    bimErrUnreadable: 'The file could not be read. Save it as .xlsx, .docx or CSV and try again.',
+    bimErrConvert: 'The app can\'t read this format directly (for example .doc, .xls, .pages or .numbers). Save or export the file as .xlsx, .docx or CSV and try again.',
+    bimCreditTaken: (amount, row) => `Negative amount in the file: ${amount} is taken off ${row} in the same month.`,
+    bimCreditLeft: (amount) => `${amount} could not be taken off anywhere and is left out.`,
+    bimNegativeRead: 'The minus in the file is read as a cost.',
     bimErrEmpty: 'Found no rows to import.',
     bimErrNoAmounts: 'Found no amounts. Make sure one column holds numbers.',
     bimBack: 'Choose another file',
@@ -2093,6 +2418,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Actual',
     followUpColDiff: 'Difference',
+    followUpDiffWords: { left: 'left', over: 'over', extra: 'extra', short: 'short' },
     followUpTotalOut: 'Total out',
     followUpNotRecorded: 'Nothing recorded here yet',
     followUpNoEntries: 'No entries yet.',
@@ -2152,6 +2478,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
     csvUnknownEncoding: 'The file is saved in a text encoding the app cannot read, so the text would come out wrong. Save it as UTF-8 (in Excel: "CSV UTF-8") and try again.',
     csvNoRows: 'No transactions found in the file.',
+    csvErrTooBig: 'The file is too big to be a bank statement (10 MB at most).',
     csvNoText: '(no text)',
     csvColumnsLead: 'Is this right? Choose what each column holds.',
     csvRoleDate: 'Date',
@@ -2181,6 +2508,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: "Clear this month's actuals",
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `This removes the only entry for ${monthName}` : `This removes all ${n} entries for ${monthName}`}.\n\nThe budget is not affected, and you can undo it straight afterwards.\n\nContinue?`,
     followUpClearDone: (n) => (n === 1 ? '1 entry removed' : `${n} entries removed`),
+    followUpClearAll: 'Clear all actuals',
+    followUpClearAllConfirm: (n, m) => `This removes ALL actuals: ${n === 1 ? '1 entry' : `${n} entries`} ${m === 1 ? 'in 1 month' : `in ${m} months`}.\n\nYour budgets are not affected, and what the app has learned about your shops is kept. You can undo it straight afterwards. To be extra safe, save a backup first under Menu → Export data.\n\nContinue?`,
     followUpSpan: (n) => (n === 1 ? 'Month' : `${n} mo`),
     followUpSpanAria: 'How many months are shown',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -2190,7 +2519,7 @@ export const translations: Record<Lang, Translations> = {
     followUpUnsorted: 'Other',
     followUpUnsortedHint: 'Purchases the app could not place. Move them to a category — it remembers the choice for next time.',
     followUpTransfer: 'Transfers',
-    followUpTransferHint: 'Money between your own accounts, Swish to and from people, withdrawals. Not counted as spending — it is the same money in another pocket.',
+    followUpTransferHint: 'Money between your own accounts, payments to and from people, withdrawals. Not counted as spending — it is the same money in another pocket.',
     followUpMoveTo: (place) => `Move ${place} to another category`,
     followUpNewCategory: '+ New category…',
     followUpNewCategoryName: 'What should it be called?',
@@ -2290,7 +2619,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'See what actually happened',
-        body: 'Under Follow-up you load your bank\u2019s CSV file. The app sorts the entries and puts the plan next to reality — so you can see where the money went.',
+        body: 'Under Follow-up you load a CSV file you downloaded yourself from your online bank. The app never connects to your bank and never sees your login. It sorts the entries and puts the plan next to reality — so you can see where the money went.',
       },
     ],
     introNext: 'Next',
@@ -2298,14 +2627,15 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Get started',
     introStep: (n, of) => `Step ${n} of ${of}`,
     introPrivacyNativeTitle: 'Your budget is yours',
-    introPrivacyNativeBody: 'No sign-in, no account, no server of ours. What you type is saved in the app on the phone, and the app does not send it to us or anyone else. If the phone\'s backup is on (iCloud or Google), it may copy your budget to your own account there. A backup file you share yourself goes where you choose.',
-    welcomeTitle: 'Welcome to Budgetapp!',
+    introPrivacyNativeBody: 'No sign-in, no account, no server of ours. What you type is saved in the app on your device, and the app does not send it to us or anyone else. If the device\'s backup is on (iCloud or Google), it may copy your budget to your own account there. A backup file you share yourself goes where you choose.',
+    welcomeTitle: 'Welcome to YourBudget!',
     welcomeLetter: [
       'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
-      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view, but I found it works just as well as a little wallet for a trip.',
+      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view. In time the wallets came too – a small budget of their own for a trip or a renovation, separate from the month.',
       'Money is what keeps everyday life moving — food, free time, small pleasures, responsibilities. That is exactly why I think it should be yours to steer, without distractions.',
-      'So the app is local. Everything is stored on your device. You export and import whenever you like, without anyone watching or interfering. No cloud services, no bank connection, no third party.',
+      'So the app is local. Everything is stored on your device. You export and import whenever you like, without anyone watching or interfering. No cloud service of mine, no bank connection, no third party.',
       'These days local does not mean tedious. You take your bank statement as a file, and the app reads it and sorts the entries for you — on your own device, without the file ever leaving it. Correct a category and it remembers, so next month is less work than this one.',
+      'If something feels new, the guide is there. It explains every part and can light up exactly where a thing is in the app.',
       'What comes next I do not exactly know. I build what I miss myself, and so far it has turned out that other people miss much the same things.',
       'You and your money. I hope it helps you forward.',
     ],
@@ -2455,7 +2785,19 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Note',
     notePlaceholder: 'Write a note…',
     currency: 'Currency',
+    textSize: 'Text size',
+    textSizeName: ['Normal', 'Large', 'Larger'],
     currencyHint: "Changes only the symbol and format — amounts aren't converted",
+    currencyNames: { sek: 'Swedish, Norwegian, Danish krona', eur: 'euro', usd: 'dollar, peso and more', gbp: 'pound', jpy: 'yen, yuan', rub: 'ruble', brl: 'Brazilian real', inr: 'Indian rupee', try: 'Turkish lira' },
+    introSetupTitle: 'Language and currency',
+    introSetupBody: 'Choose your language and the currency you use. You can change both in the menu later.',
+    introPickCurrency: 'Choose a currency to continue',
+    guideEntry: 'Get started – how the app works',
+    guideHide: 'Hide this row. The guide stays in the menu.',
+    guideNudgeTitle: 'Your budget is ready.',
+    guideNudgeBody: 'This is where the guide lives. It shows you where everything is, step by step.',
+    guideNudgeOpen: 'Open the guide',
+    guideNudgeLater: 'Later',
     theme: 'Theme',
     whatsNew: "What's new",
     whatsNewLatest: 'Latest',
@@ -2463,7 +2805,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeTitle: 'Theme',
-    appTitle: 'Budget – Monthly budget',
+    appTitle: 'YourBudget – Monthly budget',
     themeClose: 'Close',
     presets: 'Presets',
     accent: 'Accent',
@@ -2493,16 +2835,36 @@ export const translations: Record<Lang, Translations> = {
     },
     saveFailedTitle: 'Could not save',
     storageOpenFailedTitle: 'The app could not open your budget',
-    storageOpenFailedBody: 'The storage on this phone could not be opened just now. Nothing has been deleted. Try again, and restart the phone if that does not help.',
+    storageOpenFailedBody: 'The storage on this device could not be opened just now. Nothing has been deleted. Try again, and restart the device if that does not help.',
     storageOpenFailedRetry: 'Try again',
     saveFailedBody: 'The change is on screen but has not been stored. Free up space in the browser or export your data, then try again.',
-    saveFailedBodyApp: 'The change is on screen but has not been stored. Free up space on the phone or export your data, then try again.',
+    saveFailedBodyApp: 'The change is on screen but has not been stored. Free up space on the device or export your data, then try again.',
     saveRetry: 'Try saving again',
     copyBudget: 'Copy budget',
     copyNextMonth: 'Next month',
-    copyAllRemaining: (n) => `All remaining (${n} months)`,
+    copyAllRemaining: (n) => (n === 1 ? 'All remaining (1 month)' : `All remaining (${n} months)`),
     copiedTo: (month) => `✓ Copied to ${month}`,
-    copiedToMonths: (n) => `✓ Copied to ${n} months`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Copied to 1 month' : `✓ Copied to ${n} months`),
+    copyOfferTitle: 'Same budget for the rest of the year?',
+    copyOfferBody: (n) => `Copy this month's budget to the ${n} months left this year. You can change any month afterwards.`,
+    copyOfferButton: (n) => `Copy to ${n} months`,
+    copyOfferDismiss: 'Not now',
+    startChoiceTitle: "Have you made a budget before?",
+    startChoiceBody: "Choose how to start. You can change everything later.",
+    startExpert: "Yes, I'll explore on my own",
+    startExpertSub: "Template, empty budget or import",
+    startBeginner: "No, help me get started",
+    startBeginnerSub: "A few simple questions, then your budget is ready",
+    begQuestions: [{ title: "How much salary do you get each month?", hint: "What lands in your account, after tax." }, { title: "What do you pay for housing each month?", hint: "Rent, fees or the mortgage." }, { title: "What does your phone plan cost?", hint: "Per month." }, { title: "What does getting to work or school cost?", hint: "Bus pass, train or fuel, per month." }, { title: "Are you paying off any loans?", hint: "A student loan, car loan or credit card, for example, per month." }, { title: "How much would you like to save each month?", hint: "A little counts too. Leave it empty if you don't know yet." }],
+    begSkip: "Skip",
+    begNext: "Next",
+    begBack: "Back",
+    begSummaryTitle: "Your budget",
+    begLeftover: "Left for food and everything else",
+    begCreate: (from, to) => `Create for ${from}–${to}`,
+    begCreateOne: (m) => `Create for ${m}`,
+    begEmpty: "You haven't filled anything in yet. Go back, or start with the template instead.",
+    begTemplate: "Use the template instead",
     copyPrevMonth: (month) => `Pull from ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `This replaces income and expenses in ${to} with those from ${from}. Savings are left alone. Continue?`,
@@ -2524,9 +2886,10 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `The budget for ${where} was reset`;
       if (action === 'clearActuals') return count === 1 ? `1 entry was removed from ${where}` : `${count} entries were removed from ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'All actuals were cleared (1 entry)' : `All actuals were cleared (${count} entries)`;
       if (action === 'import') return count === 1 ? '1 entry was imported' : `${count} entries were imported`;
       if (action === 'restoreBackup') return 'The backup was restored';
-      if (action === 'copyBudget') return count > 1 ? `The budget was written over ${count} months` : `The budget for ${where} was written over`;
+      if (action === 'copyBudget') return count > 1 ? `The budget was copied to ${count} months` : `The budget was copied to ${where}`;
       if (action === 'deleteCategory') return `A category was removed from ${where}`;
       if (action === 'deleteRow') return where ? `A row was removed from ${where}` : 'A row was removed';
       if (action === 'deleteEntry') return `An entry was removed from ${where}`;
@@ -2538,7 +2901,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (action === 'resetCustom') return 'Custom was started over';
       if (action === 'deleteWallet') return 'A wallet was removed';
+      if (action === 'deleteCustomBudget') return 'A budget was removed';
       if (action === 'deleteWalletExpense') return 'An expense was removed from a wallet';
+      if (action === 'createGoal') return 'A savings goal was created';
+      if (action === 'createWallet') return 'A wallet was created';
+      if (action === 'startBudget') return "A budget was created";
+      if (action === 'renameRow') return `A row was renamed in ${where}`;
+      if (action === 'debtExtra') return 'The extra amount for your debts was changed';
       if (count === 1) return 'The pay period was changed — 1 entry moved';
       return count > 0 ? `The pay period was changed — ${count} entries moved` : 'The pay period was changed';
     },
@@ -2598,31 +2967,34 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancel',
     privacyTitle: "Privacy",
     privacyBody: [
-      "Budget does not collect, transmit or share any personal data.",
-      "## What Budget is today",
-      "Budget is a web page you open in a browser and can add to your home screen. There is no version in the App Store or on Google Play yet. The day there is, this text will be updated — until then it describes a web page.",
+      "YourBudget does not collect, transmit or share any personal data.",
+      "## What YourBudget is today",
+      "YourBudget is a web page you open in a browser and can add to your home screen, and an app for iPhone, iPad and Android. What follows applies to both.",
       "## Everything stays on your device",
       "Your budget, the spending you record and the bank statements you import are processed and stored locally in your browser. None of it is sent to the developer or to any third party. There is no account, no sign-in and no database to send anything to.",
-      "## In the app for iPhone and Android",
-      "When Budget is used as an app on iPhone or Android, everything is saved in a database on the phone instead of in the browser. The app sends nothing to the developer or any third party: there is no server, no account, no analytics and no tracking.",
-      "The phone's own backup — iCloud on iPhone, Google's backup on Android — may, if you have it turned on, copy the database to your own Apple or Google account, so your budget follows you to a new phone. That is done by the phone and your account, not by the app, and the developer has no access to it. If you do not want that, change the backup settings on the phone. A backup file you save or share from the app yourself goes where you choose.",
-      "If you delete the app, the database is removed from the phone. What is in your own backup is governed by your settings for it.",
-      "## Statements are read where they are",
-      "When you import a CSV file it is read where you are, on your device. The app never sends its contents anywhere — not the transactions, not the amounts, not the names of the places you shopped.",
+      "## In the app for iPhone, iPad and Android",
+      "When YourBudget is used as an app on iPhone, iPad or Android, everything is saved in a database on the device instead of in the browser. The app sends nothing to the developer or any third party: there is no server, no account, no analytics and no tracking.",
+      "The phone's own backup — iCloud on iPhone and iPad, Google's backup on Android — may, if you have it turned on, copy the database to your own Apple or Google account, so your budget follows you to a new device. That is done by the device and your account, not by the app, and the developer has no access to it. If you do not want that, change the backup settings on the device. A backup file you save or share from the app yourself goes where you choose.",
+      "If you delete the app, the database is removed from the device. What is in your own backup is governed by your settings for it.",
+      "## Files you import are read where they are",
+      "When you import a bank statement (CSV) or a budget from a file, such as Excel, Numbers or Word, the file is read where you are, on your device. The app never sends its contents anywhere — not the transactions, not the amounts, not the budget's rows, not the names of the places you shopped.",
       "## No ads, no analytics, no tracking",
       "There are no ad networks, no visitor statistics and no tracking tools. Nor any third-party scripts collecting data in the background.",
-      "The sorting that recognises shops is a list that ships with the page, not a service it asks. It works with no network at all.",
+      "The sorting that recognises shops is a list that ships with the web page and the app, not a service they ask. It works with no network at all.",
       "## Nothing is fetched while you use it",
       "Typefaces, images and code sit in the same place as the page itself — nothing is fetched from external servers. After the first visit it works without an internet connection.",
       "## The web server",
-      "The page is served by a web server. Like every web server it keeps a technical log of requests, which includes IP addresses. That log is used only for operations. It is never connected to anything you typed, for the simple reason that nothing you type is ever sent there.",
+      "The page is served by a web server. Like every web server it keeps a technical log of requests, which includes IP addresses. That log is used only for operations. It is never connected to anything you typed, for the simple reason that nothing you type is ever sent there. The app for iPhone, iPad and Android has everything built in and does not contact the web server.",
       "## Deletion",
       "Clear the browser's stored data for the page and everything it has saved is gone. The developer has no copy and cannot recreate it. If you want a backup you make it yourself through Menu → Export data — the file goes wherever you choose.",
       "## Questions",
       "If you have a question about how the app handles your data, you can email ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Last updated 27 September 2026.",
+    privacyUpdated: "Last updated 22 October 2026.",
     privacyClose: "Close",
+    lockTipTitle: 'Lock the app',
+    lockTipIos: 'Want the app to require Face ID? Touch and hold the app icon on the Home Screen and choose Require Face ID (or Touch ID). Your iPhone or iPad then locks the app, and its content is hidden in the app switcher too. Available in iOS and iPadOS 18 and later.',
+    lockTipAndroid: 'Want to lock the app with a fingerprint or PIN? Many phones can do it themselves, such as Samsung, Xiaomi and OnePlus. Search for “app lock” in the phone\'s settings.',
     goalErrorName: 'Enter a name for the goal',
     goalErrorTarget: 'The goal amount must be greater than 0',
     goalErrorTargetRequired: 'Enter a goal amount',
@@ -2631,6 +3003,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `spread across ${month} (${n} days)`,
     dailyBudgetPerDay: 'Per day',
     dailyBudgetPerWeek: 'Per week',
+    dailyBudgetPerMonth: 'Per month',
+    dailyBudgetToWallet: '+ wallet',
+    dailyBudgetWalletAria: (amount) => `Create a wallet with ${amount}`,
+    walletPeriod: 'Period',
+    walletNameMonth: (month) => `Day to day · ${month}`,
+    walletNameWeek: (week) => `Day to day · week ${week}`,
     sparplanTitle: 'Savings plan',
     sparplanBody: 'Plan your monthly saving and expected return — and watch compound growth do its work.',
     sparplanMonthly: 'Monthly saving',
@@ -2749,6 +3127,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Already reached 🎉',
     qGoalNoMonthly: (month) => `No amount saved towards it in the budget for ${month}.`,
     qGoalRule: 'Assumes you save the same amount every month, with no interest or returns.',
+    qWhatIf: 'What if…?',
+    qWhatIfLead: (month) => `Try a change to the budget for ${month}. Nothing is saved.`,
+    qWhatIfWhat: 'What changes',
+    qWhatIfIncome: 'Income',
+    qWhatIfAmount: 'Change per month',
+    qWhatIfHint: 'Minus for a cut, for example −50.',
+    qWhatIfRemaining: 'Remaining',
+    qWhatIfPerDay: 'Left to live on per day',
+    qWhatIfSavings: 'Savings',
+    qWhatIfSame: 'unchanged',
+    qNeedToSave: 'What do I need to save?',
+    qNeedName: 'What are you saving for?',
+    qNeedNamePlaceholder: 'Trip',
+    qNeedTarget: 'Goal',
+    qNeedBy: 'By',
+    qNeedSaved: 'Already saved',
+    qNeedAnswer: (perMonth) => `${perMonth} a month`,
+    qNeedSub: (left, months) => `${left} left to save over ${months === 1 ? '1 month' : `${months} months`}, this one included`,
+    qNeedShare: (pct, month) => `That is ${pct}% of what is left in the budget for ${month}.`,
+    qNeedReached: 'You have already saved enough for this goal.',
+    qNeedPast: 'That month is already over. Pick a later one.',
+    qNeedCreate: 'Create as savings goal',
+    qSearch: 'Search your purchases',
+    qSearchPlaceholder: 'Grocery, café, gym …',
+    qSearchSub: (count) => `${count === 1 ? '1 purchase' : `${count} purchases`} in the last 12 months`,
+    qSearchNone: (query) => `No purchases with “${query}” in the last 12 months.`,
+    qSearchMostly: (category) => `Mostly under ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 purchase' : `${count} purchases`),
+    toolConfirm: 'Confirm',
+    toolConfirmUndo: 'You can undo it right afterwards.',
+    toolGoalTitle: 'Create savings goal',
+    toolGoalDefaultName: 'Savings goal',
+    toolGoalName: 'Name',
+    toolGoalInBudget: (month) => `In the budget for ${month}`,
+    toolPerMonth: (amount) => `${amount} a month`,
+    toolGoalFailed: 'The savings goal could not be saved. Nothing has changed.',
+    debtTry: 'Try an amount',
+    debtTryLead: 'See what a different extra amount does before you change anything.',
+    debtTryAmount: 'Extra per month to try',
+    debtTryDebtFree: 'Debt-free',
+    debtTryInterest: 'Interest on the way',
+    debtTryNever: 'not within 50 years',
+    debtTrySaves: (amount) => `${amount} less in interest`,
+    debtTryCosts: (amount) => `${amount} more in interest`,
+    debtTryUse: (amount) => `Use ${amount}`,
+    debtTryTitle: 'Change the extra amount',
+    debtTryExtra: 'Extra a month',
     qGoalNone: 'You have no savings goals yet. Add one under Plan.',
     qBasisMonths: (covered, asked) => `Based on ${covered} of ${asked} months. The others have nothing imported.`,
     qBasisUnsorted: (amount, count) => `${amount} in ${count} unsorted ${count === 1 ? 'entry' : 'entries'} could change the answer.`,
@@ -2763,6 +3188,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Separate wallet',
     wNew: 'New wallet',
     wNewLead: 'Its own amounts. Does not affect your budget.',
+    cbNew: 'New budget',
+    cbNewLead: 'A budget of its own with its own months, for a small business, say. It is not counted in your regular budget.',
+    cbNamePlaceholder: 'The business',
+    cbCreate: 'Create budget',
+    cbRename: 'Rename',
+    cbDelete: 'Delete the budget',
+    cbDeleteConfirm: (name) => `Delete the budget “${name}” with all its months? You can undo it right afterwards.`,
     wName: 'Name',
     wNamePlaceholder: 'Japan 2027',
     wTotal: 'Total budget',
@@ -2790,6 +3222,8 @@ export const translations: Record<Lang, Translations> = {
     wStartsIn: (days) => `Starts in ${days} ${days === 1 ? 'day' : 'days'}`,
     wEnded: 'The trip is over',
     wPerDay: (amount) => `${amount} a day for the rest of the trip`,
+    wPerDayPeriod: (amount) => `${amount} a day for the rest of the period`,
+    wEndedPeriod: 'The period is over',
     wOver: (over) => `${over} over budget`,
     wAddExpense: '+ Add expense',
     wAmount: 'Amount',
@@ -2829,8 +3263,10 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Your last backup is ${months} months old. If the device goes, there is nothing to restore from.`,
     backupLast: (date) => `Last backup: ${date}`,
     backupNever: 'Last backup: never',
+    backupPlainHint: 'The backup holds your whole budget in readable form. Only save or send it somewhere you trust.',
     backupConfirmSaved: 'Check that the file really was saved.\n\nPress OK and the app will record that you have a backup from today. Cancel if the download did not go through — the previous date then stays as it was.',
-    backupShareTitle: 'Budget – backup',
+    backupConfirmShared: 'Check that the file arrived where you sent it.\n\nPress OK and the app will record that you have a backup from today. Cancel if it was not saved there — the previous date then stays as it was.',
+    backupShareTitle: 'YourBudget – backup',
     backupShareFailed: 'The backup could not be created. Nothing has changed — please try again.',
     backupSaved: '✓ Backup saved',
     followUpHelp: 'Help',
@@ -2845,16 +3281,16 @@ export const translations: Record<Lang, Translations> = {
       'If you are paid on the 25th you do not live in calendar months. Set the start day and Follow-up counts from payday to payday: 25 July to 24 August.',
       'When the 25th falls on a weekend the app moves to the nearest weekday before it, because that is when the money arrived. If it is still wrong you can pin a single period by hand — that applies to that month only.',
       '## The sorter',
-      'It is not an AI, and nothing is downloaded. It is a list of names of shops, banks and services — from Sweden, the United States, Spain, Australia, South Africa, Mexico, Japan and Colombia, plus international ones — and your own corrections.',
+      'It is not an AI, and nothing is downloaded. It is a list of names of shops, banks and services — from Sweden, the United States, Spain, Australia, South Africa, Mexico, Japan, Colombia, Brazil, Portugal, Russia, Turkey, Italy, France, Germany and China, plus international ones — and your own corrections.',
       '1. It reads the text on the row and looks for a name it knows. "ICA NÄRA KUNGSHOLMEN 4711" is ICA.',
-      '2. If it recognises nothing it puts the entry in Övrigt rather than guessing. A wrong category costs more than an empty one.',
+      '2. If it recognises nothing it puts the entry in Other rather than guessing. A wrong category costs more than an empty one.',
       '3. When you move a place to the right category it remembers. Next time your correction outweighs the list.',
       'That last part is the whole point. After a month or two the list is mostly your own. It is not clever — it is only careful, and it listens to you.',
       '## Sorting the rest',
-      'Sort them takes what sits in Övrigt and shows it as a list, biggest first, with a proposal per place. One tap moves the whole place — all eight ICA entries at once — and learns the choice.',
+      'Sort them takes what sits in Other and shows it as a list, biggest first, with a proposal per place. One tap moves the whole place — all eight ICA entries at once — and learns the choice.',
       'The proposal says where it came from: your rule, as you did before, or suggestion from the built-in list. When it is unsure it proposes nothing at all.',
-      '## Övrigt and Transfer',
-      'Övrigt is what the sorter did not recognise. Transfer is money between your own accounts — it does not count as spending, because moving 5 000 kr to your savings account is not spending 5 000 kr.',
+      '## Other and Transfers',
+      'Other is what the sorter did not recognise. Transfer is money between your own accounts — it does not count as spending, because moving 5 000 kr to your savings account is not spending 5 000 kr.',
       'Both can be changed. Nothing is thrown away.',
       '## The tools',
       'Month / 3 / 6 / 12 sums across several months. Good for "how much do I actually spend on food".',
@@ -2873,6 +3309,7 @@ export const translations: Record<Lang, Translations> = {
   },
   es: {
     tabBudget: 'Presupuesto',
+    tabBudgetShort: 'Presup.',
     tabSavings: 'Ahorro e Inversiones',
     tabSavingsShort: 'Ahorro',
     tabPlan: 'Plan y Resumen',
@@ -2936,9 +3373,9 @@ export const translations: Record<Lang, Translations> = {
     debtSameOrder: 'Aquí los dos caminos coinciden, porque las deudas más pequeñas también tienen el interés más alto.',
     debtFromBudget: (amount) => `Del presupuesto · ${amount} al mes`,
     bimTitle: 'Importar presupuesto',
-    bimMenu: '📥 Importar presupuesto de Excel',
-    bimHeroButton: '📥 Importar de Excel',
-    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google o Numbers? Elige el archivo (.xlsx o CSV), o selecciona las celdas allí y pégalas aquí.',
+    bimMenu: '📥 Importar presupuesto desde un archivo',
+    bimHeroButton: '📥 Importar presupuesto',
+    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google, Numbers o Word? Elige el archivo (.xlsx, .docx o CSV), o selecciona las celdas allí y pégalas aquí.',
     bimPick: 'Elegir archivo',
     bimPasteLabel: 'O pega las celdas',
     bimPastePlaceholder: 'Alquiler\t800\nComida\t300',
@@ -2948,7 +3385,13 @@ export const translations: Record<Lang, Translations> = {
     bimIntoMonths: (n, from, to) => `Se añade a ${n} meses: ${from} – ${to}.`,
     bimAmountColumn: 'Importes de la columna',
     bimColumn: (n) => `Columna ${n}`,
-    bimNote: 'Una fila que ya está en el presupuesto recibe el nuevo importe. No se elimina nada y puedes deshacerlo después.',
+    bimNote: 'Solo una fila con exactamente el mismo nombre en el mismo lugar recibe el nuevo importe. Los demás nombres se añaden como filas nuevas. No se elimina nada y puedes deshacerlo después.',
+    bimRowReplaces: (label) => `sustituye a «${label}»`,
+    bimRowNew: 'fila nueva',
+    bimNearAsk: (label) => `Se parece a «${label}». ¿Es lo mismo?`,
+    bimNearAdd: 'No, añadir como fila nueva',
+    bimNearReplace: (label) => `Sí, sustituir «${label}»`,
+    bimAfterTitle: (month) => `Así queda ${month} tras la importación`,
     bimSkip: 'Omitir',
     bimOther: 'Otros',
     bimNewGroup: 'Categoría nueva',
@@ -2958,7 +3401,11 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
     bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
     bimErrTooLarge: 'La tabla es demasiado grande para ser un presupuesto (como máximo 5000 filas, 200 columnas y 50 hojas).',
-    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx o CSV e inténtalo de nuevo.',
+    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx, .docx o CSV e inténtalo de nuevo.',
+    bimErrConvert: 'La app no puede leer este formato directamente (por ejemplo .doc, .xls, .pages o .numbers). Guarda o exporta el archivo como .xlsx, .docx o CSV e inténtalo de nuevo.',
+    bimCreditTaken: (amount, row) => `Importe negativo en el archivo: ${amount} se resta de ${row} en el mismo mes.`,
+    bimCreditLeft: (amount) => `${amount} no se pudo restar de ninguna fila y no se importa.`,
+    bimNegativeRead: 'El signo menos del archivo se lee como un gasto.',
     bimErrEmpty: 'No se encontraron filas para importar.',
     bimErrNoAmounts: 'No se encontraron importes. Asegúrate de que una columna tenga números.',
     bimBack: 'Elegir otro archivo',
@@ -2977,6 +3424,7 @@ export const translations: Record<Lang, Translations> = {
     followUpColPlan: 'Plan',
     followUpColActual: 'Real',
     followUpColDiff: 'Diferencia',
+    followUpDiffWords: { left: 'quedan', over: 'de más', extra: 'extra', short: 'faltan' },
     followUpTotalOut: 'Total salidas',
     followUpNotRecorded: 'Aquí no hay nada registrado todavía',
     followUpNoEntries: 'Aún no hay movimientos.',
@@ -3036,6 +3484,7 @@ export const translations: Record<Lang, Translations> = {
     csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
     csvUnknownEncoding: 'El archivo está guardado en una codificación que la app no puede leer, así que el texto saldría mal. Guárdalo como UTF-8 (en Excel: "CSV UTF-8") e inténtalo de nuevo.',
     csvNoRows: 'No se encontraron movimientos en el archivo.',
+    csvErrTooBig: 'El archivo es demasiado grande para ser un extracto (10 MB como máximo).',
     csvNoText: '(sin texto)',
     csvColumnsLead: '¿Es correcto? Elige qué contiene cada columna.',
     csvRoleDate: 'Fecha',
@@ -3065,6 +3514,8 @@ export const translations: Record<Lang, Translations> = {
     followUpClear: 'Borrar los movimientos del mes',
     followUpClearConfirm: (n, monthName) => `${n === 1 ? `Esto elimina el único movimiento de ${monthName}` : `Esto elimina los ${n} movimientos de ${monthName}`}.\n\nEl presupuesto no se ve afectado, y puedes deshacerlo justo después.\n\n¿Continuar?`,
     followUpClearDone: (n) => (n === 1 ? '1 movimiento eliminado' : `${n} movimientos eliminados`),
+    followUpClearAll: 'Borrar todos los movimientos',
+    followUpClearAllConfirm: (n, m) => `Esto elimina TODOS los movimientos: ${n === 1 ? '1 movimiento' : `${n} movimientos`} ${m === 1 ? 'en 1 mes' : `en ${m} meses`}.\n\nTus presupuestos no se ven afectados, y lo que la app ha aprendido de tus tiendas se conserva. Puedes deshacerlo justo después. Para ir sobre seguro, guarda antes una copia de seguridad en Menú → Exportar datos.\n\n¿Continuar?`,
     followUpSpan: (n) => (n === 1 ? 'Mes' : `${n} meses`),
     followUpSpanAria: 'Cuántos meses se muestran',
     followUpSpanRange: (from, to) => `${from} – ${to}`,
@@ -3074,7 +3525,7 @@ export const translations: Record<Lang, Translations> = {
     followUpUnsorted: 'Otros',
     followUpUnsortedHint: 'Compras que la app no pudo colocar. Muévelas a una categoría — recordará la elección para la próxima vez.',
     followUpTransfer: 'Transferencias',
-    followUpTransferHint: 'Dinero entre tus propias cuentas, Swish a y desde personas, retiradas. No cuenta como gasto — es el mismo dinero en otro bolsillo.',
+    followUpTransferHint: 'Dinero entre tus propias cuentas, pagos a y de otras personas, retiradas. No cuenta como gasto — es el mismo dinero en otro bolsillo.',
     followUpMoveTo: (place) => `Mover ${place} a otra categoría`,
     followUpNewCategory: '+ Categoría nueva…',
     followUpNewCategoryName: '¿Cómo se va a llamar?',
@@ -3174,7 +3625,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Mira qué pasó de verdad',
-        body: 'En Seguimiento cargas el archivo CSV de tu banco. La app clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
+        body: 'En Seguimiento cargas un archivo CSV que tú mismo descargas de tu banca en línea. La app nunca se conecta a tu banco ni ve tus datos de acceso. Clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
       },
     ],
     introNext: 'Siguiente',
@@ -3182,14 +3633,15 @@ export const translations: Record<Lang, Translations> = {
     introDone: 'Empezar',
     introStep: (n, of) => `Paso ${n} de ${of}`,
     introPrivacyNativeTitle: 'Tu presupuesto es tuyo',
-    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta y sin servidor nuestro. Lo que escribes se guarda en la app del teléfono, y la app no lo envía a nosotros ni a nadie más. Si la copia de seguridad del teléfono está activada (iCloud o Google), puede copiar tu presupuesto a tu propia cuenta allí. Un archivo de copia que compartes tú va adonde tú elijas.',
-    welcomeTitle: '¡Bienvenido a Budgetapp!',
+    introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta y sin servidor nuestro. Lo que escribes se guarda en la app de tu dispositivo, y la app no lo envía a nosotros ni a nadie más. Si la copia de seguridad del dispositivo está activada (iCloud o Google), puede copiar tu presupuesto a tu propia cuenta allí. Un archivo de copia que compartes tú va adonde tú elijas.',
+    welcomeTitle: '¡Bienvenido a YourBudget!',
     welcomeLetter: [
       'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
-      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista, pero descubrí que funciona igual de bien como una pequeña cartera para un viaje.',
+      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista. Con el tiempo llegaron también las carteras: un pequeño presupuesto propio para un viaje o una reforma, aparte del mes.',
       'El dinero es lo que hace que la vida diaria funcione — comida, tiempo libre, gustos, responsabilidades. Justo por eso creo que debe ser tuyo de manejar, sin distracciones.',
-      'Por eso la app es local. Todo se guarda en tu dispositivo. Exportas e importas cuando quieras, sin que nadie lo vea ni se meta. Sin servicios en la nube, sin conexión bancaria, sin terceros.',
+      'Por eso la app es local. Todo se guarda en tu dispositivo. Exportas e importas cuando quieras, sin que nadie lo vea ni se meta. Sin ningún servicio en la nube mío, sin conexión bancaria, sin terceros.',
       'Hoy local ya no significa pesado. Traes el extracto de tu banco como archivo, y la app lo lee y ordena los movimientos por ti — en tu propio dispositivo, sin que el archivo salga de él. Si corriges una categoría lo recuerda, así que el mes que viene cuesta menos que este.',
+      'Si algo te resulta nuevo, ahí está la guía. Explica cada parte y puede iluminar justo dónde está cada cosa en la app.',
       'Qué viene después no lo sé exactamente. Construyo lo que echo en falta yo mismo, y hasta ahora ha resultado que otros echan en falta más o menos lo mismo.',
       'Tú y tu economía. Espero que te ayude a avanzar.',
     ],
@@ -3339,7 +3791,19 @@ export const translations: Record<Lang, Translations> = {
     newNoteName: 'Nota',
     notePlaceholder: 'Escribe una nota…',
     currency: 'Moneda',
+    textSize: 'Tamaño del texto',
+    textSizeName: ['Normal', 'Grande', 'Más grande'],
     currencyHint: 'Solo cambia el símbolo y el formato — los importes no se convierten',
+    currencyNames: { sek: 'corona sueca, noruega, danesa', eur: 'euro', usd: 'dólar, peso y otros', gbp: 'libra', jpy: 'yen, yuan', rub: 'rublo', brl: 'real brasileño', inr: 'rupia india', try: 'lira turca' },
+    introSetupTitle: 'Idioma y moneda',
+    introSetupBody: 'Elige tu idioma y la moneda que usas. Puedes cambiar ambos en el menú más tarde.',
+    introPickCurrency: 'Elige una moneda para continuar',
+    guideEntry: 'Primeros pasos: cómo funciona la app',
+    guideHide: 'Ocultar esta fila. La guía sigue en el menú.',
+    guideNudgeTitle: 'Tu presupuesto está listo.',
+    guideNudgeBody: 'Aquí tienes la guía. Te muestra dónde está cada cosa, paso a paso.',
+    guideNudgeOpen: 'Abrir la guía',
+    guideNudgeLater: 'Más tarde',
     theme: 'Tema',
     whatsNew: 'Novedades',
     whatsNewLatest: 'Último',
@@ -3347,7 +3811,7 @@ export const translations: Record<Lang, Translations> = {
     themeLight: 'Claro',
     themeDark: 'Oscuro',
     themeTitle: 'Tema',
-    appTitle: 'Budget – Presupuesto mensual',
+    appTitle: 'YourBudget – Presupuesto mensual',
     themeClose: 'Cerrar',
     presets: 'Preajustes',
     accent: 'Color de acento',
@@ -3377,16 +3841,36 @@ export const translations: Record<Lang, Translations> = {
     },
     saveFailedTitle: 'No se pudo guardar',
     storageOpenFailedTitle: 'La app no pudo abrir tu presupuesto',
-    storageOpenFailedBody: 'No se pudo abrir el almacenamiento del teléfono en este momento. No se ha borrado nada. Inténtalo de nuevo y reinicia el teléfono si no funciona.',
+    storageOpenFailedBody: 'No se pudo abrir el almacenamiento del dispositivo en este momento. No se ha borrado nada. Inténtalo de nuevo y reinicia el dispositivo si no funciona.',
     storageOpenFailedRetry: 'Intentar de nuevo',
     saveFailedBody: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el navegador o exporta tus datos, y vuelve a intentarlo.',
-    saveFailedBodyApp: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el teléfono o exporta tus datos, y vuelve a intentarlo.',
+    saveFailedBodyApp: 'El cambio se ve en pantalla pero no se ha guardado. Libera espacio en el dispositivo o exporta tus datos, y vuelve a intentarlo.',
     saveRetry: 'Intentar guardar de nuevo',
     copyBudget: 'Copiar presupuesto',
     copyNextMonth: 'Mes siguiente',
-    copyAllRemaining: (n) => `Todos los restantes (${n} meses)`,
+    copyAllRemaining: (n) => (n === 1 ? 'Todos los restantes (1 mes)' : `Todos los restantes (${n} meses)`),
     copiedTo: (month) => `✓ Copiado a ${month}`,
-    copiedToMonths: (n) => `✓ Copiado a ${n} meses`,
+    copiedToMonths: (n) => (n === 1 ? '✓ Copiado a 1 mes' : `✓ Copiado a ${n} meses`),
+    copyOfferTitle: '¿El mismo presupuesto el resto del año?',
+    copyOfferBody: (n) => `Copia el presupuesto de este mes a los ${n} meses que quedan este año. Puedes cambiar cualquier mes después.`,
+    copyOfferButton: (n) => `Copiar a ${n} meses`,
+    copyOfferDismiss: 'Ahora no',
+    startChoiceTitle: "¿Has hecho un presupuesto antes?",
+    startChoiceBody: "Elige cómo empezar. Puedes cambiarlo todo después.",
+    startExpert: "Sí, exploraré por mi cuenta",
+    startExpertSub: "Plantilla, presupuesto vacío o importar",
+    startBeginner: "No, ayúdame a empezar",
+    startBeginnerSub: "Unas preguntas sencillas y el presupuesto estará listo",
+    begQuestions: [{ title: "¿Cuánto cobras de sueldo cada mes?", hint: "Lo que llega a tu cuenta, después de impuestos." }, { title: "¿Cuánto pagas por la vivienda cada mes?", hint: "Alquiler, comunidad o hipoteca." }, { title: "¿Cuánto cuesta tu tarifa del móvil?", hint: "Al mes." }, { title: "¿Cuánto cuesta ir al trabajo o a clase?", hint: "Abono de transporte, tren o gasolina, al mes." }, { title: "¿Estás pagando algún préstamo?", hint: "Por ejemplo, de estudios, del coche o la tarjeta de crédito, al mes." }, { title: "¿Cuánto quieres ahorrar cada mes?", hint: "Un poco también cuenta. Déjalo vacío si aún no lo sabes." }],
+    begSkip: "Omitir",
+    begNext: "Siguiente",
+    begBack: "Atrás",
+    begSummaryTitle: "Tu presupuesto",
+    begLeftover: "Queda para comida y todo lo demás",
+    begCreate: (from, to) => `Crear para ${from}–${to}`,
+    begCreateOne: (m) => `Crear para ${m}`,
+    begEmpty: "Aún no has rellenado nada. Vuelve atrás o empieza con la plantilla.",
+    begTemplate: "Usar la plantilla",
     copyPrevMonth: (month) => `Traer de ${month}`,
     copyPrevMonthConfirm: (from, to) =>
       `Esto reemplaza los ingresos y gastos de ${to} con los de ${from}. El ahorro no se toca. ¿Continuar?`,
@@ -3408,9 +3892,10 @@ export const translations: Record<Lang, Translations> = {
     undoWhat: (action, where, count) => {
       if (action === 'resetMonth') return `El presupuesto de ${where} se restableció`;
       if (action === 'clearActuals') return count === 1 ? `Se eliminó 1 movimiento de ${where}` : `Se eliminaron ${count} movimientos de ${where}`;
+      if (action === 'clearAllActuals') return count === 1 ? 'Se borraron todos los movimientos (1)' : `Se borraron todos los movimientos (${count})`;
       if (action === 'import') return count === 1 ? 'Se importó 1 movimiento' : `Se importaron ${count} movimientos`;
       if (action === 'restoreBackup') return 'Se restauró la copia de seguridad';
-      if (action === 'copyBudget') return count > 1 ? `El presupuesto se sobrescribió en ${count} meses` : `El presupuesto de ${where} se sobrescribió`;
+      if (action === 'copyBudget') return count > 1 ? `El presupuesto se copió a ${count} meses` : `El presupuesto se copió a ${where}`;
       if (action === 'deleteCategory') return `Se eliminó una categoría de ${where}`;
       if (action === 'deleteRow') return where ? `Se eliminó una fila de ${where}` : 'Se eliminó una fila';
       if (action === 'deleteEntry') return `Se eliminó un movimiento de ${where}`;
@@ -3422,7 +3907,13 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
       if (action === 'deleteWallet') return 'Se eliminó una cartera';
+      if (action === 'deleteCustomBudget') return 'Se eliminó un presupuesto';
       if (action === 'deleteWalletExpense') return 'Se eliminó un gasto de una cartera';
+      if (action === 'createGoal') return 'Se creó una meta de ahorro';
+      if (action === 'createWallet') return 'Se creó una cartera';
+      if (action === 'startBudget') return "Se creó un presupuesto";
+      if (action === 'renameRow') return `Se cambió el nombre de una fila en ${where}`;
+      if (action === 'debtExtra') return 'Se cambió el importe extra para tus deudas';
       if (count === 1) return 'Se cambió el periodo de cobro — se movió 1 movimiento';
       return count > 0 ? `Se cambió el periodo de cobro — se movieron ${count} movimientos` : 'Se cambió el periodo de cobro';
     },
@@ -3482,31 +3973,34 @@ export const translations: Record<Lang, Translations> = {
     cancel: 'Cancelar',
     privacyTitle: "Privacidad",
     privacyBody: [
-      "Budget no recoge, transmite ni comparte ningún dato personal.",
-      "## Qué es Budget hoy",
-      "Budget es una página web que abres en el navegador y puedes añadir a la pantalla de inicio. Todavía no hay versión en la App Store ni en Google Play. El día que la haya, este texto se actualizará — hasta entonces describe una página web.",
+      "YourBudget no recoge, transmite ni comparte ningún dato personal.",
+      "## Qué es YourBudget hoy",
+      "YourBudget es una página web que abres en el navegador y puedes añadir a la pantalla de inicio, y también una app para iPhone, iPad y Android. Lo que sigue vale para ambas.",
       "## Todo se queda en tu dispositivo",
       "Tu presupuesto, los gastos que registras y los extractos bancarios que importas se procesan y se guardan localmente en tu navegador. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, no hay inicio de sesión y no hay base de datos a la que enviar nada.",
-      "## En la app para iPhone y Android",
-      "Cuando Budget se usa como app en iPhone o Android, todo se guarda en una base de datos en el teléfono en lugar de en el navegador. La app no envía nada al desarrollador ni a terceros: no hay servidor, ni cuenta, ni analítica, ni seguimiento.",
-      "La copia de seguridad del propio teléfono — iCloud en iPhone, la copia de Google en Android — puede, si la tienes activada, copiar la base de datos a tu propia cuenta de Apple o Google, para que tu presupuesto te acompañe a un teléfono nuevo. Eso lo hacen el teléfono y tu cuenta, no la app, y el desarrollador no tiene acceso. Si no lo quieres, cambia los ajustes de copia de seguridad del teléfono. Un archivo de copia que guardas o compartes tú desde la app va adonde tú elijas.",
-      "Si borras la app, la base de datos se elimina del teléfono. Lo que haya en tu propia copia de seguridad depende de tus ajustes para ella.",
-      "## Los extractos se leen donde están",
-      "Cuando importas un archivo CSV se lee donde estás, en tu dispositivo. La app nunca envía su contenido a ningún sitio — ni los movimientos, ni los importes, ni los nombres de los sitios donde compraste.",
+      "## En la app para iPhone, iPad y Android",
+      "Cuando YourBudget se usa como app en iPhone, iPad o Android, todo se guarda en una base de datos en el dispositivo en lugar de en el navegador. La app no envía nada al desarrollador ni a terceros: no hay servidor, ni cuenta, ni analítica, ni seguimiento.",
+      "La copia de seguridad del propio dispositivo — iCloud en iPhone y iPad, la copia de Google en Android — puede, si la tienes activada, copiar la base de datos a tu propia cuenta de Apple o Google, para que tu presupuesto te acompañe a un dispositivo nuevo. Eso lo hacen el dispositivo y tu cuenta, no la app, y el desarrollador no tiene acceso. Si no lo quieres, cambia los ajustes de copia de seguridad del dispositivo. Un archivo de copia que guardas o compartes tú desde la app va adonde tú elijas.",
+      "Si borras la app, la base de datos se elimina del dispositivo. Lo que haya en tu propia copia de seguridad depende de tus ajustes para ella.",
+      "## Los archivos que importas se leen donde están",
+      "Cuando importas un extracto (CSV) o un presupuesto desde un archivo, por ejemplo de Excel, Numbers o Word, el archivo se lee donde estás, en tu dispositivo. La app nunca envía su contenido a ningún sitio — ni los movimientos, ni los importes, ni las filas del presupuesto, ni los nombres de los sitios donde compraste.",
       "## Sin publicidad, sin analítica, sin rastreo",
       "No hay redes publicitarias, ni estadísticas de uso, ni herramientas de rastreo. Tampoco scripts de terceros que recojan datos en segundo plano.",
-      "La clasificación que reconoce las tiendas es una lista que viaja con la página, no un servicio al que consulta. Funciona sin red.",
+      "La clasificación que reconoce las tiendas es una lista que viaja con la página web y la app, no un servicio al que consultan. Funciona sin red.",
       "## No se descarga nada mientras la usas",
       "Las tipografías, las imágenes y el código están en el mismo sitio que la página — no se descarga nada de servidores externos. Después de la primera visita funciona sin conexión a internet.",
       "## El servidor web",
-      "La página la sirve un servidor web. Como todos los servidores web, mantiene un registro técnico de las peticiones que incluye direcciones IP. Ese registro se usa solo para la operación. Nunca se vincula con nada de lo que escribes, por la sencilla razón de que nada de lo que escribes se envía allí.",
+      "La página la sirve un servidor web. Como todos los servidores web, mantiene un registro técnico de las peticiones que incluye direcciones IP. Ese registro se usa solo para la operación. Nunca se vincula con nada de lo que escribes, por la sencilla razón de que nada de lo que escribes se envía allí. La app para iPhone, iPad y Android lo lleva todo incorporado y no contacta con el servidor web.",
       "## Borrado",
       "Si borras los datos guardados del navegador para la página, desaparece todo lo que haya guardado. El desarrollador no tiene copia y no puede recuperarla. Si quieres una copia de seguridad la haces tú desde Menú → Exportar datos — el archivo va donde tú elijas.",
       "## Preguntas",
       "Si tienes alguna pregunta sobre cómo la app trata tus datos, puedes escribir a ariel_padilla@hotmail.com.",
     ],
-    privacyUpdated: "Última actualización: 27 de septiembre de 2026.",
+    privacyUpdated: "Última actualización: 22 de octubre de 2026.",
     privacyClose: "Cerrar",
+    lockTipTitle: 'Bloquear la app',
+    lockTipIos: '¿Quieres que la app pida Face ID? Mantén pulsado el icono de la app en la pantalla de inicio y elige Requerir Face ID (o Touch ID). Tu iPhone o iPad bloquea entonces la app, y su contenido tampoco se ve en el selector de apps. Disponible en iOS y iPadOS 18 y posteriores.',
+    lockTipAndroid: '¿Quieres bloquear la app con huella o PIN? Muchos teléfonos lo hacen por sí mismos, como Samsung, Xiaomi y OnePlus. Busca «bloqueo de apps» en los ajustes del teléfono.',
     goalErrorName: 'Escribe un nombre para la meta',
     goalErrorTarget: 'El importe de la meta debe ser mayor que 0',
     goalErrorTargetRequired: 'Introduce un importe para la meta',
@@ -3515,6 +4009,12 @@ export const translations: Record<Lang, Translations> = {
     dailyBudgetDaysInMonth: (n, month) => `repartido en ${month} (${n} días)`,
     dailyBudgetPerDay: 'Por día',
     dailyBudgetPerWeek: 'Por semana',
+    dailyBudgetPerMonth: 'Al mes',
+    dailyBudgetToWallet: '+ cartera',
+    dailyBudgetWalletAria: (amount) => `Crear una cartera con ${amount}`,
+    walletPeriod: 'Periodo',
+    walletNameMonth: (month) => `Día a día · ${month}`,
+    walletNameWeek: (week) => `Día a día · semana ${week}`,
     sparplanTitle: 'Plan de ahorro',
     sparplanBody: 'Planifica tu ahorro mensual y el rendimiento esperado — y mira crecer el interés compuesto.',
     sparplanMonthly: 'Ahorro mensual',
@@ -3633,6 +4133,53 @@ export const translations: Record<Lang, Translations> = {
     qGoalReached: 'Ya alcanzada 🎉',
     qGoalNoMonthly: (month) => `No hay importe de ahorro para ella en el presupuesto de ${month}.`,
     qGoalRule: 'Supone que ahorras lo mismo cada mes, sin intereses ni rentabilidad.',
+    qWhatIf: '¿Qué pasa si…?',
+    qWhatIfLead: (month) => `Prueba un cambio en el presupuesto de ${month}. No se guarda nada.`,
+    qWhatIfWhat: 'Qué cambia',
+    qWhatIfIncome: 'Ingresos',
+    qWhatIfAmount: 'Cambio al mes',
+    qWhatIfHint: 'Negativo para una bajada, por ejemplo −50.',
+    qWhatIfRemaining: 'Restante',
+    qWhatIfPerDay: 'Para vivir por día',
+    qWhatIfSavings: 'Ahorro',
+    qWhatIfSame: 'sin cambios',
+    qNeedToSave: '¿Cuánto necesito ahorrar?',
+    qNeedName: '¿Para qué ahorras?',
+    qNeedNamePlaceholder: 'Viaje',
+    qNeedTarget: 'Meta',
+    qNeedBy: 'Como tarde',
+    qNeedSaved: 'Ya ahorrado',
+    qNeedAnswer: (perMonth) => `${perMonth} al mes`,
+    qNeedSub: (left, months) => `Quedan ${left} por ahorrar en ${months === 1 ? '1 mes' : `${months} meses`}, contando este`,
+    qNeedShare: (pct, month) => `Es el ${pct} % de lo que queda en el presupuesto de ${month}.`,
+    qNeedReached: 'Ya has ahorrado lo suficiente para esta meta.',
+    qNeedPast: 'Ese mes ya ha pasado. Elige uno posterior.',
+    qNeedCreate: 'Crear como meta de ahorro',
+    qSearch: 'Buscar en tus compras',
+    qSearchPlaceholder: 'Supermercado, café, gimnasio …',
+    qSearchSub: (count) => `${count === 1 ? '1 compra' : `${count} compras`} en los últimos 12 meses`,
+    qSearchNone: (query) => `No hay compras con «${query}» en los últimos 12 meses.`,
+    qSearchMostly: (category) => `Sobre todo en ${category}.`,
+    qSearchCount: (count) => (count === 1 ? '1 compra' : `${count} compras`),
+    toolConfirm: 'Confirmar',
+    toolConfirmUndo: 'Puedes deshacerlo justo después.',
+    toolGoalTitle: 'Crear meta de ahorro',
+    toolGoalDefaultName: 'Meta de ahorro',
+    toolGoalName: 'Nombre',
+    toolGoalInBudget: (month) => `En el presupuesto de ${month}`,
+    toolPerMonth: (amount) => `${amount} al mes`,
+    toolGoalFailed: 'No se pudo guardar la meta de ahorro. No ha cambiado nada.',
+    debtTry: 'Probar un importe',
+    debtTryLead: 'Mira qué hace otro importe extra antes de cambiar nada.',
+    debtTryAmount: 'Extra al mes para probar',
+    debtTryDebtFree: 'Sin deudas',
+    debtTryInterest: 'Intereses por el camino',
+    debtTryNever: 'no en 50 años',
+    debtTrySaves: (amount) => `${amount} menos de intereses`,
+    debtTryCosts: (amount) => `${amount} más de intereses`,
+    debtTryUse: (amount) => `Usar ${amount}`,
+    debtTryTitle: 'Cambiar el importe extra',
+    debtTryExtra: 'Extra al mes',
     qGoalNone: 'Aún no tienes metas de ahorro. Añade una en Plan.',
     qBasisMonths: (covered, asked) => `Basado en ${covered} de ${asked} meses. Los demás no tienen nada importado.`,
     qBasisUnsorted: (amount, count) => `${amount} en ${count} ${count === 1 ? 'movimiento' : 'movimientos'} sin ordenar podrían cambiar la respuesta.`,
@@ -3647,6 +4194,13 @@ export const translations: Record<Lang, Translations> = {
     wTagSeparate: 'Cartera independiente',
     wNew: 'Nueva cartera',
     wNewLead: 'Sus propios importes. No afecta a tu presupuesto.',
+    cbNew: 'Nuevo presupuesto',
+    cbNewLead: 'Un presupuesto propio con sus propios meses, por ejemplo para un pequeño negocio. No se cuenta en tu presupuesto habitual.',
+    cbNamePlaceholder: 'El negocio',
+    cbCreate: 'Crear presupuesto',
+    cbRename: 'Cambiar nombre',
+    cbDelete: 'Eliminar el presupuesto',
+    cbDeleteConfirm: (name) => `¿Eliminar el presupuesto «${name}» con todos sus meses? Puedes deshacerlo justo después.`,
     wName: 'Nombre',
     wNamePlaceholder: 'Japón 2027',
     wTotal: 'Presupuesto total',
@@ -3668,12 +4222,14 @@ export const translations: Record<Lang, Translations> = {
     wPotFood: 'Comida',
     wPotFun: 'Experiencias',
     wLeft: 'Queda',
-    wUsed: (spent, total) => `${spent} de ${total} usado`,
+    wUsed: (spent, total) => `${spent} de ${total} usados`,
     wLeftList: (left, total) => `Quedan ${left} de ${total}`,
     wDaysLeft: (days) => `${days === 1 ? 'Queda 1 día' : `Quedan ${days} días`}`,
     wStartsIn: (days) => `Empieza en ${days} ${days === 1 ? 'día' : 'días'}`,
     wEnded: 'El viaje ha terminado',
     wPerDay: (amount) => `${amount} al día el resto del viaje`,
+    wPerDayPeriod: (amount) => `${amount} al día el resto del periodo`,
+    wEndedPeriod: 'El periodo ha terminado',
     wOver: (over) => `${over} por encima del presupuesto`,
     wAddExpense: '+ Añadir gasto',
     wAmount: 'Importe',
@@ -3713,8 +4269,10 @@ export const translations: Record<Lang, Translations> = {
     backupUrgent: (months) => `Tu última copia de seguridad tiene ${months} meses. Si el dispositivo desaparece, no hay nada que restaurar.`,
     backupLast: (date) => `Última copia de seguridad: ${date}`,
     backupNever: 'Última copia de seguridad: nunca',
+    backupPlainHint: 'La copia de seguridad contiene todo tu presupuesto en forma legible. Guárdala o envíala solo a un sitio de confianza.',
     backupConfirmSaved: 'Comprueba que el archivo se guardó de verdad.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si la descarga no salió — entonces la fecha anterior se queda como estaba.',
-    backupShareTitle: 'Budget – copia de seguridad',
+    backupConfirmShared: 'Comprueba que el archivo llegó a donde lo enviaste.\n\nPulsa Aceptar y la app anotará que tienes una copia de hoy. Cancela si no se guardó allí — entonces la fecha anterior se queda como estaba.',
+    backupShareTitle: 'YourBudget – copia de seguridad',
     backupShareFailed: 'No se pudo crear la copia de seguridad. No ha cambiado nada; inténtalo de nuevo.',
     backupSaved: '✓ Copia de seguridad guardada',
     followUpHelp: 'Ayuda',
@@ -3729,16 +4287,16 @@ export const translations: Record<Lang, Translations> = {
       'Si cobras el día 25 no vives en meses naturales. Fija el día de inicio y Seguimiento cuenta de cobro a cobro: del 25 de julio al 24 de agosto.',
       'Si el 25 cae en fin de semana la app se mueve al día laborable anterior, porque es cuando llegó el dinero. Si aun así falla puedes fijar un periodo a mano — vale solo para ese mes.',
       '## El clasificador',
-      'No es una IA, y no se descarga nada. Es una lista de nombres de tiendas, bancos y servicios — de Suecia, Estados Unidos, España, Australia, Sudáfrica, México, Japón y Colombia, además de internacionales — y tus propias correcciones.',
+      'No es una IA, y no se descarga nada. Es una lista de nombres de tiendas, bancos y servicios — de Suecia, Estados Unidos, España, Australia, Sudáfrica, México, Japón, Colombia, Brasil, Portugal, Rusia, Turquía, Italia, Francia, Alemania y China, además de internacionales — y tus propias correcciones.',
       '1. Lee el texto de la fila y busca un nombre que conozca. "ICA NÄRA KUNGSHOLMEN 4711" es ICA.',
-      '2. Si no reconoce nada deja el movimiento en Övrigt en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
+      '2. Si no reconoce nada deja el movimiento en Otros en vez de adivinar. Una categoría equivocada cuesta más que una vacía.',
       '3. Cuando mueves un sitio a la categoría correcta lo recuerda. La próxima vez tu corrección pesa más que la lista.',
       'Eso último es lo esencial. Al cabo de un mes o dos la lista es sobre todo tuya. No es lista — solo es cuidadosa, y te hace caso.',
       '## Clasificar el resto',
-      'Clasificar toma lo que está en Övrigt y lo muestra como una lista, de mayor a menor, con una propuesta por sitio. Un toque mueve el sitio entero — los ocho movimientos de ICA a la vez — y aprende la elección.',
+      'Clasificar toma lo que está en Otros y lo muestra como una lista, de mayor a menor, con una propuesta por sitio. Un toque mueve el sitio entero — los ocho movimientos de ICA a la vez — y aprende la elección.',
       'La propuesta dice de dónde viene: tu regla, como hiciste antes, o sugerencia de la lista incorporada. Si duda, no propone nada.',
-      '## Övrigt y Transferencia',
-      'Övrigt es lo que el clasificador no reconoció. Transferencia es dinero entre tus propias cuentas — no cuenta como gasto, porque mover 5 000 kr a tu cuenta de ahorro no es gastar 5 000 kr.',
+      '## Otros y Transferencias',
+      'Otros es lo que el clasificador no reconoció. Transferencia es dinero entre tus propias cuentas — no cuenta como gasto, porque mover 5 000 kr a tu cuenta de ahorro no es gastar 5 000 kr.',
       'Los dos se pueden cambiar. No se tira nada.',
       '## Las herramientas',
       'Mes / 3 / 6 / 12 suma varios meses. Útil para "cuánto gasto de verdad en comida".',
@@ -3755,6 +4313,14 @@ export const translations: Record<Lang, Translations> = {
     chartTypeLine: 'Línea',
     chartTypeStacked: 'Apiladas',
   },
+  fr,
+  de,
+  it,
+  pt,
+  ru,
+  tr,
+  ja,
+  zh,
 };
 
 interface LangContextValue {

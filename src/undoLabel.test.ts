@@ -12,8 +12,8 @@ const entry = (over: Partial<UndoEntry> = {}): UndoEntry => ({
 describe('undoWhere', () => {
   it('names the month in the language on screen, not the one it was done in', () => {
     const e = entry({ year: 2026, month: 8 });
-    expect(undoWhere(e, 'sv')).toBe('September 2026');
-    expect(undoWhere(e, 'es')).toBe('Septiembre 2026');
+    expect(undoWhere(e, 'sv')).toBe('september 2026');
+    expect(undoWhere(e, 'es')).toBe('septiembre 2026');
   });
 
   it('is empty when the action was not about one month', () => {

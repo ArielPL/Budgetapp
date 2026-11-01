@@ -2,7 +2,8 @@ import type { ActiveTab } from '../types';
 import { useLang } from '../i18n';
 
 interface Props {
-  active: ActiveTab;
+  /** The tab on screen; null when none is (the wallets' own screen). */
+  active: ActiveTab | null;
   onChange: (tab: ActiveTab) => void;
   /** A linked Custom panel IS the budget, laid out by the user: its bar opens
    *  that panel where Classic opens Budget. */
@@ -15,7 +16,7 @@ export const TabNav = ({ active, onChange, variant = 'classic' }: Props) => {
   const tabs: { id: ActiveTab; label: string; short: string; icon: string }[] = [
     custom
       ? { id: 'budget', label: t.layoutCustom, short: t.layoutCustom, icon: '🧱' }
-      : { id: 'budget', label: t.tabBudget,  short: t.tabBudget,        icon: '📋' },
+      : { id: 'budget', label: t.tabBudget,  short: t.tabBudgetShort,   icon: '📋' },
     { id: 'followup', label: t.tabFollowUp, short: t.tabFollowUpShort, icon: '🧾' },
     { id: 'savings', label: t.tabSavings, short: t.tabSavingsShort,  icon: '📈' },
     { id: 'debt',    label: t.tabDebt,    short: t.tabDebtShort,     icon: '💳' },

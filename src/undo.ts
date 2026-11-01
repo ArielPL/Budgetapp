@@ -65,6 +65,8 @@ export type UndoAction =
   | 'deleteBlock'
   /** Every Custom amount, across every month. */
   | 'clearCustom'
+  /** Every recorded entry, in every month (Follow-up's "Clear all actuals"). */
+  | 'clearAllActuals'
   /** Entries the app itself moved to the month the pay-period rule says they
    *  belong to, because they were stored somewhere else — see filingRepair.ts. */
   | 'refileRepair'
@@ -73,7 +75,21 @@ export type UndoAction =
   /** A wallet, with every expense in it. */
   | 'deleteWallet'
   /** One expense in a wallet. */
-  | 'deleteWalletExpense';
+  | 'deleteWalletExpense'
+  /** A budget added beside the Custom panel's, with all its months. */
+  | 'deleteCustomBudget'
+  /** A budget row's name, changed — easily done by a tap on the wrong field
+   *  (tester, 2026-10-17). */
+  | 'renameRow'
+  /** A savings goal made from "What do I need to save?" — the goal and the
+   *  amount it put in the month's budget. */
+  | 'createGoal'
+  /** A wallet made from Left to live on. */
+  | 'createWallet'
+  /** A budget built from the beginner's answers, over the rest of the year. */
+  | 'startBudget'
+  /** The Debt tab's extra amount, set from "Try an amount". */
+  | 'debtExtra';
 
 export interface UndoEntry {
   /** ISO timestamp — shown, so "a week ago" is visible rather than implied. */
@@ -121,7 +137,11 @@ const ACTIONS: Record<UndoAction, true> = {
   deleteRow: true,
   deleteEntry: true,
   deleteGoal: true,
+  createWallet: true,
+  startBudget: true,
   deleteDebt: true,
+  deleteCustomBudget: true,
+  clearAllActuals: true,
   importBudget: true,
   deleteBlock: true,
   clearCustom: true,
@@ -129,6 +149,9 @@ const ACTIONS: Record<UndoAction, true> = {
   resetCustom: true,
   deleteWallet: true,
   deleteWalletExpense: true,
+  renameRow: true,
+  createGoal: true,
+  debtExtra: true,
 };
 
 /** Strict on read. A half-written or hand-edited stack is dropped rather than

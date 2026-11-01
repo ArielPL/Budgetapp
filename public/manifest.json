@@ -1,6 +1,6 @@
 {
-  "name": "Budget – Månadsbudget",
-  "short_name": "Budget",
+  "name": "YourBudget – Månadsbudget",
+  "short_name": "YourBudget",
   "description": "Din personliga månadsbudget",
   "start_url": "/",
   "display": "standalone",

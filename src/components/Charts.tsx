@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import type { BudgetCategory } from '../types';
 import { shownName } from '../defaults';
-import { useLang, CURRENCIES, formatAxisTick } from '../i18n';
+import { useLang, CURRENCIES, formatAxisTick, type Lang } from '../i18n';
 import { chartColors } from '../themes';
 import { useIsPhone } from '../useIsPhone';
 import { categoryTotal } from '../metrics';
@@ -262,7 +262,7 @@ export const ExpenseChart = ({ data, totalExpenses, style, height, money, curren
 
 // Build the {name,value,color,icon} list a chart renders, dropping empty
 // categories. Shared by the Classic/Combined donut and per-category bars.
-function buildCatData(categories: BudgetCategory[], lang: 'sv' | 'en' | 'es'): CatDatum[] {
+function buildCatData(categories: BudgetCategory[], lang: Lang): CatDatum[] {
   return categories
     .map(cat => ({
       name: shownName(cat, lang),

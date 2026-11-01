@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Every file the app writes, the budget database included, is locked
+	     whenever the device is locked (App Store review, 2026-10-23). The app
+	     never works in the background, so it never needs them then. Backups
+	     and moving to a new phone are unaffected. -->
+	<key>com.apple.developer.default-data-protection</key>
+	<string>NSFileProtectionComplete</string>
+</dict>
+</plist>

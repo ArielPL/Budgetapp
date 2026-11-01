@@ -12,6 +12,7 @@ import {
 import type { DebtState } from '../debtStore';
 import type { BudgetRow } from '../types';
 import { justPaidOff, celebrate } from '../rewards';
+import { ConfirmChange } from './ConfirmChange';
 
 // ── Skuld — the way out of debt ────────────────────────────────────────────
 //
@@ -37,12 +38,20 @@ interface Props {
   /** The rows of "Lån & skulder" in the month on screen. One with money in it
    *  and no debt behind it is shown here too, waiting for its details. */
   loanRows: BudgetRow[];
-  /** Store `next`; with `row`, also put that row in the month on screen.
-   *  Resolves to whether it was stored. */
-  onSave: (next: DebtState, row?: { id: string; label: string; amount: number }) => Promise<boolean>;
+  /** Store `change` applied to the last STORED state — never to `state`, which
+   *  may be a step behind while an earlier change is still being written — and
+   *  with `row`, also put that row in the month on screen. Resolves to whether
+   *  it was stored. */
+  onSave: (
+    change: (prev: DebtState) => DebtState, row?: { id: string; label: string; amount: number },
+    undo?: 'debtExtra',
+  ) => Promise<boolean>;
   /** Remove a debt; with `removeRow`, its row in the month on screen too.
    *  Resolves to what to tell the user, or null when nothing was stored. */
   onDelete: (id: string, removeRow: boolean) => Promise<string | null>;
+  /** Bumped whenever recorded entries are stored, so "paid this month" is
+   *  read again — in the Combined layout Follow-up sits on the same page. */
+  actualsRevision?: number;
 }
 
 const todayIso = () => {
@@ -50,7 +59,9 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, onSave, onDelete }: Props) => {
+export const DebtTab = ({
+  state, year, month, canAddRow, remaining, loanRows, onSave, onDelete, actualsRevision = 0,
+}: Props) => {
   const { t, lang, money } = useLang();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -66,6 +77,17 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
     if (said) setNotice(said);
   };
   const [extraText, setExtraText] = useState(String(state.extraPerMonth || ''));
+  // "Try an amount": a what-if beside the real extra, stored only through
+  // the confirmation box (tools, 2026-10-17).
+  const [tryText, setTryText] = useState('');
+  const [confirmTry, setConfirmTry] = useState(false);
+  // The field follows what is stored: a refused save leaves `state` as it
+  // was on disk, and the field must not go on showing an amount that is not.
+  const [shownFor, setShownFor] = useState(state);
+  if (shownFor !== state) {
+    setShownFor(state);
+    setExtraText(String(state.extraPerMonth || ''));
+  }
 
   // Plans start this calendar month, whatever month the app is showing: a
   // way out of debt begins today, not in the month being looked at.
@@ -95,20 +117,81 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
   const hasRow = (d: Debt) => d.budgetRowId !== undefined && loanRows.some(r => r.id === d.budgetRowId);
 
   // What Follow-up recorded under "Lån & skulder" in the month on screen.
+  // Re-read when entries are stored: in Combined, Follow-up is on the same
+  // page and a new loan payment there left this a step behind (full sweep
+  // 2026-10-08). `actualsRevision` is only a signal to read again.
   const paidThisMonth = useMemo(
     () => loadActuals(appStorage, year, month)
       .filter(e => e.categoryId === 'lan')
       .reduce((s, e) => s + actualContribution(e), 0),
-    [year, month],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [year, month, actualsRevision],
   );
 
   const saveExtra = () => {
     const parsed = parseMoneyInput(extraText || '0');
     if (!parsed.ok) { setExtraText(String(state.extraPerMonth || '')); return; }
-    if (parsed.value !== state.extraPerMonth) void onSave({ ...state, extraPerMonth: parsed.value });
+    if (parsed.value !== state.extraPerMonth) void onSave(s => ({ ...s, extraPerMonth: parsed.value }));
   };
   const choose = (strategy: Strategy) => {
-    if (strategy !== state.strategy) void onSave({ ...state, strategy });
+    if (strategy !== state.strategy) void onSave(s => ({ ...s, strategy }));
+  };
+
+  const tryBox = () => {
+    const parsed = parseMoneyInput(tryText);
+    const value = parsed.ok ? parsed.value : null;
+    const tried = value !== null && value !== state.extraPerMonth
+      ? compareStrategies(state.debts, value, now)[state.strategy]
+      : null;
+    const freeAt = (p: typeof chosen) => (p.debtFree ? when(p.debtFree) : t.debtTryNever);
+    const saved = tried ? chosen.totalInterest - tried.totalInterest : 0;
+    return (
+      <div className="debt-try">
+        <h3 className="debt-try-title">🧮 {t.debtTry}</h3>
+        <p className="debt-note">{t.debtTryLead}</p>
+        <div className="goal-form-field">
+          <label htmlFor="debt-try">{t.debtTryAmount}</label>
+          <input id="debt-try" className="label-input" inputMode="decimal" placeholder={String(state.extraPerMonth + 500)}
+            value={tryText} onChange={e => setTryText(e.target.value)} />
+        </div>
+        {tried && value !== null && (
+          <>
+            <ul className="q-lines">
+              <li>
+                <span className="q-line-label">{t.debtTryDebtFree}</span>
+                <span className="q-line-value">{freeAt(chosen)} → {freeAt(tried)}</span>
+              </li>
+              <li>
+                <span className="q-line-label">{t.debtTryInterest}</span>
+                <span className="q-line-value">{money(chosen.totalInterest)} → {money(tried.totalInterest)}</span>
+              </li>
+            </ul>
+            {saved !== 0 && (
+              <p className={`debt-try-diff${saved > 0 ? ' is-good' : ''}`}>
+                {saved > 0 ? t.debtTrySaves(money(saved)) : t.debtTryCosts(money(-saved))}
+              </p>
+            )}
+            <button className="custom-primary-btn" onClick={() => setConfirmTry(true)}>{t.debtTryUse(money(value))}</button>
+            {confirmTry && (
+              <ConfirmChange
+                title={t.debtTryTitle}
+                lines={[
+                  { label: t.debtTryExtra, before: money(state.extraPerMonth), after: money(value) },
+                  { label: t.debtTryDebtFree, before: freeAt(chosen), after: freeAt(tried) },
+                  { label: t.debtTryInterest, before: money(chosen.totalInterest), after: money(tried.totalInterest) },
+                ]}
+                onClose={() => setConfirmTry(false)}
+                onConfirm={async () => {
+                  const ok = await onSave(s => ({ ...s, extraPerMonth: value }), undefined, 'debtExtra');
+                  if (ok) setTryText('');
+                  return ok;
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   const strategyCard = (strategy: Strategy, title: string, sub: string) => {
@@ -138,7 +221,7 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
         <div className="plan-section-header">
           <h2 className="plan-section-title">{t.debtTitle}</h2>
           {!adding && (
-            <button className="add-goal-btn" onClick={() => { setAdding(true); setEditing(null); }}>{t.debtAdd}</button>
+            <button className="add-goal-btn" data-guide="addDebt" onClick={() => { setAdding(true); setEditing(null); }}>{t.debtAdd}</button>
           )}
         </div>
         <p className="debt-intro">{t.debtIntro}</p>
@@ -174,7 +257,7 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
             onSubmit={async (debt, addRow) => {
               const withRow = addRow ? { ...debt, budgetRowId: generateId() } : debt;
               const ok = await onSave(
-                { ...state, debts: [...state.debts, withRow] },
+                s => ({ ...s, debts: [...s.debts, withRow] }),
                 withRow.budgetRowId
                   ? { id: withRow.budgetRowId, label: withRow.name, amount: withRow.monthlyPayment }
                   : undefined,
@@ -207,7 +290,7 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
                       onSubmit={async debt => {
                         const withRow = { ...debt, budgetRowId: r.id };
                         const ok = await onSave(
-                          { ...state, debts: [...state.debts, withRow] },
+                          s => ({ ...s, debts: [...s.debts, withRow] }),
                           // The row is the user's; it is only rewritten in a
                           // month that is not over yet.
                           canAddRow ? { id: r.id, label: withRow.name, amount: withRow.monthlyPayment } : undefined,
@@ -252,7 +335,8 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
                     onSubmit={async next => {
                       const updated = { ...next, id: d.id, budgetRowId: d.budgetRowId };
                       const ok = await onSave(
-                        { ...state, debts: state.debts.map(x => (x.id === d.id ? updated : x)) },
+                        // A debt deleted meanwhile stays deleted: map, not add.
+                        s => ({ ...s, debts: s.debts.map(x => (x.id === d.id ? updated : x)) }),
                         d.budgetRowId && canAddRow
                           ? { id: d.budgetRowId, label: updated.name, amount: updated.monthlyPayment }
                           : undefined,
@@ -328,7 +412,7 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
       </section>
 
       {inWay.length > 0 && (
-        <section className="plan-section">
+        <section className="plan-section" data-guide="debtPath">
           <div className="plan-section-header">
             <h2 className="plan-section-title">{t.debtWayTitle}</h2>
           </div>
@@ -355,8 +439,18 @@ export const DebtTab = ({ state, year, month, canAddRow, remaining, loanRows, on
               ? t.debtMinimumLine(when(plans.minimum.debtFree), money(plans.minimum.totalInterest))
               : t.debtMinimumNever}
           </p>
+          {tryBox()}
+          {/* When each is paid, soonest first. It used to follow the order the
+              extra money goes in, which read as a timeline out of order: a 0 %
+              instalment the extra reaches last is still paid off early by its
+              own payments (store screenshots, 2026-10-05). Ties, and debts not
+              paid within the horizon (last), keep the strategy's order. */}
           <ol className="debt-order">
-            {chosen.order.map(id => {
+            {[...chosen.order].sort((a, b) => {
+              const pa = chosen.payoffs.find(p => p.id === a)?.months ?? Infinity;
+              const pb = chosen.payoffs.find(p => p.id === b)?.months ?? Infinity;
+              return pa === pb ? 0 : pa < pb ? -1 : 1;
+            }).map(id => {
               const payoff = chosen.payoffs.find(p => p.id === id);
               return (
                 <li key={id}>

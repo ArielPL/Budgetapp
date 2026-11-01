@@ -1,3 +1,4 @@
+import { monthTitle } from '../dateLabel';
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { appStorage } from '../storage';
@@ -6,7 +7,7 @@ import { generateId, shownName, standardExpenseCategory, storageKey } from '../d
 import {
   decodeCsv, CsvEncodingError, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
-  parseDate,
+  parseDate, MAX_CSV_BYTES,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
 import { loadCsvMaps, csvMapChange, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
@@ -20,7 +21,7 @@ import {
 } from '../actuals';
 import { commitStorageChangesOutcome, type StorageChange } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
-import { useLang, MONTHS } from '../i18n';
+import { useLang } from '../i18n';
 import type { PeriodLocks } from '../periodLabel';
 import type { ActualEntry, BudgetCategory } from '../types';
 
@@ -139,6 +140,10 @@ export const CsvImport = ({
 
   const readFile = async (file: File) => {
     setError(null);
+    // Checked before reading: the whole file is read into memory, and a bank's
+    // statement is a few hundred kB. Anything this big is the wrong file, and
+    // reading it first could stall a phone before the user hears so.
+    if (file.size > MAX_CSV_BYTES) { setError(t.csvErrTooBig); return; }
     try {
       const text = decodeCsv(await file.arrayBuffer());
       const rows = parseCsv(text, detectDelimiter(text));
@@ -322,7 +327,7 @@ export const CsvImport = ({
         value: JSON.stringify([...existing, ...fresh]),
       });
       added += fresh.length;
-      touched.push(`${MONTHS[lang][bucket.month]} ${bucket.year}`);
+      touched.push(monthTitle(bucket.month, bucket.year, lang));
       written.push({ year: bucket.year, month: bucket.month });
     }
 

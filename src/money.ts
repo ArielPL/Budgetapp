@@ -91,3 +91,19 @@ export function parseMoneyOrZero(raw: string): MoneyParseResult {
   const result = parseMoneyInput(raw);
   return result.ok || result.reason !== 'empty' ? result : { ok: true, value: 0 };
 }
+
+/**
+ * A total of amounts, to the cent.
+ *
+ * Decimals do not add up exactly in binary: 20.10 + 40.20 is
+ * 60.300000000000004. Subtracted from a 60.30 income that leaves −0.000000000000007,
+ * which is below zero — so a month spent to the cent showed "Remaining −0 €"
+ * in deficit red, and a wallet spent to the cent said "0 € over budget" (full
+ * sweep 2026-10-08). Totals are rounded where they are made, so two totals of
+ * the same cents are the same number and their difference is exactly 0.
+ * Never returns −0, which Intl prints with a minus sign.
+ */
+export function toCents(n: number): number {
+  const r = Math.round(n * 100) / 100;
+  return r === 0 ? 0 : r;
+}

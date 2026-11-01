@@ -20,7 +20,9 @@ export const EditableLabel = ({ value, onChange }: Props) => {
 
   const commit = () => {
     const trimmed = draft.trim();
-    if (trimmed) onChange(trimmed);
+    // Unchanged is not a rename: a tap that only opened the field must not
+    // mark the row as named by the user, nor put a step in the undo bar.
+    if (trimmed && trimmed !== value) onChange(trimmed);
     setEditing(false);
   };
 

@@ -69,6 +69,22 @@ describe('recurringPayments', () => {
     expect(a.perMonth).toBe(448);
   });
 
+  it('leaves out a place visited once a month for a bill that is close but never the same', () => {
+    const a = recurringPayments([3, 4, 5, 6, 7, 8].map((m, i) =>
+      month(2026, m, [e(day(m), 'SYNT RESTAURANG', [310, 335, 320, 328, 315, 331][i], 'mat')])));
+    if (a.status !== 'ok') throw new Error();
+    expect(a.items).toEqual([]);
+  });
+
+  it('keeps a subscription whose price went up once, but not one that changed twice', () => {
+    const a = recurringPayments([3, 4, 5, 6, 7, 8].map((m, i) => month(2026, m, [
+      e(day(m), 'SYNT EN HÖJNING', i < 3 ? 99 : 109, 'prenumerationer'),
+      e(day(m, 9), 'SYNT TVÅ ÄNDRINGAR', [99, 99, 105, 105, 99, 99][i], 'prenumerationer'),
+    ])));
+    if (a.status !== 'ok') throw new Error();
+    expect(a.items.map(x => x.text)).toEqual(['SYNT EN HÖJNING']);
+  });
+
   it('leaves out groceries, a weekly habit, rent, loans, savings, income and a cancelled one', () => {
     const a = recurringPayments(six(m => [
       e(day(m, 1), 'SYNT KAFE', 45, 'mat'), e(day(m, 8), 'SYNT KAFE', 45, 'mat'),
