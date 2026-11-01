@@ -615,8 +615,16 @@ export interface Translations {
   /** The letter shown on first run and from the menu, one string per paragraph.
    *  Ariel's own words — edit them as prose, not as UI copy. */
   welcomeLetter: string[];
+  /** The closing and the name, on lines of their own. */
   welcomeSignature: string;
+  /** The verse Ariel ends the letter with, in italics (Ariel, 2026-11-01). */
+  welcomeVerse: string;
+  welcomeVerseRef: string;
   welcomeStart: string;
+  licensesOpen: string;
+  licensesIntro: string;
+  licensesFailed: string;
+  licensesBack: string;
   /** Menu entry that reopens the letter. Without it the text would only ever be
    *  seen by someone installing for the first time. */
   aboutApp: string;
@@ -1656,17 +1664,22 @@ export const translations: Record<Lang, Translations> = {
     introPrivacyNativeBody: 'Ingen inloggning, inget konto och ingen server hos oss. Det du skriver sparas i appen på din enhet, och appen skickar det inte till oss eller någon annan. Är enhetens säkerhetskopiering påslagen (iCloud eller Google) kan den kopiera budgeten till ditt eget konto där. En backupfil som du själv delar hamnar där du väljer.',
     welcomeTitle: 'Välkommen till YourBudget!',
     welcomeLetter: [
-      'Den här appen byggde jag först för mig själv. Tidigare skötte jag min budget för hand, på papper, och ville ha samma kontroll fast enklare — så jag byggde den med hjälp av AI.',
-      'Den har gett mig överblick över sparande, budget och månad för månad. Den anpassade layouten gjorde jag för den som vill bygga sin egen vy. Med tiden kom kuverten också – en egen liten budget för en resa eller en renovering, skild från månaden.',
-      'Ekonomi är det som får vardagen att rulla — mat, fritid, nöje, ansvar. Just därför tycker jag att den ska vara din att styra, utan distraktioner.',
-      'Därför är appen lokal. Allt lagras på din enhet. Du exporterar och importerar när du vill, utan att någon ser eller lägger sig i. Ingen molntjänst hos mig, ingen bankkoppling, ingen utomstående.',
-      'Numera betyder lokalt inte tjatigt. Du hämtar kontoutdraget som fil från banken, och appen läser och sorterar posterna åt dig — på din egen enhet, utan att filen lämnar den. Rättar du en kategori minns den det, så nästa månad blir mindre jobb än den här.',
-      'Känns något nytt finns guiden. Den förklarar varje del och kan lysa upp precis var saken finns i appen.',
-      'Vad som kommer härnäst vet jag inte exakt. Jag bygger på det jag själv saknar, och hittills har det visat sig att andra saknar ungefär samma saker.',
-      'Du och din ekonomi. Jag hoppas att den hjälper dig framåt.',
+      "Mitt namn är Ariel, och jag har gjort den här appen för att hjälpa dig hålla ordning på din ekonomi.",
+      "Först byggde jag den åt mig själv. Tidigare skötte jag min budget för hand, på papper. Någon gång i april 2026 bestämde jag mig för att göra budgeten digital, och jag byggde appen med hjälp av AI. Voilà – resultatet ser du framför dig.",
+      "Från början var appen ganska enkel. Med tiden har jag lagt till funktioner när jag sett ett behov, eller ett problem som behövde lösas. Men målet är detsamma: det ska vara så enkelt som möjligt att göra en budget och ha koll på den.",
+      "Jag hoppas att appen hjälper dig att spara, ta dig ur dina skulder och börja investera i din framtid – eller i någon annans.",
+      "Guiden finns där för att visa hur appen fungerar. Allt är lokalt: appen är inte kopplad till någon server, och allt sparas på din enhet.",
+      "Har du frågor, funderingar eller feedback kan du skriva till support@yourofflinebudget.com.",
+      "Tack för mig!",
     ],
-    welcomeSignature: '/Ariel',
+    welcomeSignature: "Vänliga hälsningar,\nAriel",
+    welcomeVerse: "Ge till kejsaren det som tillhör kejsaren, och till Gud det som tillhör Gud.",
+    welcomeVerseRef: "Markus 12:17",
     welcomeStart: 'Kom igång',
+    licensesOpen: "Licenser för öppen källkod",
+    licensesIntro: "YourBudget bygger på fri programvara som andra har skrivit och delat. Här är deras upphovsrätt och licenser, som följer med appen.",
+    licensesFailed: "Licenserna kunde inte visas just nu.",
+    licensesBack: "Tillbaka",
     aboutApp: 'Om appen',
     onboardBudgetTitle: 'Kom igång med din månadsbudget',
     onboardBudgetBody: 'Välj en färdig mall eller bygg budgeten själv.',
@@ -2681,17 +2694,22 @@ export const translations: Record<Lang, Translations> = {
     introPrivacyNativeBody: 'No sign-in, no account, no server of ours. What you type is saved in the app on your device, and the app does not send it to us or anyone else. If the device\'s backup is on (iCloud or Google), it may copy your budget to your own account there. A backup file you share yourself goes where you choose.',
     welcomeTitle: 'Welcome to YourBudget!',
     welcomeLetter: [
-      'I built this app for myself first. I used to keep my budget by hand, on paper, and wanted the same control but easier — so I built it with the help of AI.',
-      'It has given me an overview of my savings, my budget and each month as it goes. The custom layout I made for anyone who wants to build their own view. In time the envelopes came too – a small budget of their own for a trip or a renovation, separate from the month.',
-      'Money is what keeps everyday life moving — food, free time, small pleasures, responsibilities. That is exactly why I think it should be yours to steer, without distractions.',
-      'So the app is local. Everything is stored on your device. You export and import whenever you like, without anyone watching or interfering. No cloud service of mine, no bank connection, no third party.',
-      'These days local does not mean tedious. You take your bank statement as a file, and the app reads it and sorts the entries for you — on your own device, without the file ever leaving it. Correct a category and it remembers, so next month is less work than this one.',
-      'If something feels new, the guide is there. It explains every part and can light up exactly where a thing is in the app.',
-      'What comes next I do not exactly know. I build what I miss myself, and so far it has turned out that other people miss much the same things.',
-      'You and your money. I hope it helps you forward.',
+      "My name is Ariel, and I made this app to help you keep your finances in order.",
+      "I built it for myself first. I used to keep my budget by hand, on paper. Sometime in April 2026 I decided to make it digital, and I built the app with the help of AI. Voilà – you are looking at the result.",
+      "At first the app was fairly simple. Over time I have added features whenever I saw a need, or a problem that needed solving. But the goal is still the same: making a budget and keeping track of it should be as simple as possible.",
+      "I hope the app helps you save, get out of debt and start investing in your future – or in someone else’s.",
+      "The guide is there to show you how the app works. Everything is local: the app is not connected to any server, and everything is saved on your device.",
+      "If you have questions, thoughts or feedback, you can write to support@yourofflinebudget.com.",
+      "That’s all from me!",
     ],
-    welcomeSignature: '/Ariel',
+    welcomeSignature: "Kind regards,\nAriel",
+    welcomeVerse: "Give to Caesar what belongs to Caesar, and to God what belongs to God.",
+    welcomeVerseRef: "Mark 12:17",
     welcomeStart: 'Get started',
+    licensesOpen: "Open-source licences",
+    licensesIntro: "YourBudget is built on free software that others have written and shared. Here are their copyright notices and licences, which come with the app.",
+    licensesFailed: "The licences could not be shown right now.",
+    licensesBack: "Back",
     aboutApp: 'About the app',
     onboardBudgetTitle: 'Get started with your monthly budget',
     onboardBudgetBody: 'Pick a ready-made template or build the budget yourself.',
@@ -3706,17 +3724,22 @@ export const translations: Record<Lang, Translations> = {
     introPrivacyNativeBody: 'Sin inicio de sesión, sin cuenta y sin servidor nuestro. Lo que escribes se guarda en la app de tu dispositivo, y la app no lo envía a nosotros ni a nadie más. Si la copia de seguridad del dispositivo está activada (iCloud o Google), puede copiar tu presupuesto a tu propia cuenta allí. Un archivo de copia que compartes tú va adonde tú elijas.',
     welcomeTitle: '¡Bienvenido a YourBudget!',
     welcomeLetter: [
-      'Esta app la hice primero para mí. Antes llevaba mi presupuesto a mano, en papel, y quería el mismo control pero más fácil — así que la construí con ayuda de la IA.',
-      'Me ha dado una visión de mis ahorros, mi presupuesto y de cada mes según avanza. El diseño personalizado lo hice para quien quiera montar su propia vista. Con el tiempo llegaron también los sobres: un pequeño presupuesto propio para un viaje o una reforma, aparte del mes.',
-      'El dinero es lo que hace que la vida diaria funcione — comida, tiempo libre, gustos, responsabilidades. Justo por eso creo que debe ser tuyo de manejar, sin distracciones.',
-      'Por eso la app es local. Todo se guarda en tu dispositivo. Exportas e importas cuando quieras, sin que nadie lo vea ni se meta. Sin ningún servicio en la nube mío, sin conexión bancaria, sin terceros.',
-      'Hoy local ya no significa pesado. Traes el extracto de tu banco como archivo, y la app lo lee y ordena los movimientos por ti — en tu propio dispositivo, sin que el archivo salga de él. Si corriges una categoría lo recuerda, así que el mes que viene cuesta menos que este.',
-      'Si algo te resulta nuevo, ahí está la guía. Explica cada parte y puede iluminar justo dónde está cada cosa en la app.',
-      'Qué viene después no lo sé exactamente. Construyo lo que echo en falta yo mismo, y hasta ahora ha resultado que otros echan en falta más o menos lo mismo.',
-      'Tú y tu economía. Espero que te ayude a avanzar.',
+      "Me llamo Ariel y he hecho esta app para ayudarte a mantener tu economía en orden.",
+      "Primero la hice para mí. Antes llevaba mi presupuesto a mano, en papel. En algún momento de abril de 2026 decidí pasarlo a digital y construí la app con ayuda de la IA. Voilà: estás viendo el resultado.",
+      "Al principio la app era bastante sencilla. Con el tiempo he ido añadiendo funciones cada vez que veía una necesidad, o un problema que había que resolver. Pero el objetivo sigue siendo el mismo: que hacer un presupuesto y llevar el control sea lo más sencillo posible.",
+      "Espero que la app te ayude a ahorrar, salir de tus deudas y empezar a invertir en tu futuro, o en el de otra persona.",
+      "La guía está para enseñarte cómo funciona la app. Todo es local: la app no está conectada a ningún servidor y todo se guarda en tu dispositivo.",
+      "Si tienes preguntas, dudas o comentarios, puedes escribir a support@yourofflinebudget.com.",
+      "¡Eso es todo por mi parte!",
     ],
-    welcomeSignature: '/Ariel',
+    welcomeSignature: "Un saludo,\nAriel",
+    welcomeVerse: "Dad al César lo que es del César, y a Dios lo que es de Dios.",
+    welcomeVerseRef: "Marcos 12:17",
     welcomeStart: 'Empezar',
+    licensesOpen: "Licencias de código abierto",
+    licensesIntro: "YourBudget se basa en software libre que otras personas han escrito y compartido. Aquí están sus avisos de copyright y sus licencias, que acompañan a la app.",
+    licensesFailed: "No se han podido mostrar las licencias ahora.",
+    licensesBack: "Volver",
     aboutApp: 'Sobre la app',
     onboardBudgetTitle: 'Empieza con tu presupuesto mensual',
     onboardBudgetBody: 'Elige una plantilla lista o construye el presupuesto tú mismo.',

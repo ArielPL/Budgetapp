@@ -4803,9 +4803,50 @@ a:focus-visible,
   margin-top: 20px;
 }
 
-.welcome-signature {
+/* "Kind regards," and the name, each on its own line. */
+.welcome-letter p.welcome-signature {
+  white-space: pre-line;
+}
+.welcome-letter a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* The verse that closes the letter: in italics and set apart, a quiet
+   last word rather than another paragraph. */
+.welcome-letter p.welcome-verse {
+  margin-top: 6px;
   color: var(--text-muted);
-  font-style: italic;
+}
+.welcome-verse-ref {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82rem;
+}
+/* "Open-source licences" under the letter: there for whoever looks for it,
+   quiet enough not to compete with the button that starts the app. */
+.welcome-licenses-link {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.welcome-licenses-link:hover { color: var(--text); }
+.licenses-text + .licenses-text {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.licenses-text {
+  margin: 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-muted);
 }
 .welcome-start-btn {
   margin-top: 8px;

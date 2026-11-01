@@ -99,6 +99,7 @@ export const CHANGELOG: Release[] = [
         "Plånböckerna heter nu Kuvert, efter kuvertmetoden: en summa till en sak, och när kuvertet är tomt är det slut. Kuvert i menyn visar alla på en gång. På dator och surfplatta står de bredvid varandra med ett + sist för ett nytt, och Ändra, Arkivera och Ta bort ligger under ⋯. På telefonen är de en lista med det som är kvar, och du trycker på ett för att öppna det",
         "+ kuvert under Kvar att leva på frågar om du vill ta med något mer, till exempel Matvaror. För månaden blir varje rad du väljer ett eget kuvert. För veckan blir det ett kuvert per vecka som är kvar av månaden, med det du valt som delar, och när en vecka är slut frågar nästa vecka vad som blev kvar och lägger till det",
         "Kuvert som hör ihop står på en egen rad, med ett namn du kan ändra: de du gör från Kvar att leva på heter efter månaden, och ett nytt kuvert startar en egen rad. En utgift i ett kuvert får ett datum inom kuvertets period, och ett datum utanför tas med först när du bekräftat det",
+        "Om appen har en länk till licenserna för den fria programvara appen bygger på. Har du frågor om integritet mejlar du nu support@yourofflinebudget.com",
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -149,6 +150,7 @@ export const CHANGELOG: Release[] = [
         "Wallets are now called Envelopes, after the envelope method: an amount for one thing, and when the envelope is empty, that is it. Envelopes in the menu shows them all at once. On a computer or tablet they stand side by side with a + at the end for a new one, and Edit, Archive and Delete sit under ⋯. On a phone they are a list showing what is left, and you tap one to open it",
         "+ envelope under Left to live on asks whether to include anything else, Groceries for example. For the month, each row you pick becomes an envelope of its own. For the week, there is one envelope per week left in the month, with what you picked as parts, and when a week is over the next one asks what was left and adds it",
         "Envelopes that belong together stand on a row of their own, with a name you can change: those made from Left to live on are named after the month, and a new envelope starts its own row. An expense in an envelope gets a date within the envelope's period, and a date outside it is taken only once you confirm it",
+        "About the app has a link to the licences of the free software the app is built on. Questions about privacy now go to support@yourofflinebudget.com",
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -199,6 +201,7 @@ export const CHANGELOG: Release[] = [
         "Las carteras ahora se llaman Sobres, por el método de los sobres: una cantidad para una cosa, y cuando el sobre está vacío, se acabó. Sobres en el menú los muestra todos a la vez. En el ordenador o la tableta aparecen uno al lado de otro con un + al final para crear otro, y Editar, Archivar y Eliminar están bajo ⋯. En el teléfono son una lista con lo que queda, y tocas uno para abrirlo",
         "+ sobre en Lo que queda para vivir pregunta si quieres incluir algo más, por ejemplo Comestibles. Para el mes, cada fila que elijas se convierte en un sobre propio. Para la semana, hay un sobre por cada semana que queda del mes, con lo que elegiste como partes, y cuando termina una semana la siguiente pregunta cuánto sobró y lo añade",
         "Los sobres que van juntos están en una fila propia, con un nombre que puedes cambiar: los que creas desde Lo que queda para vivir llevan el nombre del mes, y un sobre nuevo empieza su propia fila. Un gasto en un sobre recibe una fecha dentro del periodo del sobre, y una fecha fuera solo se acepta cuando la confirmas",
+        "Sobre la app tiene un enlace a las licencias del software libre en el que se basa la app. Las preguntas sobre privacidad van ahora a support@yourofflinebudget.com",
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

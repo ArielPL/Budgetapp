@@ -30,6 +30,7 @@ const WalletArea = lazy(() => import('./components/Wallets').then(m => ({ defaul
 const lazyFallback = <div className="lazy-fallback" aria-hidden="true" />;
 import { ThemePanel } from './components/ThemePanel';
 import { WhatsNew } from './components/WhatsNew';
+import { OpenSourceLicenses } from './components/OpenSourceLicenses';
 import { LATEST_VERSION } from './changelog';
 import { adoptExternalMonth, adoptExternalValue } from './crossTab';
 import { UndoBar } from './components/UndoBar';
@@ -121,6 +122,15 @@ interface AppProps {
 }
 
 
+
+/** A paragraph of the letter with the support address as a link that opens the
+ *  reader's own mail app — the app itself still sends nothing. */
+const SUPPORT_EMAIL = 'support@yourofflinebudget.com';
+function withMailLink(para: string) {
+  const at = para.indexOf(SUPPORT_EMAIL);
+  if (at < 0) return para;
+  return <>{para.slice(0, at)}<a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>{para.slice(at + SUPPORT_EMAIL.length)}</>;
+}
 
 /** Categories an envelope never offers to take along: paid as they are, by
  *  transfer or direct debit, not spent bit by bit (Ariel, 2026-10-27). */
@@ -343,7 +353,15 @@ function App({ startupRepair = null }: AppProps) {
   };
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const welcomeRef = useRef<HTMLDivElement>(null);
-  const dismissWelcome = () => setWelcomeOpen(false);
+  // "About the app" can turn to the open-source licences; it opens on the
+  // letter again next time.
+  const [licensesShown, setLicensesShown] = useState(false);
+  const dismissWelcome = () => { setWelcomeOpen(false); setLicensesShown(false); };
+  // Either way the dialog starts at its top, not where the letter was scrolled to.
+  const showLicenses = (shown: boolean) => {
+    setLicensesShown(shown);
+    if (welcomeRef.current) welcomeRef.current.scrollTop = 0;
+  };
   useModalFocus(welcomeRef, welcomeOpen, dismissWelcome);
   useModalFocus(privacyRef, privacyOpen, () => setPrivacyOpen(false));
 
@@ -2573,18 +2591,35 @@ function App({ startupRepair = null }: AppProps) {
             ref={welcomeRef}
           >
             <div className="welcome-body-wrap">
-              <div className="welcome-emoji" aria-hidden="true">👋💰</div>
-              <h2 className="welcome-title" id="welcome-title">{t.welcomeTitle}</h2>
+              <div className="welcome-emoji" aria-hidden="true">{licensesShown ? '📜' : '👋💰'}</div>
+              <h2 className="welcome-title" id="welcome-title">{licensesShown ? t.licensesOpen : t.welcomeTitle}</h2>
               {/* A letter, not feature bullets: left-aligned and in paragraphs,
                   because that is how a letter is read. The title already says
                   hello, so the text starts at the story. */}
               <div className="welcome-letter">
-                {t.welcomeLetter.map((para, i) => <p key={i}>{para}</p>)}
-                <p className="welcome-signature">{t.welcomeSignature}</p>
+                {licensesShown ? <OpenSourceLicenses /> : (
+                  <>
+                    {t.welcomeLetter.map((para, i) => <p key={i}>{withMailLink(para)}</p>)}
+                    <p className="welcome-signature">{t.welcomeSignature}</p>
+                    <p className="welcome-verse">
+                      <em>{t.welcomeVerse}</em>
+                      <span className="welcome-verse-ref">{t.welcomeVerseRef}</span>
+                    </p>
+                    <button className="welcome-licenses-link" onClick={() => showLicenses(true)}>
+                      {t.licensesOpen}
+                    </button>
+                  </>
+                )}
               </div>
-              <button className="welcome-start-btn" onClick={dismissWelcome}>
-                {t.welcomeStart}
-              </button>
+              {licensesShown ? (
+                <button className="welcome-start-btn" onClick={() => showLicenses(false)}>
+                  {t.licensesBack}
+                </button>
+              ) : (
+                <button className="welcome-start-btn" onClick={dismissWelcome}>
+                  {t.welcomeStart}
+                </button>
+              )}
             </div>
           </div>
         </>
