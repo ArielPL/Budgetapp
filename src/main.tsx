@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
+import { injectSpeedInsights } from '@vercel/speed-insights'
 import './index.css'
 import App from './App.tsx'
 import { applyPersistedTheme } from './themes.ts'
@@ -46,6 +47,9 @@ async function openStorage(): Promise<boolean> {
 
 async function start() {
   if (!(await openStorage())) return
+
+  // Inject Vercel Speed Insights
+  injectSpeedInsights()
 
   // Apply the saved theme palette to :root before React renders, so the very
   // first paint already uses the right colors (no flash of the default Sorbet).

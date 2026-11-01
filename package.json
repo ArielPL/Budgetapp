@@ -21,6 +21,7 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.2",
     "@capacitor/share": "^8.0.2",
+    "@vercel/speed-insights": "^2.0.0",
     "fflate": "0.8.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
