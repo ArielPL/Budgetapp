@@ -460,7 +460,8 @@ ${siteHeader(t, code, kind)}
 <main id="main" tabindex="-1" style="flex:1;width:100%;max-width:760px;margin:0 auto;padding:clamp(48px,8vw,88px) 24px 96px;display:flex;flex-direction:column;gap:40px;">
   <div style="display:flex;flex-direction:column;gap:20px;">
     <h1 style="font-size:clamp(34px,5vw,48px);line-height:1.1;font-weight:800;letter-spacing:-0.025em;text-wrap:balance;">${esc(d.title)}</h1>
-    <p style="font-size:20px;line-height:1.55;font-weight:600;color:#463a7a;background:#f0eefb;border-radius:18px;padding:22px 26px;text-wrap:pretty;">${esc(d.intro)}</p>
+    <p style="font-size:20px;line-height:1.55;font-weight:600;color:#463a7a;background:#f0eefb;border-radius:18px;padding:22px 26px;text-wrap:pretty;">${esc(d.intro)}</p>${d.note ? `
+    <p style="font-size:16px;line-height:1.65;color:#5d5972;text-wrap:pretty;">${esc(d.note)}</p>` : ''}
   </div>
   <div style="display:flex;flex-direction:column;">${d.blocks.map(b => `
     <section style="display:flex;flex-direction:column;gap:12px;padding:28px 0;border-top:1px solid #ece9f5;">

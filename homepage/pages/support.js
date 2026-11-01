@@ -1,10 +1,11 @@
 // The support page: common questions, in 11 languages. {MAIL}, {APPLE}, {GOOGLE:text}
-// and {PRIV:text} become links. Rendered by scripts/build-home.mjs.
+// and {PRIV:text} become links. `note` is the line about the app being in beta. Rendered by scripts/build-home.mjs.
 window.YB_SUPPORT = {
  "sv": {
   "title": "Support",
   "intro": "YourBudget är en budgetapp utan konto. Allt du skriver sparas på din enhet, och appen skickar det ingenstans. Här finns svar på de vanligaste frågorna.",
-  "updated": "Senast uppdaterad 25 oktober 2026.",
+  "note": "Just nu testas appen av betatestare, och den släpps för alla i januari 2027. Svaren här gäller redan nu och fortsätter att gälla efter lanseringen. Frågorna om köp och återbetalning gäller från lanseringen.",
+  "updated": "Senast uppdaterad 1 november 2026.",
   "blocks": [
    {
     "h": "Hur kontaktar jag dig?",
@@ -53,7 +54,8 @@ window.YB_SUPPORT = {
  "en": {
   "title": "Support",
   "intro": "YourBudget is a budgeting app without an account. Everything you type is saved on your device, and the app sends it nowhere. Here are answers to the most common questions.",
-  "updated": "Last updated 25 October 2026.",
+  "note": "The app is currently being tested by beta testers and is released to everyone in January 2027. The answers here apply now and keep applying after the launch. The questions about purchases and refunds apply from the launch.",
+  "updated": "Last updated 1 November 2026.",
   "blocks": [
    {
     "h": "How do I contact you?",
@@ -102,7 +104,8 @@ window.YB_SUPPORT = {
  "es": {
   "title": "Soporte",
   "intro": "YourBudget es una app de presupuesto sin cuenta. Todo lo que escribes se guarda en tu dispositivo, y la app no lo envía a ninguna parte. Aquí tienes respuestas a las preguntas más comunes.",
-  "updated": "Última actualización: 25 de octubre de 2026.",
+  "note": "Ahora mismo la app la prueban los probadores beta y se lanzará para todos en enero de 2027. Las respuestas valen desde ya y seguirán valiendo después del lanzamiento. Las preguntas sobre compras y reembolsos valen desde el lanzamiento.",
+  "updated": "Última actualización: 1 de noviembre de 2026.",
   "blocks": [
    {
     "h": "¿Cómo te contacto?",
@@ -151,7 +154,8 @@ window.YB_SUPPORT = {
  "fr": {
   "title": "Assistance",
   "intro": "YourBudget est une app de budget sans compte. Tout ce que vous saisissez est enregistré sur votre appareil, et l'app ne l'envoie nulle part. Voici les réponses aux questions les plus fréquentes.",
-  "updated": "Dernière mise à jour : 25 octobre 2026.",
+  "note": "Pour l’instant, l’app est testée par des testeurs bêta et sortira pour tout le monde en janvier 2027. Les réponses valent dès maintenant et resteront valables après le lancement. Les questions sur l’achat et le remboursement valent à partir du lancement.",
+  "updated": "Dernière mise à jour : 1er novembre 2026.",
   "blocks": [
    {
     "h": "Comment vous contacter ?",
@@ -200,7 +204,8 @@ window.YB_SUPPORT = {
  "de": {
   "title": "Support",
   "intro": "YourBudget ist eine Budget-App ohne Konto. Alles, was du eingibst, wird auf deinem Gerät gespeichert, und die App sendet es nirgendwohin. Hier findest du Antworten auf die häufigsten Fragen.",
-  "updated": "Zuletzt aktualisiert am 25. Oktober 2026.",
+  "note": "Im Moment wird die App von Beta-Testern ausprobiert und erscheint im Januar 2027 für alle. Die Antworten gelten schon jetzt und auch nach dem Start. Die Fragen zu Kauf und Erstattung gelten ab dem Start.",
+  "updated": "Zuletzt aktualisiert am 1. November 2026.",
   "blocks": [
    {
     "h": "Wie erreiche ich dich?",
@@ -249,7 +254,8 @@ window.YB_SUPPORT = {
  "it": {
   "title": "Assistenza",
   "intro": "YourBudget è un'app per il budget senza account. Tutto ciò che scrivi viene salvato sul tuo dispositivo, e l'app non lo invia da nessuna parte. Ecco le risposte alle domande più frequenti.",
-  "updated": "Ultimo aggiornamento: 25 ottobre 2026.",
+  "note": "Per ora l’app è in prova con i beta tester e uscirà per tutti a gennaio 2027. Le risposte valgono già adesso e continueranno a valere dopo il lancio. Le domande su acquisto e rimborso valgono dal lancio.",
+  "updated": "Ultimo aggiornamento: 1° novembre 2026.",
   "blocks": [
    {
     "h": "Come ti contatto?",
@@ -298,7 +304,8 @@ window.YB_SUPPORT = {
  "pt": {
   "title": "Suporte",
   "intro": "YourBudget é um app de orçamento sem conta. Tudo o que você digita fica salvo no seu dispositivo, e o app não o envia para lugar nenhum. Aqui estão as respostas para as perguntas mais comuns.",
-  "updated": "Última atualização em 25 de outubro de 2026.",
+  "note": "No momento, o app está sendo testado por beta testers e será lançado para todos em janeiro de 2027. As respostas valem desde já e continuam valendo depois do lançamento. As perguntas sobre compra e reembolso valem a partir do lançamento.",
+  "updated": "Última atualização em 1º de novembro de 2026.",
   "blocks": [
    {
     "h": "Como entro em contato?",
@@ -347,7 +354,8 @@ window.YB_SUPPORT = {
  "ru": {
   "title": "Поддержка",
   "intro": "YourBudget — приложение для бюджета без учётной записи. Всё, что вы вводите, хранится на вашем устройстве, и приложение никуда это не отправляет. Здесь ответы на самые частые вопросы.",
-  "updated": "Последнее обновление: 25 октября 2026 г.",
+  "note": "Сейчас приложение тестируют бета-тестеры, а для всех оно выйдет в январе 2027 года. Ответы действуют уже сейчас и останутся в силе после запуска. Вопросы о покупке и возврате денег действуют с момента запуска.",
+  "updated": "Последнее обновление: 1 ноября 2026 г.",
   "blocks": [
    {
     "h": "Как с вами связаться?",
@@ -396,7 +404,8 @@ window.YB_SUPPORT = {
  "tr": {
   "title": "Destek",
   "intro": "YourBudget hesap gerektirmeyen bir bütçe uygulamasıdır. Yazdığınız her şey cihazınızda saklanır ve uygulama bunu hiçbir yere göndermez. En sık sorulan soruların yanıtları burada.",
-  "updated": "Son güncelleme: 25 Ekim 2026.",
+  "note": "Uygulama şu anda beta test kullanıcıları tarafından deneniyor ve Ocak 2027’de herkes için yayınlanacak. Buradaki yanıtlar şimdiden geçerlidir ve lansmandan sonra da geçerli olmaya devam eder. Satın alma ve iade ile ilgili sorular lansmandan itibaren geçerlidir.",
+  "updated": "Son güncelleme: 1 Kasım 2026.",
   "blocks": [
    {
     "h": "Size nasıl ulaşırım?",
@@ -445,7 +454,8 @@ window.YB_SUPPORT = {
  "ja": {
   "title": "サポート",
   "intro": "YourBudget はアカウント不要の家計簿アプリです。入力した内容はすべてお使いの端末に保存され、アプリがどこかへ送信することはありません。よくある質問への回答をまとめました。",
-  "updated": "最終更新日：2026年10月25日。",
+  "note": "現在、アプリはベータテスターの皆さんにお試しいただいており、2027 年 1 月に一般公開される予定です。ここにある回答は今すぐ当てはまり、公開後も変わりません。購入と返金に関する質問は、公開後に当てはまります。",
+  "updated": "最終更新日：2026年11月1日。",
   "blocks": [
    {
     "h": "連絡するには？",
@@ -494,7 +504,8 @@ window.YB_SUPPORT = {
  "zh": {
   "title": "支持",
   "intro": "YourBudget 是一款无需账户的预算应用。你输入的一切都保存在你的设备上，应用不会把它发送到任何地方。以下是常见问题的解答。",
-  "updated": "最后更新于 2026 年 10 月 25 日。",
+  "note": "目前应用正由测试人员试用，将于 2027 年 1 月向所有人发布。这里的解答现在就适用，发布后也继续适用。有关购买和退款的问题，从发布时起适用。",
+  "updated": "最后更新于 2026 年 11 月 1 日。",
   "blocks": [
    {
     "h": "如何联系你？",
