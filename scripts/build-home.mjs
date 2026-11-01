@@ -45,6 +45,15 @@ const DOCS = { privacy: sandbox.window.YB_PRIVACY, support: sandbox.window.YB_SU
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** Each language has its own file: sv.html, privacy-sv.html, support-sv.html. */
 const pageOf = (code, kind = '') => (kind ? `${kind}-${code}.html` : `${code}.html`);
+/** Search engines want whole addresses for the language versions of a page, the
+ *  page itself among them, and one "default" for visitors in no listed language:
+ *  the entry (/, privacy.html …) that sends each browser to its own language. */
+const SITE = 'https://www.yourofflinebudget.com/';
+const headLinks = (code, kind = '') => [
+  `<link rel="canonical" href="${SITE}${pageOf(code, kind)}">`,
+  ...LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${SITE}${pageOf(c, kind)}">`),
+  `<link rel="alternate" hreflang="x-default" href="${SITE}${kind ? kind + '.html' : ''}">`,
+].join('\n');
 
 const CSS = `
 @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400 800;font-display:swap;src:url('assets/fonts/plus-jakarta-sans-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212;}
@@ -68,21 +77,21 @@ main:focus{outline:none}
 .lang-code{display:none}
 #top{overflow-x:clip}
 h1,h2,h3{overflow-wrap:break-word}
-section[id]{scroll-margin-top:88px}
+section[id],main{scroll-margin-top:88px}
 /* The one-line menu needs up to 1360px (1520px in Russian), hence the wider bar above.
    Below that the links get a row of their own, and the bar lines up with the
    page again. Down to 900px that row fits every language on one line. */
 @media (max-width:__BP__px){
   .site-bar{max-width:1160px}
   .site-links{order:3;flex:1 0 100%;flex-wrap:wrap;gap:8px 24px}
-  section[id]{scroll-margin-top:124px}
+  section[id],main{scroll-margin-top:124px}
 }
 /* Narrower, the links wrap onto as many lines as they need, so every one stays
    in sight, and the header scrolls away with the page instead of covering it. */
 @media (max-width:900px){
   .site-header{position:static}
   .site-links{gap:8px 20px}
-  section[id]{scroll-margin-top:12px}
+  section[id],main{scroll-margin-top:12px}
 }
 /* On a phone the language button shows just its code, and the app button moves
    to the end of the links, where there is room for it. */
@@ -100,6 +109,7 @@ section[id]{scroll-margin-top:88px}
 body{background:#fbfaff;color:#20203a;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:#7c3aed;text-decoration:none}
 a:hover{color:#6d28d9;text-decoration:underline}
+a[href^="mailto:"]{overflow-wrap:break-word}
 img{display:block}
 .label{font-size:14px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.08em}
 .h2{font-size:clamp(32px,4.5vw,46px);line-height:1.1;font-weight:800;letter-spacing:-0.025em;text-wrap:balance}
@@ -126,6 +136,20 @@ img{display:block}
 .faq p{font-size:16px;line-height:1.65;color:#5d5972;padding:0 48px 24px 0;text-wrap:pretty}
 .phone{aspect-ratio:1186/2576;border:6px solid #20203a;overflow:hidden;background:#fff;box-shadow:0 30px 60px -24px rgba(32,32,58,.4)}
 .phone img{width:100%;height:100%;object-fit:cover;object-position:top}
+.hp-wrap{min-height:560px}
+.hp-back{transform:translateX(38%) rotate(6deg) scale(0.88);width:250px}
+.hp-front{transform:translateX(-22%);width:260px}
+@media (max-width:480px){
+  .hp-wrap{min-height:470px}
+  .hp-back{transform:translateX(30%) rotate(6deg) scale(0.88);width:180px}
+  .hp-front{transform:translateX(-12%);width:190px}
+}
+/* The feature rows read text, then picture, in one column. Only where there are
+   two columns do the odd rows turn around (a row is two columns from 864px). */
+@media (min-width:864px){
+  .fx-flip .fx-text{order:2}
+  .fx-flip .fx-shot{order:1}
+}
 `;
 
 // Not links until the apps are in the stores (January 2027): each says when.
@@ -185,7 +209,7 @@ const siteFooter = (t, code, kind = '') => `<footer style="border-top:1px solid 
       <a href="${pageOf(code, 'about')}">${esc(t.nav.about)}</a>
       <a href="${pageOf(code, 'privacy')}">${esc(t.footer.privacy)}</a>
       <a href="${pageOf(code, 'support')}">${esc(t.footer.support)}</a>
-      <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>
+      ${MAIL}
       <a href="${INSTAGRAM}" target="_blank" rel="noopener noreferrer" aria-label="Instagram" style="display:inline-flex;align-items:center;">${igIcon(20)}</a>
     </div>
   </div>
@@ -195,10 +219,9 @@ function render(code) {
   const t = { ...ALL.en, ...ALL[code] };
   const features = t.features.map((f, i) => {
     const v = VIS[i];
-    const textOrder = i % 2 ? 2 : 1;
     return `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:56px;align-items:center;">
-      <div style="display:flex;flex-direction:column;gap:20px;order:${textOrder};">
+    <div class="${i % 2 ? 'fx-flip' : ''}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:56px;align-items:center;">
+      <div class="fx-text" style="display:flex;flex-direction:column;gap:20px;">
         <span style="align-self:flex-start;background:${v.tintBg};color:${v.tintText};font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;text-transform:uppercase;letter-spacing:0.06em;">${esc(f.tag)}</span>
         <h3 style="font-size:clamp(28px,3.5vw,38px);line-height:1.15;font-weight:800;letter-spacing:-0.02em;text-wrap:balance;">${esc(f.title)}</h3>
         <p style="font-size:18px;line-height:1.6;color:#5d5972;text-wrap:pretty;">${esc(f.body)}</p>
@@ -206,7 +229,7 @@ function render(code) {
           <li style="display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.5;"><span style="flex:none;width:8px;height:8px;border-radius:50%;background:#7c3aed;margin-top:8px;"></span><span>${esc(p)}</span></li>`).join('')}
         </ul>
       </div>
-      <div style="display:flex;justify-content:center;padding:32px 0;border-radius:20px;background:${v.tintBg};order:${3 - textOrder};">
+      <div class="fx-shot" style="display:flex;justify-content:center;padding:32px 0;border-radius:20px;background:${v.tintBg};">
         <div class="phone" style="width:240px;border-radius:36px;"><img src="assets/shots/${v.shot}.jpg" alt="${esc(f.tag)}" loading="lazy" width="560" height="1216"></div>
       </div>
     </div>`;
@@ -220,7 +243,7 @@ function render(code) {
 <title>${esc(t.pageTitle)}</title>
 <meta name="description" content="${esc(t.lead)}">
 <link rel="icon" href="assets/icon.png">
-${LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${pageOf(c)}">`).join('\n')}
+${headLinks(code)}
 <!-- Generated by scripts/build-home.mjs from homepage/i18n/${code}.js. Edit those, not this. -->
 <!-- No third-party resources of any kind: the fonts and images are served from here. -->
 <style>${css(code)}</style>
@@ -244,12 +267,12 @@ ${siteHeader(t, code)}
     <p style="font-size:14px;color:#6c687f;font-weight:600;">${esc(t.price)}</p>
     <a href="${INSTAGRAM}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;align-self:flex-start;font-size:15px;font-weight:700;color:#5b4bb3;">${igIcon(20)}<span>${esc(t.nav.follow)}</span></a>
   </div>
-  <div style="position:relative;display:flex;justify-content:center;align-items:center;min-height:560px;">
+  <div class="hp-wrap" style="position:relative;display:flex;justify-content:center;align-items:center;">
     <div style="position:absolute;width:78%;aspect-ratio:1;border-radius:50%;background:#f0eefb;"></div>
-    <div class="phone" style="position:absolute;transform:translateX(38%) rotate(6deg) scale(0.88);width:250px;border-width:7px;border-radius:38px;box-shadow:0 30px 60px -20px rgba(32,32,58,0.35);">
+    <div class="phone hp-back" style="position:absolute;border-width:7px;border-radius:38px;box-shadow:0 30px 60px -20px rgba(32,32,58,0.35);">
       <img src="assets/shots/02-actual.jpg" alt="" width="560" height="1216">
     </div>
-    <div class="phone" style="position:relative;transform:translateX(-22%);width:260px;border-width:7px;border-radius:40px;box-shadow:0 40px 80px -24px rgba(32,32,58,0.45);">
+    <div class="phone hp-front" style="position:relative;border-width:7px;border-radius:40px;box-shadow:0 40px 80px -24px rgba(32,32,58,0.45);">
       <img src="assets/shots/01-budget.jpg" alt="YourBudget" width="560" height="1216">
     </div>
   </div>
@@ -381,13 +404,17 @@ ${features}
 ${siteFooter(t, code)}
 
 </div>
+<!-- Changing language keeps the section you are reading: the language links take over the page's #fragment. Without JavaScript they open the top of the page. -->
+<script>(function(){var a=document.querySelectorAll('.lang-menu a');function f(){var h=location.hash;for(var i=0;i<a.length;i++)a[i].href=a[i].getAttribute('href').split('#')[0]+h}f();addEventListener('hashchange',f)})()</script>
 </body>
 </html>
 `;
 }
 
 const SUPPORT_MAIL = 'support@yourofflinebudget.com';
-const MAIL = `<a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a>`;
+// A line may break after the @ when the address does not fit.
+const MAIL_TEXT = SUPPORT_MAIL.replace('@', '@<wbr>');
+const MAIL = `<a href="mailto:${SUPPORT_MAIL}">${MAIL_TEXT}</a>`;
 const INSTAGRAM = 'https://www.instagram.com/yourofflinebudget/';
 const igIcon = size => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"/></svg>`;
 const APPLE = '<a href="https://reportaproblem.apple.com">reportaproblem.apple.com</a>';
@@ -412,7 +439,7 @@ function renderDoc(kind, code) {
 <title>${esc(d.title)} — YourBudget</title>
 <meta name="description" content="${esc(d.intro)}">
 <link rel="icon" href="assets/icon.png">
-${LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${pageOf(c, kind)}">`).join('\n')}
+${headLinks(code, kind)}
 <!-- Generated by scripts/build-home.mjs from homepage/pages/${kind}.js. Edit that, not this. -->
 <style>${css(code)}</style>
 __REDIRECT__
@@ -452,7 +479,7 @@ function renderAbout(code) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(t.lead)}">
 <link rel="icon" href="assets/icon.png">
-${LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${pageOf(c, 'about')}">`).join('\n')}
+${headLinks(code, 'about')}
 <!-- Generated by scripts/build-home.mjs from the homepage texts in homepage/i18n/${code}.js. Edit those, not this. -->
 <style>${css(code)}</style>
 __REDIRECT__
@@ -504,7 +531,7 @@ function renderNews(code) {
 <title>${esc(title)} — YourBudget</title>
 <meta name="description" content="${esc(first.h)}">
 <link rel="icon" href="assets/icon.png">
-${LANGS.map(([c]) => `<link rel="alternate" hreflang="${c}" href="${pageOf(c, 'news')}">`).join('\n')}
+${headLinks(code, 'news')}
 <!-- Generated by scripts/build-home.mjs from homepage/pages/news.js. Edit that, not this. -->
 <style>${css(code)}</style>
 __REDIRECT__

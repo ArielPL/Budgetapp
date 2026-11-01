@@ -33,7 +33,7 @@ window.YB_SUPPORT = {
    {
     "h": "Måste jag betala igen på en ny telefon?",
     "ps": [
-     "Nej. Ladda ner appen igen med samma Apple-ID eller Google-konto. Köpet följer med kontot, men budgeten följer bara med om du har en säkerhetskopia."
+     "Nej. Ladda ner appen igen med samma Apple-ID eller Google-konto. Köpet följer med kontot, men budgeten följer bara med om du har en säkerhetskopia. Byter du mellan iPhone och Android köper du appen en gång till i den andra butiken."
     ]
    },
    {
@@ -82,7 +82,7 @@ window.YB_SUPPORT = {
    {
     "h": "Do I have to pay again on a new phone?",
     "ps": [
-     "No. Download the app again with the same Apple ID or Google account. The purchase follows the account, but your budget only follows if you have a backup."
+     "No. Download the app again with the same Apple ID or Google account. The purchase follows the account, but your budget only follows if you have a backup. If you switch between iPhone and Android, you buy the app once more in the other store."
     ]
    },
    {
@@ -131,7 +131,7 @@ window.YB_SUPPORT = {
    {
     "h": "¿Tengo que pagar otra vez en un teléfono nuevo?",
     "ps": [
-     "No. Vuelve a descargar la app con el mismo Apple ID o cuenta de Google. La compra va con la cuenta, pero el presupuesto solo te acompaña si tienes una copia de seguridad."
+     "No. Vuelve a descargar la app con el mismo Apple ID o cuenta de Google. La compra va con la cuenta, pero el presupuesto solo te acompaña si tienes una copia de seguridad. Si cambias entre iPhone y Android, tendrás que comprar la app otra vez en la otra tienda."
     ]
    },
    {
@@ -180,7 +180,7 @@ window.YB_SUPPORT = {
    {
     "h": "Dois-je payer à nouveau sur un nouveau téléphone ?",
     "ps": [
-     "Non. Retéléchargez l'app avec le même identifiant Apple ou compte Google. L'achat suit le compte, mais votre budget ne suit que si vous avez une sauvegarde."
+     "Non. Retéléchargez l'app avec le même identifiant Apple ou compte Google. L'achat suit le compte, mais votre budget ne suit que si vous avez une sauvegarde. Si vous passez d’un iPhone à un Android (ou l’inverse), vous achetez l’app une nouvelle fois dans l’autre boutique."
     ]
    },
    {
@@ -229,7 +229,7 @@ window.YB_SUPPORT = {
    {
     "h": "Muss ich auf einem neuen Handy noch einmal bezahlen?",
     "ps": [
-     "Nein. Lade die App mit derselben Apple-ID oder demselben Google-Konto erneut. Der Kauf gehört zum Konto, dein Budget kommt aber nur mit, wenn du eine Sicherung hast."
+     "Nein. Lade die App mit derselben Apple-ID oder demselben Google-Konto erneut. Der Kauf gehört zum Konto, dein Budget kommt aber nur mit, wenn du eine Sicherung hast. Wechselst du zwischen iPhone und Android, kaufst du die App im anderen Store noch einmal."
     ]
    },
    {
@@ -278,7 +278,7 @@ window.YB_SUPPORT = {
    {
     "h": "Devo pagare di nuovo su un nuovo telefono?",
     "ps": [
-     "No. Scarica di nuovo l'app con lo stesso ID Apple o account Google. L'acquisto segue l'account, ma il budget ti segue solo se hai un backup."
+     "No. Scarica di nuovo l'app con lo stesso ID Apple o account Google. L'acquisto segue l'account, ma il budget ti segue solo se hai un backup. Se passi da iPhone ad Android (o il contrario), acquisti l’app una seconda volta nell’altro store."
     ]
    },
    {
@@ -327,7 +327,7 @@ window.YB_SUPPORT = {
    {
     "h": "Preciso pagar de novo num celular novo?",
     "ps": [
-     "Não. Baixe o app de novo com o mesmo ID Apple ou conta Google. A compra acompanha a conta, mas o orçamento só vai junto se você tiver um backup."
+     "Não. Baixe o app de novo com o mesmo ID Apple ou conta Google. A compra acompanha a conta, mas o orçamento só vai junto se você tiver um backup. Se você trocar entre iPhone e Android, compra o app mais uma vez na outra loja."
     ]
    },
    {
@@ -376,7 +376,7 @@ window.YB_SUPPORT = {
    {
     "h": "Нужно ли платить снова на новом телефоне?",
     "ps": [
-     "Нет. Скачайте приложение снова с тем же Apple ID или аккаунтом Google. Покупка привязана к аккаунту, но бюджет переедет только если у вас есть резервная копия."
+     "Нет. Скачайте приложение снова с тем же Apple ID или аккаунтом Google. Покупка привязана к аккаунту, но бюджет переедет только если у вас есть резервная копия. Если вы переходите с iPhone на Android (или наоборот), приложение нужно купить ещё раз в другом магазине."
     ]
    },
    {
@@ -425,7 +425,7 @@ window.YB_SUPPORT = {
    {
     "h": "Yeni telefonda tekrar ödemem gerekir mi?",
     "ps": [
-     "Hayır. Uygulamayı aynı Apple Kimliği veya Google hesabıyla yeniden indirin. Satın alma hesapla birlikte gelir, ancak bütçeniz yalnızca bir yedeğiniz varsa gelir."
+     "Hayır. Uygulamayı aynı Apple Kimliği veya Google hesabıyla yeniden indirin. Satın alma hesapla birlikte gelir, ancak bütçeniz yalnızca bir yedeğiniz varsa gelir. iPhone ile Android arasında geçiş yaparsanız, uygulamayı diğer mağazadan bir kez daha satın alırsınız."
     ]
    },
    {
@@ -474,7 +474,7 @@ window.YB_SUPPORT = {
    {
     "h": "新しい端末でもう一度購入が必要ですか？",
     "ps": [
-     "いいえ。同じ Apple ID または Google アカウントでアプリを再ダウンロードしてください。購入はアカウントに紐づきますが、予算はバックアップがある場合にだけ引き継がれます。"
+     "いいえ。同じ Apple ID または Google アカウントでアプリを再ダウンロードしてください。購入はアカウントに紐づきますが、予算はバックアップがある場合にだけ引き継がれます。 iPhone と Android の間で乗り換える場合は、もう一方のストアでもう一度購入が必要です。"
     ]
    },
    {
@@ -523,7 +523,7 @@ window.YB_SUPPORT = {
    {
     "h": "换新手机需要再付费吗？",
     "ps": [
-     "不需要。用同一个 Apple ID 或 Google 账户重新下载应用即可。购买随账户走，但只有在你有备份时预算才会跟过去。"
+     "不需要。用同一个 Apple ID 或 Google 账户重新下载应用即可。购买随账户走，但只有在你有备份时预算才会跟过去。 如果在 iPhone 和 Android 之间换机，需要在另一个商店再购买一次。"
     ]
    },
    {

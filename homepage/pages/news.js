@@ -16,7 +16,7 @@ window.YB_NEWS = {
         ru: { h: 'Новый сайт запущен, а бета-тестирование идёт полным ходом', p: 'У YourBudget теперь есть собственный сайт на 11 языках: ответы на частые вопросы, поддержка и политика конфиденциальности. Бета-тестирование приложения идёт полным ходом, и новости уже на подходе. Приложение появится в App Store и Google Play в январе 2027 года.' },
         tr: { h: 'Yeni web sitesi yayında, beta testi tüm hızıyla sürüyor', p: 'YourBudget’ın artık 11 dilde kendi web sitesi var: sık sorulan sorulara yanıtlar, destek ve gizlilik politikası. Uygulamanın beta testi tüm hızıyla sürüyor ve yeni haberler yolda. Uygulama Ocak 2027’de App Store ve Google Play’de olacak.' },
         ja: { h: '新しいウェブサイトを公開しました。ベータテストも本格的に進行中です', p: 'YourBudget の公式ウェブサイトを 11 言語で公開しました。よくある質問への回答、サポート、プライバシーポリシーをご覧いただけます。アプリのベータテストは本格的に進行中で、新しいお知らせももうすぐお届けします。アプリは 2027 年 1 月に App Store と Google Play で公開予定です。' },
-        zh: { h: '新网站上线了，测试版测试正在全面进行', p: 'YourBudget 现在有了自己的网站，支持 11 种语言，提供常见问题解答、支持和隐私政策。应用的测试版测试正在全面进行，新消息也在路上。应用将于 2027 年 1 月登陆 App Store 和 Google Play。' },
+        zh: { h: '新网站上线了，测试版正在全面测试中', p: 'YourBudget 现在有了自己的网站，支持 11 种语言，提供常见问题解答、支持和隐私政策。应用的测试版正在全面测试中，新消息也在路上。应用将于 2027 年 1 月登陆 App Store 和 Google Play。' },
       },
     },
   ],
