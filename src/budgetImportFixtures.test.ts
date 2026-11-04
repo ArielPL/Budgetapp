@@ -39,6 +39,11 @@ const cases: [string, number, number][] = [
   ['05_barnfamilj_komplex_2026.xlsx', 924_700, 726_688],
   ['06_skuldresa_2026.xlsx', 403_600, 324_968],
   ['07_resenar_spanska_2026.csv', 40_900, 34_913.43],
+  // The same three budgets as Numbers documents (written with numbers-parser
+  // from the CSVs, 2026-11-04): read directly, with the same totals.
+  ['01_student_enkel_2026.numbers', 150_000, 130_958],
+  ['04_frilans_ojamn_2026.numbers', 353_500, 311_089],
+  ['07_resenar_spanska_2026.numbers', 40_900, 34_913.43],
 ];
 
 describe('Seven annual budgets import with the source totals', () => {

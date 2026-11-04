@@ -126,7 +126,8 @@ const isRow = (v: unknown): boolean =>
   // read, so the imported file and what the app shows would disagree about what
   // a row costs. Absent is fine — that IS monthly, and every row predating the
   // field is absent.
-  (v.period === undefined || isRowPeriod(v.period));
+  (v.period === undefined || isRowPeriod(v.period)) &&
+  (v.note === undefined || typeof v.note === 'string');
 
 const isCategory = (v: unknown): boolean =>
   isPlainObject(v) && typeof v.id === 'string' && Array.isArray(v.rows) && v.rows.every(isRow);

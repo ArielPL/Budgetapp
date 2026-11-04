@@ -1,5 +1,6 @@
 import { monthTitle } from '../dateLabel';
 import { useLang, MONTHS_SHORT } from '../i18n';
+import { Chevron } from './Chevron';
 
 interface Props {
   year: number;
@@ -14,9 +15,9 @@ export const MonthStrip = ({ year, month, onSelect, onYearChange }: Props) => {
   return (
     <div className="month-picker">
       <div className="month-picker-year">
-        <button className="nav-btn nav-btn-sm" onClick={() => onYearChange(-1)} aria-label={`${year - 1}`}>‹</button>
+        <button className="nav-btn nav-btn-sm" onClick={() => onYearChange(-1)} aria-label={`${year - 1}`}><Chevron dir="left" /></button>
         <span className="month-picker-year-label">{year}</span>
-        <button className="nav-btn nav-btn-sm" onClick={() => onYearChange(1)} aria-label={`${year + 1}`}>›</button>
+        <button className="nav-btn nav-btn-sm" onClick={() => onYearChange(1)} aria-label={`${year + 1}`}><Chevron dir="right" /></button>
       </div>
       <div className="month-grid">
         {MONTHS_SHORT[lang].map((m, i) => (

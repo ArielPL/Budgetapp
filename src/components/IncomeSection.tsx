@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
@@ -5,6 +6,7 @@ import { generateId, shownName } from '../defaults';
 import { useLang } from '../i18n';
 import { sumRows } from '../metrics';
 import { RowPeriodPicker } from './RowPeriod';
+import { RowNoteButton, RowNoteLine } from './RowNote';
 import type { RowPeriod } from '../types';
 
 interface Props {
@@ -14,6 +16,8 @@ interface Props {
 
 export const IncomeSection = ({ rows, onChange }: Props) => {
   const { t, lang, money } = useLang();
+  /** The row whose note is being written, if any. */
+  const [noteOpen, setNoteOpen] = useState<string | null>(null);
   const updateAmount = (id: string, amount: number) => {
     onChange(rows.map(r => r.id === id ? { ...r, amount } : r));
   };
@@ -32,6 +36,10 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
 
   const updatePeriod = (id: string, period: RowPeriod | undefined) => {
     onChange(rows.map(r => r.id === id ? { ...r, period } : r));
+  };
+
+  const updateNote = (id: string, note: string | undefined) => {
+    onChange(rows.map(r => r.id === id ? { ...r, note } : r));
   };
 
   const total = sumRows(rows);
@@ -54,6 +62,8 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               label={shownName(row, lang)}
             />
             <span className="row-period-group">
+              <RowNoteButton row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                onToggle={() => setNoteOpen(o => (o === row.id ? null : row.id))} />
               <RowPeriodPicker row={row} label={shownName(row, lang)}
                 onChange={p => updatePeriod(row.id, p)} />
             </span>
@@ -65,6 +75,9 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               <button className="delete-btn" onClick={() => deleteRow(row.id)}
                 title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
             </span>
+            <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+              onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
+              onSave={note => updateNote(row.id, note)} />
           </div>
         ))}
       </div>

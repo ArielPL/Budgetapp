@@ -69,6 +69,8 @@ export const DebtTab = ({
   const [completing, setCompleting] = useState<string | null>(null);
   /** The debt whose card is asking how to delete it. */
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [waysInfo, setWaysInfo] = useState(false);
+  const waysInfoId = useId();
   /** What the last deletion did, until it is dismissed. */
   const [notice, setNotice] = useState<string | null>(null);
   const remove = async (id: string, removeRow: boolean) => {
@@ -415,7 +417,19 @@ export const DebtTab = ({
         <section className="plan-section" data-guide="debtPath">
           <div className="plan-section-header">
             <h2 className="plan-section-title">{t.debtWayTitle}</h2>
+            {/* What the two ways are and where they come from, for anyone who
+                has not met the words before (Ariel, 2026-11-04). */}
+            <button
+              type="button" className="debt-info-btn" aria-expanded={waysInfo}
+              aria-controls={waysInfoId} aria-label={t.debtWaysInfoAria}
+              onClick={() => setWaysInfo(v => !v)}
+            >i</button>
           </div>
+          {waysInfo && (
+            <div className="debt-ways-info" id={waysInfoId}>
+              {t.debtWaysInfo.map((para, i) => <p key={i}>{para}</p>)}
+            </div>
+          )}
           <div className="goal-form-field debt-extra">
             <label htmlFor="debt-extra">{t.debtExtra}</label>
             <input

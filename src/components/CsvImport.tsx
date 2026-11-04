@@ -7,10 +7,11 @@ import { generateId, shownName, standardExpenseCategory, storageKey } from '../d
 import {
   decodeCsv, CsvEncodingError, detectDelimiter, parseCsv, findHeaderRow, guessColumns,
   rowsToParsed, headerFingerprint, groupByText, looksLikeData, placeholderHeader,
-  parseDate, MAX_CSV_BYTES,
+  parseDate, statementFromPdf, MAX_CSV_BYTES,
   type ColumnRole, type TextGroup, type DateOrder,
 } from '../csvImport';
 import { loadCsvMaps, csvMapChange, forgetCsvMap, CSV_MAPS_KEY } from '../csvMaps';
+import { readPdfGrid, isPdf, PdfError } from '../pdfTable';
 import {
   suggest, isTransfer, loadCategoryRules, learnedRulesChange, STANDARD_CATEGORY_IDS,
   CATEGORY_RULES_KEY,
@@ -145,8 +146,22 @@ export const CsvImport = ({
     // reading it first could stall a phone before the user hears so.
     if (file.size > MAX_CSV_BYTES) { setError(t.csvErrTooBig); return; }
     try {
-      const text = decodeCsv(await file.arrayBuffer());
-      const rows = parseCsv(text, detectDelimiter(text));
+      const bytes = await file.arrayBuffer();
+      // A PDF statement (2026-11-04): its text put back into a table, then the
+      // same steps as a CSV's rows.
+      let rows: string[][];
+      if (isPdf(new Uint8Array(bytes))) {
+        try {
+          rows = statementFromPdf(await readPdfGrid(bytes));
+        } catch (e) {
+          setError(e instanceof PdfError && e.reason === 'no-text' ? t.pdfNoText
+            : e instanceof PdfError && e.reason === 'locked' ? t.pdfLocked : t.csvUnreadable);
+          return;
+        }
+      } else {
+        const text = decodeCsv(bytes);
+        rows = parseCsv(text, detectDelimiter(text));
+      }
       if (rows.length < 2) { setError(t.csvNoRows); return; }
       const h = findHeaderRow(rows);
       // Some banks export no column names at all. Taking the first DATA row for
@@ -474,7 +489,7 @@ export const CsvImport = ({
               <p className="csv-drop-sub">{t.csvDropSub}</p>
               <button className="csv-pick" onClick={() => fileRef.current?.click()}>{t.csvPick}</button>
               <input
-                ref={fileRef} type="file" accept=".csv,text/csv" hidden
+                ref={fileRef} type="file" accept=".csv,.pdf,text/csv,application/pdf" hidden
                 onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void readFile(f); }}
               />
             </div>

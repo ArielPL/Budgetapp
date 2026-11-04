@@ -313,6 +313,9 @@ export interface Translations {
   debtSummaryMonthly: string;
   debtSummaryFree: string;
   debtWayTitle: string;
+  /** The (i) beside it: what the two ways are and where they come from. */
+  debtWaysInfoAria: string;
+  debtWaysInfo: string[];
   debtExtra: string;
   debtAvalanche: string;
   debtAvalancheSub: string;
@@ -447,6 +450,9 @@ export interface Translations {
   csvDropSub: string;
   csvPick: string;
   csvUnreadable: string;
+  /** A PDF with no text (a scan), or one locked with a password — both imports. */
+  pdfNoText: string;
+  pdfLocked: string;
   /** The file's text encoding is none the app can read (see decodeCsv). */
   csvUnknownEncoding: string;
   csvNoRows: string;
@@ -921,7 +927,8 @@ export interface Translations {
   income: string;
   expenses: string;
   remaining: string;
-  pctOfIncome: string;
+  /** Under Remaining: how much of the income the budgeted expenses take. */
+  pctOfIncome: (pct: number) => string;
   vsPrev: string;
   samePrevMonth: string;
   leftAfterBudget: (pct: number) => string;
@@ -933,6 +940,10 @@ export interface Translations {
   incomeSection: string;
   addRow: string;
   deleteRow: string;
+  /** A row's short note (2026-11-04): the button, its label, the field's hint. */
+  rowNote: string;
+  rowNoteAria: (label: string) => string;
+  rowNotePlaceholder: (max: number) => string;
   newRow: string;
   // Charts
   chartExpenseDistribution: string;
@@ -995,6 +1006,8 @@ export interface Translations {
   /** A wallet made from Left to live on: "Vardag oktober", "Vardag v. 42". */
   walletNameMonth: (month: string) => string;
   walletNameWeek: (week: number) => string;
+  /** The row a week's envelopes are made in: apart from the month's, and named so. */
+  walletGroupWeeks: (month: string) => string;
   // Sparplan (savings plan projection + plan-vs-actual)
   sparplanTitle: string;
   sparplanBody: string;
@@ -1386,6 +1399,13 @@ export const translations: Record<Lang, Translations> = {
     debtSummaryMonthly: 'Per månad',
     debtSummaryFree: 'Skuldfri',
     debtWayTitle: '🏁 Vägen till skuldfri',
+    debtWaysInfoAria: "Vad är lavinen och snöbollen?",
+    debtWaysInfo: [
+      "Båda sätten betalar det lägsta beloppet på alla skulder och lägger extrapengarna på en skuld i taget. När den är betald går dess betalning vidare till nästa. Det som skiljer är ordningen.",
+      "Lavinen tar skulden med högst ränta först. Det kostar minst ränta totalt, så det är det billigaste sättet att betala av. På engelska heter metoden \"debt avalanche\".",
+      "Snöbollen tar den minsta skulden först. Det kostar oftast lite mer i ränta, men den första skulden försvinner snabbt. Betalningen växer för varje skuld som blir betald, som en snöboll som rullar. Metoden blev känd genom den amerikanske ekonomirådgivaren Dave Ramsey.",
+      "Appen räknar på båda så att du kan jämföra. Vilken du väljer bestämmer du.",
+    ],
     debtExtra: 'Extra per månad',
     debtAvalanche: 'Lavinen',
     debtAvalancheSub: 'Högst ränta först. Kostar minst.',
@@ -1402,7 +1422,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Importera budget',
     bimMenu: '📥 Importera budget från fil',
     bimHeroButton: '📥 Importera budget',
-    bimLead: 'Har du redan en budget i Excel, Google Kalkylark, Numbers eller Word? Välj filen (.xlsx, .docx eller CSV), eller markera cellerna där och klistra in dem här.',
+    bimLead: "Har du redan en budget i Excel, Google Kalkylark, Numbers eller Word? Välj filen (.xlsx, .numbers, .docx, PDF eller CSV), eller markera cellerna där och klistra in dem här.",
     bimPick: 'Välj fil',
     bimPasteLabel: 'Eller klistra in cellerna',
     bimPastePlaceholder: 'Hyra\t9500\nMat\t4000',
@@ -1428,8 +1448,8 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rader importerades` : `✓ ${rows} rader importerades i ${months} månader`),
     bimErrTooBig: 'Filen är för stor för att vara en budget (högst 10 MB).',
     bimErrTooLarge: 'Tabellen är för stor för att vara en budget (högst 5 000 rader, 200 kolumner och 50 blad).',
-    bimErrUnreadable: 'Filen gick inte att läsa. Spara den som .xlsx, .docx eller CSV och försök igen.',
-    bimErrConvert: 'Appen kan inte läsa det här formatet direkt (till exempel .doc, .xls, .pages eller .numbers). Spara eller exportera filen som .xlsx, .docx eller CSV och försök igen.',
+    bimErrUnreadable: "Filen gick inte att läsa. Spara den som .xlsx, .docx, PDF eller CSV och försök igen.",
+    bimErrConvert: "Appen kan inte läsa det här formatet direkt (till exempel .doc, .xls, .odt eller en Numbers-fil från före 2019). Spara eller exportera filen som .xlsx, .docx, PDF eller CSV och försök igen.",
     bimCreditTaken: (amount, row) => `Minusbelopp i filen: ${amount} dras av från ${row} samma månad.`,
     bimCreditLeft: (amount) => `${amount} kunde inte dras av någonstans och tas inte med.`,
     bimNegativeRead: 'Minus i filen läses som en kostnad.',
@@ -1506,9 +1526,11 @@ export const translations: Record<Lang, Translations> = {
     followUpImport: 'Importera kontoutdrag',
     csvTitle: 'Importera kontoutdrag',
     csvDropLead: 'Släpp din fil här',
-    csvDropSub: 'CSV från din bank. Filen lämnar aldrig den här enheten.',
+    csvDropSub: "CSV eller PDF från din bank. Filen lämnar aldrig den här enheten.",
     csvPick: 'Välj fil',
-    csvUnreadable: 'Filen gick inte att läsa. Är det en CSV-fil från banken?',
+    csvUnreadable: "Filen gick inte att läsa. Är det en CSV- eller PDF-fil från banken?",
+    pdfLocked: "PDF:en är låst med ett lösenord. Spara en olåst kopia och försök igen.",
+    pdfNoText: "PDF:en innehåller ingen text, bara bilder, så den är troligen inskannad. Spara eller hämta filen direkt från programmet eller banken i stället.",
     csvUnknownEncoding: 'Filen är sparad i en teckenkodning appen inte kan läsa, så texten skulle bli fel. Spara den som UTF-8 (i Excel: "CSV UTF-8") och försök igen.',
     csvNoRows: 'Hittade inga transaktioner i filen.',
     csvErrTooBig: 'Filen är för stor för att vara ett kontoutdrag (högst 10 MB).',
@@ -1653,7 +1675,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Se vad som faktiskt hände',
-        body: 'Under Uppföljning läser du in en CSV-fil som du själv laddat ner från din internetbank. Appen kopplar aldrig upp mot banken och ser aldrig dina inloggningar. Den sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
+        body: 'Under Uppföljning läser du in en CSV- eller PDF-fil som du själv laddat ner från din internetbank. Appen kopplar aldrig upp mot banken och ser aldrig dina inloggningar. Den sorterar posterna och ställer planen bredvid verkligheten — så du ser var pengarna tog vägen.',
       },
     ],
     introNext: 'Nästa',
@@ -1973,7 +1995,7 @@ export const translations: Record<Lang, Translations> = {
     income: 'Inkomst',
     expenses: 'Utgifter',
     remaining: 'Kvar',
-    pctOfIncome: 'av inkomst',
+    pctOfIncome: (pct) => `${pct}% av inkomsten går till utgifter`,
     vsPrev: 'vs förra',
     samePrevMonth: '= förra månaden',
     leftAfterBudget: (pct) => `${pct}% kvar efter budgeterade utgifter`,
@@ -1982,6 +2004,9 @@ export const translations: Record<Lang, Translations> = {
     incomeSection: 'Inkomst',
     addRow: '+ Lägg till rad',
     deleteRow: 'Ta bort rad',
+    rowNote: "Anteckning",
+    rowNoteAria: (label) => `Anteckning för ${label}`,
+    rowNotePlaceholder: (max) => `Kort anteckning, högst ${max} tecken`,
     newRow: 'Ny rad',
     chartExpenseDistribution: 'Utgiftsfördelning',
     chartPerCategory: 'Per kategori',
@@ -2011,26 +2036,22 @@ export const translations: Record<Lang, Translations> = {
     privacyBody: [
       "YourBudget samlar inte in, överför eller delar några personuppgifter.",
       "## Vad YourBudget är",
-      "YourBudget är en app för iPhone, iPad och Android. Webbplatsen yourofflinebudget.com berättar om appen. Det som står här gäller både appen och webbplatsen.",
+      "YourBudget är en app för iPhone, iPad, Mac med Apple-chip och Android. Det som står här gäller appen.",
       "## Allt sparas på din enhet",
       "Din budget, dina registrerade utgifter och de filer du importerar sparas i en databas på din enhet. Ingenting av det skickas till utvecklaren eller till någon tredje part. Det finns inget konto, ingen inloggning och ingen server att skicka något till.",
       "## Säkerhetskopior",
       "Enhetens egen säkerhetskopiering — iCloud på iPhone och iPad, Googles säkerhetskopiering på Android — kan, om du har den påslagen, kopiera databasen till ditt eget konto hos Apple eller Google, så att budgeten följer med till en ny enhet. Det sköts av enheten och ditt konto, inte av appen, och utvecklaren har ingen åtkomst till det.",
       "En säkerhetskopia som du själv sparar eller delar från appen innehåller hela din budget i läsbar form och hamnar där du väljer.",
       "## Filer du importerar läses på plats",
-      "När du importerar ett kontoutdrag (CSV) eller en budget från en fil, till exempel Excel, Numbers eller Word, läses filen på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen, budgetens rader eller namnen på ställen du handlat.",
+      "När du importerar ett kontoutdrag (CSV eller PDF) eller en budget från en fil, till exempel Excel, Numbers, Word eller PDF, läses filen på din enhet. Appen skickar aldrig innehållet någonstans — varken transaktionerna, beloppen, budgetens rader eller namnen på ställen du handlat.",
       "## Ingen reklam, ingen analys, ingen spårning",
-      "Det finns inga annonsnätverk, ingen besöksstatistik och inga spårningsverktyg, varken i appen eller på webbplatsen. Sorteringen som känner igen butiker är en lista som följer med appen, inte en tjänst den frågar. Appen fungerar helt utan nätverk.",
-      "## Webbplatsen",
-      "Webbplatsen har inga formulär, inga kakor och ingen besöksstatistik, och den hämtar ingenting från andra servrar. Det enda den tar emot är det som varje webbläsare skickar när den ber om en sida, som din IP-adress och vilken webbläsare du använder. Webbplatsen ligger hos Vercel, som sparar det en kort tid i en teknisk logg för drift och säkerhet. Utvecklaren använder inte den loggen. Appen kontaktar aldrig webbservern, så ingenting skickas när du använder appen.",
-      "## Den tidigare webbappen",
-      "Fram till 1 november 2026 fanns YourBudget också som webbapp. Det du sparade där ligger bara i din egen webbläsare tills du rensar webbplatsens data. Utvecklaren har aldrig haft någon kopia.",
+      "Det finns inga annonsnätverk, ingen statistik över hur du använder appen och inga spårningsverktyg. Sorteringen som känner igen butiker är en lista som följer med appen, inte en tjänst den frågar. Appen fungerar helt utan nätverk.",
       "## Radering",
       "Tar du bort appen raderas allt den har sparat på enheten. Utvecklaren har ingen kopia och kan inte återskapa den. En säkerhetskopia du själv har sparat, eller en kopia i iCloud eller Google, bestämmer du själv över.",
       "## Frågor",
       "Har du en fråga om hur appen hanterar dina uppgifter kan du mejla support@yourofflinebudget.com.",
     ],
-    privacyUpdated: "Gäller från 2 november 2026.",
+    privacyUpdated: "Gäller från 4 november 2026.",
     privacyClose: "Stäng",
     lockTipTitle: 'Lås appen',
     lockTipIos: 'Vill du att appen kräver Face ID? Håll fingret på appikonen på hemskärmen och välj Kräv Face ID (eller Touch ID). Då låser din iPhone eller iPad appen, och innehållet syns inte heller i appväxlaren. Det finns i iOS och iPadOS 18 och senare.',
@@ -2049,6 +2070,7 @@ export const translations: Record<Lang, Translations> = {
     walletPeriod: 'Period',
     walletNameMonth: (month) => `Vardag ${month}`,
     walletNameWeek: (week) => `Vardag v. ${week}`,
+    walletGroupWeeks: (month) => `${month}, veckor`,
     sparplanTitle: 'Sparplan',
     sparplanBody: 'Planera ditt månadssparande och din förväntade avkastning — och se hur det växer med ränta på ränta.',
     sparplanMonthly: 'Månadssparande',
@@ -2332,7 +2354,7 @@ export const translations: Record<Lang, Translations> = {
       '## Vad fliken är till för',
       'Budgeten är vad du tänkte. Utfallet är vad som hände. Här står de bredvid varandra, kategori för kategori, så du ser var det gick åt mer än du trodde — och var det gick åt mindre.',
       '## Få in siffrorna',
-      'Två vägar: läs in bankens CSV-fil med Importera kontoutdrag, eller skriv in en post för hand med +.',
+      'Två vägar: läs in bankens CSV- eller PDF-fil med Importera kontoutdrag, eller skriv in en post för hand med +.',
       'Filen läses på din enhet och skickas ingenstans. Varje post hamnar i den månad dess eget datum tillhör, så en fil som spänner över två månader fyller båda — appen säger vilka den rörde och tar dig dit.',
       '## Perioden',
       'Får du lön den 25:e lever du inte i kalendermånader. Ställ in startdagen, så räknas utfallet från lönedag till lönedag: 25 juli till 24 augusti.',
@@ -2416,6 +2438,13 @@ export const translations: Record<Lang, Translations> = {
     debtSummaryMonthly: 'A month',
     debtSummaryFree: 'Debt-free',
     debtWayTitle: '🏁 The way to debt-free',
+    debtWaysInfoAria: "What are the avalanche and the snowball?",
+    debtWaysInfo: [
+      "Both ways pay the minimum on every debt and put the extra money on one debt at a time. When that one is paid, its payment moves on to the next. What differs is the order.",
+      "The avalanche takes the debt with the highest interest rate first. It costs the least interest in total, so it is the cheapest way to pay off.",
+      "The snowball takes the smallest debt first. It usually costs a little more interest, but the first debt is gone quickly. The payment grows with every debt that is paid, like a rolling snowball. The method was made popular by the American money adviser Dave Ramsey.",
+      "The app works out both so you can compare. Which one you choose is up to you.",
+    ],
     debtExtra: 'Extra a month',
     debtAvalanche: 'The avalanche',
     debtAvalancheSub: 'Highest interest first. Costs the least.',
@@ -2432,7 +2461,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Import a budget',
     bimMenu: '📥 Import a budget from a file',
     bimHeroButton: '📥 Import a budget',
-    bimLead: 'Already have a budget in Excel, Google Sheets, Numbers or Word? Choose the file (.xlsx, .docx or CSV), or select the cells there and paste them here.',
+    bimLead: "Already have a budget in Excel, Google Sheets, Numbers or Word? Choose the file (.xlsx, .numbers, .docx, PDF or CSV), or select the cells there and paste them here.",
     bimPick: 'Choose file',
     bimPasteLabel: 'Or paste the cells',
     bimPastePlaceholder: 'Rent\t1200\nFood\t400',
@@ -2458,8 +2487,8 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} rows imported` : `✓ ${rows} rows imported into ${months} months`),
     bimErrTooBig: 'The file is too big to be a budget (10 MB at most).',
     bimErrTooLarge: 'The table is too big to be a budget (at most 5,000 rows, 200 columns and 50 sheets).',
-    bimErrUnreadable: 'The file could not be read. Save it as .xlsx, .docx or CSV and try again.',
-    bimErrConvert: 'The app can\'t read this format directly (for example .doc, .xls, .pages or .numbers). Save or export the file as .xlsx, .docx or CSV and try again.',
+    bimErrUnreadable: "The file could not be read. Save it as .xlsx, .docx, PDF or CSV and try again.",
+    bimErrConvert: "The app can't read this format directly (for example .doc, .xls, .odt or a Numbers file from before 2019). Save or export the file as .xlsx, .docx, PDF or CSV and try again.",
     bimCreditTaken: (amount, row) => `Negative amount in the file: ${amount} is taken off ${row} in the same month.`,
     bimCreditLeft: (amount) => `${amount} could not be taken off anywhere and is left out.`,
     bimNegativeRead: 'The minus in the file is read as a cost.',
@@ -2536,9 +2565,11 @@ export const translations: Record<Lang, Translations> = {
     followUpImport: 'Import statement',
     csvTitle: 'Import bank statement',
     csvDropLead: 'Drop your file here',
-    csvDropSub: 'A CSV from your bank. The file never leaves this device.',
+    csvDropSub: "A CSV or PDF from your bank. The file never leaves this device.",
     csvPick: 'Choose file',
-    csvUnreadable: 'That file could not be read. Is it a CSV from your bank?',
+    csvUnreadable: "That file could not be read. Is it a CSV or PDF from your bank?",
+    pdfLocked: "The PDF is locked with a password. Save an unlocked copy and try again.",
+    pdfNoText: "The PDF holds no text, only images, so it is probably a scan. Save or download the file straight from the program or the bank instead.",
     csvUnknownEncoding: 'The file is saved in a text encoding the app cannot read, so the text would come out wrong. Save it as UTF-8 (in Excel: "CSV UTF-8") and try again.',
     csvNoRows: 'No transactions found in the file.',
     csvErrTooBig: 'The file is too big to be a bank statement (10 MB at most).',
@@ -2683,7 +2714,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'See what actually happened',
-        body: 'Under Follow-up you load a CSV file you downloaded yourself from your online bank. The app never connects to your bank and never sees your login. It sorts the entries and puts the plan next to reality — so you can see where the money went.',
+        body: 'Under Follow-up you load a CSV or PDF file you downloaded yourself from your online bank. The app never connects to your bank and never sees your login. It sorts the entries and puts the plan next to reality — so you can see where the money went.',
       },
     ],
     introNext: 'Next',
@@ -3003,7 +3034,7 @@ export const translations: Record<Lang, Translations> = {
     income: 'Income',
     expenses: 'Expenses',
     remaining: 'Remaining',
-    pctOfIncome: 'of income',
+    pctOfIncome: (pct) => `${pct}% of income goes to expenses`,
     vsPrev: 'vs prev',
     samePrevMonth: '= last month',
     leftAfterBudget: (pct) => `${pct}% left after budgeted expenses`,
@@ -3012,6 +3043,9 @@ export const translations: Record<Lang, Translations> = {
     incomeSection: 'Income',
     addRow: '+ Add row',
     deleteRow: 'Delete row',
+    rowNote: "Note",
+    rowNoteAria: (label) => `Note for ${label}`,
+    rowNotePlaceholder: (max) => `A short note, up to ${max} characters`,
     newRow: 'New row',
     chartExpenseDistribution: 'Expense distribution',
     chartPerCategory: 'Per category',
@@ -3041,26 +3075,22 @@ export const translations: Record<Lang, Translations> = {
     privacyBody: [
       "YourBudget does not collect, transmit or share any personal data.",
       "## What YourBudget is",
-      "YourBudget is an app for iPhone, iPad and Android. The website yourofflinebudget.com tells you about the app. What is written here applies to both the app and the website.",
+      "YourBudget is an app for iPhone, iPad, Mac with Apple silicon and Android. What is written here applies to the app.",
       "## Everything is saved on your device",
       "Your budget, your recorded expenses and the files you import are saved in a database on your device. None of it is sent to the developer or to any third party. There is no account, no sign-in and no server to send anything to.",
       "## Backups",
       "Your device's own backup — iCloud on iPhone and iPad, Google's backup on Android — may, if you have it turned on, copy the database to your own account with Apple or Google, so your budget comes with you to a new device. That is handled by the device and your account, not by the app, and the developer has no access to it.",
       "A backup that you save or share from the app yourself holds your whole budget in readable form and goes wherever you choose.",
       "## Files you import are read where they are",
-      "When you import a bank statement (CSV) or a budget from a file, such as Excel, Numbers or Word, the file is read on your device. The app never sends its contents anywhere — not the transactions, not the amounts, not the budget's rows, not the names of the places you shopped.",
+      "When you import a bank statement (CSV or PDF) or a budget from a file, such as Excel, Numbers, Word or PDF, the file is read on your device. The app never sends its contents anywhere — not the transactions, the amounts, the budget’s rows or the names of the places you shopped.",
       "## No ads, no analytics, no tracking",
-      "There are no ad networks, no visitor statistics and no tracking tools, in the app or on the website. The sorting that recognises shops is a list that ships with the app, not a service it asks. The app works with no network at all.",
-      "## The website",
-      "The website has no forms, no cookies and no visitor statistics, and it fetches nothing from other servers. All it receives is what every browser sends when it asks for a page, such as your IP address and which browser you use. The website is hosted by Vercel, which keeps this for a short time in a technical log for operations and security. The developer does not use that log. The app never contacts the web server, so nothing is sent when you use the app.",
-      "## The former web app",
-      "Until 1 November 2026, YourBudget was also a web app. What you saved there is only in your own browser until you clear the site's data. The developer never had a copy.",
+      "There are no ad networks, no statistics on how you use the app and no tracking tools. The sorting that recognises shops is a list that comes with the app, not a service it asks. The app works entirely without a network.",
       "## Deletion",
       "Delete the app, and everything it has saved on the device is gone. The developer has no copy and cannot recreate it. A backup you saved yourself, or a copy in iCloud or Google, is yours to keep or delete.",
       "## Questions",
       "If you have a question about how the app handles your data, email support@yourofflinebudget.com.",
     ],
-    privacyUpdated: "In effect from 2 November 2026.",
+    privacyUpdated: "In effect from 4 November 2026.",
     privacyClose: "Close",
     lockTipTitle: 'Lock the app',
     lockTipIos: 'Want the app to require Face ID? Touch and hold the app icon on the Home Screen and choose Require Face ID (or Touch ID). Your iPhone or iPad then locks the app, and its content is hidden in the app switcher too. Available in iOS and iPadOS 18 and later.',
@@ -3079,6 +3109,7 @@ export const translations: Record<Lang, Translations> = {
     walletPeriod: 'Period',
     walletNameMonth: (month) => `Day to day · ${month}`,
     walletNameWeek: (week) => `Day to day · week ${week}`,
+    walletGroupWeeks: (month) => `${month}, weeks`,
     sparplanTitle: 'Savings plan',
     sparplanBody: 'Plan your monthly saving and expected return — and watch compound growth do its work.',
     sparplanMonthly: 'Monthly saving',
@@ -3362,7 +3393,7 @@ export const translations: Record<Lang, Translations> = {
       '## What this tab is for',
       'The budget is what you intended. Follow-up is what happened. Here they stand side by side, category by category, so you can see where more went than you thought — and where less did.',
       '## Getting the figures in',
-      'Two ways: load your bank\u2019s CSV file with Import statement, or type an entry by hand with +.',
+      'Two ways: load your bank\u2019s CSV or PDF file with Import statement, or type an entry by hand with +.',
       'The file is read on your device and sent nowhere. Every entry lands in the month its own date belongs to, so a file spanning two months fills both — the app says which ones it touched and takes you there.',
       '## The period',
       'If you are paid on the 25th you do not live in calendar months. Set the start day and Follow-up counts from payday to payday: 25 July to 24 August.',
@@ -3446,6 +3477,13 @@ export const translations: Record<Lang, Translations> = {
     debtSummaryMonthly: 'Al mes',
     debtSummaryFree: 'Sin deudas',
     debtWayTitle: '🏁 El camino para quedar sin deudas',
+    debtWaysInfoAria: "¿Qué son la avalancha y la bola de nieve?",
+    debtWaysInfo: [
+      "Las dos formas pagan el mínimo de todas las deudas y ponen el dinero extra en una deuda cada vez. Cuando esa queda pagada, su pago pasa a la siguiente. Lo que cambia es el orden.",
+      "La avalancha empieza por la deuda con el interés más alto. Es la que menos intereses cuesta en total, así que es la forma más barata de pagar.",
+      "La bola de nieve empieza por la deuda más pequeña. Suele costar algo más de intereses, pero la primera deuda desaparece rápido. El pago crece con cada deuda pagada, como una bola de nieve que rueda. El método se hizo conocido gracias al asesor financiero estadounidense Dave Ramsey.",
+      "La app calcula las dos para que puedas comparar. Cuál eliges lo decides tú.",
+    ],
     debtExtra: 'Extra al mes',
     debtAvalanche: 'La avalancha',
     debtAvalancheSub: 'Primero el interés más alto. Cuesta menos.',
@@ -3462,7 +3500,7 @@ export const translations: Record<Lang, Translations> = {
     bimTitle: 'Importar presupuesto',
     bimMenu: '📥 Importar presupuesto desde un archivo',
     bimHeroButton: '📥 Importar presupuesto',
-    bimLead: '¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google, Numbers o Word? Elige el archivo (.xlsx, .docx o CSV), o selecciona las celdas allí y pégalas aquí.',
+    bimLead: "¿Ya tienes un presupuesto en Excel, Hojas de cálculo de Google, Numbers o Word? Elige el archivo (.xlsx, .numbers, .docx, PDF o CSV), o selecciona las celdas allí y pégalas aquí.",
     bimPick: 'Elegir archivo',
     bimPasteLabel: 'O pega las celdas',
     bimPastePlaceholder: 'Alquiler\t800\nComida\t300',
@@ -3488,8 +3526,8 @@ export const translations: Record<Lang, Translations> = {
     bimDone: (rows, months) => (months === 1 ? `✓ ${rows} filas importadas` : `✓ ${rows} filas importadas en ${months} meses`),
     bimErrTooBig: 'El archivo es demasiado grande para ser un presupuesto (10 MB como máximo).',
     bimErrTooLarge: 'La tabla es demasiado grande para ser un presupuesto (como máximo 5000 filas, 200 columnas y 50 hojas).',
-    bimErrUnreadable: 'No se pudo leer el archivo. Guárdalo como .xlsx, .docx o CSV e inténtalo de nuevo.',
-    bimErrConvert: 'La app no puede leer este formato directamente (por ejemplo .doc, .xls, .pages o .numbers). Guarda o exporta el archivo como .xlsx, .docx o CSV e inténtalo de nuevo.',
+    bimErrUnreadable: "No se pudo leer el archivo. Guárdalo como .xlsx, .docx, PDF o CSV e inténtalo de nuevo.",
+    bimErrConvert: "La app no puede leer este formato directamente (por ejemplo .doc, .xls, .odt o un archivo de Numbers anterior a 2019). Guarda o exporta el archivo como .xlsx, .docx, PDF o CSV e inténtalo de nuevo.",
     bimCreditTaken: (amount, row) => `Importe negativo en el archivo: ${amount} se resta de ${row} en el mismo mes.`,
     bimCreditLeft: (amount) => `${amount} no se pudo restar de ninguna fila y no se importa.`,
     bimNegativeRead: 'El signo menos del archivo se lee como un gasto.',
@@ -3566,9 +3604,11 @@ export const translations: Record<Lang, Translations> = {
     followUpImport: 'Importar extracto',
     csvTitle: 'Importar extracto bancario',
     csvDropLead: 'Suelta tu archivo aquí',
-    csvDropSub: 'Un CSV de tu banco. El archivo nunca sale de este dispositivo.',
+    csvDropSub: "Un CSV o PDF de tu banco. El archivo nunca sale de este dispositivo.",
     csvPick: 'Elegir archivo',
-    csvUnreadable: 'No se pudo leer el archivo. ¿Es un CSV de tu banco?',
+    csvUnreadable: "No se pudo leer el archivo. ¿Es un CSV o un PDF de tu banco?",
+    pdfLocked: "El PDF está protegido con contraseña. Guarda una copia sin bloquear e inténtalo de nuevo.",
+    pdfNoText: "El PDF no contiene texto, solo imágenes, así que probablemente está escaneado. Guarda o descarga el archivo directamente desde el programa o el banco.",
     csvUnknownEncoding: 'El archivo está guardado en una codificación que la app no puede leer, así que el texto saldría mal. Guárdalo como UTF-8 (en Excel: "CSV UTF-8") e inténtalo de nuevo.',
     csvNoRows: 'No se encontraron movimientos en el archivo.',
     csvErrTooBig: 'El archivo es demasiado grande para ser un extracto (10 MB como máximo).',
@@ -3713,7 +3753,7 @@ export const translations: Record<Lang, Translations> = {
       {
         emoji: '📊',
         title: 'Mira qué pasó de verdad',
-        body: 'En Seguimiento cargas un archivo CSV que tú mismo descargas de tu banca en línea. La app nunca se conecta a tu banco ni ve tus datos de acceso. Clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
+        body: 'En Seguimiento cargas un archivo CSV o PDF que tú mismo descargas de tu banca en línea. La app nunca se conecta a tu banco ni ve tus datos de acceso. Clasifica los movimientos y pone el plan junto a la realidad — para que veas adónde fue el dinero.',
       },
     ],
     introNext: 'Siguiente',
@@ -4033,7 +4073,7 @@ export const translations: Record<Lang, Translations> = {
     income: 'Ingresos',
     expenses: 'Gastos',
     remaining: 'Restante',
-    pctOfIncome: 'de los ingresos',
+    pctOfIncome: (pct) => `El ${pct}% de los ingresos va a gastos`,
     vsPrev: 'vs anterior',
     samePrevMonth: '= mes anterior',
     leftAfterBudget: (pct) => `${pct}% restante tras los gastos presupuestados`,
@@ -4042,6 +4082,9 @@ export const translations: Record<Lang, Translations> = {
     incomeSection: 'Ingresos',
     addRow: '+ Añadir fila',
     deleteRow: 'Eliminar fila',
+    rowNote: "Nota",
+    rowNoteAria: (label) => `Nota para ${label}`,
+    rowNotePlaceholder: (max) => `Una nota corta, de hasta ${max} caracteres`,
     newRow: 'Nueva fila',
     chartExpenseDistribution: 'Distribución de gastos',
     chartPerCategory: 'Por categoría',
@@ -4071,26 +4114,22 @@ export const translations: Record<Lang, Translations> = {
     privacyBody: [
       "YourBudget no recoge, transmite ni comparte ningún dato personal.",
       "## Qué es YourBudget",
-      "YourBudget es una app para iPhone, iPad y Android. El sitio web yourofflinebudget.com informa sobre la app. Lo que se dice aquí vale tanto para la app como para el sitio web.",
+      "YourBudget es una app para iPhone, iPad, Mac con chip de Apple y Android. Lo que se dice aquí se aplica a la app.",
       "## Todo se guarda en tu dispositivo",
       "Tu presupuesto, tus gastos registrados y los archivos que importas se guardan en una base de datos en tu dispositivo. Nada de eso se envía al desarrollador ni a terceros. No hay cuenta, ni inicio de sesión, ni servidor al que enviar nada.",
       "## Copias de seguridad",
       "La copia de seguridad del propio dispositivo —iCloud en iPhone y iPad, la de Google en Android— puede, si la tienes activada, copiar la base de datos a tu propia cuenta de Apple o Google para que el presupuesto te acompañe a un dispositivo nuevo. Eso lo gestionan el dispositivo y tu cuenta, no la app, y el desarrollador no tiene acceso.",
       "Una copia que guardas o compartes tú desde la app contiene todo tu presupuesto en forma legible y va donde tú elijas.",
       "## Los archivos que importas se leen donde están",
-      "Cuando importas un extracto (CSV) o un presupuesto desde un archivo, por ejemplo de Excel, Numbers o Word, el archivo se lee en tu dispositivo. La app nunca envía su contenido a ningún sitio —ni los movimientos, ni los importes, ni las filas del presupuesto, ni los nombres de los sitios donde compraste.",
+      "Cuando importas un extracto (CSV o PDF) o un presupuesto desde un archivo, por ejemplo de Excel, Numbers, Word o PDF, el archivo se lee en tu dispositivo. La app nunca envía su contenido a ningún sitio: ni los movimientos, ni los importes, ni las filas del presupuesto, ni los nombres de los lugares donde compraste.",
       "## Sin publicidad, sin analítica, sin rastreo",
-      "No hay redes publicitarias, ni estadísticas de visitas, ni herramientas de rastreo, ni en la app ni en el sitio web. La clasificación que reconoce las tiendas es una lista que viaja con la app, no un servicio al que consulta. La app funciona sin ninguna red.",
-      "## El sitio web",
-      "El sitio web no tiene formularios, ni cookies, ni estadísticas de visitas, y no descarga nada de otros servidores. Solo recibe lo que cualquier navegador envía al pedir una página, como tu dirección IP y qué navegador usas. El sitio está alojado en Vercel, que lo guarda poco tiempo en un registro técnico para la operación y la seguridad. El desarrollador no usa ese registro. La app nunca contacta con el servidor web, así que no se envía nada cuando usas la app.",
-      "## La antigua app web",
-      "Hasta el 1 de noviembre de 2026, YourBudget también era una app web. Lo que guardaste allí está solo en tu propio navegador hasta que borres los datos del sitio. El desarrollador nunca tuvo una copia.",
+      "No hay redes publicitarias, ni estadísticas de cómo usas la app, ni herramientas de seguimiento. La clasificación que reconoce las tiendas es una lista que viene con la app, no un servicio al que consulta. La app funciona totalmente sin conexión.",
       "## Borrado",
       "Elimina la app y se borra todo lo que guardó en el dispositivo. El desarrollador no tiene copia y no puede recuperarla. Una copia que hayas guardado tú, o una copia en iCloud o Google, la conservas o borras tú.",
       "## Preguntas",
       "Si tienes una pregunta sobre cómo la app trata tus datos, escribe a support@yourofflinebudget.com.",
     ],
-    privacyUpdated: "Vigente desde el 2 de noviembre de 2026.",
+    privacyUpdated: "Vigente desde el 4 de noviembre de 2026.",
     privacyClose: "Cerrar",
     lockTipTitle: 'Bloquear la app',
     lockTipIos: '¿Quieres que la app pida Face ID? Mantén pulsado el icono de la app en la pantalla de inicio y elige Requerir Face ID (o Touch ID). Tu iPhone o iPad bloquea entonces la app, y su contenido tampoco se ve en el selector de apps. Disponible en iOS y iPadOS 18 y posteriores.',
@@ -4109,6 +4148,7 @@ export const translations: Record<Lang, Translations> = {
     walletPeriod: 'Periodo',
     walletNameMonth: (month) => `Día a día · ${month}`,
     walletNameWeek: (week) => `Día a día · semana ${week}`,
+    walletGroupWeeks: (month) => `${month}, semanas`,
     sparplanTitle: 'Plan de ahorro',
     sparplanBody: 'Planifica tu ahorro mensual y el rendimiento esperado — y mira crecer el interés compuesto.',
     sparplanMonthly: 'Ahorro mensual',
@@ -4392,7 +4432,7 @@ export const translations: Record<Lang, Translations> = {
       '## Para qué sirve esta pestaña',
       'El presupuesto es lo que pensabas. Seguimiento es lo que pasó. Aquí están uno al lado del otro, categoría por categoría, para que veas dónde se fue más de lo que creías — y dónde menos.',
       '## Meter las cifras',
-      'Dos caminos: carga el archivo CSV de tu banco con Importar extracto, o escribe un movimiento a mano con +.',
+      'Dos caminos: carga el archivo CSV o PDF de tu banco con Importar extracto, o escribe un movimiento a mano con +.',
       'El archivo se lee en tu dispositivo y no se envía a ninguna parte. Cada movimiento cae en el mes al que pertenece su propia fecha, así que un archivo que abarca dos meses llena los dos — la app dice cuáles tocó y te lleva allí.',
       '## El periodo',
       'Si cobras el día 25 no vives en meses naturales. Fija el día de inicio y Seguimiento cuenta de cobro a cobro: del 25 de julio al 24 de agosto.',

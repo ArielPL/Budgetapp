@@ -46,39 +46,41 @@ export const SavingsSummary = ({ categories, year, currentMonth, snapshotRecorde
   const prev = calculateSavingsMetrics(loadMonthData(prevYear, prevMonthIdx, lang));
   const saved = savedThisMonth(snapshot, prev);
 
+  // The same three cards as the budget tab's summary, laid out by the same
+  // rules: three across on a wide screen; on a phone two across, the third the
+  // full width, and the small print left out (Ariel, 2026-11-04). Pension
+  // stays the third: a long-term bucket of its own, kept out of "saved".
   return (
-    <div className="savings-summary-wrap">
-      <div className="savings-summary">
-        <div className="summary-card savings-card">
-          <div className="card-label">{t.totalSaved}</div>
-          <div className="card-amount">
-            {snapshot.hasSnapshot ? money(balance) : <span className="amount-unknown">–</span>}
-          </div>
-        </div>
-
-        <div className="summary-card savings-prev-card">
-          <div className="card-label">{t.savedThisMonth}</div>
-          {saved === null ? (
-            <>
-              <div className="card-amount amount-unknown" title={t.notRecordedHint}>–</div>
-              <div className="card-sub">{t.notRecorded}</div>
-            </>
-          ) : (
-            <>
-              <div className="card-amount" style={{ color: saved < 0 ? '#f87171' : undefined }}>
-                {saved > 0 ? '+' : ''}{money(saved)}
-              </div>
-              <div className="card-sub">
-                {t.savedPrevMonth}: {money(prev.balance)}
-              </div>
-            </>
-          )}
+    <div className="summary-cards savings-summary">
+      <div className="summary-card savings-card">
+        <div className="card-label">{t.totalSaved}</div>
+        <div className="card-amount">
+          {snapshot.hasSnapshot ? money(balance) : <span className="amount-unknown">–</span>}
         </div>
       </div>
 
-      <div className="savings-pension-card">
-        <span className="card-label">{t.pensionBox}</span>
-        <span className="card-amount">{money(pensionTotal)}</span>
+      <div className="summary-card savings-prev-card">
+        <div className="card-label">{t.savedThisMonth}</div>
+        {saved === null ? (
+          <>
+            <div className="card-amount amount-unknown" title={t.notRecordedHint}>–</div>
+            <div className="card-sub">{t.notRecorded}</div>
+          </>
+        ) : (
+          <>
+            <div className="card-amount" style={{ color: saved < 0 ? '#f87171' : undefined }}>
+              {saved > 0 ? '+' : ''}{money(saved)}
+            </div>
+            <div className="card-sub">
+              {t.savedPrevMonth}: {money(prev.balance)}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="summary-card savings-pension-card">
+        <div className="card-label">{t.pensionBox}</div>
+        <div className="card-amount">{money(pensionTotal)}</div>
       </div>
     </div>
   );

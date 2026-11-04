@@ -74,7 +74,7 @@ export const itGuide: Guide = {
       body: [
         "Il budget è ciò che hai pianificato. Monitoraggio è ciò che è successo. Qui stanno uno accanto all'altro, categoria per categoria.",
         "## Come inserire le cifre",
-        "Due modi: importa il tuo estratto conto come file CSV, oppure aggiungi un movimento a mano. Il file viene letto sul tuo dispositivo e non viene inviato da nessuna parte. Ogni movimento finisce nel mese a cui appartiene la sua data.",
+        "Due modi: importa il tuo estratto conto come file CSV o PDF, oppure aggiungi un movimento a mano. Il file viene letto sul tuo dispositivo e non viene inviato da nessuna parte. Ogni movimento finisce nel mese a cui appartiene la sua data.",
         "## Lo smistatore",
         "L'app riconosce negozi, banche e servizi comuni e mette i movimenti nella categoria giusta. Ciò che non riconosce va in Altro. Sposta un esercente nella categoria giusta e l'app se lo ricorda per la prossima volta.",
         "Smistali prende ciò che si trova in Altro e lo mostra come elenco, dall'importo più grande, con un suggerimento per ogni esercente. Con un tocco sposti in una volta tutti i movimenti dello stesso esercente.",

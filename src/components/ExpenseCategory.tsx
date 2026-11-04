@@ -7,6 +7,7 @@ import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCat
 import { useLang, formatMoneyCompact } from '../i18n';
 import { categoryTotal } from '../metrics';
 import { RowPeriodPicker } from './RowPeriod';
+import { RowNoteButton, RowNoteLine } from './RowNote';
 import type { RowPeriod } from '../types';
 
 interface Props {
@@ -53,6 +54,8 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
     setCollapsedStored(category.id, !collapsed);
   };
   const [editing, setEditing] = useState(false);
+  /** The row whose note is being written, if any. */
+  const [noteOpen, setNoteOpen] = useState<string | null>(null);
 
   const protectedCat = isProtectedCategory(category.id);
 
@@ -66,6 +69,10 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
 
   const updateLabel = (id: string, label: string) => {
     onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, label, userNamed: true } : r) });
+  };
+
+  const updateNote = (id: string, note: string | undefined) => {
+    onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, note } : r) });
   };
 
   const addRow = () => {
@@ -210,8 +217,12 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                     the category ends at the same right edge — otherwise rows
                     with a delete button sat 34px to the left of the ones
                     without, and the column looked ragged. */}
+                {/* Budget rows only: a savings balance has neither a period
+                    nor a note. */}
                 {!isBalance && (
                   <span className="row-period-group">
+                    <RowNoteButton row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                      onToggle={() => setNoteOpen(o => (o === row.id ? null : row.id))} />
                     <RowPeriodPicker row={row} label={shownName(row, lang)}
                       onChange={p => updatePeriod(row.id, p)} />
                   </span>
@@ -222,6 +233,9 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                   <button className="delete-btn" onClick={() => deleteRow(row.id)}
                     title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
                 </span>
+                {!isBalance && <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                  onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
+                  onSave={note => updateNote(row.id, note)} />}
               </div>
             ))}
           </div>

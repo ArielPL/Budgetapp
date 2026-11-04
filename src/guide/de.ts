@@ -74,7 +74,7 @@ export const deGuide: Guide = {
       body: [
         'Das Budget ist, was du geplant hast. Die Auswertung ist, was passiert ist. Hier stehen beide nebeneinander, Kategorie für Kategorie.',
         '## Die Zahlen hineinbekommen',
-        'Zwei Wege: Importier den Kontoauszug deiner Bank als CSV-Datei oder trag einen Eintrag von Hand ein. Die Datei wird auf deinem Gerät gelesen und nirgendwohin geschickt. Jeder Eintrag landet in dem Monat, zu dem sein Datum gehört.',
+        'Zwei Wege: Importier den Kontoauszug deiner Bank als CSV- oder PDF-Datei oder trag einen Eintrag von Hand ein. Die Datei wird auf deinem Gerät gelesen und nirgendwohin geschickt. Jeder Eintrag landet in dem Monat, zu dem sein Datum gehört.',
         '## Der Sortierer',
         'Die App erkennt gängige Geschäfte, Banken und Dienste und ordnet die Einträge der richtigen Kategorie zu. Was sie nicht erkennt, landet unter Sonstiges. Verschiebst du einen Ort in die richtige Kategorie, merkt sich die App das fürs nächste Mal.',
         'Zuordnen nimmt, was unter Sonstiges liegt, und zeigt es als Liste, den größten Betrag zuerst, mit einem Vorschlag pro Ort. Ein Tipp verschiebt alle Einträge vom selben Ort auf einmal.',

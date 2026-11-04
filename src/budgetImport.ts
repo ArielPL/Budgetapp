@@ -28,6 +28,8 @@
 // already imported and would count everything twice.
 
 import { unzipSync, strFromU8 } from 'fflate';
+import { readNumbersTables, NumbersFormatError } from './numbersFile';
+import { readPdfGrid, isPdf, PdfError } from './pdfTable';
 import { decodeCsv, detectDelimiter, parseCsv, parseAmount } from './csvImport';
 import { seedKind, isStandardCategoryId, type StandardCategoryId } from './categorise';
 import { starterMonthData, withStandardCategories, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
@@ -63,9 +65,12 @@ export const MAX_SHEETS = 50;
 // ── Reading ────────────────────────────────────────────────────────────────
 
 /** `convert`: a format the app cannot read directly — old binary Word and
- *  Excel (.doc, .xls), Apple's Pages and Numbers files, OpenDocument — which
- *  every one of those programs can save or export as .docx, .xlsx or CSV. */
-export type SpreadsheetFailure = 'too-big' | 'too-large-table' | 'unreadable' | 'empty' | 'convert';
+ *  Excel (.doc, .xls), OpenDocument, a Numbers file from before Numbers 6 —
+ *  which every one of those programs can save or export as .docx, .xlsx or
+ *  CSV. */
+export type SpreadsheetFailure = 'too-big' | 'too-large-table' | 'unreadable' | 'empty' | 'convert'
+  /** A PDF with no text in it — a scan — or one locked with a password. */
+  | 'pdf-no-text' | 'pdf-locked';
 
 export class SpreadsheetError extends Error {
   readonly reason: SpreadsheetFailure;
@@ -75,7 +80,7 @@ export class SpreadsheetError extends Error {
   }
 }
 
-/** The sheets of an .xlsx, .docx, .csv, .tsv or .txt file. */
+/** The sheets of an .xlsx, .numbers, .docx, .csv, .tsv or .txt file. */
 export function readSpreadsheet(bytes: ArrayBuffer, fileName: string): Sheet[] {
   if (bytes.byteLength > MAX_FILE_BYTES) throw new SpreadsheetError('too-big');
   const u8 = new Uint8Array(bytes);
@@ -91,6 +96,27 @@ export function readSpreadsheet(bytes: ArrayBuffer, fileName: string): Sheet[] {
   const kept = sheets.filter(s => s.rows.some(r => r.some(c => c.trim() !== '')));
   if (kept.length === 0) throw new SpreadsheetError('empty');
   return kept;
+}
+
+/**
+ * A chosen file's sheets: readSpreadsheet's, or for a PDF its text put back
+ * into rows and columns (pdfTable.ts) — a budget typed in Word or Excel and
+ * saved as PDF (2026-11-04). Async, because the PDF reader is loaded and run
+ * only when a PDF is chosen.
+ */
+export async function readBudgetFile(bytes: ArrayBuffer, fileName: string): Promise<Sheet[]> {
+  if (bytes.byteLength > MAX_FILE_BYTES) throw new SpreadsheetError('too-big');
+  if (!isPdf(new Uint8Array(bytes))) return readSpreadsheet(bytes, fileName);
+  let rows: Grid;
+  try {
+    rows = await readPdfGrid(bytes);
+  } catch (e) {
+    const reason = e instanceof PdfError ? e.reason : 'unreadable';
+    throw new SpreadsheetError(reason === 'no-text' ? 'pdf-no-text' : reason === 'locked' ? 'pdf-locked' : 'unreadable');
+  }
+  checkTable(rows);
+  if (!rows.some(r => r.some(c => c.trim() !== ''))) throw new SpreadsheetError('empty');
+  return [{ name: fileName, rows }];
 }
 
 /** Cells copied from a spreadsheet and pasted: tab-separated, as every
@@ -141,11 +167,12 @@ function readZip(u8: Uint8Array, fileName: string): Sheet[] {
   }
   if (names.includes('word/document.xml')) return readDocx(u8, fileName);
   if (names.includes('xl/workbook.xml')) return readXlsx(u8);
-  // Pages and Numbers (Index/*.iwa), OpenDocument (content.xml): real
-  // documents, in formats the app does not read. Saying so beats "unreadable".
-  if (names.some(n => n.startsWith('Index/')) || names.includes('content.xml')) {
-    throw new SpreadsheetError('convert');
-  }
+  // Numbers (Index/*.iwa): its tables, read directly (2026-11-04). A Pages
+  // document is the same kind of file, so its tables come in the same way.
+  if (names.some(n => n.startsWith('Index/') && n.endsWith('.iwa'))) return readIwork(u8);
+  // OpenDocument (content.xml): a real document, in a format the app does not
+  // read. Saying so beats "unreadable".
+  if (names.includes('content.xml')) throw new SpreadsheetError('convert');
   throw new SpreadsheetError('unreadable');
 }
 
@@ -178,6 +205,22 @@ function unpack(u8: Uint8Array, wanted: (name: string) => boolean, isSheet: (nam
 
 const parseXml = (f: Uint8Array | undefined) =>
   f ? new DOMParser().parseFromString(strFromU8(f), 'application/xml') : null;
+
+/** A Numbers (or Pages) file's tables. One saved before Numbers 6, or a
+ *  document with no table in it, is asked for as an export instead. */
+function readIwork(u8: Uint8Array): Sheet[] {
+  const files = unpack(u8, n => n.startsWith('Index/') && n.endsWith('.iwa'), n => n.startsWith('Index/Tables/Tile'));
+  try {
+    return readNumbersTables(Object.values(files), MAX_UNPACKED_BYTES, MAX_ROWS, MAX_COLUMNS)
+      .map(t => ({ name: t.name, rows: checkTable(t.rows) }));
+  } catch (e) {
+    if (e instanceof SpreadsheetError) throw e;
+    if (e instanceof NumbersFormatError && e.message === 'too large') throw new SpreadsheetError('too-large-table');
+    // Anything else — an older layout, no table, a part the reader does not
+    // follow — has the same way out: export the file as .xlsx or CSV.
+    throw new SpreadsheetError('convert');
+  }
+}
 
 function readXlsx(u8: Uint8Array): Sheet[] {
   // Only the parts a budget lives in; images and the like are left packed.

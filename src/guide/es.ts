@@ -74,7 +74,7 @@ export const esGuide: Guide = {
       body: [
         'El presupuesto es lo que pensaste. El seguimiento es lo que pasó. Aquí están uno al lado del otro, categoría por categoría.',
         '## Meter los números',
-        'Dos maneras: importa el extracto del banco como archivo CSV, o añade un movimiento a mano. El archivo se lee en tu dispositivo y no se envía a ningún sitio. Cada movimiento va al mes al que pertenece su fecha.',
+        'Dos maneras: importa el extracto del banco como archivo CSV o PDF, o añade un movimiento a mano. El archivo se lee en tu dispositivo y no se envía a ningún sitio. Cada movimiento va al mes al que pertenece su fecha.',
         '## El clasificador',
         'La app reconoce tiendas, bancos y servicios habituales y pone los movimientos en la categoría correcta. Lo que no reconoce va a Otros. Si mueves un sitio a la categoría correcta, la app lo recuerda para la próxima vez.',
         'Clasificar toma lo que hay en Otros y lo muestra como una lista, con el importe mayor primero y una sugerencia por sitio. Un toque mueve todos los movimientos del mismo sitio a la vez.',

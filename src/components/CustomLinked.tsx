@@ -7,7 +7,7 @@ import { useModalFocus } from '../useModalFocus';
 import { appStorage } from '../storage';
 import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
-import { shownName, loadMonthData, generateId, createCategory, storageKey, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
+import { shownName, loadMonthData, generateId, createCategory, storageKey, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
 import { loadActuals, actualsKey, INCOME_ACTUAL_ID } from '../actuals';
 import { recursNextMonth } from '../metrics';
 import type { PeriodLocks } from '../periodLabel';
@@ -52,6 +52,9 @@ interface Props {
   /** A new category in this month's budget — the regular budget tab is not on
    *  screen in linked mode, so this is the only place one can be created. */
   onAddCategory: (category: BudgetCategory) => void;
+  /** A category taken out of the budget itself — the regular budget tab's
+   *  delete, so it asks first and can be undone (Ariel, 2026-11-04). */
+  onDeleteCategory: (id: string) => void;
   /** Plan's goals, and the pay period — for the goal and per-day blocks. */
   goals: SavingsGoal[];
   periodStartDay: number | null;
@@ -64,7 +67,7 @@ interface Props {
 }
 
 export const CustomLinked = ({
-  year, month, data, onSetIncome, onSetCategory, onAddCategory, goals, periodStartDay, periodLocks,
+  year, month, data, onSetIncome, onSetCategory, onAddCategory, onDeleteCategory, goals, periodStartDay, periodLocks,
   onCopyPrev, onStartOver, onSaveFailed, onRecordUndo,
 }: Props) => {
   const { t, lang, money, currency } = useLang();
@@ -332,6 +335,17 @@ export const CustomLinked = ({
     }
     setLayout(prev => prev.filter(b => b.id !== id));
   };
+  /** The category itself out of this month's budget, asked first, and its
+   *  block off the panel with it. ✕ only hides a block; this is the delete. */
+  const deleteCategory = (blockId: string) => {
+    const s = sourceOf(blockId);
+    if (s?.kind !== 'category') return;
+    const cat = categoryOf(data, s.id);
+    if (cat && !window.confirm(t.deleteCategoryConfirm(shownName(cat, lang)))) return;
+    setConfigFor(null);
+    if (cat) onDeleteCategory(cat.id);
+    setLayout(prev => prev.filter(b => b.id !== blockId));
+  };
   const addBlock = (source: LinkedSource) => {
     // The name as it is now, so a month without it can still say which it was.
     const name = source.kind === 'category' || (source.kind === 'actual' && source.id !== INCOME_ACTUAL_ID)
@@ -576,6 +590,8 @@ export const CustomLinked = ({
             patchLayout(cfgLinked.id, keep);
           }}
           onSetNoteScope={(scope) => setNoteScope(cfgLinked.id, scope)} monthLabel={monthLabel}
+          onDeleteCategory={cfgLinked.source.kind === 'category' && !isProtectedCategory(cfgLinked.source.id)
+            ? () => deleteCategory(cfgLinked.id) : undefined}
           onClose={() => setConfigFor(null)} t={t} />
       )}
 

@@ -74,7 +74,7 @@ export const trGuide: Guide = {
       body: [
         "Bütçe, planladığınızdır. Takip ise olandır. Burada ikisi kategori kategori yan yana durur.",
         "## Rakamları içeri almak",
-        "İki yol var: banka ekstrenizi CSV dosyası olarak içe aktarın ya da bir kaydı elle ekleyin. Dosya cihazınızda okunur ve hiçbir yere gönderilmez. Her kayıt, kendi tarihinin ait olduğu aya düşer.",
+        "İki yol var: banka ekstrenizi CSV ya da PDF dosyası olarak içe aktarın ya da bir kaydı elle ekleyin. Dosya cihazınızda okunur ve hiçbir yere gönderilmez. Her kayıt, kendi tarihinin ait olduğu aya düşer.",
         "## Sınıflandırıcı",
         "Uygulama yaygın mağazaları, bankaları ve hizmetleri tanır ve kayıtları doğru kategoriye koyar. Tanımadığı her şey Diğer'e gider. Bir yeri doğru kategoriye taşıyın, uygulama bunu bir dahaki sefere hatırlar.",
         "Sınıflandır, Diğer'deki kayıtları alır ve en büyük tutar başta olmak üzere, her yer için bir öneriyle liste hâlinde gösterir. Tek dokunuş, aynı yerdeki tüm kayıtları birden taşır.",

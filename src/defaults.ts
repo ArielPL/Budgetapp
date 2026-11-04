@@ -567,6 +567,9 @@ export function loadMonthData(year: number, month: number, lang: Lang = 'sv'): M
   }
 }
 
+/** The longest note a budget row takes: a line, not a document. */
+export const ROW_NOTE_MAX = 100;
+
 const normalizeRow = (r: BudgetRow): BudgetRow => {
   const amount = isValidMoney(r?.amount) ? r.amount : coerceStoredMoney(r?.amount);
   // Backup import is strict about `period`, but data read straight out of
@@ -575,8 +578,10 @@ const normalizeRow = (r: BudgetRow): BudgetRow => {
   // dropped here so it can never reach the arithmetic. Storage itself is left
   // alone; this is a defensive READ, not a migration.
   const period = isRowPeriod(r?.period) ? r.period : undefined;
-  if (amount === r?.amount && period === r?.period) return r;
-  return { ...r, amount, period };
+  // Same defensive read for a note: text, and no longer than the field allows.
+  const note = typeof r?.note === 'string' && r.note.trim() !== '' ? r.note.slice(0, ROW_NOTE_MAX) : undefined;
+  if (amount === r?.amount && period === r?.period && note === r?.note) return r;
+  return { ...r, amount, period, note };
 };
 
 const normalizeCategory = (c: BudgetCategory): BudgetCategory =>

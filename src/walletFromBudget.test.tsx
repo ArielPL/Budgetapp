@@ -99,6 +99,24 @@ describe('Left to live on → a wallet', () => {
     ]);
   });
 
+  it("the weeks get a row of their own, apart from the month's envelope (Ariel, 2026-11-04)", async () => {
+    seed();
+    render(<App />);
+    fireEvent.click(tile(sv.dailyBudgetPerMonth));
+    fireEvent.click(confirmBtn());
+    await waitFor(() => expect(loadWallets(localStorage)).toHaveLength(1));
+    fireEvent.click([...document.querySelectorAll('button')].find(b => b.textContent?.trim().endsWith(sv.tabBudget))!);
+    await waitFor(() => expect(tile(sv.dailyBudgetPerWeek)).toBeTruthy());
+    fireEvent.click(tile(sv.dailyBudgetPerWeek));
+    fireEvent.click(confirmBtn());
+    await waitFor(() => expect(loadWallets(localStorage)).toHaveLength(4));
+    const [month, ...weeks] = loadWallets(localStorage);
+    expect(month.groupName).toBe('Oktober 2026');
+    expect(new Set(weeks.map(w => w.groupName))).toEqual(new Set([sv.walletGroupWeeks('Oktober 2026')]));
+    expect(new Set(weeks.map(w => w.groupId)).size).toBe(1);
+    expect(weeks[0].groupId).not.toBe(month.groupId);
+  });
+
   it('cancelling stores nothing', () => {
     seed();
     render(<App />);

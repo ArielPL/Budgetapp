@@ -344,6 +344,8 @@ a:focus-visible,
   height: 36px;
   font-size: 1.25rem;
 }
+/* A block, so no line box adds space under it and it sits dead centre. */
+.nav-btn .chevron { display: block; }
 
 /* ─── Summary cards ───────────────────────────────────────────────── */
 
@@ -2594,6 +2596,8 @@ a:focus-visible,
 }
 
 .cat-delete-btn:hover { background: rgba(239, 68, 68, 0.16); }
+/* The same delete in a Custom block's settings, above Done. */
+.cfg-delete-category { align-self: flex-start; padding: 8px 12px; margin-top: 4px; }
 
 .cat-done-btn {
   margin-left: auto;
@@ -2928,41 +2932,13 @@ a:focus-visible,
 
 /* ─── Savings tab ─────────────────────────────────────────────────── */
 
-.savings-summary-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 620px;
-}
-
-.savings-summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* Pension — a separate, faint long-term bucket, set apart from the two cards */
+/* The summary is the budget tab's .summary-cards grid; only the pension card
+   differs — a separate long-term bucket, set apart by its dashed border. */
 .savings-pension-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   background: var(--surface2);
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: 10px 18px;
-  /* Faint by its dashed border and --surface2 alone: fading the whole card to
-     80% took its muted text to 3.3:1. */
 }
-.savings-pension-card .card-label {
-  margin-bottom: 0;
-  color: var(--text-muted);
-}
-.savings-pension-card .card-amount {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-dim);
-}
+.savings-pension-card .card-amount { color: var(--text-dim); }
 
 /* Sorbet-tinted savings summary cards, matching the Budget hero cards */
 .savings-card {
@@ -3438,6 +3414,38 @@ a:focus-visible,
 }
 .debt-order li:last-child { border-bottom: none; }
 
+/* The (i) beside "The way to debt-free": a small round button, then a quiet
+   box with what the avalanche and the snowball are. */
+.debt-info-btn {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-muted);
+  font: italic 700 0.85rem/1 Georgia, 'Times New Roman', serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.debt-info-btn[aria-expanded="true"] {
+  border-color: var(--accent-brand);
+  color: var(--accent-brand);
+}
+.debt-ways-info {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+}
+.debt-ways-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.debt-ways-info p + p { margin-top: 8px; }
+
 .debt-note {
   margin: 10px 0 0;
   font-size: 0.82rem;
@@ -3818,6 +3826,57 @@ a:focus-visible,
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+/* A row's note (2026-11-04): a small button beside the period, faint until
+   the row has a note, and the note itself on its own line under the row. */
+.budget-row { flex-wrap: wrap; }
+.row-note-btn {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1;
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+.row-note-btn.has-note,
+.row-note-btn[aria-expanded="true"] { opacity: 1; filter: none; }
+@media (hover: hover) {
+  .row-note-btn:hover { opacity: 0.85; background: var(--surface2); }
+}
+.row-note-line {
+  order: 5;
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.row-note-text {
+  padding: 0 0 2px;
+  text-align: left;
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.row-note-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+.row-note-count {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -5297,7 +5356,8 @@ a:focus-visible,
   }
   /* "Kvar" is the figure the app exists to show; it takes the full width, which
      also leaves the most room for the longest of the three numbers. */
-  .summary-cards .remaining-card { grid-column: 1 / -1; }
+  .summary-cards .remaining-card,
+  .summary-cards .savings-pension-card { grid-column: 1 / -1; }
   .summary-card { padding: 12px 10px; }
   .summary-card .card-label {
     font-size: 0.62rem;

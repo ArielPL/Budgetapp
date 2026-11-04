@@ -28,6 +28,8 @@ interface Props {
   onSetIncome: (rows: BudgetRow[]) => void;
   onSetCategory: (category: BudgetCategory) => void;
   onAddCategory: (category: BudgetCategory) => void;
+  /** The budget tab's own delete, with its confirm and undo. */
+  onDeleteCategory: (id: string) => void;
   goals: SavingsGoal[];
   periodStartDay: number | null;
   periodLocks: PeriodLocks;
@@ -37,7 +39,7 @@ interface Props {
 }
 
 export const CustomPanel = ({
-  year, month, mode, onModeChange, data, onSetIncome, onSetCategory, onAddCategory, goals,
+  year, month, mode, onModeChange, data, onSetIncome, onSetCategory, onAddCategory, onDeleteCategory, goals,
   periodStartDay, periodLocks, onCopyPrev, onSaveFailed, onRecordUndo,
 }: Props) => {
   const { t } = useLang();
@@ -86,7 +88,7 @@ export const CustomPanel = ({
   } else if (mode === 'linked') {
     panel = (
       <CustomLinked year={year} month={month} data={data}
-        onSetIncome={onSetIncome} onSetCategory={onSetCategory} onAddCategory={onAddCategory}
+        onSetIncome={onSetIncome} onSetCategory={onSetCategory} onAddCategory={onAddCategory} onDeleteCategory={onDeleteCategory}
         goals={goals} periodStartDay={periodStartDay} periodLocks={periodLocks} onCopyPrev={onCopyPrev}
         onStartOver={startOver} onSaveFailed={onSaveFailed} onRecordUndo={onRecordUndo} />
     );

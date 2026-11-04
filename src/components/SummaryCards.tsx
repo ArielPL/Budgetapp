@@ -87,7 +87,7 @@ export const SummaryCards = ({ totalIncome, totalExpenses, year, month }: Props)
         </div>
         {totalIncome > 0 && (
           <div className={`card-sub ${isDeficit ? 'card-sub-deficit' : 'card-sub-positive'}`}>
-            {Math.round((totalExpenses / totalIncome) * 100)}% {t.pctOfIncome}
+            {t.pctOfIncome(Math.round((totalExpenses / totalIncome) * 100))}
           </div>
         )}
         {totalIncome > 0 && (

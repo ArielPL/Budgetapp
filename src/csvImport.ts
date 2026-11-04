@@ -242,6 +242,28 @@ export function looksLikeData(row: string[]): boolean {
   return hasDate && hasAmount;
 }
 
+/**
+ * A statement read out of a PDF (pdfTable.ts), as the rows a CSV would have
+ * given: its heading, then the transactions.
+ *
+ * A PDF's table has the same number of columns on every line, its title and
+ * page footers too, so findHeaderRow would take the title for the heading.
+ * Here the heading is the first line with three or more filled cells that is
+ * not a transaction, and the rows kept are those with a date and an amount —
+ * which leaves out page numbers, the heading repeated on every page, and
+ * balance lines without a date (2026-11-04).
+ */
+export function statementFromPdf(grid: string[][]): string[][] {
+  const filled = (r: string[]) => r.filter(c => c.trim() !== '').length;
+  const data = grid.filter(looksLikeData);
+  const header = grid.find(r => filled(r) >= 3 && !looksLikeData(r));
+  // Columns no transaction uses are dropped, so the column step shows only
+  // the table's own.
+  const used = (header ?? grid[0] ?? []).map((_, i) => data.some(r => (r[i] ?? '').trim() !== ''));
+  const keep = (r: string[]) => r.filter((_, i) => used[i]);
+  return header ? [keep(header), ...data.map(keep)] : data.map(keep);
+}
+
 /** Placeholder names for a file that brought none, so the column step has
  *  something to show and a remembered layout still has a fingerprint. */
 export function placeholderHeader(width: number): string[] {

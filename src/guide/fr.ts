@@ -74,7 +74,7 @@ export const frGuide: Guide = {
       body: [
         "Le budget, c'est ce que vous aviez prévu. Le suivi, c'est ce qui s'est passé. Ici, ils sont côte à côte, catégorie par catégorie.",
         '## Faire entrer les chiffres',
-        "Deux façons : importer le relevé de votre banque en fichier CSV, ou ajouter une opération à la main. Le fichier est lu sur votre appareil et n'est envoyé nulle part. Chaque opération va dans le mois auquel appartient sa date.",
+        "Deux façons : importer le relevé de votre banque en fichier CSV ou PDF, ou ajouter une opération à la main. Le fichier est lu sur votre appareil et n'est envoyé nulle part. Chaque opération va dans le mois auquel appartient sa date.",
         '## Le trieur',
         "L'app reconnaît les magasins, banques et services courants et place les opérations dans la bonne catégorie. Ce qu'elle ne reconnaît pas va dans Autres. Si vous déplacez un commerce vers la bonne catégorie, l'app s'en souvient pour la prochaine fois.",
         "Les classer prend ce qui se trouve dans Autres et l'affiche en liste, le plus gros montant d'abord, avec une suggestion par commerce. Un seul geste déplace toutes les opérations du même commerce.",

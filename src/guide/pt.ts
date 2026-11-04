@@ -74,7 +74,7 @@ export const ptGuide: Guide = {
       body: [
         'O orçamento é o que você planejou. O Acompanhamento é o que aconteceu. Aqui os dois ficam lado a lado, categoria por categoria.',
         '## Como os números entram',
-        'Dois jeitos: importe seu extrato bancário como arquivo CSV, ou adicione um lançamento à mão. O arquivo é lido no seu dispositivo e não é enviado para lugar nenhum. Cada lançamento cai no mês da sua própria data.',
+        'Dois jeitos: importe seu extrato bancário como arquivo CSV ou PDF, ou adicione um lançamento à mão. O arquivo é lido no seu dispositivo e não é enviado para lugar nenhum. Cada lançamento cai no mês da sua própria data.',
         '## O classificador',
         'O app reconhece lojas, bancos e serviços comuns e coloca os lançamentos na categoria certa. O que ele não reconhece vai para Outros. Mova um local para a categoria certa e o app lembra disso da próxima vez.',
         'Classificar pega o que está em Outros e mostra como uma lista, do maior valor para o menor, com uma sugestão por local. Um toque move de uma vez todos os lançamentos do mesmo local.',

@@ -1,6 +1,7 @@
 import { monthTitle } from '../dateLabel';
 import { useLang, MONTHS, MONTHS_SHORT } from '../i18n';
 import { PeriodLabel } from './PeriodLabel';
+import { Chevron } from './Chevron';
 import type { PeriodLocks } from '../periodLabel';
 
 interface Props {
@@ -27,7 +28,7 @@ export const MonthNav = ({
   return (
     <div className="month-nav-wrap">
       <div className="month-nav">
-        <button className="nav-btn" onClick={onPrev} aria-label={t.prevMonth}>‹</button>
+        <button className="nav-btn" onClick={onPrev} aria-label={t.prevMonth}><Chevron dir="left" /></button>
         <button
           className={`month-title${pickerOpen ? ' month-title-open' : ''}`}
           data-guide="month"
@@ -48,7 +49,7 @@ export const MonthNav = ({
           </span>
           <span className="month-title-caret">{pickerOpen ? '▴' : '▾'}</span>
         </button>
-        <button className="nav-btn" onClick={onNext} aria-label={t.nextMonth}>›</button>
+        <button className="nav-btn" onClick={onNext} aria-label={t.nextMonth}><Chevron dir="right" /></button>
       </div>
       {/* Descriptive only — the month's figures still belong to the month. */}
       <PeriodLabel

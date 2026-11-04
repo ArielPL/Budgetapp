@@ -74,7 +74,7 @@ export const enGuide: Guide = {
       body: [
         'The budget is what you planned. Follow-up is what happened. Here they stand side by side, category by category.',
         '## Getting the numbers in',
-        'Two ways: import your bank statement as a CSV file, or add an entry by hand. The file is read on your device and sent nowhere. Each entry lands in the month its own date belongs to.',
+        'Two ways: import your bank statement as a CSV or PDF file, or add an entry by hand. The file is read on your device and sent nowhere. Each entry lands in the month its own date belongs to.',
         '## The sorter',
         'The app recognises common shops, banks and services and puts entries in the right category. Anything it does not recognise goes to Other. Move a place to the right category and the app remembers it for next time.',
         'Sort them takes what is in Other and shows it as a list, largest amount first, with one suggestion per place. One tap moves every entry from the same place at once.',

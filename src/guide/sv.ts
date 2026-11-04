@@ -74,7 +74,7 @@ export const svGuide: Guide = {
       body: [
         'Budgeten är vad du tänkte. Uppföljningen är vad som hände. Här står de bredvid varandra, kategori för kategori.',
         '## Få in siffrorna',
-        'Två sätt: importera kontoutdraget från banken som en CSV-fil, eller lägg till en post för hand. Filen läses på din enhet och skickas ingenstans. Varje post hamnar i den månad dess datum hör till.',
+        'Två sätt: importera kontoutdraget från banken som en CSV- eller PDF-fil, eller lägg till en post för hand. Filen läses på din enhet och skickas ingenstans. Varje post hamnar i den månad dess datum hör till.',
         '## Sorteraren',
         'Appen känner igen vanliga butiker, banker och tjänster och lägger posterna i rätt kategori. Det den inte känner igen hamnar i Övrigt. Flyttar du ett ställe till rätt kategori minns appen det till nästa gång.',
         'Sortera tar det som ligger i Övrigt och visar det som en lista, med störst belopp först och ett förslag per ställe. Ett tryck flyttar alla poster från samma ställe på en gång.',

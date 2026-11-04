@@ -22,6 +22,9 @@ export interface BudgetRow {
    *  ALL of it in the month the row sits in: a 4 800 yearly insurance is 4 800
    *  that month, not 400. See RowPeriod above for why the division was removed. */
   period?: RowPeriod;
+  /** A short note of the user's, at most ROW_NOTE_MAX characters (2026-11-04).
+   *  Copied with the row to the months after it, like its name. */
+  note?: string;
 }
 
 export interface BudgetCategory {

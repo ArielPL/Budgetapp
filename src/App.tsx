@@ -38,7 +38,7 @@ import { backupAge, shouldRemind, type BackupAge } from './backupAge';
 import { Intro } from './components/Intro';
 import { undoWhere } from './undoLabel';
 import { shortWhen, longDate, inSentence, monthInText, monthTitle, formatPeriodRange } from './dateLabel';
-import { loadCustomMode, type CustomMode } from './customMode';
+import { loadCustomMode, CUSTOM_LINKED_KEY, type CustomMode } from './customMode';
 import { captureKeys, captureAll, pushUndo, latestUndo, undoLast, type UndoEntry, type UndoAction } from './undo';
 import type { MonthData, BudgetCategory, BudgetRow, PlanData, ActiveTab, SavingsGoal } from './types';
 import type { NewGoalRequest } from './components/QuestionCards';
@@ -1631,15 +1631,17 @@ function App({ startupRepair = null }: AppProps) {
    * empty one is not worth a step, and recording it would push a real step off
    * the end of a stack that only holds ten.
    */
-  const recordCategoryDelete = (hadRows: boolean) => {
+  const recordCategoryDelete = (hadRows: boolean, also: string[] = []) => {
     if (!hadRows) return;
-    recordMonthUndo('deleteCategory');
+    recordMonthUndo('deleteCategory', also);
   };
 
-  const deleteExpenseCategory = (id: string) => {
+  /** `also`: Custom's linked layout, when the delete came from there and takes
+   *  the category's block with it — so Undo brings both back. */
+  const deleteExpenseCategory = (id: string, also: string[] = []) => {
     // sparande is protected (the component already hides delete for it).
     if (id === 'sparande') return;
-    recordCategoryDelete((data.expenses.find(c => c.id === id)?.rows.length ?? 0) > 0);
+    recordCategoryDelete((data.expenses.find(c => c.id === id)?.rows.length ?? 0) > 0, also);
     setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
 
@@ -1883,8 +1885,11 @@ function App({ startupRepair = null }: AppProps) {
   };
   const draftEnvelopes = (draft: NonNullable<typeof walletDraft>, newId: () => string): Wallet[] => {
     const rows = draft.rows.filter(r => draft.picked.includes(r.id));
-    // Made together, shown together: one row, named after the month.
-    const group = { id: newId(), name: monthTitle(month, year, lang) };
+    // Made together, shown together: one row, named after the month. The
+    // weeks get a row and a name of their own, apart from the month's
+    // envelopes (Ariel, 2026-11-04).
+    const title = monthTitle(month, year, lang);
+    const group = { id: newId(), name: draft.span === 'week' ? t.walletGroupWeeks(title) : title };
     return draft.span === 'month'
       ? monthEnvelopes({ name: draft.name.trim(), left: draft.left, rows, period: draft.period, group, newId })
       : weekEnvelopes({ name: t.walletNameWeek, left: draft.left, rows, period: draft.period, today: new Date(), everyday: t.envEveryday, group, newId });
@@ -2816,6 +2821,7 @@ function App({ startupRepair = null }: AppProps) {
                   }}
                   data={data} onSetIncome={setIncome} onSetCategory={setExpenseCategory}
                   onAddCategory={cat => setData(d => ({ ...d, expenses: [...d.expenses, cat] }))}
+                  onDeleteCategory={id => deleteExpenseCategory(id, [CUSTOM_LINKED_KEY])}
                   goals={planData.goals} periodStartDay={periodStartDay} periodLocks={periodLocks}
                   onCopyPrev={copyFromPrevMonth}
                   onSaveFailed={reportSaveFailed} onRecordUndo={recordUndo} />

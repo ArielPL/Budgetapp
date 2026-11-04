@@ -8,7 +8,7 @@ import type { MonthData } from '../types';
 import { STANDARD_CATEGORY_IDS, isStandardCategoryId } from '../categorise';
 import { monthYear } from '../dateLabel';
 import {
-  readSpreadsheet, readText, analyse, rowsByMonth, mergeInto, landingOf, SpreadsheetError,
+  readBudgetFile, readText, analyse, rowsByMonth, mergeInto, landingOf, SpreadsheetError,
   type Sheet, type Draft, type Target, type ImportIds,
 } from '../budgetImport';
 
@@ -89,7 +89,7 @@ export const BudgetImport = ({ year, month, onClose, onImport, monthData }: Prop
 
   const readFile = async (file: File) => {
     try {
-      start(readSpreadsheet(await file.arrayBuffer(), file.name));
+      start(await readBudgetFile(await file.arrayBuffer(), file.name));
     } catch (e) {
       const reason = e instanceof SpreadsheetError ? e.reason : 'unreadable';
       setError(failureText(reason));
@@ -99,7 +99,9 @@ export const BudgetImport = ({ year, month, onClose, onImport, monthData }: Prop
     reason === 'too-big' ? t.bimErrTooBig
       : reason === 'too-large-table' ? t.bimErrTooLarge
         : reason === 'empty' ? t.bimErrEmpty
-          : reason === 'convert' ? t.bimErrConvert : t.bimErrUnreadable);
+          : reason === 'convert' ? t.bimErrConvert
+            : reason === 'pdf-no-text' ? t.pdfNoText
+              : reason === 'pdf-locked' ? t.pdfLocked : t.bimErrUnreadable);
   const readPaste = () => {
     let rows;
     try {
@@ -166,7 +168,7 @@ export const BudgetImport = ({ year, month, onClose, onImport, monthData }: Prop
                 <button className="csv-pick" onClick={() => fileRef.current?.click()}>{t.bimPick}</button>
                 <input
                   ref={fileRef} type="file" hidden
-                  accept=".xlsx,.docx,.csv,.tsv,.txt,.xls,.doc,.numbers,.pages,.ods,.odt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/tab-separated-values,text/plain"
+                  accept=".xlsx,.numbers,.docx,.pdf,.csv,.tsv,.txt,.xls,.doc,.pages,.ods,.odt,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/tab-separated-values,text/plain"
                   onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void readFile(f); }}
                 />
               </div>

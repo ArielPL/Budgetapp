@@ -1688,7 +1688,7 @@ const AddPicker = ({ onAddBlock, onAddSummary, onAddNote, onAddTemplate, onClose
 // can never offer a style the renderer, loader or backup validator rejects.
 const CHART_TYPES: readonly ExpenseChartStyle[] = EXPENSE_CHART_STYLES;
 
-export const ConfigPanel = ({ block, onChange, onSetNoteScope, monthLabel, linked = false, onClose, t }: {
+export const ConfigPanel = ({ block, onChange, onSetNoteScope, monthLabel, linked = false, onDeleteCategory, onClose, t }: {
   block: CustomBlock;
   onChange: (patch: Partial<CustomBlock>) => void;
   onSetNoteScope: (scope: 'month' | 'all') => void;
@@ -1697,6 +1697,8 @@ export const ConfigPanel = ({ block, onChange, onSetNoteScope, monthLabel, linke
   /** A linked block's kind comes from the regular budget (income, a category,
    *  savings), so it is not the panel's to retag. */
   linked?: boolean;
+  /** A linked category's block: take the category out of the budget. */
+  onDeleteCategory?: () => void;
   onClose: () => void;
   t: ReturnType<typeof useLang>['t'];
 }) => {
@@ -1873,6 +1875,11 @@ export const ConfigPanel = ({ block, onChange, onSetNoteScope, monthLabel, linke
           </>
         )}
 
+        {onDeleteCategory && (
+          <button className="cat-delete-btn cfg-delete-category" onClick={onDeleteCategory}>
+            🗑 {t.deleteCategory}
+          </button>
+        )}
         <button className="custom-modal-close" onClick={onClose}>{t.cfgDone}</button>
       </div>
     </div>
