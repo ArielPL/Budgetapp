@@ -47,7 +47,7 @@ import { tellNativeLang, tellNativeTheme } from './nativeLang';
 import type { CategoryPlan } from './components/CsvImport';
 import { loadDebts, debtsChange, DEBTS_KEY, type DebtState } from './debtStore';
 import { mergeInto, rowsByMonth, type Draft, type ImportIds } from './budgetImport';
-import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, beginnerMonthData, type BeginnerAnswers, createCategory, withStandardCategories, withLoanRow, isProtectedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
+import { shownName, loadMonthData, saveMonthData, loadPlanData, savePlanData, defaultMonthData, starterMonthData, beginnerMonthData, type BeginnerAnswers, createCategory, withStandardCategories, withLoanRow, isGoalLinkedCategory, generateId, ensureGoalLinkedBudgetRows, isHistoricMonth, runHistoricGoalRowMigration, sweepGoalRows, storageKey, makeGoalColor, CATEGORY_PALETTE, CATEGORY_ICONS } from './defaults';
 import { LanguageContext, translations, MONTHS, MONTHS_SHORT, formatMoney, isLang, isCurrency, deviceLang, LANG_CHOICES, CURRENCIES, type Lang, type Currency } from './i18n';
 import { applyTextSize, loadTextSize, TEXT_SIZES, TEXT_SIZE_KEY, type TextSize } from './textSize';
 import {
@@ -1639,8 +1639,9 @@ function App({ startupRepair = null }: AppProps) {
   /** `also`: Custom's linked layout, when the delete came from there and takes
    *  the category's block with it — so Undo brings both back. */
   const deleteExpenseCategory = (id: string, also: string[] = []) => {
-    // sparande is protected (the component already hides delete for it).
-    if (id === 'sparande') return;
+    // Sparande with a goal linked to it would be made again at once; the
+    // component hides delete for it and says why.
+    if (isGoalLinkedCategory(id, planData.goals)) return;
     recordCategoryDelete((data.expenses.find(c => c.id === id)?.rows.length ?? 0) > 0, also);
     setData(d => ({ ...d, expenses: d.expenses.filter(c => c.id !== id) }));
   };
@@ -1710,8 +1711,6 @@ function App({ startupRepair = null }: AppProps) {
   };
 
   const deleteSavingsCategory = (id: string) => {
-    // The four default savings categories are protected.
-    if (isProtectedCategory(id)) return;
     recordCategoryDelete((data.savings.find(c => c.id === id)?.rows.length ?? 0) > 0);
     setData(d => ({
       ...d,
@@ -2064,6 +2063,9 @@ function App({ startupRepair = null }: AppProps) {
               category={cat}
               onChange={setExpenseCategory}
               onDelete={deleteExpenseCategory}
+              lockedNote={isGoalLinkedCategory(cat.id, planData.goals)
+                ? t.protectedCategory(planData.goals.filter(g => g.budgetRowId).map(g => shownName(g, lang)).join(', '))
+                : undefined}
             />
           ))}
           <button className="add-category-btn" data-guide="addCategory" onClick={addExpenseCategory}>

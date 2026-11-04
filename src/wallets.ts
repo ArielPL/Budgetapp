@@ -65,6 +65,8 @@ export interface Wallet {
    *  new one starts its own. Absent on envelopes made before rows. */
   groupId?: string;
   groupName?: string;
+  /** A colour from the categories' palette, chosen by the user (2026-11-04). */
+  color?: string;
 }
 
 /** The trip template: its parts, and the share of the total each starts with.
@@ -103,7 +105,8 @@ export function isWallet(v: unknown): v is Wallet {
     && (v.series === undefined || typeof v.series === 'string')
     && (v.carry === undefined || (isNum(v.carry) && v.carry >= 0))
     && (v.groupId === undefined || typeof v.groupId === 'string')
-    && (v.groupName === undefined || typeof v.groupName === 'string'))) return false;
+    && (v.groupName === undefined || typeof v.groupName === 'string')
+    && (v.color === undefined || (typeof v.color === 'string' && /^#[0-9a-f]{6}$/i.test(v.color))))) return false;
   // Every expense belongs to a part the wallet has, or to none.
   const pots = new Set((v.pots as WalletPot[]).map(p => p.id));
   return (v.expenses as WalletExpense[]).every(e => e.potId === '' || pots.has(e.potId));

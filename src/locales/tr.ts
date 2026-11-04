@@ -617,7 +617,7 @@ export const tr: Translations = {
     if (action === 'clearCustom') return count === 1 ? "Özel düzendeki tutarlar 1 ay için temizlendi" : `Özel düzendeki tutarlar ${count} ay için temizlendi`;
     if (action === 'refileRepair') return count === 1 ? "1 kayıt doğru aya taşındı" : `${count} kayıt doğru aya taşındı`;
     if (action === 'resetCustom') return "Özel düzen baştan başlatıldı";
-    if (action === 'deleteWallet') return "Bir zarf silindi";
+    if (action === 'deleteWallet') return count > 1 ? `${count} zarf silindi` : "Bir zarf silindi";
     if (action === 'deleteCustomBudget') return 'Bir bütçe silindi';
     if (action === 'deleteWalletExpense') return "Bir zarftan bir gider silindi";
     if (action === 'createGoal') return "Bir birikim hedefi oluşturuldu";
@@ -797,7 +797,7 @@ export const tr: Translations = {
   categoryName: "Kategori adı",
   chooseIcon: "Simge seç",
   chooseColor: "Renk seç",
-  protectedCategory: "Plan'a bağlı — silinemez",
+  protectedCategory: (goals) => `Plan'daki ${goals} hedeflerine bağlı. Hedefleri orada silerseniz kategori silinebilir.`,
   goalUnlinkedFromBudget: (goal) => `“${goal}” artık bütçenize bağlı değil. Hedef, biriktirdiklerinizi korur.`,
   goalReached: (goal) => `🎉 “${goal}” hedefinize ulaştınız.`,
   qTitle: "Paranız hakkında sorun",
@@ -958,6 +958,11 @@ export const tr: Translations = {
   wDelete: "Zarfı sil",
   wMore: (name) => `${name} için daha fazlası`,
   wDeleteConfirm: (name) => `“${name}” ve tüm giderleri silinsin mi?\n\nHemen ardından geri alabilirsiniz.`,
+  wDeleteFromList: (name) => `${name} sil`,
+  wDeleteGroup: "Zarf sırasını sil",
+  wDeleteGroupConfirm: (name, n) => `“${name}” ${n === 1 ? "zarfı" : `${n} zarfın tümü`} ve harcamalarıyla birlikte silinsin mi?\n\nHemen ardından geri alabilirsiniz.`,
+  wColor: "Renk",
+  wColorNone: "Renk yok",
   wPots: "Bölümler",
   wAddPot: "+ Bölüm ekle",
   wNewPot: "Yeni bölüm",
@@ -986,7 +991,6 @@ export const tr: Translations = {
   wDateOutside: (from, to) => `Tarih zarfın dönemi dışında, ${from} – ${to}.`,
   wAddAnyway: "Yine de ekle",
   qAboutNow: (month) => `Yanıtlar bugünden itibaren ${month} için geçerli, ekrandaki ay için değil.`,
-  protectedSavingsCategory: "Varsayılan kategori — silinemez",
   backupReminder: "Verilerinizi kaybetmemek için yedek alın",
   backupReminderShort: "Yedek almanız önerilir",
   backupReminderExport: "Şimdi dışa aktar",
@@ -1093,8 +1097,8 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Birbirine ait zarflar, değiştirebileceğiniz bir adla kendi sıralarında duruyor: Geçim için kalan üzerinden oluşturulanlar ayın adını alıyor, yeni bir zarf ise kendi sırasını başlatıyor. Bir zarftaki gider zarfın dönemi içinde bir tarih alıyor; dönem dışı bir tarih ancak onayladığınızda kabul ediliyor",
     "Uygulama hakkında bölümünde, uygulamanın üzerine kurulu olduğu özgür yazılımların lisanslarına giden bir bağlantı var. Gizlilikle ilgili sorular artık support@yourofflinebudget.com adresine gidiyor",
     "Bütçe içe aktarma Numbers dosyalarını (.numbers) doğrudan okur. Bütçe içe aktarma ve Takip PDF de okur; örneğin bir banka ekstresi ya da PDF olarak kaydedilmiş bir bütçe. Dosya cihazınızda okunur",
-    "Bütçedeki her satıra 📝 ile en fazla 100 karakterlik kısa bir not eklenebilir. Not, satırla birlikte sonraki aya geçer ve her ay değiştirilebilir",
+    "Bütçedeki ve Birikim’deki her satıra 📝 ile en fazla 100 karakterlik kısa bir not eklenebilir. Not satırda, adın yanında durur, sonraki aya geçer ve her ay değiştirilebilir",
     "Haftaların zarfları ayın zarfından ayrı, kendi sıralarında durur. Çığ ve kartopu yöntemlerinin onları açıklayan bir i’si var. Birikim, Bütçe ile aynı kartlara sahip, aydaki oklar dairelerinin ortasında duruyor ve Kalan’ın altında gelirin ne kadarının giderlere gittiği yazıyor",
-    "Bir kategori Özel düzende de, kategorinin ayarlarından silinebilir ve hemen geri alınabilir. Gizlilik artık yalnızca uygulamayla ilgili",
+    "Her kategori silinebilir, Birikim’de de. Bütçedeki birikim kategorisi, Plan’da ona bağlı bir hedef kalmayınca silinebilir; aksi halde hangi hedefler olduğu yazar. Özel düzende Sil, kategorinin ayarlarındadır; zarfları ve bütçeleri doğrudan listeden ya da karttaki çarpıyla silersiniz. Bir zarfa renk verilebilir; arşivlenmiş bir zarf, geri getirene kadar sırasının sonunda soluk durur. Gizlilik artık yalnızca uygulamayla ilgili",
   ],
 };

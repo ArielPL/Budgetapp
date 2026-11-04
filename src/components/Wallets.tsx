@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLang } from '../i18n';
 import { parseMoneyInput } from '../money';
-import { generateId } from '../defaults';
+import { generateId, CATEGORY_PALETTE } from '../defaults';
 import { shortDay } from '../dateLabel';
 import { appStorage } from '../storage';
 import { commitStorageChangesOutcome } from '../storageWrite';
@@ -69,6 +69,7 @@ const useWide = () => {
 
 export const PanelSwitcher = ({
   groups, openGroup, budgets = [], mainName, openId, budgetTag, onOpen, onNew, onNewBudget, onRename,
+  onDeleteBudget, onDeleteGroup,
 }: {
   groups: EnvelopeGroup[];
   /** The row of envelopes on screen, if one is. */
@@ -86,6 +87,9 @@ export const PanelSwitcher = ({
   onNewBudget?: () => void;
   /** Rename the budget on screen; absent where it cannot be renamed. */
   onRename?: () => void;
+  /** Delete an added budget, or a row of envelopes, from the list itself. */
+  onDeleteBudget?: (b: CustomBudget) => void;
+  onDeleteGroup?: (g: EnvelopeGroup) => void;
 }) => {
   const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
@@ -139,6 +143,10 @@ export const PanelSwitcher = ({
                   <span className="wallet-switch-text"><span className="wallet-switch-name">{b.name}</span></span>
                   <span className="wallet-tag wallet-tag-budget">{t.wTagStandalone}</span>
                 </button>
+                {onDeleteBudget && (
+                  <button className="wallet-switch-del" aria-label={t.wDeleteFromList(b.name)} title={t.cbDelete}
+                    onClick={() => { setExpanded(false); onDeleteBudget(b); }}>×</button>
+                )}
               </li>
             ))}
             {groups.map(g => {
@@ -154,6 +162,10 @@ export const PanelSwitcher = ({
                     </span>
                     <span className="wallet-tag">{g.wallets.length}</span>
                   </button>
+                  {onDeleteGroup && (
+                    <button className="wallet-switch-del" aria-label={t.wDeleteFromList(g.name)} title={t.wDeleteGroup}
+                      onClick={() => { setExpanded(false); onDeleteGroup(g); }}>×</button>
+                  )}
                 </li>
               );
             })}
@@ -247,7 +259,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
    *  then show it. `undo` records the step back for a removal: taken in turn,
    *  so it holds exactly the state this change replaced. */
   const save = (
-    change: (all: Wallet[]) => Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense',
+    change: (all: Wallet[]) => Wallet[], undo?: 'deleteWallet' | 'deleteWalletExpense', count?: number,
   ): Promise<boolean> => {
     const run = line.current.then(async () => {
       const next = change(stored.current);
@@ -260,7 +272,7 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
       }
       stored.current = next;
       setWallets(next);
-      if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, changes: before });
+      if (undo && before) onRecordUndo({ at: new Date().toISOString(), action: undo, count, changes: before });
       return true;
     });
     // One refused change must not stop the ones queued behind it.
@@ -313,6 +325,14 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
   };
 
   const removeById = (id: string) => save(all => all.filter(x => x.id !== id), 'deleteWallet');
+  /** A whole row of envelopes, straight from the list (Ariel, 2026-11-04):
+   *  asked first, and one step back takes all of them back. */
+  const removeGroup = async (g: EnvelopeGroup) => {
+    if (!window.confirm(t.wDeleteGroupConfirm(g.name, g.wallets.length))) return;
+    const gone = new Set(g.wallets.map(w => w.id));
+    if (!(await save(all => all.filter(w => !gone.has(w.id)), 'deleteWallet', gone.size))) return;
+    if (openGroupId === g.id || (openId !== null && gone.has(openId))) open(null);
+  };
   /** A new envelope, in `row`, or in a row of its own when null. */
   const startNew = (row: EnvelopeGroupName | null) => {
     setNewIn(row);
@@ -481,7 +501,9 @@ export const WalletArea = ({ budget, budgetTag, onLeave, onRecordUndo, renderBud
           onOpen={open} onNew={() => startNew(null)}
           onNewBudget={renderBudget ? () => { setCreating(false); setRenaming(false); setCreatingBudget(true); } : undefined}
           onRename={inFolder && overview ? () => setRenamingGroup(r => (r === null ? openGroup.id : null))
-            : renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined} />
+            : renderBudget && showingBudget ? () => setRenaming(r => !r) : undefined}
+          onDeleteBudget={renderBudget ? b => void removeBudget(b) : undefined}
+          onDeleteGroup={g => void removeGroup(g)} />
       )}
       {/* Custom's folder on a phone: one envelope open, and the way back to all. */}
       {inFolder && inPhoneWallet && (
@@ -736,15 +758,24 @@ export const WalletView = ({ wallet, previous, variant, onChange, onDelete }: {
     void onChange(w => ({ ...w, archived }));
   };
 
+  const setColor = (color: string | undefined) => { void onChange(w => ({ ...w, color })); };
+
   return (
-    <div className={`wallet${variant === 'column' ? ' wallet-column' : ''}`}>
+    <div className={`wallet${variant === 'column' ? ' wallet-column' : ''}${wallet.archived ? ' is-archived' : ''}${wallet.color ? ' has-color' : ''}`}
+      style={wallet.color ? { '--env-color': wallet.color } as CSSProperties : undefined}>
       {variant ? (
         <div className="wallet-col-head">
           <h3 className="wallet-title wallet-col-title">
             <span aria-hidden="true">{ICON[wallet.kind]}</span> {wallet.name}{wallet.archived ? ` · ${t.wArchived}` : ''}
           </h3>
           {variant === 'column' && (
-            <WalletMenu wallet={wallet} onEdit={() => setEditing(true)} onArchive={toggleArchive} onDelete={onDelete} />
+            <>
+              <WalletMenu wallet={wallet} onEdit={() => setEditing(true)} onArchive={toggleArchive} onDelete={onDelete}
+                onColor={setColor} />
+              {/* Straight out, without the menu (Ariel, 2026-11-04); asked first. */}
+              <button className="wallet-col-del" aria-label={t.wDeleteFromList(wallet.name)} title={t.wDelete}
+                onClick={onDelete}>×</button>
+            </>
           )}
         </div>
       ) : (
@@ -884,11 +915,13 @@ const CarryOver = ({ left, onAnswer }: { left: number; onAnswer: (amount: number
 
 /** Edit, archive and delete behind one button, for a wallet in a column. Closes
  *  like the switcher: a tap anywhere else, or Escape. */
-const WalletMenu = ({ wallet, onEdit, onArchive, onDelete }: {
+const WalletMenu = ({ wallet, onEdit, onArchive, onDelete, onColor }: {
   wallet: Wallet;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  /** The envelope's colour, from the categories' palette; undefined for none. */
+  onColor: (color: string | undefined) => void;
 }) => {
   const { t } = useLang();
   const [open, setOpen] = useState(false);
@@ -916,6 +949,14 @@ const WalletMenu = ({ wallet, onEdit, onArchive, onDelete }: {
         <div className="wallet-more-menu" id={menuId}>
           <button className="wallet-more-item" onClick={run(onEdit)}>{t.wEdit}</button>
           <button className="wallet-more-item" onClick={run(onArchive)}>{wallet.archived ? t.wUnarchive : t.wArchive}</button>
+          <div className="wallet-more-colors" role="group" aria-label={t.wColor}>
+            <button className={`wallet-color-swatch is-none${wallet.color ? '' : ' selected'}`} aria-label={t.wColorNone}
+              aria-pressed={!wallet.color} onClick={() => onColor(undefined)} />
+            {CATEGORY_PALETTE.map(c => (
+              <button key={c} className={`wallet-color-swatch${wallet.color === c ? ' selected' : ''}`} style={{ background: c }}
+                aria-label={c} aria-pressed={wallet.color === c} onClick={() => onColor(c)} />
+            ))}
+          </div>
           <button className="wallet-more-item wallet-danger" onClick={run(onDelete)}>{t.wDelete}</button>
         </div>
       )}

@@ -626,7 +626,7 @@ export const fr: Translations = {
     if (action === 'clearCustom') return `Les montants de Personnalisé ont été effacés sur ${count} mois`;
     if (action === 'refileRepair') return count < 2 ? `${count} opération a été déplacée vers le bon mois` : `${count} opérations ont été déplacées vers le bon mois`;
     if (action === 'resetCustom') return "Personnalisé a été remis à zéro";
-    if (action === 'deleteWallet') return "Une enveloppe a été supprimée";
+    if (action === 'deleteWallet') return count > 1 ? `${count} enveloppes ont été supprimées` : "Une enveloppe a été supprimée";
     if (action === 'deleteCustomBudget') return 'Un budget a été supprimé';
     if (action === 'deleteWalletExpense') return "Une dépense a été supprimée d'une enveloppe";
     if (action === 'createGoal') return "Un objectif d'épargne a été créé";
@@ -806,7 +806,7 @@ export const fr: Translations = {
   categoryName: "Nom de la catégorie",
   chooseIcon: "Choisir une icône",
   chooseColor: "Choisir une couleur",
-  protectedCategory: "Liée à Plan — ne peut pas être supprimée",
+  protectedCategory: (goals) => `Liée aux objectifs ${goals} dans Plan. Supprimez-les là-bas, et la catégorie pourra être supprimée.`,
   goalUnlinkedFromBudget: (goal) => `« ${goal} » n'est plus lié à votre budget. L'objectif garde ce que vous avez épargné.`,
   goalReached: (goal) => `🎉 Vous avez atteint votre objectif « ${goal} » !`,
   qTitle: "Questions sur votre argent",
@@ -967,6 +967,11 @@ export const fr: Translations = {
   wDelete: "Supprimer l'enveloppe",
   wMore: (name) => `Plus sur ${name}`,
   wDeleteConfirm: (name) => `Supprimer « ${name} » et toutes ses dépenses ?\n\nVous pouvez annuler juste après.`,
+  wDeleteFromList: (name) => `Supprimer ${name}`,
+  wDeleteGroup: "Supprimer la rangée d'enveloppes",
+  wDeleteGroupConfirm: (name, n) => `Supprimer « ${name} » avec ${n === 1 ? "son enveloppe" : `ses ${n} enveloppes`} et leurs dépenses ?\n\nVous pouvez annuler juste après.`,
+  wColor: "Couleur",
+  wColorNone: "Sans couleur",
   wPots: "Parts",
   wAddPot: "+ Ajouter une part",
   wNewPot: "Nouvelle part",
@@ -995,7 +1000,6 @@ export const fr: Translations = {
   wDateOutside: (from, to) => `La date est en dehors de la période de l'enveloppe, ${from} – ${to}.`,
   wAddAnyway: "Ajouter quand même",
   qAboutNow: (month) => `Les réponses portent sur ${month}, à partir d'aujourd'hui, pas sur le mois affiché.`,
-  protectedSavingsCategory: "Catégorie par défaut — ne peut pas être supprimée",
   backupReminder: "Sauvegardez vos données pour ne pas les perdre",
   backupReminderShort: "Sauvegarde conseillée",
   backupReminderExport: "Exporter maintenant",
@@ -1103,8 +1107,8 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Les enveloppes qui vont ensemble sont sur leur propre rangée, avec un nom modifiable : celles créées depuis Reste à vivre portent le nom du mois, et une nouvelle enveloppe commence sa propre rangée. Une dépense dans une enveloppe reçoit une date dans la période de l'enveloppe, et une date en dehors n'est prise qu'après confirmation",
     "À propos de l’app a un lien vers les licences des logiciels libres sur lesquels l’app repose. Les questions sur la confidentialité vont désormais à support@yourofflinebudget.com",
     "L'import de budget lit directement les fichiers Numbers (.numbers). L'import de budget et le Suivi lisent les PDF, par exemple un relevé bancaire ou un budget enregistré en PDF. Le fichier est lu sur votre appareil",
-    "Chaque ligne du budget peut recevoir une courte note avec 📝, 100 caractères au plus. Elle suit la ligne au mois suivant et se modifie dans chaque mois",
+    "Chaque ligne du budget et de l'Épargne peut recevoir une courte note avec 📝, 100 caractères au plus. Elle s'affiche sur la ligne, à côté du nom, suit au mois suivant et se modifie dans chaque mois",
     "Les enveloppes des semaines ont leur propre rangée, à part de l'enveloppe du mois. L'avalanche et la boule de neige ont un i qui les explique. Épargne a les mêmes cartes que Budget, les flèches près du mois sont centrées dans leurs cercles, et sous Reste figure la part des revenus qui part en dépenses",
-    "Une catégorie peut aussi être supprimée dans Personnalisé, dans ses réglages, et vous pouvez annuler aussitôt. Confidentialité ne parle plus que de l'app",
+    "Toutes les catégories peuvent être supprimées, dans l'Épargne aussi. Épargne dans le budget peut l'être dès qu'aucun objectif de Plan n'y est lié, sinon il est indiqué lesquels. Dans Personnalisé, Supprimer est dans les réglages de la catégorie, et enveloppes et budgets se suppriment directement dans la liste ou avec la croix de la carte. Une enveloppe peut avoir une couleur, et une enveloppe archivée reste en pâle au bout de sa rangée jusqu'à ce que vous la rameniez. Confidentialité ne parle plus que de l'app",
   ],
 };

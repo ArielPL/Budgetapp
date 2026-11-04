@@ -41,16 +41,13 @@ export const CATEGORY_ICONS = [
   '💡', '🏥', '💳', '🎮',
 ];
 
-// The four default savings categories — power the growth-chart lines and per-id
-// structure, so they must always exist and never be deletable.
-const DEFAULT_SAVINGS_IDS = ['sparkonto', 'isk', 'fonder', 'pension'] as const;
-
-// Categories that must never be deletable: the one wired to the Plan tab
-// (sparande) plus the four fixed savings defaults.
-const PROTECTED_CATEGORY_IDS = ['sparande', ...DEFAULT_SAVINGS_IDS] as const;
-
-export function isProtectedCategory(id: string): boolean {
-  return (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
+// Every category can be deleted (Ariel, 2026-11-04), the four default savings
+// categories too: the growth chart draws a line per category there is, and a
+// month without one simply has no line for it. The one exception is Sparande
+// while a goal in Plan is linked to a row in it — ensureGoalLinkedBudgetRows
+// would only make it again — so the user is told to undo the link first.
+export function isGoalLinkedCategory(id: string, goals: SavingsGoal[]): boolean {
+  return id === 'sparande' && goals.some(g => g.budgetRowId);
 }
 
 function makeId(): string {

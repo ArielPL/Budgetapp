@@ -107,7 +107,6 @@ export const SavingsCategoryList = ({ categories, onChange, onAddCategory, onDel
           category={cat}
           onChange={onChange}
           onDelete={onDeleteCategory}
-          protectedNote={t.protectedSavingsCategory}
           amountKind="balance"
           showZero={snapshotRecorded === true}
         />

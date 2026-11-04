@@ -3,7 +3,7 @@ import { isCollapsed, setCollapsedStored } from '../collapsed';
 import type { BudgetCategory, BudgetRow } from '../types';
 import { EditableAmount } from './EditableAmount';
 import { EditableLabel } from './EditableLabel';
-import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE, isProtectedCategory } from '../defaults';
+import { generateId, shownName, CATEGORY_ICONS, CATEGORY_PALETTE } from '../defaults';
 import { useLang, formatMoneyCompact } from '../i18n';
 import { categoryTotal } from '../metrics';
 import { RowPeriodPicker } from './RowPeriod';
@@ -18,8 +18,9 @@ interface Props {
    *  count as a recorded balance. Other consumers can ignore it. */
   onChange: (cat: BudgetCategory, amountEdited?: boolean) => void;
   onDelete?: (id: string) => void;
-  /** Note shown for protected categories; defaults to the Plan-linked message. */
-  protectedNote?: string;
+  /** Set when the category cannot be deleted, and why: Sparande while a goal
+   *  in Plan is linked to it. */
+  lockedNote?: string;
   /**
    * What the amounts on these rows MEAN.
    *
@@ -46,7 +47,7 @@ interface Props {
   showZero?: boolean;
 }
 
-export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, amountKind = 'flow', showZero }: Props) => {
+export const ExpenseCategory = ({ category, onChange, onDelete, lockedNote, amountKind = 'flow', showZero }: Props) => {
   const { t, lang, money, currency } = useLang();
   const [collapsed, setCollapsed] = useState(() => isCollapsed(category.id));
   const toggleCollapsed = () => {
@@ -57,7 +58,6 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
   /** The row whose note is being written, if any. */
   const [noteOpen, setNoteOpen] = useState<string | null>(null);
 
-  const protectedCat = isProtectedCategory(category.id);
 
   const updateAmount = (id: string, amount: number) => {
     onChange({ ...category, rows: category.rows.map(r => r.id === id ? { ...r, amount } : r) }, true);
@@ -184,8 +184,8 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
             </div>
           </div>
           <div className="cat-edit-actions">
-            {protectedCat ? (
-              <span className="cat-protected-note">{protectedNote ?? t.protectedCategory}</span>
+            {lockedNote ? (
+              <span className="cat-protected-note">{lockedNote}</span>
             ) : (
               onDelete && (
                 <button className="cat-delete-btn" onClick={handleDelete}>
@@ -205,7 +205,13 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
           <div className="rows">
             {category.rows.map(row => (
               <div key={row.id} className="budget-row">
-                <EditableLabel value={shownName(row, lang)} onChange={label => updateLabel(row.id, label)} />
+                {/* The note stands on the row, after its name (Ariel, 2026-11-04). */}
+                <span className="row-label-wrap">
+                  <EditableLabel value={shownName(row, lang)} onChange={label => updateLabel(row.id, label)} />
+                  <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                    onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
+                    onSave={note => updateNote(row.id, note)} />
+                </span>
                 <EditableAmount
                   value={row.amount}
                   onChange={val => updateAmount(row.id, val)}
@@ -217,8 +223,8 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                     the category ends at the same right edge — otherwise rows
                     with a delete button sat 34px to the left of the ones
                     without, and the column looked ragged. */}
-                {/* Budget rows only: a savings balance has neither a period
-                    nor a note. */}
+                {/* A savings balance has no period; its note button sits by
+                    the delete instead (Ariel, 2026-11-04). */}
                 {!isBalance && (
                   <span className="row-period-group">
                     <RowNoteButton row={row} label={shownName(row, lang)} open={noteOpen === row.id}
@@ -227,15 +233,16 @@ export const ExpenseCategory = ({ category, onChange, onDelete, protectedNote, a
                       onChange={p => updatePeriod(row.id, p)} />
                   </span>
                 )}
-                <span className="row-action">
+                <span className={`row-action${isBalance ? ' row-action-note' : ''}`}>
+                  {isBalance && (
+                    <RowNoteButton row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                      onToggle={() => setNoteOpen(o => (o === row.id ? null : row.id))} />
+                  )}
                   {/* Every row, the template's too: someone with no car or mortgage must
                       be able to remove them (tester, 2026-10-19). Undoable like any removal. */}
                   <button className="delete-btn" onClick={() => deleteRow(row.id)}
                     title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
                 </span>
-                {!isBalance && <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
-                  onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
-                  onSave={note => updateNote(row.id, note)} />}
               </div>
             ))}
           </div>

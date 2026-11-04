@@ -54,7 +54,12 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
       <div className="rows">
         {rows.map(row => (
           <div key={row.id} className="budget-row">
-            <EditableLabel value={shownName(row, lang)} onChange={label => updateLabel(row.id, label)} />
+            <span className="row-label-wrap">
+              <EditableLabel value={shownName(row, lang)} onChange={label => updateLabel(row.id, label)} />
+              <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
+                onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
+                onSave={note => updateNote(row.id, note)} />
+            </span>
             <EditableAmount
               value={row.amount}
               onChange={val => updateAmount(row.id, val)}
@@ -75,9 +80,6 @@ export const IncomeSection = ({ rows, onChange }: Props) => {
               <button className="delete-btn" onClick={() => deleteRow(row.id)}
                 title={t.deleteRow} aria-label={t.ariaDeleteRow(shownName(row, lang))}>×</button>
             </span>
-            <RowNoteLine row={row} label={shownName(row, lang)} open={noteOpen === row.id}
-              onOpen={() => setNoteOpen(row.id)} onClose={() => setNoteOpen(null)}
-              onSave={note => updateNote(row.id, note)} />
           </div>
         ))}
       </div>

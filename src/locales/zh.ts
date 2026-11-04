@@ -613,7 +613,7 @@ export const zh: Translations = {
     if (action === 'clearCustom') return `已清空 ${count} 个月的自定义金额`;
     if (action === 'refileRepair') return `已将 ${count} 条记录移到正确的月份`;
     if (action === 'resetCustom') return '自定义已重新开始';
-    if (action === 'deleteWallet') return "已删除一个信封";
+    if (action === 'deleteWallet') return count > 1 ? `已删除 ${count} 个信封` : "已删除一个信封";
     if (action === 'deleteCustomBudget') return '已删除一个预算';
     if (action === 'deleteWalletExpense') return "已从信封中删除一笔支出";
     if (action === 'createGoal') return '已创建一个储蓄目标';
@@ -793,7 +793,7 @@ export const zh: Translations = {
   categoryName: '分类名称',
   chooseIcon: '选择图标',
   chooseColor: '选择颜色',
-  protectedCategory: '已关联到「规划」——无法删除',
+  protectedCategory: (goals) => `已关联到「规划」中的目标：${goals}。在那里删除这些目标后，就可以删除这个类别。`,
   goalUnlinkedFromBudget: (goal) => `“${goal}”已不再关联到你的预算。目标会保留你已存下的金额。`,
   goalReached: (goal) => `🎉 你已达成目标“${goal}”！`,
   qTitle: '问问你的钱',
@@ -954,6 +954,11 @@ export const zh: Translations = {
   wDelete: "删除信封",
   wMore: (name) => `更多：${name}`,
   wDeleteConfirm: (name) => `删除“${name}”及其所有支出？\n\n删除后可以立即撤销。`,
+  wDeleteFromList: (name) => `删除${name}`,
+  wDeleteGroup: "删除这一行信封",
+  wDeleteGroupConfirm: (name, n) => `删除「${name}」及其${n === 1 ? "信封" : `全部 ${n} 个信封`}和支出吗？\n\n删除后可以立即撤销。`,
+  wColor: "颜色",
+  wColorNone: "无颜色",
   wPots: '分项',
   wAddPot: '+ 添加分项',
   wNewPot: '新分项',
@@ -982,7 +987,6 @@ export const zh: Translations = {
   wDateOutside: (from, to) => `日期不在信封的期间内（${from} – ${to}）。`,
   wAddAnyway: "仍然添加",
   qAboutNow: (month) => `答案针对的是以今天为准的${month}，而不是屏幕上显示的月份。`,
-  protectedSavingsCategory: '默认分类——无法删除',
   backupReminder: '备份你的数据，以免丢失',
   backupReminderShort: '建议备份',
   backupReminderExport: '立即导出',
@@ -1090,8 +1094,8 @@ export const zhChangelog113: { title: string; items: string[] } = {
     "一起创建的信封会排在自己的一行里，行名可以修改：从「可用生活费」创建的信封以月份命名，新建的信封会另起一行。信封中的支出默认使用信封期间内的日期，期间外的日期需确认后才会记录",
     "“关于应用”中新增了一个链接，可查看本应用所用自由软件的许可证。隐私相关问题现在请发送至 support@yourofflinebudget.com",
     "预算导入现在可以直接读取 Numbers 文件（.numbers）。预算导入和「收支跟踪」都能读取 PDF，例如银行账单或另存为 PDF 的预算。文件在你的设备上读取",
-    "预算的每一行都可以用 📝 加一条简短备注，最多 100 个字。备注会随这一行带到下个月，每个月都可以修改",
+    "预算和储蓄的每一行都可以用 📝 加一条简短备注，最多 100 个字。备注显示在这一行的名称旁边，会带到下个月，每个月都可以修改",
     "每周的信封单独放在一行，与当月的信封分开。雪崩法和雪球法旁边有一个说明它们的 i。储蓄使用与预算相同的卡片，月份旁的箭头位于圆圈正中，「剩余」下方显示收入中有多少用于支出",
-    "在「自定义」中也可以从类别设置里删除类别，并能立即撤销。隐私说明现在只讲应用本身",
+    "所有类别都可以删除，储蓄里的也可以。预算中的「储蓄」在没有「规划」目标与之关联时可以删除，否则会说明是哪些目标。在「自定义」中，删除在类别设置里；信封和预算可以直接在列表中或用卡片上的 × 删除。信封可以设置颜色，已归档的信封会淡显在所在行的末尾，直到你把它取回。隐私说明现在只讲应用本身",
   ],
 };

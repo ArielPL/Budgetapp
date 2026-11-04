@@ -617,7 +617,7 @@ export const de: Translations = {
     if (action === 'clearCustom') return count === 1 ? 'Beträge im individuellen Layout wurden in 1 Monat gelöscht' : `Beträge im individuellen Layout wurden in ${count} Monaten gelöscht`;
     if (action === 'refileRepair') return count === 1 ? '1 Eintrag wurde in den richtigen Monat verschoben' : `${count} Einträge wurden in den richtigen Monat verschoben`;
     if (action === 'resetCustom') return 'Das individuelle Layout wurde neu begonnen';
-    if (action === 'deleteWallet') return "Ein Umschlag wurde entfernt";
+    if (action === 'deleteWallet') return count > 1 ? `${count} Umschläge wurden entfernt` : "Ein Umschlag wurde entfernt";
     if (action === 'deleteCustomBudget') return 'Ein Budget wurde entfernt';
     if (action === 'deleteWalletExpense') return "Eine Ausgabe wurde aus einem Umschlag entfernt";
     if (action === 'createGoal') return 'Ein Sparziel wurde angelegt';
@@ -797,7 +797,7 @@ export const de: Translations = {
   categoryName: 'Name der Kategorie',
   chooseIcon: 'Symbol wählen',
   chooseColor: 'Farbe wählen',
-  protectedCategory: 'Mit dem Plan verknüpft – kann nicht gelöscht werden',
+  protectedCategory: (goals) => `Mit den Sparzielen ${goals} im Plan verknüpft. Lösche die Ziele dort, dann lässt sich die Kategorie löschen.`,
   goalUnlinkedFromBudget: (goal) => `„${goal}“ ist nicht mehr mit deinem Budget verknüpft. Das Ziel behält, was du gespart hast.`,
   goalReached: (goal) => `🎉 Du hast dein Ziel „${goal}“ erreicht!`,
   qTitle: 'Frag nach deinem Geld',
@@ -958,6 +958,11 @@ export const de: Translations = {
   wDelete: "Umschlag löschen",
   wMore: (name) => `Mehr zu ${name}`,
   wDeleteConfirm: (name) => `„${name}“ mit allen Ausgaben löschen?\n\nDu kannst es direkt danach rückgängig machen.`,
+  wDeleteFromList: (name) => `${name} löschen`,
+  wDeleteGroup: "Die Reihe mit Umschlägen löschen",
+  wDeleteGroupConfirm: (name, n) => `„${name}“ mit ${n === 1 ? "seinem Umschlag" : `allen ${n} Umschlägen`} und deren Ausgaben löschen?\n\nDu kannst es gleich danach rückgängig machen.`,
+  wColor: "Farbe",
+  wColorNone: "Keine Farbe",
   wPots: 'Töpfe',
   wAddPot: '+ Topf hinzufügen',
   wNewPot: 'Neuer Topf',
@@ -986,7 +991,6 @@ export const de: Translations = {
   wDateOutside: (from, to) => `Das Datum liegt außerhalb des Zeitraums des Umschlags, ${from} – ${to}.`,
   wAddAnyway: "Trotzdem hinzufügen",
   qAboutNow: (month) => `Die Antworten beziehen sich auf ${month}, gerechnet ab heute, nicht auf den angezeigten Monat.`,
-  protectedSavingsCategory: 'Standardkategorie – kann nicht gelöscht werden',
   backupReminder: 'Sichere deine Daten, damit du sie nicht verlierst',
   backupReminderShort: 'Sicherung empfohlen',
   backupReminderExport: 'Jetzt exportieren',
@@ -1094,8 +1098,8 @@ export const deChangelog113: { title: string; items: string[] } = {
     "Umschläge, die zusammengehören, stehen in einer eigenen Reihe mit einem Namen, den du ändern kannst: die aus Frei verfügbar heißen nach dem Monat, und ein neuer Umschlag beginnt eine eigene Reihe. Eine Ausgabe in einem Umschlag bekommt ein Datum im Zeitraum des Umschlags, ein Datum außerhalb erst nach Bestätigung",
     "Über die App hat einen Link zu den Lizenzen der freien Software, auf der die App aufbaut. Fragen zum Datenschutz gehen jetzt an support@yourofflinebudget.com",
     "Der Budgetimport liest Numbers-Dateien (.numbers) direkt. Budgetimport und Auswertung lesen PDF, etwa einen Kontoauszug der Bank oder ein als PDF gespeichertes Budget. Die Datei wird auf deinem Gerät gelesen",
-    "Jede Zeile im Budget kann mit 📝 eine kurze Notiz bekommen, höchstens 100 Zeichen. Sie geht mit der Zeile in den nächsten Monat und lässt sich in jedem Monat ändern",
+    "Jede Zeile im Budget und beim Sparen kann mit 📝 eine kurze Notiz bekommen, höchstens 100 Zeichen. Sie steht in der Zeile neben dem Namen, geht mit in den nächsten Monat und lässt sich in jedem Monat ändern",
     "Die Umschläge der Wochen stehen in einer eigenen Reihe, getrennt vom Umschlag des Monats. Die Lawine und der Schneeball haben ein i, das sie erklärt. Sparen hat dieselben Kacheln wie Budget, die Pfeile neben dem Monat sitzen mittig in ihren Kreisen, und unter Übrig steht, welcher Teil der Einnahmen in Ausgaben fließt",
-    "Eine Kategorie lässt sich auch in Individuell löschen, in den Einstellungen der Kategorie, und du kannst es sofort rückgängig machen. Datenschutz handelt jetzt nur von der App",
+    "Jede Kategorie lässt sich löschen, auch beim Sparen. Sparen im Budget lässt sich löschen, sobald kein Sparziel im Plan damit verknüpft ist, sonst steht da, welche Ziele es sind. In Individuell ist Löschen in den Einstellungen der Kategorie, und Umschläge und Budgets löschst du direkt in der Liste oder mit dem Kreuz auf der Karte. Ein Umschlag kann eine Farbe haben, und ein archivierter steht blass am Ende seiner Reihe, bis du ihn zurückholst. Datenschutz handelt jetzt nur von der App",
   ],
 };

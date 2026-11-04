@@ -613,7 +613,7 @@ export const ja: Translations = {
     if (action === 'clearCustom') return `${count}か月分のカスタムの金額を消去しました`;
     if (action === 'refileRepair') return `${count}件の明細を正しい月に移動しました`;
     if (action === 'resetCustom') return 'カスタムをやり直しました';
-    if (action === 'deleteWallet') return "封筒を削除しました";
+    if (action === 'deleteWallet') return count > 1 ? `封筒を${count}つ削除しました` : "封筒を削除しました";
     if (action === 'deleteCustomBudget') return '予算を削除しました';
     if (action === 'deleteWalletExpense') return "封筒から支出を削除しました";
     if (action === 'createGoal') return '貯蓄目標を作成しました';
@@ -793,7 +793,7 @@ export const ja: Translations = {
   categoryName: 'カテゴリ名',
   chooseIcon: 'アイコンを選択',
   chooseColor: '色を選択',
-  protectedCategory: '「計画」と連動しているため削除できません',
+  protectedCategory: (goals) => `「計画」の目標（${goals}）と連動しています。そこで目標を削除すると、このカテゴリを削除できます。`,
   goalUnlinkedFromBudget: (goal) => `「${goal}」は予算と連動しなくなりました。目標にはこれまでの貯蓄額が残ります。`,
   goalReached: (goal) => `🎉 目標「${goal}」を達成しました！`,
   qTitle: 'お金について質問する',
@@ -954,6 +954,11 @@ export const ja: Translations = {
   wDelete: "封筒を削除",
   wMore: (name) => `${name}のその他`,
   wDeleteConfirm: (name) => `「${name}」とそのすべての支出を削除しますか？\n\n直後なら元に戻せます。`,
+  wDeleteFromList: (name) => `${name}を削除`,
+  wDeleteGroup: "封筒の列を削除",
+  wDeleteGroupConfirm: (name, n) => `「${name}」を${n === 1 ? "封筒" : `${n}つの封筒`}と支出ごと削除しますか？\n\nすぐあとで元に戻せます。`,
+  wColor: "色",
+  wColorNone: "色なし",
   wPots: '内訳',
   wAddPot: '+ 内訳を追加',
   wNewPot: '新しい内訳',
@@ -982,7 +987,6 @@ export const ja: Translations = {
   wDateOutside: (from, to) => `日付が封筒の期間（${from}〜${to}）の外です。`,
   wAddAnyway: "このまま追加",
   qAboutNow: (month) => `回答は今日を基準にした${month}についてで、表示中の月ではありません。`,
-  protectedSavingsCategory: '既定のカテゴリのため削除できません',
   backupReminder: 'データを失わないよう、バックアップを取りましょう',
   backupReminderShort: 'バックアップ推奨',
   backupReminderExport: '今すぐエクスポート',
@@ -1090,8 +1094,8 @@ export const jaChangelog113: { title: string; items: string[] } = {
     "まとめて作った封筒は、名前を変えられる独自の列に並ぶようになりました。「使えるお金」から作った封筒は月の名前になり、新しい封筒は独自の列を作ります。封筒の支出には封筒の期間内の日付が入り、期間外の日付は確認してから記録されます",
     "「このアプリについて」から、アプリが使っているフリーソフトウェアのライセンスを見られるようになりました。プライバシーに関する質問の宛先は support@yourofflinebudget.com になりました",
     "予算の取り込みで Numbers ファイル（.numbers）を直接読み込めるようになりました。予算の取り込みと「実績」は PDF も読み込めます。銀行の明細や PDF で保存した予算などです。ファイルは端末上で読み込まれます",
-    "予算の各行に 📝 で短いメモ（100文字まで）を付けられます。メモは行と一緒に翌月へ引き継がれ、月ごとに変更できます",
+    "予算と貯蓄の各行に 📝 で短いメモ（100文字まで）を付けられます。メモは行の名前の横に表示され、翌月へ引き継がれ、月ごとに変更できます",
     "週ごとの封筒は月の封筒とは別の列に並びます。アバランチ方式とスノーボール方式には説明の i が付きました。貯蓄は予算と同じカードになり、月の横の矢印は円の中央に収まり、「残り」の下には収入のうち支出に回る割合が表示されます",
-    "カスタムでもカテゴリの設定からカテゴリを削除でき、すぐに元に戻せます。プライバシーはアプリについてだけの内容になりました",
+    "カテゴリはすべて削除できます。貯蓄タブのものも同様です。予算の「貯蓄」は、「計画」の目標が連動していなければ削除でき、連動している場合はどの目標かが表示されます。カスタムではカテゴリの設定に削除があり、封筒や予算は一覧から、またはカードの × から直接削除できます。封筒には色を付けられ、アーカイブした封筒は戻すまで列の最後に薄く表示されます。プライバシーはアプリについてだけの内容になりました",
   ],
 };

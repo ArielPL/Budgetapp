@@ -101,3 +101,52 @@ describe('the rest of the list', () => {
     expect(cards.map(c => c.classList.contains('savings-pension-card'))).toEqual([false, false, true]);
   });
 });
+
+describe('deleting categories, and envelopes from the list (Ariel, 2026-11-04, second round)', () => {
+  const withSavings = () => {
+    const m = {
+      ...month,
+      expenses: [...month.expenses, { id: 'sparande', name: 'Sparande', icon: '💰', color: '#10b981', rows: [{ id: 'goal-row', label: 'Buffert', amount: 1000 }] }],
+      savings: [{ id: 'sparkonto', name: 'Sparkonto', icon: '🏦', color: '#22d3ee', rows: [{ id: 's1', label: 'Huvudkonto', amount: 5000 }] }],
+    };
+    localStorage.setItem('budget_2026_9', JSON.stringify(m));
+  };
+
+  it('a default savings category can be deleted', async () => {
+    withSavings();
+    render(<App />);
+    tab(sv.tabSavings);
+    await waitFor(() => expect(document.querySelector('.savings-summary')).not.toBeNull());
+    const section = [...document.querySelectorAll('.expense-section')].find(s => s.textContent?.includes('Sparkonto'))!;
+    fireEvent.click(section.querySelector('.cat-edit-btn')!);
+    fireEvent.click(section.querySelector('.cat-delete-btn')!);
+    await waitFor(() => expect(stored('budget_2026_9').savings).toEqual([]));
+  });
+
+  it('Sparande can be deleted with no goal linked, and says which goals hold it otherwise', async () => {
+    withSavings();
+    localStorage.setItem('budget_plan', JSON.stringify({
+      goals: [{ id: 'g', name: 'Buffert', target: 10000, saved: 0, budgetRowId: 'goal-row', color: '#10b981' }], notes: '',
+    }));
+    render(<App />);
+    const sparande = () => [...document.querySelectorAll('.expense-section')].find(s => s.querySelector('.section-title')?.textContent === 'Sparande')!;
+    await waitFor(() => expect(sparande()).toBeTruthy());
+    fireEvent.click(sparande().querySelector('.cat-edit-btn')!);
+    expect(sparande().querySelector('.cat-delete-btn')).toBeNull();
+    expect(sparande().querySelector('.cat-protected-note')?.textContent).toBe(sv.protectedCategory('Buffert'));
+    cleanup();
+    localStorage.setItem('budget_plan', JSON.stringify({ goals: [], notes: '' }));
+    render(<App />);
+    await waitFor(() => expect(sparande()).toBeTruthy());
+    fireEvent.click(sparande().querySelector('.cat-edit-btn')!);
+    fireEvent.click(sparande().querySelector('.cat-delete-btn')!);
+    await waitFor(() => expect(stored('budget_2026_9').expenses.map((c: { id: string }) => c.id)).toEqual(['boende']));
+  });
+
+  it('an envelope keeps a colour from the palette, and nothing else', async () => {
+    const { isWallet } = await import('./wallets');
+    const w = { id: 'w', name: 'Resa', kind: 'blank', total: 100, pots: [], expenses: [] };
+    expect(isWallet({ ...w, color: '#10b981' })).toBe(true);
+    expect(isWallet({ ...w, color: 'red; background:url(x)' })).toBe(false);
+  });
+});

@@ -617,7 +617,7 @@ export const it: Translations = {
     if (action === 'clearCustom') return count === 1 ? "Gli importi di Personalizzata sono stati cancellati da 1 mese" : `Gli importi di Personalizzata sono stati cancellati da ${count} mesi`;
     if (action === 'refileRepair') return count === 1 ? "1 movimento è stato spostato nel mese giusto" : `${count} movimenti sono stati spostati nel mese giusto`;
     if (action === 'resetCustom') return "Personalizzata è stata ricominciata da capo";
-    if (action === 'deleteWallet') return "Una busta è stata rimossa";
+    if (action === 'deleteWallet') return count > 1 ? `Sono state rimosse ${count} buste` : "Una busta è stata rimossa";
     if (action === 'deleteCustomBudget') return 'Un budget è stato eliminato';
     if (action === 'deleteWalletExpense') return "Una spesa è stata rimossa da una busta";
     if (action === 'createGoal') return "È stato creato un obiettivo di risparmio";
@@ -797,7 +797,7 @@ export const it: Translations = {
   categoryName: "Nome della categoria",
   chooseIcon: "Scegli un'icona",
   chooseColor: "Scegli un colore",
-  protectedCategory: "Collegata a Piano: non si può eliminare",
+  protectedCategory: (goals) => `Collegata agli obiettivi ${goals} in Piano. Elimina lì gli obiettivi e potrai eliminare la categoria.`,
   goalUnlinkedFromBudget: (goal) => `«${goal}» non è più collegato al tuo budget. L'obiettivo conserva ciò che hai risparmiato.`,
   goalReached: (goal) => `🎉 Hai raggiunto il tuo obiettivo «${goal}»`,
   qTitle: "Chiedi dei tuoi soldi",
@@ -958,6 +958,11 @@ export const it: Translations = {
   wDelete: "Elimina busta",
   wMore: (name) => `Altro su ${name}`,
   wDeleteConfirm: (name) => `Eliminare «${name}» e tutte le sue spese?\n\nPuoi annullare subito dopo.`,
+  wDeleteFromList: (name) => `Elimina ${name}`,
+  wDeleteGroup: "Elimina la fila di buste",
+  wDeleteGroupConfirm: (name, n) => `Eliminare «${name}» con ${n === 1 ? "la sua busta" : `tutte le ${n} buste`} e le loro spese?\n\nPuoi annullare subito dopo.`,
+  wColor: "Colore",
+  wColorNone: "Nessun colore",
   wPots: "Parti",
   wAddPot: "+ Aggiungi parte",
   wNewPot: "Nuova parte",
@@ -986,7 +991,6 @@ export const it: Translations = {
   wDateOutside: (from, to) => `La data è fuori dal periodo della busta, ${from} – ${to}.`,
   wAddAnyway: "Aggiungi comunque",
   qAboutNow: (month) => `Le risposte riguardano ${month}, contando da oggi, non il mese sullo schermo.`,
-  protectedSavingsCategory: "Categoria predefinita: non si può eliminare",
   backupReminder: "Fai un backup dei tuoi dati per non perderli",
   backupReminderShort: "Backup consigliato",
   backupReminderExport: "Esporta ora",
@@ -1094,8 +1098,8 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Le buste che vanno insieme stanno in una fila propria, con un nome che puoi cambiare: quelle create da Rimane per vivere prendono il nome del mese, e una nuova busta inizia una fila tutta sua. Una spesa in una busta riceve una data nel periodo della busta, e una data fuori viene accettata solo dopo conferma",
     "Informazioni sull’app ha un link alle licenze del software libero su cui si basa l’app. Le domande sulla privacy vanno ora a support@yourofflinebudget.com",
     "L'importazione del budget legge direttamente i file Numbers (.numbers). L'importazione del budget e il Monitoraggio leggono i PDF, per esempio un estratto conto o un budget salvato in PDF. Il file viene letto sul tuo dispositivo",
-    "Ogni riga del budget può avere una nota breve con 📝, al massimo 100 caratteri. Passa con la riga al mese successivo e si può cambiare in ogni mese",
+    "Ogni riga del budget e dei Risparmi può avere una nota breve con 📝, al massimo 100 caratteri. Compare sulla riga accanto al nome, passa al mese successivo e si può cambiare in ogni mese",
     "Le buste delle settimane hanno una fila propria, separata dalla busta del mese. La valanga e la palla di neve hanno una i che le spiega. Risparmi ha le stesse schede di Budget, le frecce accanto al mese sono centrate nei loro cerchi, e sotto Rimanente si vede quanta parte delle entrate va in spese",
-    "Una categoria si può eliminare anche in Personalizzata, nelle impostazioni della categoria, e puoi annullare subito. Privacy ora parla solo dell'app",
+    "Tutte le categorie si possono eliminare, anche nei Risparmi. Risparmio nel budget si può eliminare quando nessun obiettivo di Piano vi è collegato; altrimenti viene detto quali. In Personalizzata, Elimina è nelle impostazioni della categoria, e buste e budget si eliminano direttamente dall'elenco o con la croce sulla scheda. Una busta può avere un colore, e una archiviata resta sbiadita in fondo alla sua fila finché non la riprendi. Privacy ora parla solo dell'app",
   ],
 };

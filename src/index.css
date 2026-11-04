@@ -1774,6 +1774,9 @@ a:focus-visible,
   display: flex;
   justify-content: flex-end;
 }
+/* A savings row's slot holds its note button too. Every row in a savings
+   category has both, so the amounts still end on one edge. */
+.budget-row .row-action.row-action-note { flex: 0 0 auto; align-items: center; gap: 6px; }
 
 .delete-btn {
   width: 22px;
@@ -3828,8 +3831,7 @@ a:focus-visible,
   min-width: 0;
 }
 /* A row's note (2026-11-04): a small button beside the period, faint until
-   the row has a note, and the note itself on its own line under the row. */
-.budget-row { flex-wrap: wrap; }
+   the row has a note, and the note itself on the row, after its name. */
 .row-note-btn {
   width: 30px;
   height: 30px;
@@ -3845,22 +3847,36 @@ a:focus-visible,
 @media (hover: hover) {
   .row-note-btn:hover { opacity: 0.85; background: var(--surface2); }
 }
+.row-label-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+}
+.row-label-wrap > .row-label { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.row-label-wrap > .label-input { flex: 1; min-width: 0; }
 .row-note-line {
-  order: 5;
-  flex: 1 0 100%;
+  /* Beside the name while there is room for a few words of it; on a narrow
+     phone it goes under the name instead, still left of the amount. */
+  flex: 1 1 7em;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 .row-note-text {
-  padding: 0 0 2px;
+  display: block;
+  padding: 0;
   text-align: left;
   font-size: 0.8rem;
   font-style: italic;
   line-height: 1.4;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .row-note-input {
   flex: 1;
@@ -6362,6 +6378,52 @@ html.guide-side body { padding-right: 380px; }
 }
 .wallet-more-item:hover { background: var(--surface2); }
 .wallet-more-item.wallet-danger { color: var(--negative); }
+/* Delete straight from the list and from a column's head (2026-11-04): a
+   small round ×, the same as a budget row's. */
+.wallet-switch-list li { display: flex; align-items: center; gap: 4px; }
+.wallet-switch-list li > .wallet-switch-row { flex: 1; min-width: 0; }
+.wallet-switch-del,
+.wallet-col-del {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--negative) 65%, var(--text));
+  background: rgba(239, 68, 68, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.wallet-switch-del:hover,
+.wallet-col-del:hover { background: rgba(239, 68, 68, 0.18); }
+/* The colours, in the ⋯ menu: "none" first, then the palette. */
+.wallet-more-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0.4rem 0.65rem 0.55rem;
+  /* Seven to a line: "none" and six, then the other six. */
+  max-width: 13.5rem;
+}
+.wallet-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+.wallet-color-swatch.selected { border-color: var(--text); }
+.wallet-color-swatch.is-none {
+  background: var(--surface2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+/* A coloured envelope: its colour along the top, and a wash of it behind
+   "Left", so it can be told apart in a row of four. */
+.wallet.has-color { border-top: 4px solid var(--env-color); }
+.wallet.has-color .wallet-hero { background: color-mix(in srgb, var(--env-color) 14%, var(--surface2)); }
+/* Archived: still in its row, last, and quieter, until it is brought back. */
+.wallet.is-archived { opacity: 0.6; }
 .wallet-plus {
   flex: 0 0 8rem;
   display: flex;

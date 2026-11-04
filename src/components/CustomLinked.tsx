@@ -7,7 +7,7 @@ import { useModalFocus } from '../useModalFocus';
 import { appStorage } from '../storage';
 import { safeSetItem, commitStorageChangesOutcome } from '../storageWrite';
 import { captureKeys, type UndoEntry } from '../undo';
-import { shownName, loadMonthData, generateId, createCategory, storageKey, isProtectedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
+import { shownName, loadMonthData, generateId, createCategory, storageKey, isGoalLinkedCategory, CATEGORY_PALETTE, CATEGORY_ICONS } from '../defaults';
 import { loadActuals, actualsKey, INCOME_ACTUAL_ID } from '../actuals';
 import { recursNextMonth } from '../metrics';
 import type { PeriodLocks } from '../periodLabel';
@@ -590,7 +590,7 @@ export const CustomLinked = ({
             patchLayout(cfgLinked.id, keep);
           }}
           onSetNoteScope={(scope) => setNoteScope(cfgLinked.id, scope)} monthLabel={monthLabel}
-          onDeleteCategory={cfgLinked.source.kind === 'category' && !isProtectedCategory(cfgLinked.source.id)
+          onDeleteCategory={cfgLinked.source.kind === 'category' && !isGoalLinkedCategory(cfgLinked.source.id, goals)
             ? () => deleteCategory(cfgLinked.id) : undefined}
           onClose={() => setConfigFor(null)} t={t} />
       )}

@@ -1096,7 +1096,8 @@ export interface Translations {
   categoryName: string;
   chooseIcon: string;
   chooseColor: string;
-  protectedCategory: string;
+  /** Why Sparande cannot be deleted: the goals in Plan linked to it. */
+  protectedCategory: (goals: string) => string;
   /** Confirmation that removing a goal's budget row unlinked the goal — the row
    *  will not reappear, and the goal keeps the progress it already has. */
   goalUnlinkedFromBudget: (goal: string) => string;
@@ -1266,6 +1267,13 @@ export interface Translations {
   /** The ⋯ button on a wallet column, which holds Edit, Archive and Delete. */
   wMore: (name: string) => string;
   wDeleteConfirm: (name: string) => string;
+  /** Straight from the panel list and the column card (2026-11-04). */
+  wDeleteFromList: (name: string) => string;
+  wDeleteGroup: string;
+  wDeleteGroupConfirm: (name: string, count: number) => string;
+  /** The envelope's colour, from the palette, in its ⋯ menu. */
+  wColor: string;
+  wColorNone: string;
   wPots: string;
   wAddPot: string;
   wNewPot: string;
@@ -1300,7 +1308,6 @@ export interface Translations {
   wAddAnyway: string;
   /** The questions are about today's month, said when another is on screen. */
   qAboutNow: (month: string) => string;
-  protectedSavingsCategory: string;
   // Backup reminder
   backupReminder: string;
   backupReminderShort: string;
@@ -1963,7 +1970,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Beloppen i Anpassad rensades i 1 månad' : `Beloppen i Anpassad rensades i ${count} månader`;
       if (action === 'refileRepair') return count === 1 ? '1 post flyttades till rätt månad' : `${count} poster flyttades till rätt månad`;
       if (action === 'resetCustom') return 'Anpassad började om från början';
-      if (action === 'deleteWallet') return "Ett kuvert togs bort";
+      if (action === 'deleteWallet') return count > 1 ? `${count} kuvert togs bort` : "Ett kuvert togs bort";
       if (action === 'deleteCustomBudget') return 'En budget togs bort';
       if (action === 'deleteWalletExpense') return "En utgift togs bort ur ett kuvert";
       if (action === 'createGoal') return 'Ett sparmål skapades';
@@ -2144,7 +2151,7 @@ export const translations: Record<Lang, Translations> = {
     categoryName: 'Kategorinamn',
     chooseIcon: 'Välj ikon',
     chooseColor: 'Välj färg',
-    protectedCategory: 'Kopplad till Plan — kan inte tas bort',
+    protectedCategory: (goals) => `Kopplad till sparmålen ${goals} i Plan. Ta bort målen där, så går kategorin att ta bort.`,
     goalUnlinkedFromBudget: (goal) => `"${goal}" är inte längre kopplat till budgeten. Målet behåller det du sparat.`,
     goalReached: (goal) => `🎉 Du har nått målet "${goal}"!`,
     qTitle: 'Fråga om din ekonomi',
@@ -2305,6 +2312,11 @@ export const translations: Record<Lang, Translations> = {
     wDelete: "Ta bort kuvertet",
     wMore: (name) => `Mer om ${name}`,
     wDeleteConfirm: (name) => `Ta bort "${name}" med alla utgifter?\n\nDu kan ångra det direkt efteråt.`,
+    wDeleteFromList: (name) => `Ta bort ${name}`,
+    wDeleteGroup: "Ta bort raden med kuvert",
+    wDeleteGroupConfirm: (name, n) => `Ta bort ”${name}” med ${n === 1 ? "sitt kuvert" : `alla ${n} kuvert`} och deras utgifter?\n\nDu kan ångra det direkt efteråt.`,
+    wColor: "Färg",
+    wColorNone: "Ingen färg",
     wPots: 'Delar',
     wAddPot: '+ Lägg till del',
     wNewPot: 'Ny del',
@@ -2333,7 +2345,6 @@ export const translations: Record<Lang, Translations> = {
     wDateOutside: (from, to) => `Datumet ligger utanför kuvertets period, ${from} – ${to}.`,
     wAddAnyway: "Lägg till ändå",
     qAboutNow: (month) => `Svaren gäller ${month}, räknat från i dag, inte månaden du tittar på.`,
-    protectedSavingsCategory: 'Standardkategori — kan inte tas bort',
     backupReminder: 'Säkerhetskopiera dina data så du inte förlorar dem',
     backupReminderShort: 'Backup rekommenderas',
     backupReminderExport: 'Exportera nu',
@@ -3003,7 +3014,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Custom amounts were cleared from 1 month' : `Custom amounts were cleared from ${count} months`;
       if (action === 'refileRepair') return count === 1 ? '1 entry was moved to the right month' : `${count} entries were moved to the right month`;
       if (action === 'resetCustom') return 'Custom was started over';
-      if (action === 'deleteWallet') return "An envelope was removed";
+      if (action === 'deleteWallet') return count > 1 ? `${count} envelopes were removed` : "An envelope was removed";
       if (action === 'deleteCustomBudget') return 'A budget was removed';
       if (action === 'deleteWalletExpense') return "An expense was removed from an envelope";
       if (action === 'createGoal') return 'A savings goal was created';
@@ -3183,7 +3194,7 @@ export const translations: Record<Lang, Translations> = {
     categoryName: 'Category name',
     chooseIcon: 'Choose icon',
     chooseColor: 'Choose color',
-    protectedCategory: 'Linked to Plan — cannot be deleted',
+    protectedCategory: (goals) => `Linked to the goals ${goals} in Plan. Delete those goals there, and the category can be deleted.`,
     goalUnlinkedFromBudget: (goal) => `"${goal}" is no longer linked to your budget. The goal keeps what you've saved.`,
     goalReached: (goal) => `🎉 You've reached your goal "${goal}"!`,
     qTitle: 'Ask about your money',
@@ -3344,6 +3355,11 @@ export const translations: Record<Lang, Translations> = {
     wDelete: "Delete envelope",
     wMore: (name) => `More about ${name}`,
     wDeleteConfirm: (name) => `Delete "${name}" and all its expenses?\n\nYou can undo it straight after.`,
+    wDeleteFromList: (name) => `Delete ${name}`,
+    wDeleteGroup: "Delete the row of envelopes",
+    wDeleteGroupConfirm: (name, n) => `Delete “${name}” with ${n === 1 ? "its envelope" : `all ${n} envelopes`} and their expenses?\n\nYou can undo it straight after.`,
+    wColor: "Colour",
+    wColorNone: "No colour",
     wPots: 'Parts',
     wAddPot: '+ Add part',
     wNewPot: 'New part',
@@ -3372,7 +3388,6 @@ export const translations: Record<Lang, Translations> = {
     wDateOutside: (from, to) => `The date is outside the envelope's period, ${from} – ${to}.`,
     wAddAnyway: "Add anyway",
     qAboutNow: (month) => `The answers are about ${month}, counted from today, not the month on screen.`,
-    protectedSavingsCategory: 'Default category — cannot be deleted',
     backupReminder: "Back up your data so you don't lose it",
     backupReminderShort: 'Backup recommended',
     backupReminderExport: 'Export now',
@@ -4042,7 +4057,7 @@ export const translations: Record<Lang, Translations> = {
       if (action === 'clearCustom') return count === 1 ? 'Se borraron los importes de Personalizado de 1 mes' : `Se borraron los importes de Personalizado de ${count} meses`;
       if (action === 'refileRepair') return count === 1 ? 'Se movió 1 movimiento al mes correcto' : `Se movieron ${count} movimientos al mes correcto`;
       if (action === 'resetCustom') return 'Personalizado empezó de nuevo';
-      if (action === 'deleteWallet') return "Se eliminó un sobre";
+      if (action === 'deleteWallet') return count > 1 ? `Se eliminaron ${count} sobres` : "Se eliminó un sobre";
       if (action === 'deleteCustomBudget') return 'Se eliminó un presupuesto';
       if (action === 'deleteWalletExpense') return "Se eliminó un gasto de un sobre";
       if (action === 'createGoal') return 'Se creó una meta de ahorro';
@@ -4222,7 +4237,7 @@ export const translations: Record<Lang, Translations> = {
     categoryName: 'Nombre de la categoría',
     chooseIcon: 'Elegir icono',
     chooseColor: 'Elegir color',
-    protectedCategory: 'Vinculada al Plan — no se puede eliminar',
+    protectedCategory: (goals) => `Vinculada a las metas ${goals} del Plan. Elimina esas metas allí y podrás eliminar la categoría.`,
     goalUnlinkedFromBudget: (goal) => `"${goal}" ya no está vinculada a tu presupuesto. La meta conserva lo que has ahorrado.`,
     goalReached: (goal) => `🎉 ¡Has alcanzado tu meta "${goal}"!`,
     qTitle: 'Pregunta sobre tu economía',
@@ -4383,6 +4398,11 @@ export const translations: Record<Lang, Translations> = {
     wDelete: "Eliminar sobre",
     wMore: (name) => `Más sobre ${name}`,
     wDeleteConfirm: (name) => `¿Eliminar "${name}" con todos sus gastos?\n\nPuedes deshacerlo justo después.`,
+    wDeleteFromList: (name) => `Eliminar ${name}`,
+    wDeleteGroup: "Eliminar la fila de sobres",
+    wDeleteGroupConfirm: (name, n) => `¿Eliminar «${name}» con ${n === 1 ? "su sobre" : `sus ${n} sobres`} y sus gastos?\n\nPuedes deshacerlo justo después.`,
+    wColor: "Color",
+    wColorNone: "Sin color",
     wPots: 'Partes',
     wAddPot: '+ Añadir parte',
     wNewPot: 'Nueva parte',
@@ -4411,7 +4431,6 @@ export const translations: Record<Lang, Translations> = {
     wDateOutside: (from, to) => `La fecha está fuera del periodo del sobre, ${from} – ${to}.`,
     wAddAnyway: "Añadir igualmente",
     qAboutNow: (month) => `Las respuestas se refieren a ${month}, contando desde hoy, no al mes en pantalla.`,
-    protectedSavingsCategory: 'Categoría predeterminada — no se puede eliminar',
     backupReminder: 'Haz una copia de seguridad de tus datos para no perderlos',
     backupReminderShort: 'Copia de seguridad recomendada',
     backupReminderExport: 'Exportar ahora',
