@@ -2,7 +2,7 @@ import type { Guide } from './types';
 
 export const ptGuide: Guide = {
   title: 'Comece aqui',
-  intro: 'Tudo o que há no app, parte por parte. Abra o que você quiser conhecer melhor. Você encontra este guia aqui e no topo do menu.',
+  intro: 'Tudo o que há no app, passo a passo. Abra o que você quiser conhecer melhor. Você encontra este guia aqui e no topo do menu.',
   close: 'Fechar',
   showMe: 'Mostre-me no app:',
   backToGuide: 'Voltar ao guia',
@@ -38,7 +38,7 @@ export const ptGuide: Guide = {
       body: [
         'O app ajuda você a planejar o mês e a ver o que realmente aconteceu. Tudo fica salvo no seu dispositivo. Não é preciso criar conta.',
         '## Como começar',
-        '1. Abra a aba Orçamento e escolha Usar modelo de orçamento. Você recebe categorias prontas: renda, moradia, alimentação, transporte, poupança e outras. Se preferir montar tudo você mesmo, escolha Começar com um orçamento vazio. Já tem um orçamento no Excel, Google Planilhas, Numbers ou Word? Você pode importá-lo.',
+        '1. Abra a aba Orçamento e escolha Usar modelo de orçamento. Você recebe categorias prontas: renda, moradia, alimentação, transporte, poupança e outras. Se preferir montar tudo você mesmo, escolha Começar com um orçamento vazio. Já tem um orçamento no Excel, Google Planilhas, Numbers (da Apple) ou Word? Você pode importá-lo.',
         '2. Digite seu salário em Renda. Toque em um valor para mudá-lo.',
         '3. Preencha seus custos fixos: aluguel, luz, seguros, assinaturas e empréstimos.',
         '4. Adicione em Poupança o que você quer poupar por mês.',
@@ -159,7 +159,7 @@ export const ptGuide: Guide = {
         'Período de pagamento: faça o mês começar no dia do pagamento no Acompanhamento.',
         'Envelopes: pequenos orçamentos próprios, para o mercado, uma viagem ou uma reforma, por exemplo. Eles não afetam o seu orçamento normal.',
         'Copiar orçamento: para o próximo mês ou para todos os meses restantes. Trazer do mês anterior faz o mesmo no sentido contrário.',
-        'Importar orçamento de um arquivo: traga um orçamento que você já tem, do Excel, Google Planilhas, Numbers ou de uma tabela no Word (.docx).',
+        'Importar orçamento de um arquivo: traga um orçamento que você já tem, do Excel, Google Planilhas, Numbers (da Apple) ou de uma tabela no Word (.docx).',
         'Redefinir mês: limpa o orçamento do mês que você está vendo. Dá para desfazer.',
         '## Outros',
         'Novidades mostra o que há de novo no app. Privacidade e Sobre o app explicam como o app trata seus dados e por que ele existe.',

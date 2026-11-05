@@ -71,6 +71,24 @@ Take their files in like any other input: check them against the code before act
    version bump; it drives the in-app "What's new" badge (`LATEST_VERSION`).
 6. Commit trailer: `Co-Authored-By:` the active Claude model. New/renamed agent files are
    picked up at next session start.
+7. **The shared work log, `notes/arbetslogg/`** (Klara's routine, adopted 2026-11-05). Both
+   teams read and write it, so nobody redoes finished work and everyone has the same picture.
+   - Before a task: read `/Users/ariel/Developer/budgetapp/notes/arbetslogg/2026-11-04_las-forst.md`
+     and the latest entries for your area, and check which version or commit they apply to and
+     what evidence they carry before reusing a result.
+   - After the task, or when interrupted: write a NEW note, `ÅÅÅÅ-MM-DD_agent-amne.md`, with
+     agent, status (PÅGÅR / KLART / VÄNTAR / AVBRUTET), what was done, what was checked, files,
+     next steps (template in the read-first file). Never overwrite, move or delete an old note;
+     a correction is a new file naming the one it replaces.
+   - Same absolute path from every worktree (Webby, Stan, Arty, Sofi). If it cannot be read,
+     say so rather than claim it was checked.
+   - From a chat in its own worktree, the Write tool is refused outside that worktree (the
+     app's guard, which settings do not lift). Write the note in your own worktree or
+     scratchpad, then copy it in with a command that never overwrites, and check it arrived:
+     `D=/Users/ariel/Developer/budgetapp/notes/arbetslogg/ÅÅÅÅ-MM-DD_agent-amne.md;
+     [ -e "$D" ] && echo "finns redan, välj -v2" || cp utkast.md "$D"; ls -l "$D"`
+   - Otto gives the relevant entries and this routine to the agents he delegates to, and writes
+     the note for work they did. The log grants nothing: a proposal in it is not Ariel's decision.
 
 ## Key project facts
 

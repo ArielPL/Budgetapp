@@ -75,7 +75,7 @@ export const pt: Translations = {
   bimTitle: 'Importar orçamento',
   bimMenu: '📥 Importar orçamento de um arquivo',
   bimHeroButton: '📥 Importar orçamento',
-  bimLead: "Já tem um orçamento no Excel, Planilhas Google, Numbers ou Word? Escolha o arquivo (.xlsx, .numbers, .docx, PDF ou CSV) ou selecione as células e cole aqui.",
+  bimLead: "Já tem um orçamento no Excel, Planilhas Google, Numbers (da Apple) ou Word? Escolha o arquivo (.xlsx, .numbers, .docx, PDF ou CSV) ou selecione as células e cole aqui.",
   bimPick: 'Escolher arquivo',
   bimPasteLabel: 'Ou cole as células',
   bimPastePlaceholder: 'Aluguel\t1200\nMercado\t400',
@@ -323,7 +323,7 @@ export const pt: Translations = {
     {
       emoji: '✏️',
       title: 'Monte o orçamento do mês',
-      body: 'Comece com um modelo ou uma planilha vazia. Digite a renda e os gastos que você sabe que vêm por aí. Alguns minutos, uma vez por mês.',
+      body: 'Comece com um modelo ou uma planilha vazia. Digite a renda e os gastos que você sabe que vêm por aí. Atualize uma vez por mês.',
     },
     {
       emoji: '📊',
@@ -336,7 +336,7 @@ export const pt: Translations = {
   introDone: 'Começar',
   introStep: (n, of) => `Passo ${n} de ${of}`,
   introPrivacyNativeTitle: 'Seu orçamento é seu',
-  introPrivacyNativeBody: 'Sem login, sem conta, sem servidor nosso. O que você digita é salvo no app, no seu dispositivo, e o app não envia isso para nós nem para ninguém. Se o backup do dispositivo estiver ativado (iCloud ou Google), ele pode copiar seu orçamento para a sua própria conta lá. Um arquivo de backup que você mesmo compartilha vai para onde você escolher.',
+  introPrivacyNativeBody: 'Sem login, sem conta, sem servidor. O que você digita é salvo no app, no seu dispositivo, e o app não envia isso para nós nem para ninguém. Se o backup do dispositivo estiver ativado (iCloud ou Google), ele pode copiar seu orçamento para a sua própria conta. Um arquivo de backup que você mesmo compartilha vai para onde você escolher.',
   welcomeTitle: 'Boas-vindas ao YourBudget',
   welcomeLetter: [
     "Meu nome é Ariel, e eu criei este app para ajudar você a manter suas finanças em ordem.",

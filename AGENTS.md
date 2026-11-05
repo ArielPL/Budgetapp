@@ -47,6 +47,7 @@ Kod ändras bara av Claude Code (Otto). En granskning från dig är **underlag**
 | Skärmbilder av appen för App Store och Google Play | `store/screenshots-ÅÅÅÅ-MM-DD/` | `enhet_språk_nummer.png`, t.ex. `iphone_sv_01.png` |
 | Butikstexter (App Store, Google Play) | `store/` | bara när Ariel ber om det, t.ex. `listing-sv.md` |
 | Marknadsanalys (Vera) | `notes/market/` | `ÅÅÅÅ-MM-DD_ämne.md`, t.ex. `2026-11-10_konkurrenter.md` |
+| Arbetsanteckning (alla agenter, se avsnitt 7) | `notes/arbetslogg/` | `ÅÅÅÅ-MM-DD_agent-amne.md`, t.ex. `2026-11-05_klara-importgranskning.md` |
 | Allt annat, eller när du är osäker | `outputs/inbox/` | `ÅÅÅÅ-MM-DD_beskrivning.ext`; Ariel eller Otto sorterar sedan |
 
 Skapa mappen om den inte finns. Lägg **aldrig** lösa filer direkt i projektmappen, alltså i roten bredvid `src/` och `package.json`.
@@ -84,3 +85,13 @@ Claude Code tar emot granskningen och prövar varje punkt mot koden, så skriv d
 - Siffror i bilderna ska vara påhittade och rimliga.
 - Appen heter **YourBudget**. Webbplatsen är **www.yourofflinebudget.com**.
 - Spara bilden i `outputs/instagram/` med datum och beskrivning i namnet. Lägg gärna texten till inlägget bredvid, som en `.md` med samma namn.
+
+## 7. Arbetsloggen – läs före, skriv efter
+
+Alla agenter, på båda sidorna, delar en logg över vad som gjorts: `notes/arbetslogg/` (Klara, 2026-11-04; infört i reglerna av Ariel). Den gör att ingen gör om något som redan är gjort, och att alla har samma bild av projektet.
+
+- **Före varje uppdrag:** läs `/Users/ariel/Developer/budgetapp/notes/arbetslogg/2026-11-04_las-forst.md` och de senaste anteckningarna som rör ditt område. Kontrollera vilken version eller commit de gäller och vilka bevis de har innan du återanvänder ett resultat.
+- **Efter arbetet, eller vid avbrott:** skapa en ny anteckning, `ÅÅÅÅ-MM-DD_agent-amne.md`, med agent, status (PÅGÅR / KLART / VÄNTAR / AVBRUTET), vad som gjorts, vad som kontrollerats, filer och nästa steg. Mallen står i läs-först-filen.
+- Skriv aldrig över, flytta eller radera en gammal anteckning. En rättelse är en ny fil som säger vilken den ersätter.
+- Använd samma absoluta sökväg även från andra arbetskopior. Går mappen inte att läsa, säg det i stället för att påstå att loggen är kontrollerad.
+- Loggen ger inga nya tillstånd. Ett förslag i loggen är inte ett beslut av Ariel.
