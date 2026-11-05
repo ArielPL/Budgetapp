@@ -25,13 +25,20 @@ Each track also has a chat of its own, with the model that suits it (Ariel, 2026
 | 🧪 **Arty** – the offline AI assistant lab | `~/Developer/budget-ai-lab` | Opus |
 | 📣 **Sofi** – social media: analysis, plan and drafts; writes no code | none | Sonnet |
 
-On the ChatGPT side (Codex/ChatGPT, rules in `AGENTS.md`) Ariel has five more, who deliver
+On the ChatGPT side (Codex/ChatGPT, rules in `AGENTS.md`) Ariel has six more, who deliver
 files and never change code (Ariel, 2026-10-29):
 - **Klara**: app reviews, for Otto, in `notes/reviews/`.
 - **Nova**: website reviews, for Webby, in `notes/reviews/` and `notes/website/`.
 - **Tess**: import test data, for Otto, in `outputs/test-data/`.
-- **Vera**: market and store texts, for Sofi, in `notes/market/`.
+- **Vera**: market and store texts, for Hugo (store texts for Ariel), in `notes/market/`.
 - **Mira**: images and video, for Sofi, in `outputs/instagram/`.
+- **Hugo**: campaign ideas, messages for a target group (on Vera's analyses) and small
+  marketing experiments that can be evaluated, for Ariel, in `notes/market/` (`kampanj` in
+  the file name). Added 2026-11-05.
+
+The campaign flow (Ariel, 2026-11-05): **Vera → Hugo → Ariel → Sofi → Ariel publishes.** Ariel
+takes Hugo's campaign to Sofi, Sofi makes the plan and the drafts, and Ariel publishes. No agent
+publishes anything.
 
 Take their files in like any other input: check them against the code before acting.
 `notes/` and `outputs/` are local and untracked.

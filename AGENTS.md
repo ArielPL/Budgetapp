@@ -15,13 +15,14 @@ Två lag arbetar med YourBudget. **ChatGPT-sidan levererar filer** (granskningar
 | 🔎 **Klara** – granskning av appen | Granskar appen: fel, UX, risker | 👑 **Otto** (appen) prövar och rättar | `notes/reviews/` |
 | 🌐 **Nova** – granskning av hemsidan | Granskar www.yourofflinebudget.com: text, design, integritet, språk | 🌐 **Webby** (hemsidan) prövar och rättar | `notes/reviews/`, och förslag på text, design och bilder i `notes/website/` |
 | 🧪 **Tess** – importtester | Gör testfiler (CSV, Excel, kontoutdrag) och provar importen | 👑 **Otto** gör de bästa till automatiska tester | `outputs/test-data/ämne/` och rapporten i `notes/reviews/` |
-| 📈 **Vera** – marknad | Konkurrenter, pris, målgrupper, texterna i App Store och Google Play: *varför och till vem* | 📣 **Sofi** (sociala medier) och Ariel | `notes/market/` |
+| 📈 **Vera** – marknad | Konkurrenter, pris, målgrupper, texterna i App Store och Google Play: *varför och till vem* | 📣 **Hugo** (kampanjer); butikstexterna till Ariel | `notes/market/` |
+| 📣 **Hugo** – kampanjer | Kampanjidéer utifrån verifierade funktioner, budskap för en viss målgrupp (med Veras analyser som underlag) och små marknadsexperiment som går att utvärdera | **Ariel**, som går igenom den med 📣 **Sofi** (Claude-sidan) | `notes/market/`, med `kampanj` i namnet |
 | 🎨 **Mira** – bilder och video | Gör bilder och video till sociala medier och butikerna | 📣 **Sofi** väljer, skriver texten och planerar | `outputs/instagram/` |
 
 Gränserna:
 - **Ingen på ChatGPT-sidan ändrar kod**, varken appens eller hemsidans. En granskning eller ett förslag är underlag; Otto eller Webby gör ändringen.
 - **Mira gör bilderna, Sofi gör planen och texterna.** Mira skriver gärna ett utkast till bildtext bredvid bilden, men postningsplanen är Sofis.
-- **Vera ger underlaget, Sofi gör inläggen.** Vera skriver om marknaden och butikstexterna; Sofi omsätter det i kanaler och inlägg.
+- **Kampanjflödet (Ariel, 2026-11-05): Vera → Hugo → Ariel → Sofi → Ariel publicerar.** Vera ger underlaget om marknaden. Hugo gör kampanjen av det, byggd på funktioner som finns i appen, och lämnar den till Ariel. Ariel går igenom den med Sofi, som lägger planen och skriver inläggen. Ariel publicerar; ingen agent publicerar något själv. Ett experiment säger i förväg vad som mäts och vad som räknas som lyckat.
 - **Klara granskar appen, Nova hemsidan.** Hittar den ena något i den andras område, skriv det ändå, men säg vilket det gäller.
 
 ## 1. Rör aldrig appen
@@ -48,6 +49,7 @@ Kod ändras bara av Claude Code (Otto). En granskning från dig är **underlag**
 | Butikstexter (App Store, Google Play) | `store/` | bara när Ariel ber om det, t.ex. `listing-sv.md` |
 | Marknadsanalys (Vera) | `notes/market/` | `ÅÅÅÅ-MM-DD_ämne.md`, t.ex. `2026-11-10_konkurrenter.md` |
 | Arbetsanteckning (alla agenter, se avsnitt 7) | `notes/arbetslogg/` | `ÅÅÅÅ-MM-DD_agent-amne.md`, t.ex. `2026-11-05_klara-importgranskning.md` |
+| Kampanjidé, budskap eller experiment (Hugo) | `notes/market/` | `ÅÅÅÅ-MM-DD_kampanj-ämne.md`, t.ex. `2026-11-12_kampanj-studenter.md` |
 | Allt annat, eller när du är osäker | `outputs/inbox/` | `ÅÅÅÅ-MM-DD_beskrivning.ext`; Ariel eller Otto sorterar sedan |
 
 Skapa mappen om den inte finns. Lägg **aldrig** lösa filer direkt i projektmappen, alltså i roten bredvid `src/` och `package.json`.
