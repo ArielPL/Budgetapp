@@ -18,8 +18,10 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- Android 12+ draws its own splash from the app icon on this colour:
-             the web app's background, so opening looks the same everywhere. -->
-        <item name="windowSplashScreenBackground">#FBFAFF</item>
+        <!-- Android 12+ draws its own start screen: this mark (the icon's coin
+             on its blue disc, inside the system's circle) on the app's
+             background colour, light or dark with the phone. -->
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_mark</item>
     </style>
 </resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The start screen before Android 12 (2026-11-05): the coin from the app
+     icon on the app's background colour, centred, so it looks the same on a
+     phone, a tablet and either way round. Android 12 and later draw their own
+     from windowSplashScreenAnimatedIcon in styles.xml, with the same mark. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item>
+        <bitmap android:gravity="center" android:src="@drawable/splash_mark" />
+    </item>
+</layer-list>

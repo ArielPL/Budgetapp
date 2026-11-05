@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Behind the start screen: the light theme's background (the bg token in
+         src/themes.ts). Light in dark mode too: the app itself opens light
+         whatever the phone's setting (themes.ts), and a dark start screen
+         would flash to it. -->
+    <color name="splash_background">#FBFAFF</color>
+</resources>

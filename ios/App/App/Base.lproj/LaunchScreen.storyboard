@@ -4,6 +4,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17105"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -23,7 +24,7 @@
                                 </constraints>
                             </imageView>
                         </subviews>
-                        <color key="backgroundColor" red="0.984313725490196" green="0.9803921568627451" blue="1.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="SplashBackground"/>
                         <constraints>
                             <constraint firstItem="Ic0-nS-pL1" firstAttribute="centerX" secondItem="snD-IY-ifK" secondAttribute="centerX" id="Cx1-ce-C03"/>
                             <constraint firstItem="Ic0-nS-pL1" firstAttribute="centerY" secondItem="snD-IY-ifK" secondAttribute="centerY" id="Cy1-ce-C04"/>
@@ -37,5 +38,8 @@
     </scenes>
     <resources>
         <image name="Splash" width="140" height="140"/>
+        <namedColor name="SplashBackground">
+            <color red="0.984313725490196" green="0.9803921568627451" blue="1.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
     </resources>
 </document>
