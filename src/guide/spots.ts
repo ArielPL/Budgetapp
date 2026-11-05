@@ -11,6 +11,7 @@
 // Record<SpotId, …>, so a missing translation fails the build.
 
 import type { ActiveTab } from '../types';
+import type { FollowUpSection } from '../followUpLayout';
 
 export type SpotId =
   | 'income' | 'month' | 'summary' | 'leftToLive' | 'addCategory' | 'categoryEdit'
@@ -26,6 +27,8 @@ export interface SpotTarget {
   tab?: ActiveTab;
   /** The control is in the menu, which has to be open. */
   menu?: boolean;
+  /** Which part of Follow-up has the control, when it is divided into sub-tabs. */
+  section?: FollowUpSection;
 }
 
 export const SPOT_TARGETS: Record<SpotId, SpotTarget> = {
@@ -36,7 +39,7 @@ export const SPOT_TARGETS: Record<SpotId, SpotTarget> = {
   addCategory: { tab: 'budget' },
   categoryEdit: { tab: 'budget' },
   import: { tab: 'followup' },
-  questions: { tab: 'followup' },
+  questions: { tab: 'followup', section: 'questions' },
   payPeriod: { menu: true },
   savings: { tab: 'savings' },
   addDebt: { tab: 'debt' },

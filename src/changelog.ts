@@ -104,6 +104,7 @@ export const CHANGELOG: Release[] = [
         "Varje rad i budgeten och på sparfliken kan få en kort anteckning med 📝, högst 100 tecken. Den står på raden, bredvid namnet, följer med till nästa månad och går att ändra i varje månad",
         "Veckornas kuvert hamnar på en egen rad, skild från månadens kuvert. Lavinen och Snöbollen har ett i som förklarar dem. Sparande har samma rutor som Budget, pilarna vid månaden sitter mitt i cirklarna, och under Kvar står hur stor del av inkomsten som går till utgifter",
         "Alla kategorier går att ta bort, även på sparfliken. Sparande i budgeten går att ta bort när inget sparmål i Plan är kopplat till den, och annars står det vilka mål det gäller. I Anpassad finns Ta bort i kategorins inställningar, och kuvert och budgetar tar du bort direkt i listan eller med krysset på kortet. Ett kuvert kan få en färg, och ett arkiverat kuvert står blekt sist i sin rad tills du plockar fram det. Integritet handlar nu bara om appen",
+        "Uppföljning är uppdelad i flikar: Översikt med tabellen, Sortera med det som väntar på en kategori, Köpen och Frågor. Vill du ha allt på en sida väljer du Boxar under ⋯, där hjälpen och Rensa-knapparna nu också finns. Efter en import går appen direkt till det som behöver sorteras",
       ],
       en: [
         '"Which subscriptions do I pay?" now counts only payments of the same amount every month, with at most one price change. A restaurant visited once a month no longer counts',
@@ -159,6 +160,7 @@ export const CHANGELOG: Release[] = [
         "Every row of the budget and of Savings can have a short note with 📝, up to 100 characters. It stands on the row beside the name, goes with it to the next month and can be changed in any month",
         "The weeks’ envelopes get a row of their own, apart from the month’s envelope. The avalanche and the snowball have an i that explains them. Savings has the same cards as Budget, the arrows by the month sit in the middle of their circles, and under Remaining it says how much of the income goes to expenses",
         "Every category can be deleted, on Savings too. Savings in the budget can be deleted once no goal in Plan is linked to it, and otherwise it says which goals. In Custom, Delete is in the category’s settings, and envelopes and budgets are deleted straight from the list or with the cross on the card. An envelope can have a colour, and an archived one stands faded at the end of its row until you bring it back. Privacy is now about the app only",
+        "Follow-up is divided into tabs: Overview with the table, Sort with what is waiting for a category, Purchases and Questions. If you would rather have it all on one page, choose Boxes under ⋯, where the help and the Clear buttons now are too. After an import the app goes straight to what needs sorting",
       ],
       es: [
         '"¿Qué suscripciones pago?" solo cuenta pagos del mismo importe cada mes, con como mucho un cambio de precio. Un restaurante al que vas una vez al mes ya no cuenta',
@@ -214,6 +216,7 @@ export const CHANGELOG: Release[] = [
         "Cada fila del presupuesto y de Ahorro puede tener una nota corta con 📝, de hasta 100 caracteres. Aparece en la fila, junto al nombre, pasa al mes siguiente y se puede cambiar en cualquier mes",
         "Los sobres de las semanas van en una fila propia, aparte del sobre del mes. La avalancha y la bola de nieve tienen una i que las explica. Ahorro tiene las mismas tarjetas que Presupuesto, las flechas junto al mes quedan centradas en sus círculos, y bajo Restante pone qué parte de los ingresos va a gastos",
         "Todas las categorías se pueden borrar, también en Ahorro. Ahorro en el presupuesto se puede borrar cuando ninguna meta del Plan está vinculada a ella; si no, dice qué metas son. En Personalizado, Eliminar está en los ajustes de la categoría, y los sobres y presupuestos se borran directamente desde la lista o con la cruz de la tarjeta. Un sobre puede tener un color, y uno archivado queda atenuado al final de su fila hasta que lo recuperas. Privacidad trata ahora solo de la app",
+        "Seguimiento se divide en pestañas: Resumen con la tabla, Clasificar con lo que espera una categoría, Compras y Preguntas. Si prefieres todo en una página, elige Cuadros en ⋯, donde ahora están también la ayuda y los botones de borrar. Tras una importación, la app va directamente a lo que hay que clasificar",
       ],
       fr: frChangelog113.items,
       de: deChangelog113.items,

@@ -203,6 +203,10 @@ const ENTRIES = JSON.stringify([
   { id: 'e2', date: '2026-09-04', text: 'SYNT B', amount: 200, direction: 'out', categoryId: 'boende' },
   { id: 'e3', date: '2026-09-05', text: 'SYNT C', amount: 300, direction: 'out', categoryId: 'boende' },
 ]);
+const openSection = async (label: string) => {
+  await waitFor(() => expect(document.querySelector('.followup-subtab')).not.toBeNull());
+  fireEvent.click([...document.querySelectorAll('.followup-subtab')].find(x => x.textContent?.includes(label))!);
+};
 const shownEntries = () => [...document.querySelectorAll('.followup-entry-text')].map(e => e.textContent);
 const openFollowUp = async () => {
   b.disk.set('budget_actuals_2026_8', ENTRIES);
@@ -248,7 +252,11 @@ describe('Follow-up', () => {
     const AUGUST = JSON.stringify([
       { id: 'a1', date: '2026-08-12', text: 'SYNT AUG', amount: 50, direction: 'out', categoryId: 'boende' },
     ]);
-    const clearAll = () => fireEvent.click(document.querySelector('.followup-clear-all')!);
+    // Behind ⋯ since 2026-11-05: Import stays out, the rest is in the menu.
+    const clearAll = () => {
+      fireEvent.click(document.querySelector('.followup-more-btn')!);
+      fireEvent.click([...document.querySelectorAll('.followup-more-item')].find(x => x.textContent?.includes(sv.followUpClearAll))!);
+    };
 
     it('empties every month, keeps the budgets and what sorting has learned, and can be undone', async () => {
       b.disk.set('budget_actuals_2026_7', AUGUST);
@@ -690,6 +698,7 @@ describe('the spending card: not counting a place', () => {
     installStorage(store);
     await openApp();
     fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await openSection(sv.followUpSecPurchases);
     await waitFor(() => expect(document.querySelector('.spending-card')?.textContent).toContain(waitFor_));
   };
   const hideTrain = () => fireEvent.click(document.querySelector(`[aria-label="${sv.spendingHide('SYNT TÅG')}"]`)!);
@@ -1213,6 +1222,7 @@ describe('question cards in Follow-up (Ariel, 2026-10-04)', () => {
     installStorage(store);
     await openApp();
     fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await openSection(sv.followUpSecQuestions);
     await waitFor(() => expect(document.querySelector('.q-card')).not.toBeNull());
     fireEvent.click([...document.querySelectorAll('.q-ask')].find(x => x.textContent?.includes(question))!);
     // Amounts are written with a non-breaking space; compare plain spaces.

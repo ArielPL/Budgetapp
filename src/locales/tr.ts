@@ -1007,6 +1007,14 @@ export const tr: Translations = {
   backupSaved: "✓ Yedek kaydedildi",
   followUpHelp: "Yardım",
   followUpHelpTitle: "Takip nasıl çalışır",
+  followUpSecOverview: 'Genel bakış',
+  followUpSecSort: 'Sınıflandır',
+  followUpSecPurchases: 'Alışverişler',
+  followUpSecQuestions: 'Sorular',
+  followUpSectionsAria: 'Bu sekmenin bölümleri',
+  followUpLayoutLabel: 'Görünüm',
+  followUpLayoutTabs: 'Alt sekmeler',
+  followUpLayoutBoxes: 'Kutular',
   followUpHelpBody: [
     "## Bu sekme ne işe yarar",
     "Bütçe, niyet ettiğinizdir. Takip ise olandır. Burada ikisi kategori kategori yan yana durur; böylece paranın nereye düşündüğünüzden fazla, nereye az gittiğini görürsünüz.",
@@ -1100,5 +1108,6 @@ export const trChangelog113: { title: string; items: string[] } = {
     "Bütçedeki ve Birikim’deki her satıra 📝 ile en fazla 100 karakterlik kısa bir not eklenebilir. Not satırda, adın yanında durur, sonraki aya geçer ve her ay değiştirilebilir",
     "Haftaların zarfları ayın zarfından ayrı, kendi sıralarında durur. Çığ ve kartopu yöntemlerinin onları açıklayan bir i’si var. Birikim, Bütçe ile aynı kartlara sahip, aydaki oklar dairelerinin ortasında duruyor ve Kalan’ın altında gelirin ne kadarının giderlere gittiği yazıyor",
     "Her kategori silinebilir, Birikim’de de. Bütçedeki birikim kategorisi, Plan’da ona bağlı bir hedef kalmayınca silinebilir; aksi halde hangi hedefler olduğu yazar. Özel düzende Sil, kategorinin ayarlarındadır; zarfları ve bütçeleri doğrudan listeden ya da karttaki çarpıyla silersiniz. Bir zarfa renk verilebilir; arşivlenmiş bir zarf, geri getirene kadar sırasının sonunda soluk durur. Gizlilik artık yalnızca uygulamayla ilgili",
+    "Takip sekmelere ayrıldı: tabloyla Genel bakış, kategori bekleyenlerle Sınıflandır, Alışverişler ve Sorular. Hepsini tek sayfada görmek isterseniz ⋯ altından Kutular’ı seçin; yardım ve temizleme düğmeleri de artık orada. İçe aktarmanın ardından uygulama doğrudan sınıflandırılacaklara gider",
   ],
 };

@@ -29,6 +29,11 @@ import {
 import type { ActualEntry, BudgetCategory } from '../types';
 import { isValidIsoDate } from '../date';
 import { monthInText, monthTitle } from '../dateLabel';
+import {
+  loadFollowUpLayout, saveFollowUpLayout, availableSections, shownSection,
+  takeRequestedSection, onSectionRequest,
+  type FollowUpLayout, type FollowUpSection,
+} from '../followUpLayout';
 
 // ── Follow-up — what the plan said, next to what happened ──────────────────
 //
@@ -150,9 +155,41 @@ export const FollowUpTab = ({
   // comparison — they are "where is the money going", and two extra columns of
   // budget only get in the way of the answer.
   const [showPlan, setShowPlan] = useState(true);
+  // How the tab is divided (Ariel, 2026-11-05): sub-tabs by default, one thing at
+  // a time, or boxes on one page. Only changes what is on screen, never a figure.
+  const [layout, setLayout] = useState<FollowUpLayout>(() => loadFollowUpLayout(appStorage));
+  const [section, setSection] = useState<FollowUpSection>(() => takeRequestedSection() ?? 'overview');
+  // "Show me" in the guide can ask for a section while this tab is already open.
+  useEffect(() => onSectionRequest(() => {
+    const asked = takeRequestedSection();
+    if (asked) setSection(asked);
+  }), []);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const away = (e: PointerEvent) => {
+      if (menuBox.current && !menuBox.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menuOpen]);
+  const chooseLayout = (next: FollowUpLayout) => {
+    setLayout(next);
+    saveFollowUpLayout(appStorage, next);
+    setMenuOpen(false);
+  };
   /** Raw values last loaded for the months in view. A comparison before writing
    *  catches another tab even if its storage event has not reached us yet. */
   const storageBaseline = useRef(new Map<string, string | null>());
+  /** The months whose entries are on screen, set with them: a month change
+   *  renders once with the old month's entries before these arrive. */
+  const [loadedFor, setLoadedFor] = useState<string[]>([]);
 
   const reloadEntries = useCallback(() => {
     const next: ActualEntry[] = [];
@@ -165,6 +202,7 @@ export const FollowUpTab = ({
     }
     storageBaseline.current = baseline;
     setEntries(next);
+    setLoadedFor(months.map(m => `${m.year}-${m.month}`));
   }, [months]);
 
   // Reload when the month changes. Writes happen explicitly on each edit below,
@@ -669,11 +707,27 @@ export const FollowUpTab = ({
   const triageRef = useRef<HTMLDivElement>(null);
   const openTriage = () => {
     setTriageOpen(true);
+    // Under sub-tabs the list is a section of its own: go there, nothing to scroll to.
+    if (layout === 'tabs') { setSection('sort'); return; }
     requestAnimationFrame(() => {
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       triageRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     });
   };
+
+  // After an import, straight to what it left to sort (Ariel, 2026-11-05): the
+  // Sort tab under sub-tabs, the list in view under boxes. It waits for the
+  // imported month's entries to be on screen — the month in view, or the one
+  // the summary's "show October" button goes to — and an import that left
+  // nothing to sort there stays where it was.
+  const [sortWhenLoaded, setSortWhenLoaded] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sortWhenLoaded || !loadedFor.includes(sortWhenLoaded)) return;
+    setSortWhenLoaded(null);
+    if (decisions.length > 0) openTriage();
+    // openTriage is recreated every render; the loaded month is what this waits for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortWhenLoaded, loadedFor, decisions.length]);
 
   const plannedOut = categories.reduce((s, c) => s + (planned.perCategory[c.id] ?? 0), 0);
   // Orphans and Övrigt count here: they are money that left, whatever it was
@@ -891,30 +945,271 @@ export const FollowUpTab = ({
     );
   };
 
+  // ── The parts, built once and placed by the chosen layout ───────────────
+  // Sub-tabs (the default) show one at a time; boxes show them together. They
+  // are the same parts with the same words, so nothing can differ between the
+  // two but where it stands.
+  const waitingCount = entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID).length;
+  const sections = availableSections({
+    waiting: decisions.length, hasEntries: entries.length > 0, nothingYet,
+  });
+  const shown = shownSection(section, sections);
+  const sectionLabel: Record<FollowUpSection, string> = {
+    overview: t.followUpSecOverview, sort: t.followUpSecSort,
+    purchases: t.followUpSecPurchases, questions: t.followUpSecQuestions,
+  };
+  /** Under sub-tabs the sorting list is a section of its own and always open. */
+  const listOpen = layout === 'tabs' || triageOpen;
+
+  const spendingEl = entries.length > 0 ? (
+    <SpendingCard
+      breakdown={breakdown} highlights={highlights} range={viewRange} nameOf={nameOf}
+      onSort={openTriage}
+      smallLimit={smallLimit} limitChoices={smallLimitChoices(currency)} onLimit={chooseLimit}
+      hidden={hiddenPlaces} onHide={hidePlace} onUnhide={unhidePlace}
+    />
+  ) : null;
+
+  const questionsEl = !nothingYet ? (
+    <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal}
+      shown={{ year, month }} />
+  ) : null;
+
+  // ── The leftover pile, as a short list of decisions ──────────────
+  // The parts were all here already: a place moves in one go and the move
+  // is learned. What was missing was the asking. Sorting used to mean
+  // finding the Övrigt row, opening it, and reading 34 places to see which
+  // were worth a move. This puts the biggest ones in front, with a
+  // proposal, and each tap teaches the sorter for next month.
+  const triageEl = decisions.length > 0 ? (
+    <div className="triage" ref={triageRef}>
+      <div className="triage-head">
+        <span className="triage-title">
+          ❔ {t.triageWaiting(entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID).length)}
+        </span>
+        {layout === 'boxes' && (
+          <button className="triage-toggle" onClick={() => setTriageOpen(o => !o)}>
+            {triageOpen ? t.triageHide : t.triageOpen}
+          </button>
+        )}
+      </div>
+
+      {listOpen && (
+        <ul className="triage-list">
+          {decisions.map(d => (
+            <li className="triage-item" key={d.text}>
+              <div className="triage-place">
+                <span className="triage-place-text">{d.text}</span>
+                <span className="triage-place-meta">
+                  {t.csvRows(d.count)} · {money(d.total)}
+                </span>
+              </div>
+              <div className="triage-actions">
+                {d.categoryId && (
+                  <button
+                    className="triage-accept"
+                    onClick={() => movePlace(d.text, d.categoryId!, UNSORTED_ACTUAL_ID)}
+                  >
+                    {categoryLabel(d.categoryId)}
+                    {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
+                  </button>
+                )}
+                {d.create && (
+                  <button
+                    className="triage-accept triage-accept-new"
+                    disabled={creatingNow}
+                    onClick={() => createStandardAndMove(d.text, d.create!, UNSORTED_ACTUAL_ID)}
+                  >
+                    {t.triageCreate(standardName(d.create))}
+                    {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
+                  </button>
+                )}
+                <select
+                  className="triage-other"
+                  value=""
+                  aria-label={t.followUpMoveTo(d.text)}
+                  onChange={ev => { if (ev.target.value) movePlace(d.text, ev.target.value, UNSORTED_ACTUAL_ID); }}
+                >
+                  <option value="">{t.triageOther}</option>
+                  <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
+                  {categories.map(c => (
+                    <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
+                  ))}
+                  <option value={TRANSFER_ACTUAL_ID}>{t.followUpTransfer}</option>
+                </select>
+                <button
+                  className="triage-skip"
+                  onClick={() => setSkipped(prev => new Set(prev).add(d.text.toLowerCase()))}
+                >
+                  {t.triageSkip}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ) : null;
+
+  const tableEl = (
+    <div className={`followup-table${showPlan ? '' : ' is-actuals-only'}`}>
+      {/* The two ways of reading the table sit on it, not beside the period:
+          they change how this table reads, nothing else. */}
+      <div className="followup-toggles">
+        <button
+          className={`followup-toggle${showPlan ? '' : ' is-on'}`}
+          aria-pressed={!showPlan}
+          onClick={() => setShowPlan(v => !v)}
+        >{showPlan ? t.followUpOnlyActuals : t.followUpWithPlan}</button>
+        <button
+          className="followup-toggle"
+          onClick={() => { setGrouping(g => (g === 'place' ? 'date' : 'place')); setOpenPlace(null); }}
+        >{grouping === 'place' ? t.followUpByDate : t.followUpByPlace}</button>
+      </div>
+      <div className="followup-head">
+        <span>{t.followUpColCategory}</span>
+        {showPlan && <span className="num">{t.followUpColPlan}</span>}
+        <span className="num">{t.followUpColActual}</span>
+        {showPlan && <span className="num">{t.followUpColDiff}</span>}
+      </div>
+
+      {shownRows.filter(r => r.id !== TRANSFER_ACTUAL_ID).map(renderRow)}
+
+      {orphanIds.length > 0 && (
+        <div className={`followup-row-wrap${openRow === ORPHANS ? ' is-open' : ''}`}>
+          <button
+            className="followup-row"
+            aria-expanded={openRow === ORPHANS}
+            onClick={() => setOpenRow(openRow === ORPHANS ? null : ORPHANS)}
+          >
+            <span className="followup-name">
+              <span aria-hidden="true">❓</span> {t.followUpOutsideBudget}
+              <span className="followup-caret" aria-hidden="true">
+                {openRow === ORPHANS ? '⌃' : '⌄'}
+              </span>
+            </span>
+            {showPlan && (
+              <span className="num followup-planned">
+                <span className="amount-unknown" title={t.followUpOutsideBudgetHint}>–</span>
+              </span>
+            )}
+            <span className="num followup-actual">{money(orphanTotal)}</span>
+            {showPlan && <span className="num followup-diffcell" />}
+          </button>
+
+          {openRow === ORPHANS && span > 1 && (
+            <div className="followup-entries">
+              <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
+              {groupEntriesByText(orphanEntries).map(g => (
+                <div className="followup-place" key={g.text}>
+                  <span className="followup-place-text">{g.text}</span>
+                  <span className="followup-place-count">{t.csvRows(g.count)}</span>
+                  <span className="followup-place-sum">{money(g.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {openRow === ORPHANS && span === 1 && (
+            <div className="followup-entries">
+              <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
+              {orphanEntries.map(e => (
+                <div className="followup-entry" key={e.id}>
+                  <span className="followup-entry-date">{e.date.slice(5)}</span>
+                  <span className="followup-entry-text">{e.text}</span>
+                  <EntryAmount
+                    value={e.amount}
+                    displayValue={actualContribution(e)}
+                    onChange={v => setAmount(e.id, v)}
+                    label={e.text}
+                  />
+                  <button
+                    className="followup-delete"
+                    onClick={() => deleteEntry(e.id)}
+                    aria-label={t.followUpDelete(e.text)}
+                  >✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="followup-row followup-total">
+        <span className="followup-name">{t.followUpTotalOut}</span>
+        {showPlan && <span className="num followup-planned">{money(plannedOut)}</span>}
+        <span className="num followup-actual">
+          {anyOut ? money(actualOut) : <span className="amount-unknown" title={t.followUpNotRecorded}>–</span>}
+        </span>
+        {showPlan && (
+          <span className="num followup-diffcell">
+            {anyOut ? renderDiff(actualOut, plannedOut, '__total__') : null}
+          </span>
+        )}
+      </div>
+
+      {/* Below the total, on purpose: a transfer is not part of it. */}
+      {shownRows.filter(r => r.id === TRANSFER_ACTUAL_ID).map(renderRow)}
+    </div>
+  );
+
   return (
     <div className="tab-content followup-tab">
       <div className="followup-top">
         <h2 className="followup-heading">{t.followUpHeading}</h2>
         <div className="followup-top-actions">
-          {/* Only for a single month. "Clear the month's actuals" over a span
-              would empty a year on one click, which is not what the words say. */}
-          {span === 1 && entries.length > 0 && (
-            <button className="followup-clear" onClick={clearMonth}>{t.followUpClear}</button>
-          )}
-          {anyRecorded && (
-            <button className="followup-clear followup-clear-all" onClick={clearAll}>⚠️ {t.followUpClearAll}</button>
-          )}
           <button className="followup-import" data-guide="import" onClick={() => setImporting(true)}>
             ⬆ {t.followUpImport}
           </button>
-          <button
-            className="followup-help-btn"
-            onClick={() => setHelpOpen(true)}
-            title={t.followUpHelpTitle}
-            aria-label={t.followUpHelpTitle}
-          >
-            ?
-          </button>
+          {/* Importing is what people came to do; the rest is behind ⋯ (Ariel,
+              2026-11-05): two of the buttons empty the record, are rarely wanted
+              and were as easy to hit as Import. */}
+          <div className="followup-more" ref={menuBox}>
+            <button
+              className="followup-more-btn"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label={t.moreActions}
+              title={t.moreActions}
+              onClick={() => setMenuOpen(o => !o)}
+            >⋯</button>
+            {menuOpen && (
+              <div className="followup-more-menu" role="menu" aria-label={t.moreActions}>
+                <div className="followup-more-label" id="followup-layout-label">{t.followUpLayoutLabel}</div>
+                <div role="group" aria-labelledby="followup-layout-label">
+                  <button role="menuitemradio" aria-checked={layout === 'tabs'} className="followup-more-item"
+                    onClick={() => chooseLayout('tabs')}>
+                    <span className="followup-more-check" aria-hidden="true">{layout === 'tabs' ? '✓' : ''}</span>
+                    {t.followUpLayoutTabs}
+                  </button>
+                  <button role="menuitemradio" aria-checked={layout === 'boxes'} className="followup-more-item"
+                    onClick={() => chooseLayout('boxes')}>
+                    <span className="followup-more-check" aria-hidden="true">{layout === 'boxes' ? '✓' : ''}</span>
+                    {t.followUpLayoutBoxes}
+                  </button>
+                </div>
+                <div className="followup-more-sep" role="separator" />
+                <button role="menuitem" className="followup-more-item"
+                  onClick={() => { setMenuOpen(false); setHelpOpen(true); }}>
+                  <span className="followup-more-check" aria-hidden="true">?</span>{t.followUpHelpTitle}
+                </button>
+                {/* Only for a single month. "Clear the month's actuals" over a span
+                    would empty a year on one click, which is not what the words say. */}
+                {span === 1 && entries.length > 0 && (
+                  <button role="menuitem" className="followup-more-item"
+                    onClick={() => { setMenuOpen(false); clearMonth(); }}>
+                    <span className="followup-more-check" aria-hidden="true" />{t.followUpClear}
+                  </button>
+                )}
+                {anyRecorded && (
+                  <button role="menuitem" className="followup-more-item followup-more-danger"
+                    onClick={() => { setMenuOpen(false); clearAll(); }}>
+                    <span className="followup-more-check" aria-hidden="true">⚠️</span>{t.followUpClearAll}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -929,18 +1224,6 @@ export const FollowUpTab = ({
             {t.followUpSpan(n)}
           </button>
         ))}
-        <span className="followup-toggles">
-          <button
-            className={`followup-toggle${showPlan ? '' : ' is-on'}`}
-            aria-pressed={!showPlan}
-            onClick={() => setShowPlan(v => !v)}
-          >{showPlan ? t.followUpOnlyActuals : t.followUpWithPlan}</button>
-          <button
-            className="followup-toggle"
-            onClick={() => { setGrouping(g => (g === 'place' ? 'date' : 'place')); setOpenPlace(null); }}
-          >{grouping === 'place' ? t.followUpByDate : t.followUpByPlace}</button>
-        </span>
-
         {span > 1 && (
           <span className="followup-span-range">
             {t.followUpSpanRange(
@@ -1010,7 +1293,7 @@ export const FollowUpTab = ({
               <button
                 key={`${m.year}-${m.month}`}
                 className="followup-toast-go"
-                onClick={() => onGoToMonth(m.year, m.month)}
+                onClick={() => { setSortWhenLoaded(`${m.year}-${m.month}`); onGoToMonth(m.year, m.month); }}
               >
                 {t.csvGoToMonth(monthInText(m.month, m.year, lang))}
               </button>
@@ -1035,6 +1318,10 @@ export const FollowUpTab = ({
             // Re-read rather than merge in memory: the import may have written
             // to months this view is not showing, and storage is the truth.
             reloadEntries();
+            // The month in view if the import reached it, else the first it did.
+            const here = months.some(m => m.year === year && m.month === month);
+            const target = here ? { year, month } : months[0];
+            if (target) setSortWhenLoaded(`${target.year}-${target.month}`);
           }}
         />
       )}
@@ -1053,180 +1340,47 @@ export const FollowUpTab = ({
         </div>
       )}
 
-      {entries.length > 0 && (
-        <SpendingCard
-          breakdown={breakdown} highlights={highlights} range={viewRange} nameOf={nameOf}
-          onSort={openTriage}
-          smallLimit={smallLimit} limitChoices={smallLimitChoices(currency)} onLimit={chooseLimit}
-          hidden={hiddenPlaces} onHide={hidePlace} onUnhide={unhidePlace}
-        />
-      )}
-
-      {!nothingYet && (
-        <QuestionCards nameOf={nameOf} periodStartDay={periodStartDay} periodLocks={periodLocks} onCreateGoal={onCreateGoal}
-          shown={{ year, month }} />
-      )}
-
-      {/* ── The leftover pile, as a short list of decisions ──────────────
-          The parts were all here already: a place moves in one go and the move
-          is learned. What was missing was the asking. Sorting used to mean
-          finding the Övrigt row, opening it, and reading 34 places to see which
-          were worth a move. This puts the biggest ones in front, with a
-          proposal, and each tap teaches the sorter for next month. */}
-      {decisions.length > 0 && (
-        <div className="triage" ref={triageRef}>
-          <div className="triage-head">
-            <span className="triage-title">
-              ❔ {t.triageWaiting(entries.filter(e => e.categoryId === UNSORTED_ACTUAL_ID).length)}
-            </span>
-            <button className="triage-toggle" onClick={() => setTriageOpen(o => !o)}>
-              {triageOpen ? t.triageHide : t.triageOpen}
-            </button>
-          </div>
-
-          {triageOpen && (
-            <ul className="triage-list">
-              {decisions.map(d => (
-                <li className="triage-item" key={d.text}>
-                  <div className="triage-place">
-                    <span className="triage-place-text">{d.text}</span>
-                    <span className="triage-place-meta">
-                      {t.csvRows(d.count)} · {money(d.total)}
-                    </span>
-                  </div>
-                  <div className="triage-actions">
-                    {d.categoryId && (
-                      <button
-                        className="triage-accept"
-                        onClick={() => movePlace(d.text, d.categoryId!, UNSORTED_ACTUAL_ID)}
-                      >
-                        {categoryLabel(d.categoryId)}
-                        {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
-                      </button>
-                    )}
-                    {d.create && (
-                      <button
-                        className="triage-accept triage-accept-new"
-                        disabled={creatingNow}
-                        onClick={() => createStandardAndMove(d.text, d.create!, UNSORTED_ACTUAL_ID)}
-                      >
-                        {t.triageCreate(standardName(d.create))}
-                        {d.source && <span className="triage-why">{t.triageSource(d.source)}</span>}
-                      </button>
-                    )}
-                    <select
-                      className="triage-other"
-                      value=""
-                      aria-label={t.followUpMoveTo(d.text)}
-                      onChange={ev => { if (ev.target.value) movePlace(d.text, ev.target.value, UNSORTED_ACTUAL_ID); }}
-                    >
-                      <option value="">{t.triageOther}</option>
-                      <option value={INCOME_ACTUAL_ID}>{t.followUpIncome}</option>
-                      {categories.map(c => (
-                        <option value={c.id} key={c.id}>{shownName(c, lang)}</option>
-                      ))}
-                      <option value={TRANSFER_ACTUAL_ID}>{t.followUpTransfer}</option>
-                    </select>
-                    <button
-                      className="triage-skip"
-                      onClick={() => setSkipped(prev => new Set(prev).add(d.text.toLowerCase()))}
-                    >
-                      {t.triageSkip}
-                    </button>
-                  </div>
-                </li>
+      {layout === 'tabs' ? (
+        <>
+          {sections.length > 1 && (
+            <div className="followup-subtabs" role="tablist" aria-label={t.followUpSectionsAria}>
+              {sections.map(s => (
+                <button
+                  key={s}
+                  role="tab"
+                  aria-selected={shown === s}
+                  className={`followup-subtab${shown === s ? ' is-on' : ''}`}
+                  onClick={() => setSection(s)}
+                >
+                  {sectionLabel[s]}
+                  {s === 'sort' && <span className="followup-subtab-count">{waitingCount}</span>}
+                </button>
               ))}
-            </ul>
+            </div>
           )}
+          <div className="followup-panel" role="tabpanel">
+            {shown === 'overview' && (
+              <>
+                {decisions.length > 0 && (
+                  <div className="followup-nudge">
+                    <span>❔ {t.triageWaiting(waitingCount)}</span>
+                    <button onClick={() => setSection('sort')}>{t.triageOpen}</button>
+                  </div>
+                )}
+                {tableEl}
+              </>
+            )}
+            {shown === 'sort' && triageEl}
+            {shown === 'purchases' && spendingEl}
+            {shown === 'questions' && questionsEl}
+          </div>
+        </>
+      ) : (
+        <div className="followup-boxes">
+          <div className="followup-boxes-main">{tableEl}</div>
+          <div className="followup-boxes-side">{triageEl}{spendingEl}{questionsEl}</div>
         </div>
       )}
-
-      <div className={`followup-table${showPlan ? '' : ' is-actuals-only'}`}>
-        <div className="followup-head">
-          <span>{t.followUpColCategory}</span>
-          {showPlan && <span className="num">{t.followUpColPlan}</span>}
-          <span className="num">{t.followUpColActual}</span>
-          {showPlan && <span className="num">{t.followUpColDiff}</span>}
-        </div>
-
-        {shownRows.filter(r => r.id !== TRANSFER_ACTUAL_ID).map(renderRow)}
-
-        {orphanIds.length > 0 && (
-          <div className={`followup-row-wrap${openRow === ORPHANS ? ' is-open' : ''}`}>
-            <button
-              className="followup-row"
-              aria-expanded={openRow === ORPHANS}
-              onClick={() => setOpenRow(openRow === ORPHANS ? null : ORPHANS)}
-            >
-              <span className="followup-name">
-                <span aria-hidden="true">❓</span> {t.followUpOutsideBudget}
-                <span className="followup-caret" aria-hidden="true">
-                  {openRow === ORPHANS ? '⌃' : '⌄'}
-                </span>
-              </span>
-              {showPlan && (
-                <span className="num followup-planned">
-                  <span className="amount-unknown" title={t.followUpOutsideBudgetHint}>–</span>
-                </span>
-              )}
-              <span className="num followup-actual">{money(orphanTotal)}</span>
-              {showPlan && <span className="num followup-diffcell" />}
-            </button>
-
-            {openRow === ORPHANS && span > 1 && (
-              <div className="followup-entries">
-                <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
-                {groupEntriesByText(orphanEntries).map(g => (
-                  <div className="followup-place" key={g.text}>
-                    <span className="followup-place-text">{g.text}</span>
-                    <span className="followup-place-count">{t.csvRows(g.count)}</span>
-                    <span className="followup-place-sum">{money(g.total)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {openRow === ORPHANS && span === 1 && (
-              <div className="followup-entries">
-                <p className="followup-none">{t.followUpOutsideBudgetHint}</p>
-                {orphanEntries.map(e => (
-                  <div className="followup-entry" key={e.id}>
-                    <span className="followup-entry-date">{e.date.slice(5)}</span>
-                    <span className="followup-entry-text">{e.text}</span>
-                    <EntryAmount
-                      value={e.amount}
-                      displayValue={actualContribution(e)}
-                      onChange={v => setAmount(e.id, v)}
-                      label={e.text}
-                    />
-                    <button
-                      className="followup-delete"
-                      onClick={() => deleteEntry(e.id)}
-                      aria-label={t.followUpDelete(e.text)}
-                    >✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="followup-row followup-total">
-          <span className="followup-name">{t.followUpTotalOut}</span>
-          {showPlan && <span className="num followup-planned">{money(plannedOut)}</span>}
-          <span className="num followup-actual">
-            {anyOut ? money(actualOut) : <span className="amount-unknown" title={t.followUpNotRecorded}>–</span>}
-          </span>
-          {showPlan && (
-            <span className="num followup-diffcell">
-              {anyOut ? renderDiff(actualOut, plannedOut, '__total__') : null}
-            </span>
-          )}
-        </div>
-
-        {/* Below the total, on purpose: a transfer is not part of it. */}
-        {shownRows.filter(r => r.id === TRANSFER_ACTUAL_ID).map(renderRow)}
-      </div>
     </div>
   );
 };

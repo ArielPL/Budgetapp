@@ -1003,6 +1003,14 @@ export const zh: Translations = {
   backupSaved: '✓ 备份已保存',
   followUpHelp: '帮助',
   followUpHelpTitle: '收支跟踪如何使用',
+  followUpSecOverview: '概览',
+  followUpSecSort: '分类',
+  followUpSecPurchases: '购买',
+  followUpSecQuestions: '问题',
+  followUpSectionsAria: '本标签页的各部分',
+  followUpLayoutLabel: '布局',
+  followUpLayoutTabs: '子标签页',
+  followUpLayoutBoxes: '方框',
   followUpHelpBody: [
     '## 这个标签页是做什么的',
     '预算是你打算怎么花。收支跟踪是实际发生了什么。在这里，两者按分类并排显示，让你看到哪里比你想的花得多——哪里花得少。',
@@ -1097,5 +1105,6 @@ export const zhChangelog113: { title: string; items: string[] } = {
     "预算和储蓄的每一行都可以用 📝 加一条简短备注，最多 100 个字。备注显示在这一行的名称旁边，会带到下个月，每个月都可以修改",
     "每周的信封单独放在一行，与当月的信封分开。雪崩法和雪球法旁边有一个说明它们的 i。储蓄使用与预算相同的卡片，月份旁的箭头位于圆圈正中，「剩余」下方显示收入中有多少用于支出",
     "所有类别都可以删除，储蓄里的也可以。预算中的「储蓄」在没有「规划」目标与之关联时可以删除，否则会说明是哪些目标。在「自定义」中，删除在类别设置里；信封和预算可以直接在列表中或用卡片上的 × 删除。信封可以设置颜色，已归档的信封会淡显在所在行的末尾，直到你把它取回。隐私说明现在只讲应用本身",
+    "「收支跟踪」分成了几个标签页：带表格的「概览」、等待分类的「分类」、「购买」和「问题」。想把所有内容放在一页上，可以在 ⋯ 中选择「方框」，帮助和清除按钮现在也在那里。导入后，应用会直接跳到需要分类的内容",
   ],
 };

@@ -1007,6 +1007,14 @@ export const it: Translations = {
   backupSaved: "✓ Backup salvato",
   followUpHelp: "Aiuto",
   followUpHelpTitle: "Come funziona Monitoraggio",
+  followUpSecOverview: 'Panoramica',
+  followUpSecSort: 'Da smistare',
+  followUpSecPurchases: 'Acquisti',
+  followUpSecQuestions: 'Domande',
+  followUpSectionsAria: 'Parti di questa scheda',
+  followUpLayoutLabel: 'Layout',
+  followUpLayoutTabs: 'Sottoschede',
+  followUpLayoutBoxes: 'Riquadri',
   followUpHelpBody: [
     "## A cosa serve questa scheda",
     "Il budget è ciò che avevi in mente. Monitoraggio è ciò che è successo. Qui stanno uno accanto all'altro, categoria per categoria, così vedi dove è andato più di quanto pensavi, e dove meno.",
@@ -1101,5 +1109,6 @@ export const itChangelog113: { title: string; items: string[] } = {
     "Ogni riga del budget e dei Risparmi può avere una nota breve con 📝, al massimo 100 caratteri. Compare sulla riga accanto al nome, passa al mese successivo e si può cambiare in ogni mese",
     "Le buste delle settimane hanno una fila propria, separata dalla busta del mese. La valanga e la palla di neve hanno una i che le spiega. Risparmi ha le stesse schede di Budget, le frecce accanto al mese sono centrate nei loro cerchi, e sotto Rimanente si vede quanta parte delle entrate va in spese",
     "Tutte le categorie si possono eliminare, anche nei Risparmi. Risparmio nel budget si può eliminare quando nessun obiettivo di Piano vi è collegato; altrimenti viene detto quali. In Personalizzata, Elimina è nelle impostazioni della categoria, e buste e budget si eliminano direttamente dall'elenco o con la croce sulla scheda. Una busta può avere un colore, e una archiviata resta sbiadita in fondo alla sua fila finché non la riprendi. Privacy ora parla solo dell'app",
+    "Il Monitoraggio è diviso in schede: Panoramica con la tabella, Da smistare con ciò che attende una categoria, Acquisti e Domande. Se preferisci tutto in una pagina, scegli Riquadri sotto ⋯, dove ora ci sono anche l'aiuto e i pulsanti per cancellare. Dopo un'importazione l'app va subito a ciò che c'è da smistare",
   ],
 };

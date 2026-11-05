@@ -44,6 +44,8 @@ describe('P2-3: the questions say which month they are about', () => {
   it('nothing extra on today’s month; the month named on another', async () => {
     render(<App />);
     fireEvent.click(buttonWith(sv.tabFollowUp)!);
+    await waitFor(() => expect(document.querySelector('.followup-subtab')).not.toBeNull());
+    fireEvent.click([...document.querySelectorAll('.followup-subtab')].find(x => x.textContent?.includes(sv.followUpSecQuestions))!);
     await waitFor(() => expect(document.querySelector('.q-card')).not.toBeNull());
     expect(document.querySelector('.q-card')?.textContent).not.toContain(sv.qAboutNow('oktober 2026'));
     fireEvent.click(document.querySelector(`[aria-label="${sv.nextMonth}"]`)!);

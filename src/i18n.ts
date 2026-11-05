@@ -1341,6 +1341,15 @@ export interface Translations {
   // this is prose and prose is edited as a whole.
   followUpHelp: string;
   followUpHelpTitle: string;
+  followUpSecOverview: string;
+  /** The Sort sub-tab: a name, not the verb on the card's button. */
+  followUpSecSort: string;
+  followUpSecPurchases: string;
+  followUpSecQuestions: string;
+  followUpSectionsAria: string;
+  followUpLayoutLabel: string;
+  followUpLayoutTabs: string;
+  followUpLayoutBoxes: string;
   followUpHelpBody: string[];
   followUpHelpClose: string;
   // Growth chart line labels
@@ -2361,6 +2370,14 @@ export const translations: Record<Lang, Translations> = {
     backupSaved: '✓ Säkerhetskopia sparad',
     followUpHelp: 'Hjälp',
     followUpHelpTitle: 'Så fungerar utfallet',
+    followUpSecOverview: 'Översikt',
+    followUpSecSort: 'Sortera',
+    followUpSecPurchases: 'Köpen',
+    followUpSecQuestions: 'Frågor',
+    followUpSectionsAria: 'Delar av fliken',
+    followUpLayoutLabel: 'Utseende',
+    followUpLayoutTabs: 'Underflikar',
+    followUpLayoutBoxes: 'Boxar',
     followUpHelpBody: [
       '## Vad fliken är till för',
       'Budgeten är vad du tänkte. Utfallet är vad som hände. Här står de bredvid varandra, kategori för kategori, så du ser var det gick åt mer än du trodde — och var det gick åt mindre.',
@@ -3404,6 +3421,14 @@ export const translations: Record<Lang, Translations> = {
     backupSaved: '✓ Backup saved',
     followUpHelp: 'Help',
     followUpHelpTitle: 'How Follow-up works',
+    followUpSecOverview: 'Overview',
+    followUpSecSort: 'Sort',
+    followUpSecPurchases: 'Purchases',
+    followUpSecQuestions: 'Questions',
+    followUpSectionsAria: 'Parts of this tab',
+    followUpLayoutLabel: 'Layout',
+    followUpLayoutTabs: 'Sub-tabs',
+    followUpLayoutBoxes: 'Boxes',
     followUpHelpBody: [
       '## What this tab is for',
       'The budget is what you intended. Follow-up is what happened. Here they stand side by side, category by category, so you can see where more went than you thought — and where less did.',
@@ -4447,6 +4472,14 @@ export const translations: Record<Lang, Translations> = {
     backupSaved: '✓ Copia de seguridad guardada',
     followUpHelp: 'Ayuda',
     followUpHelpTitle: 'Cómo funciona Seguimiento',
+    followUpSecOverview: 'Resumen',
+    followUpSecSort: 'Clasificar',
+    followUpSecPurchases: 'Compras',
+    followUpSecQuestions: 'Preguntas',
+    followUpSectionsAria: 'Partes de esta pestaña',
+    followUpLayoutLabel: 'Diseño',
+    followUpLayoutTabs: 'Subpestañas',
+    followUpLayoutBoxes: 'Cuadros',
     followUpHelpBody: [
       '## Para qué sirve esta pestaña',
       'El presupuesto es lo que pensabas. Seguimiento es lo que pasó. Aquí están uno al lado del otro, categoría por categoría, para que veas dónde se fue más de lo que creías — y dónde menos.',

@@ -1016,6 +1016,14 @@ export const fr: Translations = {
   backupSaved: "✓ Sauvegarde enregistrée",
   followUpHelp: "Aide",
   followUpHelpTitle: "Comment fonctionne Suivi",
+  followUpSecOverview: 'Aperçu',
+  followUpSecSort: 'À classer',
+  followUpSecPurchases: 'Achats',
+  followUpSecQuestions: 'Questions',
+  followUpSectionsAria: 'Parties de cet onglet',
+  followUpLayoutLabel: 'Affichage',
+  followUpLayoutTabs: 'Sous-onglets',
+  followUpLayoutBoxes: 'Cartes',
   followUpHelpBody: [
     "## À quoi sert cet onglet",
     "Le budget, c'est ce que vous aviez prévu. Suivi, c'est ce qui s'est passé. Ici, ils sont côte à côte, catégorie par catégorie, pour voir où il est parti plus d'argent que prévu — et où moins.",
@@ -1110,5 +1118,6 @@ export const frChangelog113: { title: string; items: string[] } = {
     "Chaque ligne du budget et de l'Épargne peut recevoir une courte note avec 📝, 100 caractères au plus. Elle s'affiche sur la ligne, à côté du nom, suit au mois suivant et se modifie dans chaque mois",
     "Les enveloppes des semaines ont leur propre rangée, à part de l'enveloppe du mois. L'avalanche et la boule de neige ont un i qui les explique. Épargne a les mêmes cartes que Budget, les flèches près du mois sont centrées dans leurs cercles, et sous Reste figure la part des revenus qui part en dépenses",
     "Toutes les catégories peuvent être supprimées, dans l'Épargne aussi. Épargne dans le budget peut l'être dès qu'aucun objectif de Plan n'y est lié, sinon il est indiqué lesquels. Dans Personnalisé, Supprimer est dans les réglages de la catégorie, et enveloppes et budgets se suppriment directement dans la liste ou avec la croix de la carte. Une enveloppe peut avoir une couleur, et une enveloppe archivée reste en pâle au bout de sa rangée jusqu'à ce que vous la rameniez. Confidentialité ne parle plus que de l'app",
+    "Le Suivi est divisé en onglets : Aperçu avec le tableau, À classer avec ce qui attend une catégorie, Achats et Questions. Pour tout avoir sur une page, choisissez Cartes sous ⋯, où se trouvent aussi l'aide et les boutons pour effacer. Après une importation, l'app va directement à ce qu'il faut classer",
   ],
 };

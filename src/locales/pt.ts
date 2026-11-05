@@ -1007,6 +1007,14 @@ export const pt: Translations = {
   backupSaved: '✓ Backup salvo',
   followUpHelp: 'Ajuda',
   followUpHelpTitle: 'Como funciona o Acompanhamento',
+  followUpSecOverview: 'Visão geral',
+  followUpSecSort: 'Classificar',
+  followUpSecPurchases: 'Compras',
+  followUpSecQuestions: 'Perguntas',
+  followUpSectionsAria: 'Partes desta aba',
+  followUpLayoutLabel: 'Layout',
+  followUpLayoutTabs: 'Subabas',
+  followUpLayoutBoxes: 'Caixas',
   followUpHelpBody: [
     '## Para que serve esta aba',
     'O orçamento é o que você pretendia. O Acompanhamento é o que aconteceu. Aqui os dois ficam lado a lado, categoria por categoria, para você ver onde foi mais do que pensava — e onde foi menos.',
@@ -1100,5 +1108,6 @@ export const ptChangelog113: { title: string; items: string[] } = {
     "Cada linha do orçamento e da Poupança pode ter uma anotação curta com 📝, de até 100 caracteres. Ela aparece na linha, ao lado do nome, acompanha o mês seguinte e pode ser alterada em qualquer mês",
     "Os envelopes das semanas ficam numa fila própria, separados do envelope do mês. A avalanche e a bola de neve têm um i que as explica. Poupança tem os mesmos cartões que Orçamento, as setas ao lado do mês ficam no centro dos círculos, e em Restante aparece quanto da renda vai para despesas",
     "Todas as categorias podem ser apagadas, também na Poupança. Poupança no orçamento pode ser apagada quando nenhuma meta do Plano estiver vinculada a ela; se houver, aparece quais são. Em Personalizado, Excluir fica nas configurações da categoria, e envelopes e orçamentos são excluídos direto na lista ou com o X do cartão. Um envelope pode ter uma cor, e um arquivado fica mais claro no fim da sua fila até você trazê-lo de volta. Privacidade agora fala só do app",
+    "O Acompanhamento é dividido em abas: Visão geral com a tabela, Classificar com o que espera uma categoria, Compras e Perguntas. Se preferir tudo em uma página, escolha Caixas em ⋯, onde agora também ficam a ajuda e os botões de limpar. Depois de uma importação, o app vai direto ao que precisa ser classificado",
   ],
 };

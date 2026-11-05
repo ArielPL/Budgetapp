@@ -88,8 +88,13 @@ const buttonWith = (label: string, root: ParentNode = document) =>
   [...root.querySelectorAll('button')].find(el => el.textContent?.includes(label));
 const card = () => document.querySelector('.q-card') as HTMLElement;
 const settle = () => act(async () => { for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0)); });
+const openSection = async (label: string) => {
+  await waitFor(() => expect(document.querySelector('.followup-subtab')).not.toBeNull());
+  fireEvent.click([...document.querySelectorAll('.followup-subtab')].find(x => x.textContent?.includes(label))!);
+};
 const openFollowUp = async () => {
   tab(sv.tabFollowUp);
+  await openSection(sv.followUpSecQuestions);
   await waitFor(() => expect(document.querySelector('.q-card')).not.toBeNull());
 };
 

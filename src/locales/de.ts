@@ -1007,6 +1007,14 @@ export const de: Translations = {
   backupSaved: '✓ Sicherung gespeichert',
   followUpHelp: 'Hilfe',
   followUpHelpTitle: 'So funktioniert die Auswertung',
+  followUpSecOverview: 'Übersicht',
+  followUpSecSort: 'Zuordnen',
+  followUpSecPurchases: 'Käufe',
+  followUpSecQuestions: 'Fragen',
+  followUpSectionsAria: 'Bereiche dieses Tabs',
+  followUpLayoutLabel: 'Darstellung',
+  followUpLayoutTabs: 'Unterreiter',
+  followUpLayoutBoxes: 'Kästen',
   followUpHelpBody: [
     '## Wofür dieser Tab da ist',
     'Das Budget ist, was du vorhattest. Die Auswertung ist, was passiert ist. Hier stehen beide nebeneinander, Kategorie für Kategorie, damit du siehst, wo mehr draufging als gedacht – und wo weniger.',
@@ -1101,5 +1109,6 @@ export const deChangelog113: { title: string; items: string[] } = {
     "Jede Zeile im Budget und beim Sparen kann mit 📝 eine kurze Notiz bekommen, höchstens 100 Zeichen. Sie steht in der Zeile neben dem Namen, geht mit in den nächsten Monat und lässt sich in jedem Monat ändern",
     "Die Umschläge der Wochen stehen in einer eigenen Reihe, getrennt vom Umschlag des Monats. Die Lawine und der Schneeball haben ein i, das sie erklärt. Sparen hat dieselben Kacheln wie Budget, die Pfeile neben dem Monat sitzen mittig in ihren Kreisen, und unter Übrig steht, welcher Teil der Einnahmen in Ausgaben fließt",
     "Jede Kategorie lässt sich löschen, auch beim Sparen. Sparen im Budget lässt sich löschen, sobald kein Sparziel im Plan damit verknüpft ist, sonst steht da, welche Ziele es sind. In Individuell ist Löschen in den Einstellungen der Kategorie, und Umschläge und Budgets löschst du direkt in der Liste oder mit dem Kreuz auf der Karte. Ein Umschlag kann eine Farbe haben, und ein archivierter steht blass am Ende seiner Reihe, bis du ihn zurückholst. Datenschutz handelt jetzt nur von der App",
+    "Die Auswertung ist in Reiter aufgeteilt: Übersicht mit der Tabelle, Zuordnen mit allem, was auf eine Kategorie wartet, Käufe und Fragen. Wer lieber alles auf einer Seite hat, wählt Kästen unter ⋯, wo jetzt auch die Hilfe und die Löschen-Knöpfe sind. Nach einem Import springt die App direkt zu dem, was zuzuordnen ist",
   ],
 };

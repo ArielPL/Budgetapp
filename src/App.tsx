@@ -83,6 +83,7 @@ import { loadActuals, planRefile, refileChanges } from './actuals';
 import { hasRestorableUserData } from './userData';
 import { GUIDE_ROW_HIDDEN_KEY } from './guide/key';
 import type { SpotTarget } from './guide/spots';
+import { requestFollowUpSection } from './followUpLayout';
 import { Spotlight } from './components/Spotlight';
 
 /** The year whose "copy to the rest of the year" offer was declined. */
@@ -957,6 +958,7 @@ function App({ startupRepair = null }: AppProps) {
   // lives there; null is the way back to the guide, which closes the menu.
   const showGuideSpot = (target: SpotTarget | null) => {
     if (!target) { setMenuOpen(false); return; }
+    if (target.section) requestFollowUpSection(target.section);
     if (target.tab) changeTab(target.tab);
     else setWalletsScreen(false);
     setMenuOpen(!!target.menu);
